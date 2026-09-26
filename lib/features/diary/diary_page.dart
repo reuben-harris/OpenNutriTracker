@@ -196,6 +196,7 @@ class _DiaryPageState extends State<DiaryPage> {
       finalType,
       intakeEntity.meal,
       locator<SelectedDayCubit>().state.today,
+      copiedFrom: intakeEntity,
     );
     _diaryBloc.updateHomePage();
   }
