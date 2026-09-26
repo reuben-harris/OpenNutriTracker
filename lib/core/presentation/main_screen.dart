@@ -20,6 +20,7 @@ import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_b
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
 import 'package:opennutritracker/features/home/home_page.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
+import 'package:opennutritracker/features/home/presentation/widgets/recipe_swipe_scope.dart';
 import 'package:opennutritracker/features/profile/profile_page.dart';
 import 'package:opennutritracker/features/trends/presentation/trends_page.dart';
 import 'package:opennutritracker/features/trends/presentation/bloc/trends_bloc.dart';
@@ -160,7 +161,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
           Expanded(
             child: !_ready
                 ? const Center(child: CircularProgressIndicator())
-                : IndexedStack(index: _selectedPageIndex, children: _bodyPages),
+                : IndexedStack(
+                    index: _selectedPageIndex,
+                    children: [
+                      for (var i = 0; i < _bodyPages.length; i++)
+                        RecipeSwipeScope(
+                          active: i == _selectedPageIndex,
+                          child: _bodyPages[i],
+                        ),
+                    ],
+                  ),
           ),
         ],
       ),
