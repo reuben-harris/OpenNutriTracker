@@ -481,6 +481,11 @@
   "infoAddedIntakeLabel": "Added new intake",
   "ironLabel": "iron",
   "itemDeletedSnackbar": "Item deleted",
+  "refreshProductLabel": "Refresh from Open Food Facts",
+  "@refreshProductLabel": {
+    "description": "Tooltip for fetching the latest product data from Open Food Facts",
+    "placeholders": {}
+  },
   "itemUpdatedSnackbar": "Item updated",
   "kcalGoalInfoActivityExplanation": "Calories burned by logged activities are added on top of your goal, so your planned deficit or surplus stays the same on training days.",
   "kcalGoalInfoActivitySection": "Step 4 · Today's exercise",

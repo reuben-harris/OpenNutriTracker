@@ -35,6 +35,9 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
   final RemoteSearchCacheDataSource _remoteSearchCacheDataSource;
   final RecipeRepository? _recipeRepository;
 
+  int _mealRequest = 0;
+  Future<void>? _hydrationCacheWrite;
+
   MealDetailBloc(
     this._addIntakeUseCase,
     this._addTrackedDayUsecase,
@@ -121,13 +124,15 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
     on<HydrateMealEvent>((event, emit) async {
       final meal = event.meal;
       final code = meal.code;
-      if (meal.source != MealSourceEntity.off ||
+      if (state.refreshStatus != ProductRefreshStatus.idle ||
+          meal.source != MealSourceEntity.off ||
           meal.detailed ||
           code == null ||
           code.isEmpty) {
         return;
       }
 
+      final request = ++_mealRequest;
       emit(state.copyWith(isHydrating: true));
       try {
         // A full cache entry (from an earlier scan/hydration) lets us skip the
@@ -136,17 +141,70 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
         final full = cached != null
             ? MealEntity.fromMealDBO(cached)
             : await _productsRepository.getOFFProductByBarcode(code);
+        if (request != _mealRequest || emit.isDone) return;
         if (cached == null) {
-          await _remoteSearchCacheDataSource.cache(
+          await (_hydrationCacheWrite = _remoteSearchCacheDataSource.cache(
             MealDBO.fromMealEntity(full),
-          );
+          ));
         }
-        emit(state.copyWith(hydratedMeal: full, isHydrating: false));
+        if (request != _mealRequest || emit.isDone) return;
+        emit(
+          state.copyWith(
+            hydratedMeal: full,
+            mealRevision: state.mealRevision + 1,
+            isHydrating: false,
+          ),
+        );
       } catch (e, st) {
         // Soft failure: keep the thin result so the user can still log
         // macros-only. The Add button is never blocked on hydration.
         log.warning('OFF hydration failed for $code', e, st);
+        if (request != _mealRequest || emit.isDone) return;
         emit(state.copyWith(isHydrating: false));
+      }
+    });
+
+    on<RefreshMealEvent>((event, emit) async {
+      final code = event.meal.code;
+      if (state.isRefreshing ||
+          event.meal.source != MealSourceEntity.off ||
+          code == null ||
+          code.isEmpty) {
+        return;
+      }
+
+      // Invalidate an older hydration before starting the direct OFF request.
+      ++_mealRequest;
+      emit(
+        state.copyWith(
+          refreshStatus: ProductRefreshStatus.loading,
+          isHydrating: false,
+        ),
+      );
+      try {
+        final fresh = await _productsRepository.getOFFProductByBarcode(code);
+        if (emit.isDone) return;
+        // If hydration was already writing, let it finish first so this fresh
+        // result is the last cache write. Its response cannot update the UI.
+        try {
+          await _hydrationCacheWrite;
+        } catch (_) {
+          // A failed older write does not prevent caching the fresh response.
+        }
+        if (emit.isDone) return;
+        await _remoteSearchCacheDataSource.cache(MealDBO.fromMealEntity(fresh));
+        if (emit.isDone) return;
+        emit(
+          state.copyWith(
+            hydratedMeal: fresh,
+            mealRevision: state.mealRevision + 1,
+            refreshStatus: ProductRefreshStatus.success,
+          ),
+        );
+      } catch (e, st) {
+        log.warning('OFF refresh failed for $code', e, st);
+        if (emit.isDone) return;
+        emit(state.copyWith(refreshStatus: ProductRefreshStatus.failure));
       }
     });
   }
