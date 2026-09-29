@@ -52,3 +52,13 @@ class HydrateMealEvent extends MealDetailEvent {
   @override
   List<Object?> get props => [meal];
 }
+
+/// Explicitly bypass the local cache for one Open Food Facts product.
+class RefreshMealEvent extends MealDetailEvent {
+  final MealEntity meal;
+
+  const RefreshMealEvent(this.meal);
+
+  @override
+  List<Object?> get props => [meal];
+}

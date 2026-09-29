@@ -96,6 +96,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     _scrollController.removeListener(_handleScroll);
     _scrollController.dispose();
     quantityTextController.dispose();
+    _mealDetailBloc.close();
     super.dispose();
   }
 
@@ -233,14 +234,28 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   /// the quantity/unit yet, re-pick the defaults (so serving becomes the
   /// default now that serving data exists); otherwise just recompute totals
   /// against the fuller nutriments while keeping the user's selection.
-  void _onMealHydrated(MealEntity full) {
+  /// Explicit refreshes always preserve a valid selection, including defaults.
+  void _onMealHydrated(MealEntity full, {bool preserveSelection = false}) {
+    var unit = _mealDetailBloc.state.selectedUnit;
+    if (!_supportsUnit(full, unit)) {
+      // A removed serving or changed solid/liquid classification must not
+      // leave the dropdown pointing at a missing item. Preserve the last
+      // valid base quantity, rather than treating "2 servings" as "2 g".
+      unit = UnitDropdownItem.gml.toString();
+      _applyingInitialSelection = true;
+      quantityTextController.text =
+          _mealDetailBloc.state.totalQuantityConverted;
+      _applyingInitialSelection = false;
+      preserveSelection = true;
+    }
     setState(() => meal = full);
+    if (preserveSelection) _userChangedSelection = true;
     if (_userChangedSelection) {
       _mealDetailBloc.add(
         UpdateKcalEvent(
           meal: meal,
           totalQuantity: quantityTextController.text,
-          selectedUnit: _mealDetailBloc.state.selectedUnit,
+          selectedUnit: unit,
         ),
       );
     } else {
@@ -250,13 +265,53 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     }
   }
 
+  bool _supportsUnit(MealEntity product, String unit) {
+    if (unit == UnitDropdownItem.serving.toString()) {
+      return product.scalableServingQuantity != null;
+    }
+    if (unit == UnitDropdownItem.g.toString() ||
+        unit == UnitDropdownItem.oz.toString()) {
+      return !product.isLiquid;
+    }
+    if (unit == UnitDropdownItem.ml.toString() ||
+        unit == UnitDropdownItem.flOz.toString()) {
+      return !product.isSolid;
+    }
+    return unit == UnitDropdownItem.gml.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<MealDetailBloc, MealDetailState>(
       bloc: _mealDetailBloc,
       listenWhen: (prev, curr) =>
-          curr.hydratedMeal != null && curr.hydratedMeal != prev.hydratedMeal,
-      listener: (context, state) => _onMealHydrated(state.hydratedMeal!),
+          curr.mealRevision != prev.mealRevision ||
+          curr.refreshStatus != prev.refreshStatus,
+      listener: (context, state) {
+        if (state.refreshStatus == ProductRefreshStatus.loading) return;
+        if (state.refreshStatus != ProductRefreshStatus.failure &&
+            state.hydratedMeal != null) {
+          _onMealHydrated(
+            state.hydratedMeal!,
+            preserveSelection:
+                state.refreshStatus == ProductRefreshStatus.success,
+          );
+        }
+        if (state.refreshStatus == ProductRefreshStatus.success ||
+            state.refreshStatus == ProductRefreshStatus.failure) {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(
+                  state.refreshStatus == ProductRefreshStatus.success
+                      ? S.of(context).itemUpdatedSnackbar
+                      : S.of(context).errorFetchingProductData,
+                ),
+              ),
+            );
+        }
+      },
       child: SafeArea(
         child: Scaffold(
           backgroundColor:
@@ -276,6 +331,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                   state.dayKcalConsumed,
                   state.dayKcalGoal,
                   state.isHydrating,
+                  state.isRefreshing,
                 );
               }
               return const Center(child: CircularProgressIndicator());
@@ -289,7 +345,9 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
               product: meal,
               day: _day,
               intakeTypeEntity: intakeTypeEntity,
-              selectedUnit: selectedUnit,
+              selectedUnit: _supportsUnit(meal, selectedUnit)
+                  ? selectedUnit
+                  : UnitDropdownItem.gml.toString(),
               mealDetailBloc: _mealDetailBloc,
               quantityTextController: quantityTextController,
               onQuantityOrUnitChanged: onQuantityOrUnitChanged,
@@ -312,6 +370,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     double dayKcalConsumed,
     double dayKcalGoal,
     bool isHydrating,
+    bool isRefreshing,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final palette = isDark ? AppPalette.dark : AppPalette.light;
@@ -360,6 +419,23 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
             ),
           ),
           actions: [
+            if (meal.source == MealSourceEntity.off &&
+                (meal.code?.isNotEmpty ?? false))
+              Semantics(
+                identifier: 'meal-detail-refresh',
+                child: IconButton(
+                  tooltip: S.of(context).refreshProductLabel,
+                  onPressed: isRefreshing
+                      ? null
+                      : () => _mealDetailBloc.add(RefreshMealEvent(meal)),
+                  icon: isRefreshing
+                      ? const SizedBox.square(
+                          dimension: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh_rounded),
+                ),
+              ),
             Semantics(
               identifier: 'meal-detail-edit',
               child: IconButton(

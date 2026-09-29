@@ -1,5 +1,7 @@
 part of 'meal_detail_bloc.dart';
 
+enum ProductRefreshStatus { idle, loading, success, failure }
+
 abstract class MealDetailState extends Equatable {
   final String totalQuantityConverted;
   final double totalKcal;
@@ -12,13 +14,20 @@ abstract class MealDetailState extends Equatable {
   final double dayKcalConsumed;
   final double dayKcalGoal;
 
-  /// Full product record once a thin OFF search result has been hydrated;
-  /// null until then. The screen swaps the displayed meal for this when it
-  /// arrives so serving options and micronutrients appear.
+  /// Latest full product from hydration or an explicit refresh; null until
+  /// either succeeds. The screen uses it for nutrition and serving options.
   final MealEntity? hydratedMeal;
 
   /// True while the hydration network call is in flight.
   final bool isHydrating;
+
+  final ProductRefreshStatus refreshStatus;
+
+  /// MealEntity equality only compares code/name, so nutrition-only updates
+  /// need their own revision to reach the screen (including repeated refreshes).
+  final int mealRevision;
+
+  bool get isRefreshing => refreshStatus == ProductRefreshStatus.loading;
 
   const MealDetailState({
     required this.totalQuantityConverted,
@@ -31,6 +40,8 @@ abstract class MealDetailState extends Equatable {
     this.dayKcalGoal = 0,
     this.hydratedMeal,
     this.isHydrating = false,
+    this.refreshStatus = ProductRefreshStatus.idle,
+    this.mealRevision = 0,
   });
 
   @override
@@ -45,6 +56,8 @@ abstract class MealDetailState extends Equatable {
         dayKcalGoal,
         hydratedMeal,
         isHydrating,
+        refreshStatus,
+        mealRevision,
       ];
 
   MealDetailInitial copyWith({
@@ -58,6 +71,8 @@ abstract class MealDetailState extends Equatable {
     double? dayKcalGoal,
     MealEntity? hydratedMeal,
     bool? isHydrating,
+    ProductRefreshStatus? refreshStatus,
+    int? mealRevision,
   }) {
     return MealDetailInitial(
       totalQuantityConverted:
@@ -71,6 +86,8 @@ abstract class MealDetailState extends Equatable {
       dayKcalGoal: dayKcalGoal ?? this.dayKcalGoal,
       hydratedMeal: hydratedMeal ?? this.hydratedMeal,
       isHydrating: isHydrating ?? this.isHydrating,
+      refreshStatus: refreshStatus ?? this.refreshStatus,
+      mealRevision: mealRevision ?? this.mealRevision,
     );
   }
 }
@@ -87,5 +104,7 @@ class MealDetailInitial extends MealDetailState {
     super.dayKcalGoal,
     super.hydratedMeal,
     super.isHydrating,
+    super.refreshStatus,
+    super.mealRevision,
   });
 }
