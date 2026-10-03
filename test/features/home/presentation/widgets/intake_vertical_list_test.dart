@@ -423,4 +423,39 @@ void main() {
     expect(completed, [0, 1]);
     await tester.pumpAndSettle();
   });
+  testWidgets('zero-calorie entries expose copy, delete, share and sort', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapWithMaterial(
+        IntakeVerticalList(
+          day: DateTime(2026, 1, 1),
+          title: 'Breakfast',
+          listIcon: Icons.bakery_dining_outlined,
+          addMealType: AddMealType.breakfastType,
+          intakeList: [
+            _buildIntake(
+              amount: 100,
+              kcal100: 0,
+              carbs100: 0,
+              fat100: 0,
+              protein100: 0,
+            ),
+          ],
+          usesImperialUnits: false,
+          onDeleteIntakeCallback: (_, _) {},
+          onCopyIntakeCallback: (_, _, _) async {},
+          onSortTypeChanged: (_) {},
+        ),
+      ),
+    );
+    expect(find.byIcon(Icons.sort_rounded), findsOneWidget);
+    await tester.tap(
+      find.byType(PopupMenuButton<VerticalListPopupMenuSelections>),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(l10nEn.dialogCopyLabel), findsOneWidget);
+    expect(find.text(l10nEn.deleteAllLabel), findsOneWidget);
+    expect(find.text(l10nEn.shareMealLabel), findsOneWidget);
+  });
 }

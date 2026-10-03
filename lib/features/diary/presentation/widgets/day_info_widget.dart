@@ -8,6 +8,7 @@ import 'package:opennutritracker/core/presentation/widgets/copy_or_delete_dialog
 import 'package:opennutritracker/core/presentation/widgets/copy_dialog.dart';
 import 'package:opennutritracker/core/presentation/widgets/delete_dialog.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
+import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
 import 'package:opennutritracker/core/utils/custom_icons.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
@@ -193,7 +194,10 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 onItemLongPressedCallback: onActivityItemLongPressed,
                 onItemTappedCallback: widget.onEditActivity,
                 onCopyActivityCallback:
-                    DateUtils.isSameDay(widget.selectedDay, DateTime.now())
+                    DateUtils.isSameDay(
+                      widget.selectedDay,
+                      locator<SelectedDayCubit>().state.today,
+                    )
                     ? null
                     : (activity) => widget.onCopyActivity(
                         activity,
@@ -218,7 +222,10 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 onItemLongPressedCallback: onIntakeItemLongPressed,
                 onItemTappedCallback: widget.onEditIntake,
                 onCopyIntakeCallback:
-                    DateUtils.isSameDay(widget.selectedDay, DateTime.now())
+                    DateUtils.isSameDay(
+                      widget.selectedDay,
+                      locator<SelectedDayCubit>().state.today,
+                    )
                     ? null
                     : widget.onCopyIntake,
                 usesImperialUnits: widget.usesImperialUnits,
@@ -244,7 +251,10 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 usesImperialUnits: widget.usesImperialUnits,
                 showMealMacros: widget.showMealMacros,
                 onCopyIntakeCallback:
-                    DateUtils.isSameDay(widget.selectedDay, DateTime.now())
+                    DateUtils.isSameDay(
+                      widget.selectedDay,
+                      locator<SelectedDayCubit>().state.today,
+                    )
                     ? null
                     : widget.onCopyIntake,
                 trackedDayEntity: trackedDay,
@@ -266,7 +276,10 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 onItemLongPressedCallback: onIntakeItemLongPressed,
                 onItemTappedCallback: widget.onEditIntake,
                 onCopyIntakeCallback:
-                    DateUtils.isSameDay(widget.selectedDay, DateTime.now())
+                    DateUtils.isSameDay(
+                      widget.selectedDay,
+                      locator<SelectedDayCubit>().state.today,
+                    )
                     ? null
                     : widget.onCopyIntake,
                 usesImperialUnits: widget.usesImperialUnits,
@@ -291,7 +304,10 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 usesImperialUnits: widget.usesImperialUnits,
                 showMealMacros: widget.showMealMacros,
                 onCopyIntakeCallback:
-                    DateUtils.isSameDay(widget.selectedDay, DateTime.now())
+                    DateUtils.isSameDay(
+                      widget.selectedDay,
+                      locator<SelectedDayCubit>().state.today,
+                    )
                     ? null
                     : widget.onCopyIntake,
                 trackedDayEntity: trackedDay,
@@ -359,7 +375,10 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
     BuildContext context,
     IntakeEntity intakeEntity,
   ) async {
-    if (DateUtils.isSameDay(widget.selectedDay, DateTime.now())) {
+    if (DateUtils.isSameDay(
+      widget.selectedDay,
+      locator<SelectedDayCubit>().state.today,
+    )) {
       showDeleteIntakeDialog(context, intakeEntity);
     } else {
       showCopyOrDeleteIntakeDialog(context, intakeEntity);
@@ -370,7 +389,10 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
     BuildContext context,
     UserActivityEntity activityEntity,
   ) async {
-    if (DateUtils.isSameDay(widget.selectedDay, DateTime.now())) {
+    if (DateUtils.isSameDay(
+      widget.selectedDay,
+      locator<SelectedDayCubit>().state.today,
+    )) {
       final shouldDelete = await showDialog<bool>(
         context: context,
         builder: (context) => const DeleteDialog(),

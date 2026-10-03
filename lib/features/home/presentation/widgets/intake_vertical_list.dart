@@ -124,7 +124,8 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
   bool get _hasMealKcalTarget =>
       widget.mealKcalTarget != null && widget.mealKcalTarget! > 0;
 
-  bool get _shouldShowHeaderSummary => totalKcal > 0 || _hasMealKcalTarget;
+  bool get _shouldShowHeaderSummary =>
+      widget.intakeList.isNotEmpty || _hasMealKcalTarget;
 
   String _buildHeaderSummary(BuildContext context) {
     final consumed = EnergyDisplay.formatValue(context, totalKcal);
@@ -136,7 +137,7 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                 EnergyDisplay.formatValue(context, widget.mealKcalTarget!),
               )
         : EnergyDisplay.formatWithUnit(context, totalKcal);
-    if (widget.showMealMacros && totalKcal > 0) {
+    if (widget.showMealMacros && widget.intakeList.isNotEmpty) {
       return '$kcalLine\n'
           '${totalCarbsGram.toInt()} ${S.of(context).carbsLabelShort}  '
           '${totalFatsGram.toInt()} ${S.of(context).fatLabelShort}  '
@@ -200,7 +201,8 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                     textAlign: TextAlign.end,
                   ),
                 ),
-              if (widget.onSortTypeChanged != null && totalKcal > 0)
+              if (widget.onSortTypeChanged != null &&
+                  widget.intakeList.isNotEmpty)
                 _buildSortMenu(context),
               Semantics(
                 identifier: 'intake-section-menu',
@@ -291,17 +293,17 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                   itemBuilder: (BuildContext context) =>
                       <PopupMenuEntry<VerticalListPopupMenuSelections>>[
                         if (widget.onCopyIntakeCallback != null &&
-                            totalKcal > 0)
+                            widget.intakeList.isNotEmpty)
                           PopupMenuItem<VerticalListPopupMenuSelections>(
                             value: VerticalListPopupMenuSelections.onCopy,
                             child: Text(S.of(context).dialogCopyLabel),
                           ),
-                        if (totalKcal > 0)
+                        if (widget.intakeList.isNotEmpty)
                           PopupMenuItem<VerticalListPopupMenuSelections>(
                             value: VerticalListPopupMenuSelections.onDelete,
                             child: Text(S.of(context).deleteAllLabel),
                           ),
-                        if (totalKcal > 0)
+                        if (widget.intakeList.isNotEmpty)
                           PopupMenuItem<VerticalListPopupMenuSelections>(
                             value: VerticalListPopupMenuSelections.onShare,
                             child: Text(S.of(context).shareMealLabel),
