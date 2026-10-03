@@ -124,81 +124,94 @@ void main() {
 
   String headerKcalOnly() => '200 ${l10nEn.kcalLabel}';
 
-  testWidgets(
-    'shows kcal + macro breakdown when showMealMacros is true',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(IntakeVerticalList(
-        day: DateTime(2026, 1, 1),
-        title: 'Breakfast',
-        listIcon: Icons.bakery_dining_outlined,
-        addMealType: AddMealType.breakfastType,
-        intakeList: intakes,
-        usesImperialUnits: false,
-        showMealMacros: true,
-        onDeleteIntakeCallback: (_, _) {},
-      )));
-      await tester.pump();
+  testWidgets('shows kcal + macro breakdown when showMealMacros is true', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapWithMaterial(
+        IntakeVerticalList(
+          day: DateTime(2026, 1, 1),
+          title: 'Breakfast',
+          listIcon: Icons.bakery_dining_outlined,
+          addMealType: AddMealType.breakfastType,
+          intakeList: intakes,
+          usesImperialUnits: false,
+          showMealMacros: true,
+          onDeleteIntakeCallback: (_, _) {},
+        ),
+      ),
+    );
+    await tester.pump();
 
-      expect(find.text(headerWithMacros()), findsOneWidget);
-    },
-  );
+    expect(find.text(headerWithMacros()), findsOneWidget);
+  });
 
-  testWidgets(
-    'shows only kcal when showMealMacros is false',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(IntakeVerticalList(
-        day: DateTime(2026, 1, 1),
-        title: 'Breakfast',
-        listIcon: Icons.bakery_dining_outlined,
-        addMealType: AddMealType.breakfastType,
-        intakeList: intakes,
-        usesImperialUnits: false,
-        showMealMacros: false,
-        onDeleteIntakeCallback: (_, _) {},
-      )));
-      await tester.pump();
+  testWidgets('shows only kcal when showMealMacros is false', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapWithMaterial(
+        IntakeVerticalList(
+          day: DateTime(2026, 1, 1),
+          title: 'Breakfast',
+          listIcon: Icons.bakery_dining_outlined,
+          addMealType: AddMealType.breakfastType,
+          intakeList: intakes,
+          usesImperialUnits: false,
+          showMealMacros: false,
+          onDeleteIntakeCallback: (_, _) {},
+        ),
+      ),
+    );
+    await tester.pump();
 
-      expect(find.text(headerWithMacros()), findsNothing);
-    },
-  );
+    expect(find.text(headerWithMacros()), findsNothing);
+  });
 
   testWidgets(
     'defaults to showing macro breakdown when showMealMacros is omitted',
     (WidgetTester tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(IntakeVerticalList(
-        day: DateTime(2026, 1, 1),
-        title: 'Breakfast',
-        listIcon: Icons.bakery_dining_outlined,
-        addMealType: AddMealType.breakfastType,
-        intakeList: intakes,
-        usesImperialUnits: false,
-        onDeleteIntakeCallback: (_, _) {},
-      )));
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          IntakeVerticalList(
+            day: DateTime(2026, 1, 1),
+            title: 'Breakfast',
+            listIcon: Icons.bakery_dining_outlined,
+            addMealType: AddMealType.breakfastType,
+            intakeList: intakes,
+            usesImperialUnits: false,
+            onDeleteIntakeCallback: (_, _) {},
+          ),
+        ),
+      );
       await tester.pump();
 
       expect(find.text(headerWithMacros()), findsOneWidget);
     },
   );
 
-  testWidgets(
-    'shows no header text when intake list is empty',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(IntakeVerticalList(
-        day: DateTime(2026, 1, 1),
-        title: 'Breakfast',
-        listIcon: Icons.bakery_dining_outlined,
-        addMealType: AddMealType.breakfastType,
-        intakeList: const [],
-        usesImperialUnits: false,
-        showMealMacros: true,
-        onDeleteIntakeCallback: (_, _) {},
-      )));
-      await tester.pump();
+  testWidgets('shows no header text when intake list is empty', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapWithMaterial(
+        IntakeVerticalList(
+          day: DateTime(2026, 1, 1),
+          title: 'Breakfast',
+          listIcon: Icons.bakery_dining_outlined,
+          addMealType: AddMealType.breakfastType,
+          intakeList: const [],
+          usesImperialUnits: false,
+          showMealMacros: true,
+          onDeleteIntakeCallback: (_, _) {},
+        ),
+      ),
+    );
+    await tester.pump();
 
-      expect(find.text(headerWithMacros()), findsNothing);
-      expect(find.text(headerKcalOnly()), findsNothing);
-    },
-  );
+    expect(find.text(headerWithMacros()), findsNothing);
+    expect(find.text(headerKcalOnly()), findsNothing);
+  });
 
   // Regression: the QR-share/import options were dropped from the popup
   // menu when the macros toggle PR landed on a stale base. Lock in the
@@ -206,20 +219,26 @@ void main() {
   testWidgets(
     'popup menu shows Copy/Delete/Share/Import for non-empty section',
     (WidgetTester tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(IntakeVerticalList(
-        day: DateTime(2026, 1, 1),
-        title: 'Breakfast',
-        listIcon: Icons.bakery_dining_outlined,
-        addMealType: AddMealType.breakfastType,
-        intakeList: intakes,
-        usesImperialUnits: false,
-        showMealMacros: true,
-        onCopyIntakeCallback: (_, _, _) {},
-        onDeleteIntakeCallback: (_, _) {},
-      )));
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          IntakeVerticalList(
+            day: DateTime(2026, 1, 1),
+            title: 'Breakfast',
+            listIcon: Icons.bakery_dining_outlined,
+            addMealType: AddMealType.breakfastType,
+            intakeList: intakes,
+            usesImperialUnits: false,
+            showMealMacros: true,
+            onCopyIntakeCallback: (_, _, _) {},
+            onDeleteIntakeCallback: (_, _) {},
+          ),
+        ),
+      );
       await tester.pump();
 
-      await tester.tap(find.byType(PopupMenuButton<VerticalListPopupMenuSelections>));
+      await tester.tap(
+        find.byType(PopupMenuButton<VerticalListPopupMenuSelections>),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text(l10nEn.dialogCopyLabel), findsOneWidget);
@@ -229,41 +248,47 @@ void main() {
     },
   );
 
-  testWidgets(
-    'popup menu shows only Import when section is empty',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(IntakeVerticalList(
-        day: DateTime(2026, 1, 1),
-        title: 'Breakfast',
-        listIcon: Icons.bakery_dining_outlined,
-        addMealType: AddMealType.breakfastType,
-        intakeList: const [],
-        usesImperialUnits: false,
-        showMealMacros: true,
-        onDeleteIntakeCallback: (_, _) {},
-      )));
-      await tester.pump();
+  testWidgets('popup menu shows only Import when section is empty', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapWithMaterial(
+        IntakeVerticalList(
+          day: DateTime(2026, 1, 1),
+          title: 'Breakfast',
+          listIcon: Icons.bakery_dining_outlined,
+          addMealType: AddMealType.breakfastType,
+          intakeList: const [],
+          usesImperialUnits: false,
+          showMealMacros: true,
+          onDeleteIntakeCallback: (_, _) {},
+        ),
+      ),
+    );
+    await tester.pump();
 
-      await tester.tap(find.byType(PopupMenuButton<VerticalListPopupMenuSelections>));
-      await tester.pumpAndSettle();
+    await tester.tap(
+      find.byType(PopupMenuButton<VerticalListPopupMenuSelections>),
+    );
+    await tester.pumpAndSettle();
 
-      // Empty section: no Copy/Delete/Share — nothing to act on. Import is
-      // always available so the user can scan a QR to populate the section.
-      expect(find.text(l10nEn.dialogCopyLabel), findsNothing);
-      expect(find.text(l10nEn.deleteAllLabel), findsNothing);
-      expect(find.text(l10nEn.shareMealLabel), findsNothing);
-      expect(find.text(l10nEn.importMealLabel), findsOneWidget);
-    },
-  );
+    // Empty section: no Copy/Delete/Share — nothing to act on. Import is
+    // always available so the user can scan a QR to populate the section.
+    expect(find.text(l10nEn.dialogCopyLabel), findsNothing);
+    expect(find.text(l10nEn.deleteAllLabel), findsNothing);
+    expect(find.text(l10nEn.shareMealLabel), findsNothing);
+    expect(find.text(l10nEn.importMealLabel), findsOneWidget);
+  });
 
   // Regression: at a phone-width header the title used to be starved of space
   // by a Spacer competing with the kcal summary for flex, so "Breakfast"
   // wrapped onto a second line ("Breakfas" / "t"). The title now takes an
   // Expanded and shrinks to fit, so it must stay on exactly one line.
-  testWidgets(
-    'meal title stays on a single line beside the kcal summary',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(
+  testWidgets('meal title stays on a single line beside the kcal summary', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapWithMaterial(
         Align(
           alignment: Alignment.topCenter,
           child: SizedBox(
@@ -281,19 +306,66 @@ void main() {
             ),
           ),
         ),
-      ));
-      await tester.pump();
+      ),
+    );
+    await tester.pump();
 
-      // No RenderFlex overflow from the header competing for width.
-      expect(tester.takeException(), isNull);
+    // No RenderFlex overflow from the header competing for width.
+    expect(tester.takeException(), isNull);
 
-      final titleFinder = find.text('Breakfast');
-      expect(titleFinder, findsOneWidget);
-      // A single line of titleLarge (21px) renders around one line-height tall;
-      // the old wrapped layout produced two lines (~double). Anything under
-      // this threshold can only be a single line.
-      final paragraph = tester.renderObject<RenderParagraph>(titleFinder);
-      expect(paragraph.size.height, lessThan(35));
-    },
-  );
+    final titleFinder = find.text('Breakfast');
+    expect(titleFinder, findsOneWidget);
+    // A single line of titleLarge (21px) renders around one line-height tall;
+    // the old wrapped layout produced two lines (~double). Anything under
+    // this threshold can only be a single line.
+    final paragraph = tester.renderObject<RenderParagraph>(titleFinder);
+    expect(paragraph.size.height, lessThan(35));
+  });
+  testWidgets('header controls stay anchored across section layouts', (
+    tester,
+  ) async {
+    for (final width in [320.0, 390.0, 480.0]) {
+      for (final scale in [1.0, 1.8]) {
+        double? right;
+        for (final entries in [<IntakeEntity>[], intakes]) {
+          for (final macros in [false, true]) {
+            for (final target in [null, 583.0]) {
+              await tester.pumpWidget(
+                _wrapWithMaterial(
+                  MediaQuery(
+                    data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: SizedBox(
+                        width: width,
+                        child: IntakeVerticalList(
+                          day: DateTime(2026, 1, 1),
+                          title: 'Breakfast',
+                          listIcon: Icons.bakery_dining_outlined,
+                          addMealType: AddMealType.breakfastType,
+                          intakeList: entries,
+                          usesImperialUnits: false,
+                          showMealMacros: macros,
+                          mealKcalTarget: target,
+                          onDeleteIntakeCallback: (_, _) {},
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+              await tester.pump();
+              expect(tester.takeException(), isNull);
+              final rect = tester.getRect(
+                find.byType(PopupMenuButton<VerticalListPopupMenuSelections>),
+              );
+              right ??= rect.right;
+              expect(rect.right, right);
+              expect(rect.right, width - 12);
+            }
+          }
+        }
+      }
+    }
+  });
 }
