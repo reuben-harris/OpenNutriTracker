@@ -88,7 +88,7 @@ flutter {
 }
 
 dependencies {
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 
     // Read finished workouts without the health plugin's distance and steps
     // reads — see HealthConnectWorkoutReader. Pinned to the version the
