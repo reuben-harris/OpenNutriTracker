@@ -178,7 +178,7 @@ class _DiaryPageState extends State<DiaryPage> {
     }
   }
 
-  void _onCopyIntakeItem(
+  Future<void> _onCopyIntakeItem(
     IntakeEntity intakeEntity,
     TrackedDayEntity? trackedDayEntity,
     AddMealType? type,

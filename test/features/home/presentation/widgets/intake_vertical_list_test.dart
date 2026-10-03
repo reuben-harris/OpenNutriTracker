@@ -229,7 +229,7 @@ void main() {
             intakeList: intakes,
             usesImperialUnits: false,
             showMealMacros: true,
-            onCopyIntakeCallback: (_, _, _) {},
+            onCopyIntakeCallback: (_, _, _) async {},
             onDeleteIntakeCallback: (_, _) {},
           ),
         ),
@@ -367,5 +367,60 @@ void main() {
         }
       }
     }
+  });
+  testWidgets('section copy awaits each write before starting the next', (
+    tester,
+  ) async {
+    final first = intakes.single;
+    final source = [
+      first,
+      IntakeEntity(
+        id: 'second',
+        unit: first.unit,
+        amount: first.amount,
+        type: first.type,
+        meal: first.meal,
+        dateTime: first.dateTime,
+      ),
+    ];
+    final started = <int>[];
+    final completed = <int>[];
+    await tester.pumpWidget(
+      _wrapWithMaterial(
+        IntakeVerticalList(
+          day: DateTime(2026, 1, 1),
+          title: 'Breakfast',
+          listIcon: Icons.bakery_dining_outlined,
+          addMealType: AddMealType.breakfastType,
+          intakeList: source,
+          usesImperialUnits: false,
+          onDeleteIntakeCallback: (_, _) {},
+          onCopyIntakeCallback: (_, _, _) async {
+            final index = started.length;
+            started.add(index);
+            await Future<void>.delayed(const Duration(milliseconds: 50));
+            completed.add(index);
+          },
+        ),
+      ),
+    );
+    await tester.tap(
+      find.byType(PopupMenuButton<VerticalListPopupMenuSelections>),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nEn.dialogCopyLabel));
+    await tester.pumpAndSettle();
+    // Changes to the visible list during a dialog must not change its source.
+    source.clear();
+    await tester.tap(find.text(l10nEn.dialogOKLabel));
+    await tester.pump();
+    expect(started, [0]);
+    expect(completed, isEmpty);
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(started, [0, 1]);
+    expect(completed, [0]);
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(completed, [0, 1]);
+    await tester.pumpAndSettle();
   });
 }

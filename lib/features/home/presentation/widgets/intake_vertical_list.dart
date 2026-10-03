@@ -41,7 +41,7 @@ class IntakeVerticalList extends StatefulWidget {
   final Function(BuildContext, IntakeEntity)? onItemLongPressedCallback;
   final Function(bool)? onItemDragCallback;
   final Function(BuildContext, IntakeEntity, bool)? onItemTappedCallback;
-  final Function(
+  final Future<void> Function(
     IntakeEntity intake,
     TrackedDayEntity? trackedDayEntity,
     AddMealType? type,
@@ -234,8 +234,8 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                                   builder: (context) => copyDialog,
                                 );
                             if (selectedMealType != null) {
-                              for (IntakeEntity intake in widget.intakeList) {
-                                widget.onCopyIntakeCallback!(
+                              for (IntakeEntity intake in sourceEntries) {
+                                await widget.onCopyIntakeCallback!(
                                   intake,
                                   null,
                                   selectedMealType,

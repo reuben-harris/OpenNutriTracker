@@ -50,16 +50,18 @@ class DayInfoWidget extends StatefulWidget {
   // sort, in which case every section starts on [DiarySortType.timeAdded].
   final Map<String, int>? diarySortPreferences;
   final Function(IntakeEntity intake, TrackedDayEntity? trackedDayEntity)
-      onDeleteIntake;
+  onDeleteIntake;
   final Function(
     UserActivityEntity userActivityEntity,
     TrackedDayEntity? trackedDayEntity,
-  ) onDeleteActivity;
-  final Function(
+  )
+  onDeleteActivity;
+  final Future<void> Function(
     IntakeEntity intake,
     TrackedDayEntity? trackedDayEntity,
     AddMealType? type,
-  ) onCopyIntake;
+  )
+  onCopyIntake;
   final Function(
     UserActivityEntity userActivityEntity,
     TrackedDayEntity? trackedDayEntity,
@@ -72,7 +74,7 @@ class DayInfoWidget extends StatefulWidget {
   )?
   onEditIntake;
   final Function(BuildContext context, UserActivityEntity activity)?
-      onEditActivity;
+  onEditActivity;
 
   const DayInfoWidget({
     super.key,
@@ -137,11 +139,11 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
     Map<String, int>? persisted,
   ) {
     Map<IntakeTypeEntity, DiarySortType> defaults() => {
-          IntakeTypeEntity.breakfast: DiarySortType.timeAdded,
-          IntakeTypeEntity.lunch: DiarySortType.timeAdded,
-          IntakeTypeEntity.dinner: DiarySortType.timeAdded,
-          IntakeTypeEntity.snack: DiarySortType.timeAdded,
-        };
+      IntakeTypeEntity.breakfast: DiarySortType.timeAdded,
+      IntakeTypeEntity.lunch: DiarySortType.timeAdded,
+      IntakeTypeEntity.dinner: DiarySortType.timeAdded,
+      IntakeTypeEntity.snack: DiarySortType.timeAdded,
+    };
 
     if (persisted == null) return defaults();
 
@@ -217,8 +219,8 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 onItemTappedCallback: widget.onEditIntake,
                 onCopyIntakeCallback:
                     DateUtils.isSameDay(widget.selectedDay, DateTime.now())
-                        ? null
-                        : widget.onCopyIntake,
+                    ? null
+                    : widget.onCopyIntake,
                 usesImperialUnits: widget.usesImperialUnits,
                 showMealMacros: widget.showMealMacros,
                 trackedDayEntity: trackedDay,
@@ -243,8 +245,8 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 showMealMacros: widget.showMealMacros,
                 onCopyIntakeCallback:
                     DateUtils.isSameDay(widget.selectedDay, DateTime.now())
-                        ? null
-                        : widget.onCopyIntake,
+                    ? null
+                    : widget.onCopyIntake,
                 trackedDayEntity: trackedDay,
                 mealKcalTarget: widget.lunchKcalTarget,
                 sortType: _sortByMeal[IntakeTypeEntity.lunch],
@@ -265,8 +267,8 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 onItemTappedCallback: widget.onEditIntake,
                 onCopyIntakeCallback:
                     DateUtils.isSameDay(widget.selectedDay, DateTime.now())
-                        ? null
-                        : widget.onCopyIntake,
+                    ? null
+                    : widget.onCopyIntake,
                 usesImperialUnits: widget.usesImperialUnits,
                 showMealMacros: widget.showMealMacros,
                 mealKcalTarget: widget.dinnerKcalTarget,
@@ -290,8 +292,8 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 showMealMacros: widget.showMealMacros,
                 onCopyIntakeCallback:
                     DateUtils.isSameDay(widget.selectedDay, DateTime.now())
-                        ? null
-                        : widget.onCopyIntake,
+                    ? null
+                    : widget.onCopyIntake,
                 trackedDayEntity: trackedDay,
                 mealKcalTarget: widget.snackKcalTarget,
                 sortType: _sortByMeal[IntakeTypeEntity.snack],
@@ -336,7 +338,7 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
       builder: (context) => copyDialog,
     );
     if (selectedMealType != null) {
-      widget.onCopyIntake(intakeEntity, null, selectedMealType);
+      await widget.onCopyIntake(intakeEntity, null, selectedMealType);
     }
   }
 
