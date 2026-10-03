@@ -23,7 +23,7 @@
               touch "$out"
             '';
         nix-format = pkgs.runCommand "ont-nix-format" { nativeBuildInputs = [ pkgs.nixfmt ]; } ''
-          nixfmt --check ${../flake.nix} ${./.}/*.nix
+          nixfmt --check ${../flake.nix} ${./.}/*.nix ${./health-compat/flake.nix}
           touch "$out"
         '';
         app = pkgs.stdenvNoCC.mkDerivation {
