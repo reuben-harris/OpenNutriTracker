@@ -35,3 +35,15 @@ attribution, assistant names, or AI co-author trailers.
 - Constrain Row titles with Expanded, bounded lines, and ellipsis; use AutoSizeText
   for prominent titles. Avoid Flexible titles competing with a Spacer.
 - Keep formatting scoped to changed files and exclude generated Dart.
+
+## Known tooling issues
+
+- Flutter 3.47.4's Built-in Kotlin warning detector scans build-file text. It can
+  name `flutter_image_compress_common`, `flutter_timezone`, and `sentry_flutter`
+  even when their conditional KGP declarations are skipped. These warnings were
+  verified as false positives on the migrated toolchain: no Android KGP plugins
+  were actually applied. Check Gradle's evaluated plugin containers before
+  treating these warnings as incompatibilities. Keep nixpkgs Flutter unpatched
+  for these warnings. Track [Flutter #189770](https://github.com/flutter/flutter/issues/189770);
+  [PR #190339](https://github.com/flutter/flutter/pull/190339) was closed without
+  merging. Recheck this note when Flutter or the affected plugins change.
