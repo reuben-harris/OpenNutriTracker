@@ -52,3 +52,4 @@ result-*
 !android/gradle.lock
 tool/live_*.dart
 tool/verify_openai_key.dart
+devtools_options.yaml
