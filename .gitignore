@@ -31,6 +31,8 @@ app.*.map.json
 android/key.properties
 
 # Android build artifacts
+/android/.kotlin/
+/android/build/
 /android/app/debug
 /android/app/profile
 /android/app/release

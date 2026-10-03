@@ -26,7 +26,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.opennutritracker.ont.opennutritracker"
-    compileSdkVersion 36
+    compileSdkVersion 37
     buildToolsVersion "36.0.0"
     ndkVersion flutter.ndkVersion
 
@@ -91,9 +91,8 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 
     // Read finished workouts without the health plugin's distance and steps
-    // reads — see HealthConnectWorkoutReader. Pinned to the version the
-    // plugin itself depends on so both resolve to one client rather than
-    // Gradle silently picking the higher of two.
+    // reads — see HealthConnectWorkoutReader. This version requires
+    // compileSdk 37 and AGP 9.1 or newer.
     implementation 'androidx.health.connect:connect-client:1.2.0-alpha06'
     // readRecords is a suspend function, and MainActivity answers the method
     // channel from the main dispatcher.

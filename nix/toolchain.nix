@@ -16,10 +16,13 @@
         ];
       };
       java = pkgs.jdk17_headless;
-      gradle = pkgs.gradle_8.override { java = java; };
+      gradle = pkgs.gradle_9.override { java = java; };
       sdk =
         (pkgs.androidenv.composeAndroidPackages {
-          platformVersions = [ "36" ];
+          platformVersions = [
+            "36"
+            "37.0"
+          ];
           buildToolsVersions = [ "36.0.0" ];
           includeNDK = true;
           ndkVersions = [ "28.2.13676358" ];
