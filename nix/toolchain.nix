@@ -9,7 +9,7 @@
       };
     };
     _module.args.toolchain = rec {
-      flutter = pkgs.flutter344.override {
+      flutter = pkgs.flutter.override {
         supportedTargetFlutterPlatforms = [
           "universal"
           "android"
