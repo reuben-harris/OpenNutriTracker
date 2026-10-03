@@ -30,8 +30,9 @@ class IntakeDataSource {
 
   Future<void> deleteIntakeFromId(String intakeId) async {
     log.fine('Deleting intake item from db');
-    final toDelete =
-        _intakeBox.values.where((dbo) => dbo.id == intakeId).toList();
+    final toDelete = _intakeBox.values
+        .where((dbo) => dbo.id == intakeId)
+        .toList();
     for (final element in toDelete) {
       await element.delete();
     }
@@ -58,6 +59,17 @@ class IntakeDataSource {
 
   Future<IntakeDBO?> getIntakeById(String intakeId) async {
     return _visibleIntakes.firstWhereOrNull((intake) => intake.id == intakeId);
+  }
+
+  Future<IntakeDBO?> moveIntakeToType(
+    String intakeId,
+    IntakeTypeDBO targetType,
+  ) async {
+    final intake = await getIntakeById(intakeId);
+    if (intake == null || intake.type == targetType) return intake;
+    intake.type = targetType;
+    await intake.save();
+    return intake;
   }
 
   Future<List<IntakeDBO>> getAllIntakes() async {
@@ -111,8 +123,12 @@ class IntakeDataSource {
         .toList();
 
     // Surface custom meals before remote-sourced results.
-    final custom = uniqueIntake.where((i) => i.meal.source == MealSourceDBO.custom).toList();
-    final others = uniqueIntake.where((i) => i.meal.source != MealSourceDBO.custom).toList();
+    final custom = uniqueIntake
+        .where((i) => i.meal.source == MealSourceDBO.custom)
+        .toList();
+    final others = uniqueIntake
+        .where((i) => i.meal.source != MealSourceDBO.custom)
+        .toList();
     return [...custom, ...others].take(number).toList();
   }
 

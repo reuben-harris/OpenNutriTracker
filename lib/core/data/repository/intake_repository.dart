@@ -36,6 +36,17 @@ class IntakeRepository {
     return await _intakeDataSource.getAllIntakes();
   }
 
+  Future<IntakeEntity?> moveIntakeToType(
+    String intakeId,
+    IntakeTypeEntity targetType,
+  ) async {
+    final result = await _intakeDataSource.moveIntakeToType(
+      intakeId,
+      IntakeTypeDBO.fromIntakeTypeEntity(targetType),
+    );
+    return result == null ? null : IntakeEntity.fromIntakeDBO(result);
+  }
+
   Future<List<IntakeEntity>> getIntakeByDateAndType(
     IntakeTypeEntity intakeType,
     DateTime date, {
@@ -85,10 +96,12 @@ class IntakeRepository {
       toMeal: toMeal,
     );
     return rewrites
-        .map((pair) => (
-              IntakeEntity.fromIntakeDBO(pair.$1),
-              IntakeEntity.fromIntakeDBO(pair.$2),
-            ))
+        .map(
+          (pair) => (
+            IntakeEntity.fromIntakeDBO(pair.$1),
+            IntakeEntity.fromIntakeDBO(pair.$2),
+          ),
+        )
         .toList();
   }
 }

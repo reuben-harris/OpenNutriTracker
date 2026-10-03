@@ -22,10 +22,49 @@ void main() {
       Hive.deleteFromDisk();
     });
 
+    test(
+      'moving updates only meal type and same-group move does not write',
+      () async {
+        final box = await Hive.openBox<IntakeDBO>('move_intake_test');
+        final repo = IntakeRepository(
+          IntakeDataSource(FakeHiveDBProvider(intakeBox: box)),
+        );
+        final original = IntakeEntity(
+          id: 'original',
+          unit: 'g',
+          amount: 123.5,
+          type: IntakeTypeEntity.breakfast,
+          meal: MealEntityFixtures.mealOne,
+          dateTime: DateTime(2026, 9, 30, 8, 42),
+        );
+        await repo.addIntake(original);
+        final before = box.values.single.toJson();
+        var writes = 0;
+        final subscription = box.watch().listen((_) => writes++);
+        await repo.moveIntakeToType(original.id, IntakeTypeEntity.lunch);
+        final after = box.values.single.toJson();
+        expect(after..remove('type'), before..remove('type'));
+        expect(
+          (await repo.getIntakeById(original.id))!.totalKcal,
+          original.totalKcal,
+        );
+        expect(box.length, 1);
+        await Future<void>.delayed(Duration.zero);
+        expect(writes, 1);
+        await repo.moveIntakeToType(original.id, IntakeTypeEntity.lunch);
+        await Future<void>.delayed(Duration.zero);
+        expect(writes, 1);
+        await subscription.cancel();
+        await box.close();
+      },
+    );
+
     test('returns last added first', () async {
       final box = await Hive.openBox<IntakeDBO>('intake_test');
 
-      final repo = IntakeRepository(IntakeDataSource(FakeHiveDBProvider(intakeBox: box)));
+      final repo = IntakeRepository(
+        IntakeDataSource(FakeHiveDBProvider(intakeBox: box)),
+      );
 
       await repo.addIntake(
         IntakeEntity(
