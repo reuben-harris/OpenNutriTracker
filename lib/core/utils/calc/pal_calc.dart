@@ -16,8 +16,7 @@ class PalCalc {
   /// The four point values below are the project's own representatives for
   /// those ranges. **They are not published anywhere in IOM 2005 or in
   /// FAO/WHO/UNU 2001** — each falls inside its band, but no source prints
-  /// this set. Treat them as unattributed until someone finds the page; see
-  /// `docs/tdee-iom-2005-verification.md`.
+  /// this set. Treat them as unattributed until someone finds the page.
   ///
   /// This previously cited Brooks et al. 2004
   /// (https://pubmed.ncbi.nlm.nih.gov/15113740/) as the source. That paper is

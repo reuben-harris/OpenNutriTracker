@@ -53,7 +53,7 @@ class ExportDataUsecase {
   /// opening in a spreadsheet — recipes, photos, the weight log and
   /// Custom activity templates are omitted from CSV because their shape
   /// doesn't flatten cleanly. A user who wants both can run the export
-  /// twice. See `docs/export-format.md` for the schema.
+  /// twice. The JSON payload preserves the local storage schema.
   Future<bool> exportData(
     String exportZipFileName,
     String userActivityJsonFileName,

@@ -25,8 +25,7 @@ import 'package:opennutritracker/core/utils/calc/tdee_calc.dart';
 /// which tabulate 24-hour TEE for 30-year-old men and women across heights and
 /// BMIs. If our output stops matching the book's own table, this fails.
 ///
-/// Two traps are baked into the selection, both documented in
-/// `docs/tdee-iom-2005-verification.md`:
+/// Two traps are baked into the selection:
 ///
 /// 1. **Only the BMI >= 25 columns of those tables use the p. 204 equations.**
 ///    The book says so on p. 208 and the arithmetic confirms it: the BMI 18.5,
@@ -77,43 +76,44 @@ void main() {
       });
     }
 
-    test('the fixtures actually discriminate — the #987 grouping fails them',
-        () {
-      // Guard on the guard. If someone "simplifies" these fixtures into
-      // something the buggy formula also satisfies, they stop being a test.
-      // The pre-#987 code left the height term outside the PA multiplier;
-      // reproduced here so the failure it would produce is measurable.
-      double buggy(_PublishedCase c) {
-        final isMale = c.gender == UserGenderEntity.male;
-        final pa = _paFor(c.pal, isMale: isMale);
-        return isMale
-            ? 864 - 9.72 * 30 + pa * 14.2 * c.weightKG + 503 * c.heightM
-            : 387 - 7.31 * 30 + pa * 10.9 * c.weightKG + 660.7 * c.heightM;
-      }
+    test(
+      'the fixtures actually discriminate — the #987 grouping fails them',
+      () {
+        // Guard on the guard. If someone "simplifies" these fixtures into
+        // something the buggy formula also satisfies, they stop being a test.
+        // The pre-#987 code left the height term outside the PA multiplier;
+        // reproduced here so the failure it would produce is measurable.
+        double buggy(_PublishedCase c) {
+          final isMale = c.gender == UserGenderEntity.male;
+          final pa = _paFor(c.pal, isMale: isMale);
+          return isMale
+              ? 864 - 9.72 * 30 + pa * 14.2 * c.weightKG + 503 * c.heightM
+              : 387 - 7.31 * 30 + pa * 10.9 * c.weightKG + 660.7 * c.heightM;
+        }
 
-      final discriminating = _publishedCases
-          .where((c) => c.pal != UserPALEntity.sedentary)
-          .toList();
+        final discriminating = _publishedCases
+            .where((c) => c.pal != UserPALEntity.sedentary)
+            .toList();
 
-      // Sedentary rows carry PA = 1.00, so the bug is invisible there — which
-      // is exactly why the old sedentary-only pins passed for years.
-      expect(discriminating, hasLength(16));
-      for (final c in discriminating) {
-        expect(
-          (buggy(c) - c.publishedKcal).abs(),
-          greaterThan(50),
-          reason: 'the buggy grouping should miss ${c.citation} badly',
-        );
-      }
-    });
+        // Sedentary rows carry PA = 1.00, so the bug is invisible there — which
+        // is exactly why the old sedentary-only pins passed for years.
+        expect(discriminating, hasLength(16));
+        for (final c in discriminating) {
+          expect(
+            (buggy(c) - c.publishedKcal).abs(),
+            greaterThan(50),
+            reason: 'the buggy grouping should miss ${c.citation} badly',
+          );
+        }
+      },
+    );
   });
 
   group('IOM 2005 p. 204 — independently derived, ages other than 30', () {
     // Every cell of Tables 5-29/5-30 is age 30, so those fixtures cannot
     // exercise the age coefficient at all. These values were derived from the
     // p. 204 page image by three agents that were denied access to this
-    // repository, and reconciled by a fourth; see
-    // `docs/tdee-iom-2005-verification.md`. They are not hand-computed here.
+    // repository, and reconciled by a fourth. They are not hand-computed here.
     void expectTdee({
       required UserGenderEntity gender,
       required int age,
@@ -123,7 +123,11 @@ void main() {
       required double expected,
     }) {
       final user = UserEntity(
-        birthday: DateTime(yesterday.year - age, yesterday.month, yesterday.day),
+        birthday: DateTime(
+          yesterday.year - age,
+          yesterday.month,
+          yesterday.day,
+        ),
         heightCM: heightCM,
         weightKG: weightKG,
         gender: gender,
@@ -177,8 +181,7 @@ void main() {
       );
     });
 
-    test('female 25 y, 80 kg, 180 cm, low active — the p. 185 / p. 204 trap',
-        () {
+    test('female 25 y, 80 kg, 180 cm, low active — the p. 185 / p. 204 trap', () {
       // The p. 185 women's PA table is 1.00 / 1.12 / 1.27 / 1.45, identical to
       // p. 204's except at low active, where p. 204 says 1.14. This is the one
       // profile that separates them, and the only thing standing between us
@@ -251,33 +254,215 @@ const _very = UserPALEntity.veryActive;
 /// `https://nap.nationalacademies.org/books/10490/gif/<page>.gif`
 const List<_PublishedCase> _publishedCases = [
   // Table 5-29 (men), inputs p. 206 / results p. 207.
-  _PublishedCase(gender: _m, weightKG: 52.5625, heightM: 1.45, pal: _sed, publishedKcal: 2048, citation: 'T5-29 p.207 h1.45 BMI25 sedentary'),
-  _PublishedCase(gender: _m, weightKG: 52.5625, heightM: 1.45, pal: _low, publishedKcal: 2225, citation: 'T5-29 p.207 h1.45 BMI25 low active'),
-  _PublishedCase(gender: _m, weightKG: 52.5625, heightM: 1.45, pal: _act, publishedKcal: 2447, citation: 'T5-29 p.207 h1.45 BMI25 active'),
-  _PublishedCase(gender: _m, weightKG: 52.5625, heightM: 1.45, pal: _very, publishedKcal: 2845, citation: 'T5-29 p.207 h1.45 BMI25 very active'),
-  _PublishedCase(gender: _m, weightKG: 63.075, heightM: 1.45, pal: _sed, publishedKcal: 2197, citation: 'T5-29 p.207 h1.45 BMI30 sedentary'),
-  _PublishedCase(gender: _m, weightKG: 84.1, heightM: 1.45, pal: _very, publishedKcal: 3535, citation: 'T5-29 p.207 h1.45 BMI40 very active'),
-  _PublishedCase(gender: _m, weightKG: 78.75, heightM: 1.50, pal: _act, publishedKcal: 2951, citation: 'T5-29 p.207 h1.50 BMI35 active'),
-  _PublishedCase(gender: _m, weightKG: 64.0, heightM: 1.60, pal: _sed, publishedKcal: 2286, citation: 'T5-29 p.207 h1.60 BMI25 sedentary'),
-  _PublishedCase(gender: _m, weightKG: 102.4, heightM: 1.60, pal: _very, publishedKcal: 4051, citation: 'T5-29 p.207 h1.60 BMI40 very active'),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 52.5625,
+    heightM: 1.45,
+    pal: _sed,
+    publishedKcal: 2048,
+    citation: 'T5-29 p.207 h1.45 BMI25 sedentary',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 52.5625,
+    heightM: 1.45,
+    pal: _low,
+    publishedKcal: 2225,
+    citation: 'T5-29 p.207 h1.45 BMI25 low active',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 52.5625,
+    heightM: 1.45,
+    pal: _act,
+    publishedKcal: 2447,
+    citation: 'T5-29 p.207 h1.45 BMI25 active',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 52.5625,
+    heightM: 1.45,
+    pal: _very,
+    publishedKcal: 2845,
+    citation: 'T5-29 p.207 h1.45 BMI25 very active',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 63.075,
+    heightM: 1.45,
+    pal: _sed,
+    publishedKcal: 2197,
+    citation: 'T5-29 p.207 h1.45 BMI30 sedentary',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 84.1,
+    heightM: 1.45,
+    pal: _very,
+    publishedKcal: 3535,
+    citation: 'T5-29 p.207 h1.45 BMI40 very active',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 78.75,
+    heightM: 1.50,
+    pal: _act,
+    publishedKcal: 2951,
+    citation: 'T5-29 p.207 h1.50 BMI35 active',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 64.0,
+    heightM: 1.60,
+    pal: _sed,
+    publishedKcal: 2286,
+    citation: 'T5-29 p.207 h1.60 BMI25 sedentary',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 102.4,
+    heightM: 1.60,
+    pal: _very,
+    publishedKcal: 4051,
+    citation: 'T5-29 p.207 h1.60 BMI40 very active',
+  ),
   // Table 5-29 continued, inputs p. 208 / results p. 209.
-  _PublishedCase(gender: _m, weightKG: 97.2, heightM: 1.80, pal: _sed, publishedKcal: 2858, citation: 'T5-29 p.209 h1.80 BMI30 sedentary'),
-  _PublishedCase(gender: _m, weightKG: 97.2, heightM: 1.80, pal: _low, publishedKcal: 3132, citation: 'T5-29 p.209 h1.80 BMI30 low active'),
-  _PublishedCase(gender: _m, weightKG: 97.2, heightM: 1.80, pal: _act, publishedKcal: 3475, citation: 'T5-29 p.209 h1.80 BMI30 active'),
-  _PublishedCase(gender: _m, weightKG: 97.2, heightM: 1.80, pal: _very, publishedKcal: 4092, citation: 'T5-29 p.209 h1.80 BMI30 very active'),
-  _PublishedCase(gender: _m, weightKG: 152.1, heightM: 1.95, pal: _sed, publishedKcal: 3713, citation: 'T5-29 p.209 h1.95 BMI40 sedentary'),
-  _PublishedCase(gender: _m, weightKG: 152.1, heightM: 1.95, pal: _very, publishedKcal: 5409, citation: 'T5-29 p.209 h1.95 BMI40 very active'),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 97.2,
+    heightM: 1.80,
+    pal: _sed,
+    publishedKcal: 2858,
+    citation: 'T5-29 p.209 h1.80 BMI30 sedentary',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 97.2,
+    heightM: 1.80,
+    pal: _low,
+    publishedKcal: 3132,
+    citation: 'T5-29 p.209 h1.80 BMI30 low active',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 97.2,
+    heightM: 1.80,
+    pal: _act,
+    publishedKcal: 3475,
+    citation: 'T5-29 p.209 h1.80 BMI30 active',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 97.2,
+    heightM: 1.80,
+    pal: _very,
+    publishedKcal: 4092,
+    citation: 'T5-29 p.209 h1.80 BMI30 very active',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 152.1,
+    heightM: 1.95,
+    pal: _sed,
+    publishedKcal: 3713,
+    citation: 'T5-29 p.209 h1.95 BMI40 sedentary',
+  ),
+  _PublishedCase(
+    gender: _m,
+    weightKG: 152.1,
+    heightM: 1.95,
+    pal: _very,
+    publishedKcal: 5409,
+    citation: 'T5-29 p.209 h1.95 BMI40 very active',
+  ),
   // Table 5-30 (women), inputs p. 210 / results p. 211.
-  _PublishedCase(gender: _f, weightKG: 52.5625, heightM: 1.45, pal: _sed, publishedKcal: 1698, citation: 'T5-30 p.211 h1.45 BMI25 sedentary'),
-  _PublishedCase(gender: _f, weightKG: 52.5625, heightM: 1.45, pal: _low, publishedKcal: 1912, citation: 'T5-30 p.211 h1.45 BMI25 low active'),
-  _PublishedCase(gender: _f, weightKG: 52.5625, heightM: 1.45, pal: _act, publishedKcal: 2112, citation: 'T5-30 p.211 h1.45 BMI25 active'),
-  _PublishedCase(gender: _f, weightKG: 52.5625, heightM: 1.45, pal: _very, publishedKcal: 2387, citation: 'T5-30 p.211 h1.45 BMI25 very active'),
-  _PublishedCase(gender: _f, weightKG: 84.1, heightM: 1.45, pal: _sed, publishedKcal: 2042, citation: 'T5-30 p.211 h1.45 BMI40 sedentary'),
-  _PublishedCase(gender: _f, weightKG: 64.0, heightM: 1.60, pal: _sed, publishedKcal: 1922, citation: 'T5-30 p.211 h1.60 BMI25 sedentary'),
-  _PublishedCase(gender: _f, weightKG: 102.4, heightM: 1.60, pal: _very, publishedKcal: 3318, citation: 'T5-30 p.211 h1.60 BMI40 very active'),
+  _PublishedCase(
+    gender: _f,
+    weightKG: 52.5625,
+    heightM: 1.45,
+    pal: _sed,
+    publishedKcal: 1698,
+    citation: 'T5-30 p.211 h1.45 BMI25 sedentary',
+  ),
+  _PublishedCase(
+    gender: _f,
+    weightKG: 52.5625,
+    heightM: 1.45,
+    pal: _low,
+    publishedKcal: 1912,
+    citation: 'T5-30 p.211 h1.45 BMI25 low active',
+  ),
+  _PublishedCase(
+    gender: _f,
+    weightKG: 52.5625,
+    heightM: 1.45,
+    pal: _act,
+    publishedKcal: 2112,
+    citation: 'T5-30 p.211 h1.45 BMI25 active',
+  ),
+  _PublishedCase(
+    gender: _f,
+    weightKG: 52.5625,
+    heightM: 1.45,
+    pal: _very,
+    publishedKcal: 2387,
+    citation: 'T5-30 p.211 h1.45 BMI25 very active',
+  ),
+  _PublishedCase(
+    gender: _f,
+    weightKG: 84.1,
+    heightM: 1.45,
+    pal: _sed,
+    publishedKcal: 2042,
+    citation: 'T5-30 p.211 h1.45 BMI40 sedentary',
+  ),
+  _PublishedCase(
+    gender: _f,
+    weightKG: 64.0,
+    heightM: 1.60,
+    pal: _sed,
+    publishedKcal: 1922,
+    citation: 'T5-30 p.211 h1.60 BMI25 sedentary',
+  ),
+  _PublishedCase(
+    gender: _f,
+    weightKG: 102.4,
+    heightM: 1.60,
+    pal: _very,
+    publishedKcal: 3318,
+    citation: 'T5-30 p.211 h1.60 BMI40 very active',
+  ),
   // Table 5-30 continued, inputs p. 212 / results p. 213.
-  _PublishedCase(gender: _f, weightKG: 97.2, heightM: 1.80, pal: _sed, publishedKcal: 2416, citation: 'T5-30 p.213 h1.80 BMI30 sedentary'),
-  _PublishedCase(gender: _f, weightKG: 97.2, heightM: 1.80, pal: _very, publishedKcal: 3428, citation: 'T5-30 p.213 h1.80 BMI30 very active'),
-  _PublishedCase(gender: _f, weightKG: 152.1, heightM: 1.95, pal: _sed, publishedKcal: 3113, citation: 'T5-30 p.213 h1.95 BMI40 sedentary'),
-  _PublishedCase(gender: _f, weightKG: 152.1, heightM: 1.95, pal: _very, publishedKcal: 4439, citation: 'T5-30 p.213 h1.95 BMI40 very active'),
+  _PublishedCase(
+    gender: _f,
+    weightKG: 97.2,
+    heightM: 1.80,
+    pal: _sed,
+    publishedKcal: 2416,
+    citation: 'T5-30 p.213 h1.80 BMI30 sedentary',
+  ),
+  _PublishedCase(
+    gender: _f,
+    weightKG: 97.2,
+    heightM: 1.80,
+    pal: _very,
+    publishedKcal: 3428,
+    citation: 'T5-30 p.213 h1.80 BMI30 very active',
+  ),
+  _PublishedCase(
+    gender: _f,
+    weightKG: 152.1,
+    heightM: 1.95,
+    pal: _sed,
+    publishedKcal: 3113,
+    citation: 'T5-30 p.213 h1.95 BMI40 sedentary',
+  ),
+  _PublishedCase(
+    gender: _f,
+    weightKG: 152.1,
+    heightM: 1.95,
+    pal: _very,
+    publishedKcal: 4439,
+    citation: 'T5-30 p.213 h1.95 BMI40 very active',
+  ),
 ];

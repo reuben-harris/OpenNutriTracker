@@ -39,20 +39,20 @@ class _RecordingLauncher {
   void install() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_urlLauncherChannel, (call) async {
-      switch (call.method) {
-        case 'canLaunch':
-          return succeeds;
-        case 'launch':
-          launched.add(
-            (call.arguments as Map<Object?, Object?>)['url'] as String,
-          );
-          if (throwsPlatformException) {
-            throw PlatformException(code: 'ACTIVITY_NOT_FOUND');
+          switch (call.method) {
+            case 'canLaunch':
+              return succeeds;
+            case 'launch':
+              launched.add(
+                (call.arguments as Map<Object?, Object?>)['url'] as String,
+              );
+              if (throwsPlatformException) {
+                throw PlatformException(code: 'ACTIVITY_NOT_FOUND');
+              }
+              return succeeds;
           }
-          return succeeds;
-      }
-      return null;
-    });
+          return null;
+        });
   }
 
   static void remove() {
@@ -77,27 +77,27 @@ void main() {
   Future<void> pumpIntroPage(
     WidgetTester tester, {
     required void Function(bool acceptedPolicy, bool acceptedData)
-        onSetPageContent,
+    onSetPageContent,
     Locale? locale,
   }) async {
-    await tester.pumpWidget(MaterialApp(
-      locale: locale,
-      // Mirrors main.dart. Without the global delegates a non-English locale
-      // warns that MaterialLocalizations is missing, and that warning is
-      // thrown as an exception under test.
-      localizationsDelegates: const [
-        S.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ],
-      supportedLocales: S.supportedLocales,
-      home: Scaffold(
-        body: OnboardingIntroPageBody(
-          setPageContent: onSetPageContent,
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: locale,
+        // Mirrors main.dart. Without the global delegates a non-English locale
+        // warns that MaterialLocalizations is missing, and that warning is
+        // thrown as an exception under test.
+        localizationsDelegates: const [
+          S.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: S.supportedLocales,
+        home: Scaffold(
+          body: OnboardingIntroPageBody(setPageContent: onSetPageContent),
         ),
       ),
-    ));
+    );
     // Let the version-number FutureBuilder resolve before continuing.
     await tester.pumpAndSettle();
   }
@@ -105,9 +105,7 @@ void main() {
   /// Pumps the page for [locale] and fires the recognizer on the policy link.
   ///
   /// Driven through the recognizer the widget installed rather than through
-  /// `tapOnText`, because the label is not unique on the page in every
-  /// language — German renders "Datenschutzrichtlinie" twice, and `tapOnText`
-  /// requires a single match.
+  /// `tapOnText`, so the test exercises the policy link directly.
   Future<void> tapPolicyLink(WidgetTester tester, Locale locale) async {
     await pumpIntroPage(tester, onSetPageContent: (_, _) {}, locale: locale);
 
@@ -140,59 +138,78 @@ void main() {
   testWidgets('renders both checkboxes unchecked initially', (tester) async {
     await pumpIntroPage(tester, onSetPageContent: (_, _) {});
 
-    final checkboxes = tester.widgetList<Checkbox>(find.byType(Checkbox)).toList();
+    final checkboxes = tester
+        .widgetList<Checkbox>(find.byType(Checkbox))
+        .toList();
     expect(checkboxes, hasLength(2));
-    expect(checkboxes[0].value, isFalse, reason: 'policy checkbox starts unchecked');
-    expect(checkboxes[1].value, isFalse, reason: 'data-collection checkbox starts unchecked');
-  });
-
-  testWidgets('tapping the policy checkbox reports (true, false) and checks the box',
-      (tester) async {
-    bool? lastPolicy;
-    bool? lastData;
-    await pumpIntroPage(tester, onSetPageContent: (policy, data) {
-      lastPolicy = policy;
-      lastData = data;
-    });
-
-    await tester.tap(find.byType(Checkbox).first);
-    await tester.pump();
-
-    expect(lastPolicy, isTrue);
-    expect(lastData, isFalse);
     expect(
-      tester.widget<Checkbox>(find.byType(Checkbox).first).value,
-      isTrue,
+      checkboxes[0].value,
+      isFalse,
+      reason: 'policy checkbox starts unchecked',
+    );
+    expect(
+      checkboxes[1].value,
+      isFalse,
+      reason: 'data-collection checkbox starts unchecked',
     );
   });
 
-  testWidgets('tapping the data-collection checkbox reports (false, true)',
-      (tester) async {
+  testWidgets(
+    'tapping the policy checkbox reports (true, false) and checks the box',
+    (tester) async {
+      bool? lastPolicy;
+      bool? lastData;
+      await pumpIntroPage(
+        tester,
+        onSetPageContent: (policy, data) {
+          lastPolicy = policy;
+          lastData = data;
+        },
+      );
+
+      await tester.tap(find.byType(Checkbox).first);
+      await tester.pump();
+
+      expect(lastPolicy, isTrue);
+      expect(lastData, isFalse);
+      expect(
+        tester.widget<Checkbox>(find.byType(Checkbox).first).value,
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets('tapping the data-collection checkbox reports (false, true)', (
+    tester,
+  ) async {
     bool? lastPolicy;
     bool? lastData;
-    await pumpIntroPage(tester, onSetPageContent: (policy, data) {
-      lastPolicy = policy;
-      lastData = data;
-    });
+    await pumpIntroPage(
+      tester,
+      onSetPageContent: (policy, data) {
+        lastPolicy = policy;
+        lastData = data;
+      },
+    );
 
     await tester.tap(find.byType(Checkbox).last);
     await tester.pump();
 
     expect(lastPolicy, isFalse);
     expect(lastData, isTrue);
-    expect(
-      tester.widget<Checkbox>(find.byType(Checkbox).last).value,
-      isTrue,
-    );
+    expect(tester.widget<Checkbox>(find.byType(Checkbox).last).value, isTrue);
   });
 
   testWidgets('tapping both checkboxes reports (true, true)', (tester) async {
     bool? lastPolicy;
     bool? lastData;
-    await pumpIntroPage(tester, onSetPageContent: (policy, data) {
-      lastPolicy = policy;
-      lastData = data;
-    });
+    await pumpIntroPage(
+      tester,
+      onSetPageContent: (policy, data) {
+        lastPolicy = policy;
+        lastData = data;
+      },
+    );
 
     await tester.tap(find.byType(Checkbox).first);
     await tester.pump();
@@ -203,12 +220,16 @@ void main() {
     expect(lastData, isTrue);
   });
 
-  testWidgets('tapping the policy checkbox twice toggles it back off',
-      (tester) async {
+  testWidgets('tapping the policy checkbox twice toggles it back off', (
+    tester,
+  ) async {
     final reportedStates = <(bool, bool)>[];
-    await pumpIntroPage(tester, onSetPageContent: (policy, data) {
-      reportedStates.add((policy, data));
-    });
+    await pumpIntroPage(
+      tester,
+      onSetPageContent: (policy, data) {
+        reportedStates.add((policy, data));
+      },
+    );
 
     final policyBox = find.byType(Checkbox).first;
     await tester.tap(policyBox);
@@ -220,8 +241,9 @@ void main() {
     expect(tester.widget<Checkbox>(policyBox).value, isFalse);
   });
 
-  testWidgets('tapping Try Demo without the policy explains why',
-      (tester) async {
+  testWidgets('tapping Try Demo without the policy explains why', (
+    tester,
+  ) async {
     await pumpIntroPage(tester, onSetPageContent: (_, _) {});
 
     // Never reaches seedDemoData (which would need Hive); an unaccepted
@@ -229,43 +251,50 @@ void main() {
     await tester.tap(find.byType(OutlinedButton));
     await tester.pump();
 
+    expect(find.text(l10nEn.onboardingBlockedDemoPolicySnack), findsOneWidget);
     expect(
-      find.text(l10nEn.onboardingBlockedDemoPolicySnack),
-      findsOneWidget,
+      find.byType(CircularProgressIndicator),
+      findsNothing,
+      reason: 'no seeding should have started',
     );
-    expect(find.byType(CircularProgressIndicator), findsNothing,
-        reason: 'no seeding should have started');
   });
 
-  testWidgets('tapping the policy ListTile (not just the checkbox) also toggles',
-      (tester) async {
-    bool? lastPolicy;
-    await pumpIntroPage(tester, onSetPageContent: (policy, _) {
-      lastPolicy = policy;
-    });
+  testWidgets(
+    'tapping the policy ListTile (not just the checkbox) also toggles',
+    (tester) async {
+      bool? lastPolicy;
+      await pumpIntroPage(
+        tester,
+        onSetPageContent: (policy, _) {
+          lastPolicy = policy;
+        },
+      );
 
-    // The policy ListTile has onTap wired to _togglePolicy, so tapping the
-    // surrounding row (e.g., the policy text) should also flip the checkbox.
-    final policyTile = find.ancestor(
-      of: find.byType(Checkbox).first,
-      matching: find.byType(ListTile),
-    );
-    await tester.tap(policyTile);
-    await tester.pump();
+      // The policy ListTile has onTap wired to _togglePolicy, so tapping the
+      // surrounding row (e.g., the policy text) should also flip the checkbox.
+      final policyTile = find.ancestor(
+        of: find.byType(Checkbox).first,
+        matching: find.byType(ListTile),
+      );
+      await tester.tap(policyTile);
+      await tester.pump();
 
-    expect(lastPolicy, isTrue);
-  });
+      expect(lastPolicy, isTrue);
+    },
+  );
 
-  group('the privacy policy link follows the device language', () {
+  group('the privacy policy link uses English', () {
     late _RecordingLauncher launcher;
 
     setUp(() => launcher = _RecordingLauncher()..install());
     tearDown(_RecordingLauncher.remove);
 
-    testWidgets('a German device opens the German document', (tester) async {
+    testWidgets('an unsupported German device locale opens English', (
+      tester,
+    ) async {
       await tapPolicyLink(tester, const Locale('de'));
 
-      expect(launcher.launched, [URLConst.privacyPolicyURLDe]);
+      expect(launcher.launched, [URLConst.privacyPolicyURLEn]);
     });
 
     testWidgets('an English device opens the English document', (tester) async {
@@ -274,10 +303,10 @@ void main() {
       expect(launcher.launched, [URLConst.privacyPolicyURLEn]);
     });
 
-    testWidgets('a locale with no document of its own gets English',
-        (tester) async {
-      // Czech ships as an app language but has no policy document, and
-      // sending that reader to the German one would be worse than English.
+    testWidgets('a locale with no document of its own gets English', (
+      tester,
+    ) async {
+      // An unsupported device language falls back to the English UI.
       await tapPolicyLink(tester, const Locale('cs'));
 
       expect(launcher.launched, [URLConst.privacyPolicyURLEn]);
@@ -322,10 +351,10 @@ void main() {
     testWidgets('the failure notice is localized', (tester) async {
       _RecordingLauncher(succeeds: false).install();
 
-      await tapPolicyLink(tester, const Locale('de'));
+      await tapPolicyLink(tester, const Locale('en'));
 
       expect(
-        find.text(lookupS(const Locale('de')).errorOpeningBrowser),
+        find.text(lookupS(const Locale('en')).errorOpeningBrowser),
         findsOneWidget,
       );
     });

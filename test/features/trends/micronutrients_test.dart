@@ -238,7 +238,7 @@ void main() {
           ),
           theme: buildAppTheme(palette),
           scale: 2,
-          locale: const Locale('de'),
+          locale: const Locale('en'),
         ),
       );
       await tester.pumpAndSettle();

@@ -29,17 +29,18 @@ void main() {
   // `, ,` is not a thing any of these languages does either.
   final doubled = RegExp(r'[,，、]\s*[,，、]');
 
-  final arbs = Directory('lib/l10n')
-      .listSync()
-      .whereType<File>()
-      .where((f) => f.path.endsWith('.arb'))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
+  final arbs =
+      Directory('lib/l10n')
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.arb'))
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
 
   test('the scan actually reaches the strings', () {
     // Without this the suite passes just as happily on an empty directory, a
     // renamed folder, or a `whereType` that quietly matches nothing.
-    expect(arbs.length, greaterThanOrEqualTo(9), reason: 'found: $arbs');
+    expect(arbs.length, 1, reason: 'found: $arbs');
     expect(
       doubled.hasMatch('auslesen lässt,, an {host}'),
       isTrue,
@@ -60,7 +61,9 @@ void main() {
         if (match == null) continue;
         final from = (match.start - 30).clamp(0, value.length);
         final to = (match.end + 30).clamp(0, value.length);
-        offenders.add('$locale/${entry.key}: ...${value.substring(from, to)}...');
+        offenders.add(
+          '$locale/${entry.key}: ...${value.substring(from, to)}...',
+        );
       }
     }
     expect(offenders, isEmpty, reason: offenders.join('\n'));

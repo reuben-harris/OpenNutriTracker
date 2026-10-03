@@ -19,11 +19,7 @@ void main() {
       const Locale('pt', 'BR'), // no base language shipped either
     ];
 
-    expect(appLocales(generated), [
-      const Locale('en'),
-      const Locale('de'),
-      const Locale('zh'),
-    ]);
+    expect(appLocales(generated), [const Locale('en')]);
   });
 
   test('every shipped language survives the narrowing', () {

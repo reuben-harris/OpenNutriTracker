@@ -299,7 +299,7 @@ void main() {
     expect(find.textContaining(l10nEn.settingsAiAssistOnLabel), findsNothing);
   });
 
-  testWidgets('the badged title survives 2x German without overflowing', (
+  testWidgets('the badged title survives 2x English without overflowing', (
     tester,
   ) async {
     // Where the dialog's own 48px overflow was found, which is why its title
@@ -308,7 +308,7 @@ void main() {
     await pumpPage(
       tester,
       credentials: storage,
-      locale: const Locale('de'),
+      locale: const Locale('en'),
       textScale: 2.0,
       size: const Size(320, 800),
     );

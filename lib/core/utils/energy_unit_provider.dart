@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 /// rather than the default kilocalories. Storage is always in kcal —
 /// this preference only affects rendering.
 ///
-/// Mirrors [LocaleProvider] / [ThemeModeProvider]: seeded from the
+/// Mirrors [ThemeModeProvider]: seeded from the
 /// persisted config at app start and updated from Settings when the
 /// user picks a different unit, so widgets that listen to it rebuild
 /// without having to thread the flag through every Bloc state.

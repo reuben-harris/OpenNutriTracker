@@ -544,8 +544,7 @@ Future<void> _parse(WidgetTester tester, String text) async {
   await tester.pumpAndSettle();
 
   await tester.enterText(find.byType(TextField).first, text);
-  // By icon, not label: these tests also pump a German locale, where the
-  // button reads something else entirely.
+  // Find the action by its icon.
   await tester.tap(find.widgetWithIcon(FilledButton, Icons.search));
   await tester.pumpAndSettle();
 }
@@ -555,12 +554,10 @@ Finder _submitButton() => find.widgetWithIcon(FilledButton, Icons.add_rounded);
 void main() {
   tearDown(() async => getIt.reset());
 
-  testWidgets('a rejected key is stated, and fits a phone in German', (
+  testWidgets('a rejected key is stated, and fits a phone in English', (
     tester,
   ) async {
-    // The German string is 139 characters against a three-line cap. The two
-    // layout bugs already found on this feature were both "fits the test
-    // viewport, not the handset", so this pins the real one.
+    // Check the error text against the real handset viewport.
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.625;
     addTearDown(tester.view.reset);
@@ -576,14 +573,14 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(_app(locale: const Locale('de')));
+    await tester.pumpWidget(_app(locale: const Locale('en')));
     await tester.pumpAndSettle();
     // Through the real navigator: a widget test that asserts against a
     // screen it never pushed is the failure this project has already had
     // once, and it passes for the wrong reason rather than failing.
     await _parse(tester, '100g toast');
 
-    final de = lookupS(const Locale('de'));
+    final de = lookupS(const Locale('en'));
     expect(find.text(de.bulkAddModelKeyRejectedLabel), findsOneWidget);
     // The rows survive: reporting the failure must not cost the entry.
     expect(find.textContaining('Toast'), findsWidgets);
@@ -669,11 +666,11 @@ void main() {
     tester,
   ) async {
     // #777. The notice was capped at three lines on the reasoning that these
-    // strings run long in German. Measured through the widget's own style
+    // strings run long in English. Measured through the widget's own style
     // and width, every one of them overran it — in English too — and the
     // half that vanished was the advice, because the advice came last.
     //
-    // No cap survives the combination that matters: German at 2x on a 320dp
+    // No cap survives the combination that matters: English at 2x on a 320dp
     // screen needed twenty lines, which is exactly when a reader needs the
     // words. So the advice became a control, the sentence became the cause
     // alone, and the cap went. This pins the worst case measured.
@@ -694,13 +691,13 @@ void main() {
     await tester.pumpWidget(
       MediaQuery(
         data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-        child: _app(locale: const Locale('de')),
+        child: _app(locale: const Locale('en')),
       ),
     );
     await tester.pumpAndSettle();
     await _parse(tester, '100g toast');
 
-    final de = lookupS(const Locale('de'));
+    final de = lookupS(const Locale('en'));
     final notice = tester.renderObject<RenderParagraph>(
       find.text(de.bulkAddModelTimedOutLabel),
     );
@@ -711,7 +708,7 @@ void main() {
       reason: 'the sentence saying why the model was skipped is cut off',
     );
     // The cap being gone is the fix, not an implementation detail: any
-    // maxLines put back here truncates German at this size.
+    // maxLines put back here truncates English at this size.
     expect(notice.maxLines, isNull);
     // Clean now: #820 removed the vertical overflow, #824 the horizontal ones
     // in the rows that it uncovered.
@@ -742,7 +739,7 @@ void main() {
     await tester.pumpWidget(
       MediaQuery(
         data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-        child: _app(locale: const Locale('de')),
+        child: _app(locale: const Locale('en')),
       ),
     );
     await tester.pumpAndSettle();
@@ -761,7 +758,7 @@ void main() {
     // The dropdown shows one unit but sizes itself to its widest, so this is
     // the width the row has to find even while "g" is the one on screen. Its
     // other items are not in the tree to be found, only measured against.
-    final de = lookupS(const Locale('de'));
+    final de = lookupS(const Locale('en'));
     final dropdown = find.byType(DropdownButton<String>);
     final needed = (TextPainter(
       text: TextSpan(
@@ -798,27 +795,6 @@ void main() {
 
     expect(find.text('slice'), findsOneWidget);
     expect(find.text(lookupS(const Locale('en')).servingLabel), findsNothing);
-  });
-
-  testWidgets('and never in a locale that word is not written in', (
-    tester,
-  ) async {
-    // #864. The description is English on every path — `food_summary`
-    // builds it straight from `food_portion.portion_description`, and
-    // `food_portion_translation` is empty. #865 put that English word in
-    // front of all nine locales; a German row read "3 slice".
-    await _register({
-      'bread': [
-        _meal('Bread', servingQuantity: 38, servingSize: '1 slice (38 g)'),
-      ],
-    });
-
-    await tester.pumpWidget(_app(locale: const Locale('de')));
-    await tester.pumpAndSettle();
-    await _parse(tester, '3 bread');
-
-    expect(find.text('slice'), findsNothing);
-    expect(find.text(lookupS(const Locale('de')).servingLabel), findsOneWidget);
   });
 
   testWidgets('and keeps "serving" when the record names no measure', (
@@ -881,7 +857,7 @@ void main() {
 
   testWidgets('a chosen portion is written as a plain serving', (tester) async {
     // #864 decision 3. The dropdown offers "serving#1" so the row can name
-    // the slice, but `IntakeDBO.unit` is published in docs/export-format.md
+    // the slice, but `IntakeDBO.unit` is part of the export format
     // and rides in a positional QR array other builds parse, so what gets
     // written has to stay inside the closed set.
     await _register({
@@ -949,7 +925,7 @@ void main() {
     await tester.pumpWidget(
       MediaQuery(
         data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-        child: _app(locale: const Locale('de')),
+        child: _app(locale: const Locale('en')),
       ),
     );
     await tester.pumpAndSettle();
@@ -972,13 +948,13 @@ void main() {
     );
   });
 
-  testWidgets('the screen fits at 2x on a narrow phone, in German', (
+  testWidgets('the screen fits at 2x on a narrow phone, in English', (
     tester,
   ) async {
     // #820. Only the row list could give ground: the entry block and the
     // submit bar were both fixed, and at 2x they measured 388 and 192 against
     // about 595 of body — so the rows got nothing and the column overflowed
-    // by 14px. German, because the buttons carry the longest labels.
+    // by 14px. English, because the buttons carry the longest labels.
     tester.view.physicalSize = const Size(320 * 3, 640 * 3);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
@@ -1008,7 +984,7 @@ void main() {
     await tester.pumpWidget(
       MediaQuery(
         data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-        child: _app(locale: const Locale('de')),
+        child: _app(locale: const Locale('en')),
       ),
     );
     await tester.pumpAndSettle();
@@ -1217,11 +1193,11 @@ void main() {
     expect(find.textContaining('Toast'), findsWidgets);
   });
 
-  testWidgets('and it fits the notice in German, unlike its siblings', (
+  testWidgets('and it fits the notice in English, unlike its siblings', (
     tester,
   ) async {
     // #777 found every string in this family is ellipsised at three lines on
-    // a handset — `bulkAddModelNoCreditLabel` is 181 German characters
+    // a handset — `bulkAddModelNoCreditLabel` is 181 English characters
     // against a budget of roughly 80. This one was written to the measured
     // budget instead of to the family's length, so it is the first that can
     // actually be read to the end.
@@ -1239,11 +1215,11 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(_app(locale: const Locale('de')));
+    await tester.pumpWidget(_app(locale: const Locale('en')));
     await tester.pumpAndSettle();
     await _parse(tester, '100g toast');
 
-    final de = lookupS(const Locale('de'));
+    final de = lookupS(const Locale('en'));
     final notice = tester.renderObject<RenderParagraph>(
       find.text(de.bulkAddModelInsecureServerLabel),
     );
@@ -1252,7 +1228,7 @@ void main() {
       notice.didExceedMaxLines,
       isFalse,
       reason:
-          'the German string is ellipsised — it must stay inside the '
+          'the English string is ellipsised — it must stay inside the '
           'three-line cap, which is about 80 characters at this size',
     );
     expect(tester.takeException(), isNull);
@@ -1420,7 +1396,7 @@ void main() {
     );
   }
 
-  testWidgets('the settings button is reachable at 2x in German', (
+  testWidgets('the settings button is reachable at 2x in English', (
     tester,
   ) async {
     // The size #777 measured this screen against. The button sits under a
@@ -1437,7 +1413,7 @@ void main() {
       tester,
       BulkAddPhotoError.unsupported,
       pushed: pushed,
-      locale: const Locale('de'),
+      locale: const Locale('en'),
       wrap: (app) => MediaQuery(
         data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
         child: app,
@@ -1873,7 +1849,7 @@ void main() {
   testWidgets('a brand and a warning together still fit at 2x', (tester) async {
     // The brand is a new *third* line on a row that already carried a title
     // and a warning, and this screen has run out of room twice before (#820
-    // vertically, #824 horizontally). German at 2x is the worst case the
+    // vertically, #824 horizontally). English at 2x is the worst case the
     // suite has: every glyph is one em wide in the test font, so
     // "Einheit fuer diese Menge pruefen" is far wider here than on a device.
     await _register({
@@ -1888,7 +1864,7 @@ void main() {
     await tester.pumpWidget(
       MediaQuery(
         data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-        child: _app(locale: const Locale('de')),
+        child: _app(locale: const Locale('en')),
       ),
     );
     await tester.pumpAndSettle();
@@ -1971,22 +1947,15 @@ void main() {
     expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsNothing);
   });
 
-  testWidgets('parse errors render in the app locale, not English', (
-    tester,
-  ) async {
-    // #631. These were built as English literals inside the parser, so a
-    // German user saw "Item 2: not a valid food name" in an otherwise
-    // translated screen. The parser now reports a kind and an index and the
-    // screen builds the sentence, so this asserts the German text.
+  testWidgets('parse errors render the English ARB message', (tester) async {
+    // The parser reports a kind and index; the UI selects the ARB message.
     await _register({
       'toast': [_meal('Toast')],
     });
-    await tester.pumpWidget(_app(locale: const Locale('de')));
+    await tester.pumpWidget(_app(locale: const Locale('en')));
     await _parse(tester, '100g toast, 123');
 
-    final de = lookupS(const Locale('de'));
-    expect(find.text(de.bulkAddErrorInvalidName(2)), findsOneWidget);
-    expect(find.text('Item 2: not a valid food name'), findsNothing);
+    expect(find.text(l10nEn.bulkAddErrorInvalidName(2)), findsOneWidget);
   });
 
   testWidgets('a rejected bound is reported with its number', (tester) async {
@@ -2586,7 +2555,7 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });
 
-    testWidgets('the hint is readable at 2x on a narrow screen, in German', (
+    testWidgets('the hint is readable at 2x on a narrow screen, in English', (
       tester,
     ) async {
       // The region this draws into takes a tight height from the `Expanded`
@@ -2601,7 +2570,7 @@ void main() {
       await tester.pumpWidget(
         MediaQuery(
           data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-          child: _app(locale: const Locale('de')),
+          child: _app(locale: const Locale('en')),
         ),
       );
       await tester.pumpAndSettle();

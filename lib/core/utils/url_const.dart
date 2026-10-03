@@ -7,16 +7,8 @@ class URLConst {
 
   /// The privacy policy to open for [languageCode], English by default.
   ///
-  /// Nine locales ship and exactly two policy documents exist, so this is a
-  /// deliberately narrow rule rather than a lookup table: German has its own
-  /// document, and every other language gets the English one because there is
-  /// nothing else to send them to. Do not add a locale here without a policy
-  /// actually existing for it — pointing a Czech user at a German document is
-  /// worse than the English fallback.
-  ///
-  /// Both entry points route through here so the two cannot drift; before
-  /// this existed they each hardcoded the English URL and the German document
-  /// was maintained for nobody.
+  /// The UI always uses English. Keep the explicit German document mapping
+  /// available to callers that supply that language code.
   static String privacyPolicyFor(String languageCode) =>
       languageCode == 'de' ? privacyPolicyURLDe : privacyPolicyURLEn;
 
@@ -40,7 +32,7 @@ class URLConst {
   /// iubenda, so this constant records which revision the app *claims*, not
   /// which one is published. Both documents have to carry the edits before a
   /// build with this value ships, or the notice sends people to a policy that
-  /// still reads the old way. `tool/policy_snapshot.dart` is what confirms it.
+  /// still reads the old way. Verify the published policy before release.
   static const policyRevision = 1;
 
   // Citations for the in-app medical/health calculations. Surfaced on the

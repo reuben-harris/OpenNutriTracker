@@ -59,10 +59,12 @@ class TDEECalc {
   ///
   /// PA multiplies the weight *and* the height term. Dropping the brackets
   /// costs a non-sedentary user 109-489 kcal/day (#987); the brackets are the
-  /// whole content of this expression, so keep them. See
-  /// `docs/tdee-iom-2005-verification.md`.
+  /// whole content of this expression, so keep them. The published-value tests
+  /// verify the grouping against the source tables.
   static double iom2005MaleReferenceKcal(
-      UserEntity userEntity, double palValue) {
+    UserEntity userEntity,
+    double palValue,
+  ) {
     final paValue = PalCalc.getPAValueForFormula(
       palValue: palValue,
       isMaleFormula: true,
@@ -81,7 +83,9 @@ class TDEECalc {
   ///   TEE = 387 - (7.31 x age [y]) + PA x (10.9 x weight [kg]
   ///         + 660.7 x height [m])
   static double iom2005FemaleReferenceKcal(
-      UserEntity userEntity, double palValue) {
+    UserEntity userEntity,
+    double palValue,
+  ) {
     final paValue = PalCalc.getPAValueForFormula(
       palValue: palValue,
       isMaleFormula: false,

@@ -111,7 +111,7 @@ Future<void> seedDemoData(DemoSeedOptions options) async {
   _log.info('Seeding demo data (${options.daysOfHistory} days)...');
   // Reproducible fixture even when seedDemoData runs more than once in
   // the same process (exit demo → try sample data again, or repeated
-  // `just dev_seed` hot-restarts that skip a full process restart).
+  // development demo hot-restarts that skip a full process restart).
   resetDemoRng();
 
   await _wipeActiveProfileAndDemoContent();
@@ -283,7 +283,7 @@ Future<void> seedDemoData(DemoSeedOptions options) async {
 
   // Marks the active profile as holding sample, not real, data — drives
   // the Home screen's demo-mode banner (see `main_screen.dart`) and, as a
-  // side effect, lets `just dev_seed` exercise that same banner/exit flow.
+  // side effect, lets the development demo exercise that same banner/exit flow.
   // Try Demo requires the privacy-policy checkbox first; persist that
   // acceptance and keep crash reporting off for the demo session (device-wide
   // consent must not silently ride along from a previous profile).

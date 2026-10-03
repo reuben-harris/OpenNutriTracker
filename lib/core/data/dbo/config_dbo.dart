@@ -34,8 +34,7 @@ class ConfigDBO extends HiveObject {
   int? notificationHour;
   @HiveField(12)
   int? notificationMinute;
-  @HiveField(13)
-  String? selectedLocale;
+  // Field 13 is retired; keep all other Hive field IDs stable.
   @HiveField(14)
   bool? showMealMacros;
   @HiveField(15)
@@ -205,7 +204,6 @@ class ConfigDBO extends HiveObject {
     this.notificationsEnabled,
     this.notificationHour,
     this.notificationMinute,
-    this.selectedLocale,
     this.showMicronutrients,
     this.usesKilojoules,
     this.mealKcalSharesPct,

@@ -90,10 +90,6 @@ class AddConfigUsecase {
     await _configRepository.setNotificationTime(hour, minute);
   }
 
-  Future<void> setSelectedLocale(String? locale) async {
-    await _configRepository.setSelectedLocale(locale);
-  }
-
   Future<void> setConfigShowMicronutrients(bool show) async {
     await _configRepository.setConfigShowMicronutrients(show);
   }

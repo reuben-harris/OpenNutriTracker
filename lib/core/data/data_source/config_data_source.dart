@@ -231,20 +231,6 @@ class ConfigDataSource {
     });
   }
 
-  Future<String?> getSelectedLocale() async {
-    final raw = _readMerged().selectedLocale;
-    // Backward-compat: the project used to ship Czech as 'cz' (non-standard).
-    // It was renamed to the BCP-47 code 'cs' so iOS surfaces it correctly in
-    // its system language picker. Migrate any stored 'cz' value silently so
-    // existing users keep their language preference across the rename.
-    if (raw == 'cz') return 'cs';
-    return raw;
-  }
-
-  Future<void> setSelectedLocale(String? locale) async {
-    await _update((c) => c.selectedLocale = locale);
-  }
-
   Future<void> setConfigShowMicronutrients(bool show) async {
     await _update((c) => c.showMicronutrients = show);
   }

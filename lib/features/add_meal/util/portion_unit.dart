@@ -2,7 +2,7 @@
 /// name ever reaching storage.
 ///
 /// The dropdown's value is what `addIntake` writes to `IntakeDBO.unit`, and
-/// that column is published in `docs/export-format.md` and rides in a
+/// that column is part of the export format and rides in a
 /// *positional* QR share array other builds parse. So a food's portion names
 /// — dataset prose, commas and all — may never be the value; #864 decision 3
 /// settled that and this file is how it holds while the dropdown still offers

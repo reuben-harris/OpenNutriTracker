@@ -72,7 +72,7 @@ import 'package:opennutritracker/core/domain/usecase/update_user_activity_usecas
 import 'package:opennutritracker/core/utils/config_initializer.dart';
 import 'package:opennutritracker/core/utils/off_micronutrient_repair.dart';
 import 'package:opennutritracker/core/utils/tracked_day_total_repair.dart';
-import 'package:opennutritracker/core/utils/env.dart';
+import 'package:opennutritracker/core/utils/app_config.dart';
 import 'package:http/http.dart' as http;
 import 'package:opennutritracker/core/utils/ai_credential_storage.dart';
 import 'package:opennutritracker/features/add_meal/data/meal_items_api_factory.dart';
@@ -196,8 +196,8 @@ Future<void> initLocator() async {
 
   // Backend
   await Supabase.initialize(
-    url: Env.supabaseProjectUrl,
-    publishableKey: Env.supabaseProjectAnonKey,
+    url: AppConfig.supabaseUrl,
+    publishableKey: AppConfig.supabasePublishableKey,
     // In debug builds supabase_flutter attaches its own printer to the
     // shared root log stream (hierarchical logging is off), duplicating
     // every app log line in a second format. LoggerConfig already prints

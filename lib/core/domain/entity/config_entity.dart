@@ -45,7 +45,6 @@ class ConfigEntity extends Equatable {
   final bool notificationsEnabled;
   final int notificationHour;
   final int notificationMinute;
-  final String? selectedLocale;
   final bool showMicronutrients; // #237
   final bool usesKilojoules; // #177
   final Map<String, int> mealKcalSharesPct; // #150
@@ -250,7 +249,6 @@ class ConfigEntity extends Equatable {
     this.notificationsEnabled = false,
     this.notificationHour = 8,
     this.notificationMinute = 0,
-    this.selectedLocale,
     this.showMicronutrients = false,
     this.usesKilojoules = false,
     this.mealKcalSharesPct = defaultMealKcalSharesPct,
@@ -364,7 +362,6 @@ class ConfigEntity extends Equatable {
     notificationsEnabled: dbo.notificationsEnabled ?? false,
     notificationHour: dbo.notificationHour ?? 8,
     notificationMinute: dbo.notificationMinute ?? 0,
-    selectedLocale: dbo.selectedLocale,
     showMicronutrients: dbo.showMicronutrients ?? false,
     usesKilojoules: dbo.usesKilojoules ?? false,
     mealKcalSharesPct:
@@ -481,7 +478,6 @@ class ConfigEntity extends Equatable {
     notificationsEnabled,
     notificationHour,
     notificationMinute,
-    selectedLocale,
     showMicronutrients,
     usesKilojoules,
     mealKcalSharesPct,

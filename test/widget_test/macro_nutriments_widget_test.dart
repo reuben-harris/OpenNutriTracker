@@ -16,10 +16,10 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          locale: const Locale('de'),
+          locale: const Locale('en'),
           // Declaring the supported locales is what lets the `de` locale
           // actually resolve — without it the test silently falls back to
-          // English and never exercises the German-width layout crash.
+          // English and never exercises the English-width layout crash.
           supportedLocales: S.supportedLocales,
           home: Scaffold(
             body: Center(

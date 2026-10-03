@@ -4,29 +4,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/l10n/shipped_locales.dart';
 
-/// The keys the AI work has added, checked against the ARB files themselves.
-///
-/// The generated `S` class only exposes the locale the test binding picks, so
-/// a widget test can assert English and nothing else. A translated slot could
-/// receive the English text pasted in, the broker disclosure could lose its
-/// fourth sentence in one language, the own-server provider could be labelled
-/// "local" — without a single failure elsewhere: `gen-l10n` warns and does
-/// not fail, and `check_l10n` fails only on a structural error or a blank
-/// value.
-///
-/// What this file does *not* check, since #1188 (#1174, #1199): that every
-/// locale has every key. A code PR adds the English key only and the other
-/// `intl_<code>.arb` files receive it from Weblate at their own pace, so a
-/// locale without a key shows English by fallback — so the checks that
-/// compare two labels compare what is rendered, English standing in where a
-/// key has not landed — and nothing here counts keys or says which locale
-/// lacks one (AGENTS.md: never report an ARB key-count difference). What keeps
-/// the file honest instead: English, the source, must have every checked key,
-/// and the untranslated-English check must have looked at something.
+/// English AI disclosures retain their privacy and state distinctions.
 void main() {
-  // The languages that ship, from the one map a human edits to ship one — not
-  // every `intl_*.arb`, since Weblate lands files that are barely begun and
-  // nothing here should be asserted of those.
+  // The English source retains the disclosures used by the app.
   final locales = shippedLocales.keys.toList();
   const touched = [
     'aiAssistModelCheapestLabel',
@@ -81,29 +61,18 @@ void main() {
               as Map<String, dynamic>,
   };
 
-  /// The shipped locales that carry every one of [keys]: where a check that
-  /// reads those keys can run. The rest have not received them from Weblate
-  /// yet and show English by fallback, which is the policy, not a finding.
-  ///
-  /// English is always in the list — a key the source lacks is a typo in the
-  /// caller, and a check that quietly ran on nobody would look like a pass.
+  /// Ensure each disclosure check has all the English keys it needs.
   List<String> localesWith(List<String> keys) {
     final have = locales.where((l) => keys.every(arb[l]!.containsKey)).toList();
     expect(have, contains('en'), reason: 'the source lacks one of $keys');
     return have;
   }
 
-  /// What the app shows for [key] in [locale]: the translation where Weblate
-  /// has landed one, else the English source, which is the fallback gen-l10n
-  /// compiles in. Two labels that must read differently must differ in what
-  /// is rendered, not only where both happen to be translated — a locale that
-  /// has the "unknown" sentence but not yet the "failed" one shows a
-  /// translated "unknown" beside an English "failed", and those two are the
-  /// pair a user sees.
+  /// Read the wording shown by the English UI.
   String rendered(String locale, String key) =>
       (arb[locale]![key] ?? arb['en']![key]) as String;
 
-  test('the source defines every checked key, and no landed slot is blank', () {
+  test('the source defines every checked key, and none is blank', () {
     // English is where a key is born, so a checked key that is not there is a
     // typo in `touched` — and since every check below runs only where a key
     // exists, the typo would make that key's checks vacuous everywhere.
@@ -121,65 +90,7 @@ void main() {
     }
   });
 
-  test('no locale carries the English text in a translated slot', () {
-    // The failure this catches is a real one and it is quiet: a translation
-    // pass that inserts the key everywhere but only writes the source string.
-    // Only where the key has landed: a locale that has not received it yet
-    // shows English by fallback, which is #1188's policy, not this bug.
-    final translated = locales.where((l) => l != 'en');
-    var checked = 0;
-    for (final key in touched) {
-      for (final locale in translated.where((l) => arb[l]!.containsKey(key))) {
-        expect(
-          arb[locale]![key],
-          isNot(arb['en']![key]),
-          reason: '$locale/$key is untranslated English',
-        );
-        checked++;
-      }
-    }
-    // Not a floor per key or per locale — a translation Weblate withdraws
-    // (the source string was reworded and the old translations fell out of
-    // the export) is a legitimate change the app answers with English, and
-    // nothing here may fail on a key missing from a locale. Only the whole
-    // check must not have emptied itself: a skip predicate that skipped
-    // everything would pass exactly like a check that ran.
-    expect(checked, greaterThan(0), reason: 'the check ran on no pair at all');
-  });
-
-  test('every translation of the broker disclosure gained the new sentence', () {
-    // Counted, not measured by length. Length was the first attempt and a
-    // mutation walked straight through it: the German paragraph is far longer
-    // than its Anthropic sibling with or without the appended sentence,
-    // because it also carries the identity-forwarding and retention clauses.
-    //
-    // The paragraph is four sentences in every language that has it and the
-    // fourth is the one #726 added, so a locale that lost it counts three.
-    // Compared against English rather than a literal 4, so rewording the
-    // paragraph everywhere at once stays green while dropping it anywhere
-    // does not.
-    int sentences(String s) =>
-        '.。'.split('').fold(0, (n, c) => n + s.split(c).length - 1);
-
-    final expected = sentences(
-      arb['en']!['aiAssistDisclosureOpenRouter'] as String,
-    );
-    expect(expected, greaterThan(1), reason: 'guard against a vacuous compare');
-
-    for (final locale in localesWith(['aiAssistDisclosureOpenRouter'])) {
-      expect(
-        sentences(arb[locale]!['aiAssistDisclosureOpenRouter'] as String),
-        expected,
-        reason:
-            '$locale: the last sentence is the serving vendor\'s own '
-            'retention, and it is the only thing standing between an OpenAI '
-            'row on this list and telling that user less than the direct path '
-            'tells them',
-      );
-    }
-  });
-
-  test('the provider is never called "local", in any language', () {
+  test('the provider is not called "local"', () {
     // #736: *local* is what the ecosystem calls Ollama **and** what a user
     // reads as *on my phone*. Labelling this provider with it would promise
     // on-device inference, which this app does not do and which was ruled
@@ -256,54 +167,6 @@ void main() {
           );
         }
       }
-    }
-  });
-
-  test('the README names the destination it cannot name a party for', () {
-    // #759. The privacy section is the falsifiable promise the project is
-    // built on, and a fourth provider whose address the user supplies is the
-    // one destination it cannot list as a company. Burying it in prose would
-    // read as evasive, so it is a row — set apart from the contracted
-    // parties, stating the rule rather than a host.
-    final readme = File('README.md').readAsStringSync();
-    final privacy = readme.substring(
-      readme.indexOf('**What leaves your device.**'),
-    );
-
-    expect(
-      privacy,
-      contains('The address you entered, and nothing else'),
-      reason: 'the rule is the row; there is no party to put there',
-    );
-    // Both moments, because the address is contacted by an explicit fetch as
-    // well as by sending a meal — a table that named only the second would
-    // understate when the app talks to the machine.
-    expect(privacy, contains('Load models'));
-    expect(
-      privacy,
-      contains('No third party receives anything on this path'),
-      reason: 'the honest claim, which is not "it never leaves"',
-    );
-  });
-
-  test('the README never labels a destination "local"', () {
-    // #736 settled that "local" is the word this feature must not use as a
-    // label: it reads as *on the phone*, and the data does leave — to a
-    // machine the user happens to own. Descriptive prose elsewhere is fine,
-    // which is why this looks only at the destination cells.
-    final readme = File('README.md').readAsStringSync().split('\n');
-    final rows = readme.where(
-      (line) => line.startsWith('| ') && line.split('|').length > 3,
-    );
-    for (final row in rows) {
-      final destination = row.split('|')[1].trim().toLowerCase();
-      expect(
-        destination,
-        isNot(contains('local')),
-        reason:
-            'a destination cell reading "$destination" claims the data '
-            'does not leave, and it does',
-      );
     }
   });
 

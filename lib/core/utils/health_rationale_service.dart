@@ -17,7 +17,7 @@ import 'package:flutter/services.dart';
 /// desktop build and every widget test the call raises
 /// [MissingPluginException] and is answered as "nothing pending", which is the
 /// truth on a platform that has no Health Connect to be asked by. Mirrors
-/// `AppLocaleService`, deliberately: same shape, same reason for having no
+/// other native channels, deliberately: same shape, same reason for having no
 /// `Platform.isAndroid` guard.
 class HealthRationaleService {
   static const _channel = MethodChannel(
@@ -29,7 +29,8 @@ class HealthRationaleService {
   /// cannot both open the screen.
   static Future<bool> consumePendingRequest() async {
     try {
-      return await _channel.invokeMethod<bool>('consumePendingRequest') ?? false;
+      return await _channel.invokeMethod<bool>('consumePendingRequest') ??
+          false;
     } on PlatformException {
       return false;
     } on MissingPluginException {

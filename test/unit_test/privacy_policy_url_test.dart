@@ -22,9 +22,7 @@ void main() {
     });
 
     test('a locale with no policy of its own falls back to English', () {
-      // Nine locales ship and two documents exist. Sending a Czech reader to
-      // a German document would be worse than the English fallback, so the
-      // rule stays narrow on purpose.
+      // A caller without its own policy document gets the English fallback.
       for (final code in ['cs', 'sk', 'pl', 'it', 'tr', 'uk', 'zh']) {
         expect(
           URLConst.privacyPolicyFor(code),
@@ -34,33 +32,14 @@ void main() {
       }
     });
 
-    test('every shipped locale resolves to a policy that exists', () {
-      // If a tenth locale is added, this fails only if the function starts
-      // returning something that is neither document — not merely because
-      // the new locale lacks its own translation.
+    test('the shipped English UI opens the English document', () {
+      expect(S.supportedLocales.map((locale) => locale.languageCode), ['en']);
       for (final locale in S.supportedLocales) {
         expect(
           URLConst.privacyPolicyFor(locale.languageCode),
-          anyOf(URLConst.privacyPolicyURLEn, URLConst.privacyPolicyURLDe),
-          reason: '${locale.languageCode} resolved to an unknown document',
+          URLConst.privacyPolicyURLEn,
         );
       }
-    });
-
-    test('German is the only shipped locale routed away from English', () {
-      final routedToGerman = S.supportedLocales
-          .map((locale) => locale.languageCode)
-          .where(
-            (code) => URLConst.privacyPolicyFor(code) ==
-                URLConst.privacyPolicyURLDe,
-          )
-          .toList();
-
-      expect(
-        routedToGerman,
-        ['de'],
-        reason: 'only German has a document of its own today',
-      );
     });
 
     test('an unknown language code does not throw', () {
@@ -98,7 +77,8 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'these should call URLConst.privacyPolicyFor(languageCode) '
+      reason:
+          'these should call URLConst.privacyPolicyFor(languageCode) '
           'instead of naming a policy document directly',
     );
   });

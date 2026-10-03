@@ -28,7 +28,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
         notificationsEnabled: fields[10] as bool?,
         notificationHour: (fields[11] as num?)?.toInt(),
         notificationMinute: (fields[12] as num?)?.toInt(),
-        selectedLocale: fields[13] as String?,
         showMicronutrients: fields[15] as bool?,
         usesKilojoules: fields[16] as bool?,
         mealKcalSharesPct: (fields[17] as Map?)?.cast<String, int>(),
@@ -65,7 +64,7 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
   @override
   void write(BinaryWriter writer, ConfigDBO obj) {
     writer
-      ..writeByte(42)
+      ..writeByte(41)
       ..writeByte(0)
       ..write(obj.hasAcceptedDisclaimer)
       ..writeByte(1)
@@ -92,8 +91,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
       ..write(obj.notificationHour)
       ..writeByte(12)
       ..write(obj.notificationMinute)
-      ..writeByte(13)
-      ..write(obj.selectedLocale)
       ..writeByte(14)
       ..write(obj.showMealMacros)
       ..writeByte(15)
@@ -180,7 +177,6 @@ ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
         notificationsEnabled: json['notificationsEnabled'] as bool?,
         notificationHour: (json['notificationHour'] as num?)?.toInt(),
         notificationMinute: (json['notificationMinute'] as num?)?.toInt(),
-        selectedLocale: json['selectedLocale'] as String?,
         showMicronutrients: json['showMicronutrients'] as bool?,
         usesKilojoules: json['usesKilojoules'] as bool?,
         mealKcalSharesPct: (json['mealKcalSharesPct'] as Map<String, dynamic>?)
@@ -245,7 +241,6 @@ Map<String, dynamic> _$ConfigDBOToJson(ConfigDBO instance) => <String, dynamic>{
   'notificationsEnabled': instance.notificationsEnabled,
   'notificationHour': instance.notificationHour,
   'notificationMinute': instance.notificationMinute,
-  'selectedLocale': instance.selectedLocale,
   'showMealMacros': instance.showMealMacros,
   'showMicronutrients': instance.showMicronutrients,
   'usesKilojoules': instance.usesKilojoules,

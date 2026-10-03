@@ -11,7 +11,7 @@
 ///
 /// **Display only, and that is a decision rather than an omission (#864).**
 /// The stored unit stays inside the closed six-value set, because
-/// `IntakeEntity.unit` is published in `docs/export-format.md` and rides in
+/// `IntakeEntity.unit` is part of the export format and rides in
 /// a *positional* QR share array parsed by other builds on other phones.
 /// Feeding dataset prose — which carries commas, per the backend's own
 /// schema comment for "cup, sliced" — into a CSV column and a positional
@@ -71,7 +71,8 @@ const maxHouseholdPortionLabel = 16;
 /// opens this up per locale, with no app release, the moment a reviewer
 /// signs one off. The English path is unchanged: that text needs no
 /// translation to be in an English reader's language.
-String? householdPortionLabel(String? servingSize, {
+String? householdPortionLabel(
+  String? servingSize, {
   required String languageCode,
   bool textIsLocalized = false,
 }) {

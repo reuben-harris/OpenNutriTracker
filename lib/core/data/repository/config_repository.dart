@@ -112,14 +112,6 @@ class ConfigRepository {
     await _configDataSource.setNotificationTime(hour, minute);
   }
 
-  Future<String?> getSelectedLocale() async {
-    return await _configDataSource.getSelectedLocale();
-  }
-
-  Future<void> setSelectedLocale(String? locale) async {
-    await _configDataSource.setSelectedLocale(locale);
-  }
-
   Future<void> setConfigShowMicronutrients(bool show) async {
     await _configDataSource.setConfigShowMicronutrients(show);
   }

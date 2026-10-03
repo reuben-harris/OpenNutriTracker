@@ -16,9 +16,7 @@ import 'package:opennutritracker/core/presentation/storage_recovery_app.dart';
 import 'package:opennutritracker/core/presentation/widgets/image_full_screen.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/app_theme.dart';
-import 'package:opennutritracker/core/utils/app_locale_service.dart';
-import 'package:opennutritracker/core/utils/app_locale_sync.dart';
-import 'package:opennutritracker/core/utils/env.dart';
+import 'package:opennutritracker/core/utils/app_config.dart';
 import 'package:opennutritracker/core/utils/hive_storage_integrity_exception.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/utils/logger_config.dart';
@@ -26,7 +24,6 @@ import 'package:opennutritracker/core/utils/sentry_config.dart';
 import 'package:opennutritracker/core/utils/notification_service.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
-import 'package:opennutritracker/core/utils/locale_provider.dart';
 import 'package:opennutritracker/core/utils/theme_mode_provider.dart';
 import 'package:opennutritracker/features/activity_detail/activity_detail_screen.dart';
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_screen.dart';
@@ -91,31 +88,9 @@ Future<void> _bootstrapApp() async {
   final configRepo = locator<ConfigRepository>();
 
   final config = await configRepo.getConfig();
-  // Android's own per-app language picker and ours are two doors into the
-  // same setting, so ask the system what it holds before trusting what we
-  // saved. See [reconcileAppLocale] for which side wins and why.
-  final localeCode = await reconcileAppLocale(
-    savedLocaleCode: await configRepo.getSelectedLocale(),
-    systemLocaleTag: await AppLocaleService.getApplicationLocale(),
-    supportedLocales: _appLocales,
-    persistSelectedLocale: configRepo.setSelectedLocale,
-    pushToSystem: AppLocaleService.setApplicationLocale,
-  );
-  final savedLocale = localeCode != null ? Locale(localeCode) : null;
-
-  // #312: Restore scheduled notifications after app start / device reboot.
-  // Look up the user's localized strings first — there's no widget tree yet,
-  // so S is driven directly off the saved (or device) locale, resolved against
-  // the supported locales because lookupS throws on unsupported ones. Android
-  // re-applies the channel name/description on every (re)registration, and
-  // they surface in the OS settings, so this keeps them in the user's
-  // language instead of reverting to English on each launch.
+  // Notifications use the same English strings as the app.
   if (config.notificationsEnabled) {
-    final s = lookupS(
-      basicLocaleListResolution([
-        savedLocale ?? WidgetsBinding.instance.platformDispatcher.locale,
-      ], _appLocales),
-    );
+    final s = lookupS(const Locale('en'));
     final notificationService = locator<NotificationService>();
     await notificationService.initialize();
     await notificationService.scheduleDailyReminder(
@@ -136,12 +111,13 @@ Future<void> _bootstrapApp() async {
 
   // If the user has accepted anonymous data collection, run the app with
   // sentry enabled, else run without it
-  if (kReleaseMode && hasAcceptedAnonymousData) {
+  if (kReleaseMode &&
+      hasAcceptedAnonymousData &&
+      AppConfig.sentryDsn.isNotEmpty) {
     log.info('Starting App with Sentry enabled ...');
     _runAppWithSentryReporting(
       isUserInitialized,
       savedAppTheme,
-      savedLocale,
       savedUsesKilojoules,
       savedUseMaterialYou,
       savedAccentColor,
@@ -151,7 +127,6 @@ Future<void> _bootstrapApp() async {
     runAppWithChangeNotifiers(
       isUserInitialized,
       savedAppTheme,
-      savedLocale,
       savedUsesKilojoules,
       savedUseMaterialYou,
       savedAccentColor,
@@ -162,17 +137,15 @@ Future<void> _bootstrapApp() async {
 void _runAppWithSentryReporting(
   bool isUserInitialized,
   AppThemeEntity savedAppTheme,
-  Locale? savedLocale,
   bool savedUsesKilojoules,
   bool savedUseMaterialYou,
   int? savedAccentColor,
 ) async {
   await SentryFlutter.init(
-    (options) => configureSentryOptions(options, dsn: Env.sentryDns),
+    (options) => configureSentryOptions(options, dsn: AppConfig.sentryDsn),
     appRunner: () => runAppWithChangeNotifiers(
       isUserInitialized,
       savedAppTheme,
-      savedLocale,
       savedUsesKilojoules,
       savedUseMaterialYou,
       savedAccentColor,
@@ -183,7 +156,6 @@ void _runAppWithSentryReporting(
 void runAppWithChangeNotifiers(
   bool userInitialized,
   AppThemeEntity savedAppTheme,
-  Locale? savedLocale,
   bool savedUsesKilojoules,
   bool savedUseMaterialYou,
   int? savedAccentColor,
@@ -196,9 +168,6 @@ void runAppWithChangeNotifiers(
           useMaterialYou: savedUseMaterialYou,
           accentColor: savedAccentColor,
         ),
-      ),
-      ChangeNotifierProvider(
-        create: (_) => LocaleProvider(locale: savedLocale),
       ),
       ChangeNotifierProvider(
         create: (_) => EnergyUnitProvider(usesKilojoules: savedUsesKilojoules),
@@ -217,44 +186,7 @@ class OpenNutriTrackerApp extends StatefulWidget {
   State<OpenNutriTrackerApp> createState() => _OpenNutriTrackerAppState();
 }
 
-class _OpenNutriTrackerAppState extends State<OpenNutriTrackerApp>
-    with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  /// Android delivers this when someone changes the app's language from
-  /// Settings -> Apps -> OpenNutriTracker -> Language while the app is alive.
-  /// `MaterialApp.locale` is pinned to our own saved choice, so without
-  /// adopting the new value here that picker would appear to do nothing.
-  @override
-  void didChangeLocales(List<Locale>? locales) {
-    super.didChangeLocales(locales);
-    unawaited(_adoptSystemLocale());
-  }
-
-  Future<void> _adoptSystemLocale() async {
-    final systemCode = supportedLanguageCode(
-      await AppLocaleService.getApplicationLocale(),
-      _appLocales,
-    );
-    if (systemCode == null || !mounted) return;
-
-    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
-    if (localeProvider.locale?.languageCode == systemCode) return;
-
-    localeProvider.updateLocale(Locale(systemCode));
-    await locator<ConfigRepository>().setSelectedLocale(systemCode);
-  }
-
+class _OpenNutriTrackerAppState extends State<OpenNutriTrackerApp> {
   @override
   Widget build(BuildContext context) {
     // #415: DynamicColorBuilder hands back null on platforms that don't
@@ -294,7 +226,7 @@ class _OpenNutriTrackerAppState extends State<OpenNutriTrackerApp>
       theme: buildAppTheme(lightPalette),
       darkTheme: buildAppTheme(darkPalette),
       themeMode: Provider.of<ThemeModeProvider>(context).themeMode,
-      locale: Provider.of<LocaleProvider>(context).locale,
+      locale: const Locale('en'),
       localizationsDelegates: const [
         S.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -312,7 +244,8 @@ class _OpenNutriTrackerAppState extends State<OpenNutriTrackerApp>
         NavigationOptions.settingsRoute: (context) => const SettingsScreen(),
         NavigationOptions.accentColourRoute: (context) =>
             const AccentColourScreen(),
-        NavigationOptions.healthSyncRoute: (context) => const HealthSyncScreen(),
+        NavigationOptions.healthSyncRoute: (context) =>
+            const HealthSyncScreen(),
         NavigationOptions.addMealRoute: (context) => const AddMealScreen(),
         NavigationOptions.bulkAddRoute: (context) => const BulkAddScreen(),
         NavigationOptions.scannerRoute: (context) => const ScannerScreen(),

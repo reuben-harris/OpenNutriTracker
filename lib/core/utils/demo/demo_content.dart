@@ -30,7 +30,7 @@ import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments
 /// between them.
 ///
 /// Fixed seed for [demoRng]. Re-applied via [resetDemoRng] at the start of
-/// every `seedDemoData` call so a second try-demo / `just dev_seed` in the
+/// every `seedDemoData` call so a second demo run in the
 /// same process reproduces the same fixture rather than continuing the
 /// previous run's RNG stream.
 const demoRngSeed = 1337;
@@ -438,7 +438,8 @@ Future<DemoFoods> buildDemoFoods() async {
   );
 }
 
-double _roundToNearest5g(double grams) => grams <= 0 ? 0.0 : max(10.0, (grams / 5).round() * 5.0);
+double _roundToNearest5g(double grams) =>
+    grams <= 0 ? 0.0 : max(10.0, (grams / 5).round() * 5.0);
 
 /// Grams of [meal] needed to supply [targetGrams] of the macro read off by
 /// [macroPer100] (e.g. `(n) => n.proteins100`). Zero when the food doesn't
@@ -488,12 +489,28 @@ List<IntakeEntity> buildDailyIntakes(
 
   final veggieAmount = 80.0 + demoRng.nextInt(60); // 80-139g
   final fruitAmount = 100.0 + demoRng.nextInt(60); // 100-159g
-  final veggieCarb = _macroGrams(foods.broccoli, veggieAmount, (n) => n.carbohydrates100);
+  final veggieCarb = _macroGrams(
+    foods.broccoli,
+    veggieAmount,
+    (n) => n.carbohydrates100,
+  );
   final veggieFat = _macroGrams(foods.broccoli, veggieAmount, (n) => n.fat100);
-  final veggieProtein = _macroGrams(foods.broccoli, veggieAmount, (n) => n.proteins100);
-  final fruitCarb = _macroGrams(fruitMeal, fruitAmount, (n) => n.carbohydrates100);
+  final veggieProtein = _macroGrams(
+    foods.broccoli,
+    veggieAmount,
+    (n) => n.proteins100,
+  );
+  final fruitCarb = _macroGrams(
+    fruitMeal,
+    fruitAmount,
+    (n) => n.carbohydrates100,
+  );
   final fruitFat = _macroGrams(fruitMeal, fruitAmount, (n) => n.fat100);
-  final fruitProtein = _macroGrams(fruitMeal, fruitAmount, (n) => n.proteins100);
+  final fruitProtein = _macroGrams(
+    fruitMeal,
+    fruitAmount,
+    (n) => n.proteins100,
+  );
 
   // Carb target split ~30-60% breakfast / rest dinner starch.
   final carbShareA = 0.3 + demoRng.nextDouble() * 0.3;
@@ -522,15 +539,16 @@ List<IntakeEntity> buildDailyIntakes(
     _gramsFor(foods.oliveOil, remainingFat * oilShare, (n) => n.fat100),
   );
   final almondAmount = _roundToNearest5g(
-    _gramsFor(
-      foods.almonds,
-      remainingFat * (1 - oilShare),
-      (n) => n.fat100,
-    ),
+    _gramsFor(foods.almonds, remainingFat * (1 - oilShare), (n) => n.fat100),
   );
-  final almondProtein = _macroGrams(foods.almonds, almondAmount, (n) => n.proteins100);
+  final almondProtein = _macroGrams(
+    foods.almonds,
+    almondAmount,
+    (n) => n.proteins100,
+  );
 
-  final remainingProtein = targetMacros.protein -
+  final remainingProtein =
+      targetMacros.protein -
       veggieProtein -
       fruitProtein -
       carbProtein -
@@ -709,7 +727,8 @@ Future<void> seedRecipes(DateTime now, DemoFoods foods) async {
     RecipeEntity(
       id: IdGenerator.getUniqueID(),
       name: 'Greek Yogurt Parfait',
-      description: 'Greek yogurt layered with banana and a scattering of almonds.',
+      description:
+          'Greek yogurt layered with banana and a scattering of almonds.',
       ingredients: [
         ingredient(foods.greekYogurt, 200),
         ingredient(foods.banana, 80),

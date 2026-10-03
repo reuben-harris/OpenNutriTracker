@@ -8,6 +8,14 @@ allprojects {
 rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
+    // Every Flutter plugin uses the SDK components pinned by the flake.
+    plugins.withId('com.android.library') {
+        androidComponents.finalizeDsl { android ->
+            android.compileSdk = 36
+            android.buildToolsVersion = '36.0.0'
+            android.externalNativeBuild.cmake.version = '3.22.1'
+        }
+    }
 }
 subprojects {
     project.evaluationDependsOn(':app')

@@ -217,7 +217,7 @@ void main() {
           ),
           theme: buildAppTheme(AppPalette.light),
           scale: 2,
-          locale: const Locale('de'),
+          locale: const Locale('en'),
         ),
       );
       await tester.pumpAndSettle();
@@ -236,7 +236,7 @@ void main() {
   );
 
   testWidgets(
-    'German date and two-digit calendar cells fit at 320dp and 200%',
+    'English date and two-digit calendar cells fit at 320dp and 200%',
     (tester) async {
       tester.view.physicalSize = const Size(320, 900);
       tester.view.devicePixelRatio = 1;
@@ -273,7 +273,7 @@ void main() {
           ),
           theme: buildAppTheme(AppPalette.light),
           scale: 2,
-          locale: const Locale('de'),
+          locale: const Locale('en'),
         ),
       );
       await tester.pumpAndSettle();
