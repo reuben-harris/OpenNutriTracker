@@ -1,3 +1,5 @@
+import 'package:auto_size_text/auto_size_text.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
@@ -35,17 +37,25 @@ class DiaryTableCalendar extends StatefulWidget {
 /// equals a heading's height by coincidence — it is `labelSmall`'s line
 /// height today — and scaling it lands fractionally short at some scales
 /// (20.8 against the 21.0 wanted at 1.3x), which clips just as surely.
-double _weekdayRowHeight(BuildContext context, TextStyle style) =>
-    (TextPainter(
-      // Any single line measures the same: the height comes from the font's
-      // metrics, not from which glyphs are in it.
-      text: TextSpan(text: 'Mon', style: style),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-    )..layout())
-        .height;
+double _weekdayRowHeight(BuildContext context, TextStyle style) => (TextPainter(
+  // Any single line measures the same: the height comes from the font's
+  // metrics, not from which glyphs are in it.
+  text: TextSpan(text: 'Mon', style: style),
+  textDirection: Directionality.of(context),
+  textScaler: MediaQuery.textScalerOf(context),
+)..layout()).height;
 
 class _DiaryTableCalendarState extends State<DiaryTableCalendar> {
+  late DateTime _focusedDate = widget.focusedDate;
+
+  @override
+  void didUpdateWidget(covariant DiaryTableCalendar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusedDate != oldWidget.focusedDate) {
+      _focusedDate = widget.focusedDate;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -54,34 +64,40 @@ class _DiaryTableCalendarState extends State<DiaryTableCalendar> {
     final textTheme = Theme.of(context).textTheme;
     final weekdayStyle =
         textTheme.labelSmall?.copyWith(color: palette.textMuted) ??
-            const TextStyle();
+        const TextStyle();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         Dimens.spacing16,
-        Dimens.spacing8,
+        Dimens.spacing16,
         Dimens.spacing16,
         Dimens.spacing4,
       ),
       child: AppCard(
-        padding: const EdgeInsets.fromLTRB(
-          Dimens.spacing8,
-          Dimens.spacing12,
-          Dimens.spacing8,
-          Dimens.spacing12,
-        ),
+        padding: const EdgeInsets.all(Dimens.spacing8),
         child: TableCalendar(
           headerStyle: HeaderStyle(
             titleCentered: true,
             formatButtonVisible: false,
-            titleTextStyle: textTheme.titleMedium?.copyWith(
+            titleTextStyle:
+                textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: palette.textStrong,
                 ) ??
                 const TextStyle(),
-            leftChevronIcon: Icon(Icons.chevron_left_rounded, color: palette.textMuted, size: 26),
-            rightChevronIcon: Icon(Icons.chevron_right_rounded, color: palette.textMuted, size: 26),
-            headerPadding: const EdgeInsets.symmetric(vertical: Dimens.spacing8),
+            leftChevronIcon: Icon(
+              Icons.chevron_left_rounded,
+              color: palette.textMuted,
+              size: 26,
+            ),
+            rightChevronIcon: Icon(
+              Icons.chevron_right_rounded,
+              color: palette.textMuted,
+              size: 26,
+            ),
+            headerPadding: const EdgeInsets.symmetric(
+              vertical: Dimens.spacing8,
+            ),
           ),
           daysOfWeekStyle: DaysOfWeekStyle(
             weekdayStyle: weekdayStyle,
@@ -96,19 +112,37 @@ class _DiaryTableCalendarState extends State<DiaryTableCalendar> {
           // heading sits in a `SizedBox` of this height, and a tight
           // constraint squeezes its child rather than overflowing (#766).
           daysOfWeekHeight: _weekdayRowHeight(context, weekdayStyle),
-          focusedDay: widget.focusedDate,
-          firstDay: widget.currentDate.subtract(widget.calendarDurationDays),
-          lastDay: widget.currentDate.add(widget.calendarDurationDays),
+          currentDay: widget.currentDate,
+          locale: Localizations.localeOf(context).toString(),
+          focusedDay: _focusedDate,
+          onPageChanged: (day) => _focusedDate = day,
+          firstDay: DateTime(
+            widget.currentDate.year,
+            widget.currentDate.month,
+            widget.currentDate.day - widget.calendarDurationDays.inDays,
+          ),
+          lastDay: DateTime(
+            widget.currentDate.year,
+            widget.currentDate.month,
+            widget.currentDate.day + widget.calendarDurationDays.inDays,
+          ),
           startingDayOfWeek: StartingDayOfWeek.monday,
           onDaySelected: (selectedDay, focusedDay) {
             widget.onDateSelected(selectedDay, widget.trackedDaysMap);
           },
           calendarStyle: CalendarStyle(
             markersMaxCount: 1,
-            defaultTextStyle: textTheme.bodyMedium?.copyWith(color: palette.textStrong) ?? const TextStyle(),
-            weekendTextStyle: textTheme.bodyMedium?.copyWith(color: palette.textStrong) ?? const TextStyle(),
-            outsideTextStyle: textTheme.bodyMedium?.copyWith(color: palette.textMuted) ?? const TextStyle(),
-            todayTextStyle: textTheme.bodyMedium?.copyWith(
+            defaultTextStyle:
+                textTheme.bodyMedium?.copyWith(color: palette.textStrong) ??
+                const TextStyle(),
+            weekendTextStyle:
+                textTheme.bodyMedium?.copyWith(color: palette.textStrong) ??
+                const TextStyle(),
+            outsideTextStyle:
+                textTheme.bodyMedium?.copyWith(color: palette.textMuted) ??
+                const TextStyle(),
+            todayTextStyle:
+                textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: accent,
                 ) ??
@@ -117,7 +151,8 @@ class _DiaryTableCalendarState extends State<DiaryTableCalendar> {
               border: Border.all(color: accent, width: 2.0),
               shape: BoxShape.circle,
             ),
-            selectedTextStyle: textTheme.bodyMedium?.copyWith(
+            selectedTextStyle:
+                textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: Theme.of(context).colorScheme.onPrimary,
                 ) ??
@@ -129,6 +164,52 @@ class _DiaryTableCalendarState extends State<DiaryTableCalendar> {
           ),
           selectedDayPredicate: (day) => isSameDay(widget.selectedDate, day),
           calendarBuilders: CalendarBuilders(
+            headerTitleBuilder: (context, day) => AutoSizeText(
+              DateFormat.yMMMM(
+                Localizations.localeOf(context).toString(),
+              ).format(day),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              minFontSize: 8,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: palette.textStrong,
+              ),
+            ),
+            prioritizedBuilder: (context, day, focusedDay) {
+              final selected = isSameDay(widget.selectedDate, day);
+              final today = isSameDay(widget.currentDate, day);
+              final outside = day.month != focusedDay.month;
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected ? accent : null,
+                  border: today && !selected
+                      ? Border.all(color: accent, width: 2)
+                      : null,
+                ),
+                child: AutoSizeText(
+                  DateFormat.d(
+                    Localizations.localeOf(context).toString(),
+                  ).format(day),
+                  maxLines: 1,
+                  minFontSize: 9,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: selected
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : today
+                        ? accent
+                        : outside
+                        ? palette.textMuted
+                        : palette.textStrong,
+                    fontWeight: selected || today ? FontWeight.w700 : null,
+                  ),
+                ),
+              );
+            },
             markerBuilder: (context, date, events) {
               final trackedDay = widget.trackedDaysMap[date.toParsedDay()];
               if (trackedDay != null) {

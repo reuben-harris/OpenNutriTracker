@@ -12,6 +12,12 @@ class AddConfigUsecase {
     await _configRepository.updateConfig(configEntity);
   }
 
+  Future<void> setOverviewMacrosAsPercent(bool value) =>
+      _configRepository.setOverviewMacrosAsPercent(value);
+
+  Future<void> setOverviewNutrientsAsPercent(bool value) =>
+      _configRepository.setOverviewNutrientsAsPercent(value);
+
   Future<void> setConfigDisclaimer(bool hasAcceptedDisclaimer) async {
     await _configRepository.setConfigDisclaimer(hasAcceptedDisclaimer);
   }

@@ -12,6 +12,7 @@ import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/utils/energy_display.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/utils/user_image_storage.dart';
+import 'package:opennutritracker/generated/l10n.dart';
 
 /// A logged intake, rendered as a full-width row: a rounded thumbnail, the meal
 /// name and amount, and the energy on the trailing edge. Replaces the old
@@ -39,6 +40,7 @@ class IntakeCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final palette = isDark ? AppPalette.dark : AppPalette.light;
     final textTheme = Theme.of(context).textTheme;
+    final s = S.of(context);
     final radius = BorderRadius.circular(Dimens.radiusM);
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -85,11 +87,34 @@ class IntakeCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: Dimens.spacing8),
-                Text(
-                  EnergyDisplay.formatWithUnit(context, intake.totalKcal),
-                  style: textTheme.labelMedium?.copyWith(
-                    color: palette.textStrong,
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      AutoSizeText(
+                        EnergyDisplay.formatWithUnit(context, intake.totalKcal),
+                        maxLines: 1,
+                        minFontSize: 8,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.labelMedium?.copyWith(
+                          color: palette.textStrong,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      AutoSizeText(
+                        '${intake.totalCarbsGram.toStringAsFixed(0)} ${s.carbsLabelShort} '
+                        '${intake.totalFatsGram.toStringAsFixed(0)} ${s.fatLabelShort} '
+                        '${intake.totalProteinsGram.toStringAsFixed(0)} ${s.proteinLabelShort}',
+                        maxLines: 1,
+                        minFontSize: 8,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: palette.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

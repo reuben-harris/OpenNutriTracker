@@ -100,7 +100,7 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
             ),
           );
         } else {
-          final goal = await _getKcalGoalUsecase.getKcalGoal();
+          final goal = await _getKcalGoalUsecase.getKcalGoal(day: event.day);
           emit(
             state.copyWith(
               dayKcalConsumed: 0,
@@ -213,7 +213,7 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
   ) async {
     final hasTrackedDay = await _addTrackedDayUsecase.hasTrackedDay(day);
     if (!hasTrackedDay) {
-      final totalKcalGoal = await _getKcalGoalUsecase.getKcalGoal();
+      final totalKcalGoal = await _getKcalGoalUsecase.getKcalGoal(day: day);
       final totalCarbsGoal = await _getMacroGoalUsecase.getCarbsGoal(
         totalKcalGoal,
       );

@@ -105,6 +105,27 @@ class GetIntakeUsecase {
           dayStartOffsetHours: dayStartOffsetHours,
           dayStartOffsetMinutes: dayStartOffsetMinutes);
 
+  /// Inclusive logical-day range, read in one pass for history charts.
+  Future<List<IntakeEntity>> getIntakesByRange(
+    DateTime start,
+    DateTime end, {
+    int dayStartOffsetHours = 0,
+    int dayStartOffsetMinutes = 0,
+  }) async {
+    final offset = DayBoundaryCalc.totalMinutesOf(
+      dayStartOffsetHours,
+      dayStartOffsetMinutes,
+    );
+    final records = await _intakeRepository.getAllIntakesDBO();
+    return records
+        .where((record) {
+          final day = DayBoundaryCalc.recordDayLabel(record.dateTime, offset);
+          return !day.isBefore(start) && !day.isAfter(end);
+        })
+        .map(IntakeEntity.fromIntakeDBO)
+        .toList();
+  }
+
   Future<List<IntakeEntity>> getRecentIntake() async {
     return _intakeRepository.getRecentIntake();
   }

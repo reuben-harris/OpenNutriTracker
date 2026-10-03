@@ -1,135 +1,139 @@
 import 'package:flutter/material.dart';
-import 'package:opennutritracker/core/styles/dimens.dart';
-import 'package:opennutritracker/core/utils/locator.dart';
-import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
-/// #32: simple "how much did you just drink?" dialog. A slider feels
-/// kinder than a numeric keypad for the common case where the person
-/// already knows roughly how much they had — half a glass, a regular
-/// glass, a large bottle — and only needs to land on the nearest
-/// 50 ml. "Undo last" handles the more frustrating case where you tap
-/// the wrong amount and want to take it back without doing the
-/// mental arithmetic of "subtract X from the running total".
+/// Returns the entered amount after the caller's save succeeds. Persistence
+/// belongs to the day controller; failures leave the correction on screen.
 class LogWaterDialog extends StatefulWidget {
   static const int sliderMaxMl = 1000;
   static const int sliderStepMl = 50;
   static const int sliderDivisions = sliderMaxMl ~/ sliderStepMl;
   static const int sliderDefaultMl = 250;
 
-  const LogWaterDialog({super.key});
+  final int? initialAmount;
+  final Future<void> Function(int amount) onSave;
+
+  const LogWaterDialog({super.key, this.initialAmount, required this.onSave});
 
   @override
   State<LogWaterDialog> createState() => _LogWaterDialogState();
 }
 
 class _LogWaterDialogState extends State<LogWaterDialog> {
-  double _selectedMl = LogWaterDialog.sliderDefaultMl.toDouble();
+  late final TextEditingController _amount = TextEditingController(
+    text: '${widget.initialAmount ?? LogWaterDialog.sliderDefaultMl}',
+  );
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    return AlertDialog(
-      shape: Dimens.shapeL,
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              s.logWaterDialogTitle,
-              overflow: TextOverflow.ellipsis,
-            ),
+    return PopScope(
+      canPop: !_saving,
+      child: AlertDialog(
+        title: Text(
+          widget.initialAmount == null
+              ? s.logWaterDialogTitle
+              : s.editWaterAmountLabel,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontSize: MediaQuery.textScalerOf(context).scale(14) > 20
+                ? 14
+                : null,
           ),
-          const SizedBox(width: 8),
-          Semantics(
-            identifier: 'log-water-reset',
-            container: true,
-            child: TextButton(
-              onPressed: _selectedMl == 0
-                  ? null
-                  : () => setState(() => _selectedMl = 0),
-              child: Text(s.buttonResetLabel),
-            ),
-          ),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            s.logWaterAmountLabel(_selectedMl.round()),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w800,
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Semantics(
+                identifier: 'log-water-amount',
+                child: TextField(
+                  controller: _amount,
+                  enabled: !_saving,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: s.trendsWaterLabel,
+                    suffixText: s.mlLabel,
+                    errorText: _error,
+                    errorMaxLines: 3,
+                  ),
+                  onChanged: (_) => setState(() => _error = null),
+                  onSubmitted: (_) => _save(),
                 ),
-          ),
-          const SizedBox(height: 8),
-          Semantics(
-            identifier: 'log-water-slider',
-            child: Slider(
-              value: _selectedMl,
-              min: 0,
-              max: LogWaterDialog.sliderMaxMl.toDouble(),
-              divisions: LogWaterDialog.sliderDivisions,
-              label: '${_selectedMl.round()} ml',
-              onChanged: (value) {
-                setState(() => _selectedMl = value);
-              },
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Semantics(
-              identifier: 'log-water-undo',
-              child: TextButton.icon(
-                icon: const Icon(Icons.undo_rounded),
-                label: Text(s.logWaterUndoLabel),
-                onPressed: _onUndoPressed,
               ),
-            ),
+              const SizedBox(height: 12),
+              Semantics(
+                identifier: 'log-water-slider',
+                child: Slider(
+                  value: (int.tryParse(_amount.text) ?? 0)
+                      .clamp(0, LogWaterDialog.sliderMaxMl)
+                      .toDouble(),
+                  min: 0,
+                  max: LogWaterDialog.sliderMaxMl.toDouble(),
+                  divisions: LogWaterDialog.sliderDivisions,
+                  label: '${_amount.text} ${s.mlLabel}',
+                  onChanged: _saving
+                      ? null
+                      : (value) => setState(() {
+                          _amount.text = '${value.round()}';
+                          _error = null;
+                        }),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      actions: [
-        Semantics(
-          identifier: 'log-water-cancel',
-          child: TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: _saving ? null : () => Navigator.pop(context),
             child: Text(s.dialogCancelLabel),
           ),
-        ),
-        Semantics(
-          identifier: 'log-water-save',
-          child: FilledButton(
-            onPressed: _onSavePressed,
-            child: Text(s.dialogOKLabel),
+          Semantics(
+            identifier: 'log-water-save',
+            child: FilledButton(
+              onPressed: _saving ? null : _save,
+              child: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(s.buttonSaveLabel),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Future<void> _onSavePressed() async {
-    final amount = _selectedMl.round();
-    final navigator = Navigator.of(context);
-    if (amount > 0) {
-      await locator<HomeBloc>().addWaterIntake(amount);
+  Future<void> _save() async {
+    if (_saving) return;
+    final text = _amount.text.trim();
+    final amount = int.tryParse(text);
+    if (!RegExp(r'^\d+$').hasMatch(text) || amount == null || amount <= 0) {
+      setState(() => _error = S.of(context).waterAmountValidationLabel);
+      return;
     }
-    if (mounted) {
-      navigator.pop();
-    }
-  }
-
-  Future<void> _onUndoPressed() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final undone = await locator<HomeBloc>().undoLastWaterIntake();
-    if (!mounted) return;
-    if (!undone) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(S.of(context).logWaterNothingToUndoLabel)),
-      );
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.onSave(amount);
+      if (mounted) Navigator.pop(context, amount);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = S.of(context).waterSaveErrorLabel;
+        });
+      }
     }
   }
 }

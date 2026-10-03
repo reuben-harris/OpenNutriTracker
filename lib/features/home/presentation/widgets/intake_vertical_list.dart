@@ -8,7 +8,6 @@ import 'package:opennutritracker/core/presentation/widgets/copy_dialog.dart';
 import 'package:opennutritracker/core/presentation/widgets/copy_to_profile_sheet.dart';
 import 'package:opennutritracker/core/presentation/widgets/delete_all_dialog.dart';
 import 'package:opennutritracker/core/presentation/widgets/intake_card.dart';
-import 'package:opennutritracker/core/presentation/widgets/placeholder_card.dart';
 import 'package:opennutritracker/core/presentation/widgets/share_qr_dialog.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
@@ -16,11 +15,11 @@ import 'package:opennutritracker/core/utils/energy_display.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/core/utils/vertical_list_popup_menu_selections.dart';
-import 'package:opennutritracker/features/add_meal/presentation/add_meal_screen.dart';
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/diary_sort_type.dart';
+import 'package:opennutritracker/features/diary/presentation/widgets/meal_section_actions.dart';
 import 'package:opennutritracker/features/home/domain/entity/shared_meal_payload.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/features/home/presentation/screens/import_meal_scanner_screen.dart';
@@ -86,12 +85,10 @@ class IntakeVerticalList extends StatefulWidget {
 
 class _IntakeVerticalListState extends State<IntakeVerticalList> {
   late MealDetailBloc _mealDetailBloc;
-  late HomeBloc _homeBloc;
 
   @override
   void initState() {
     _mealDetailBloc = locator<MealDetailBloc>();
-    _homeBloc = locator<HomeBloc>();
     super.initState();
   }
 
@@ -347,11 +344,9 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                       usesImperialUnits: widget.usesImperialUnits,
                     ),
                   ),
-                PlaceholderCard(
+                MealSectionActions(
                   day: widget.day,
-                  onTap: () => _onPlaceholderCardTapped(context),
-                  firstListElement: true,
-                  semanticIdentifier: 'add-meal-placeholder',
+                  mealType: widget.addMealType,
                 ),
               ],
             );
@@ -404,15 +399,21 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
     );
   }
 
-  void _onPlaceholderCardTapped(BuildContext context) {
-    Navigator.pushNamed(context, NavigationOptions.addMealRoute,
-        arguments: AddMealScreenArguments(widget.addMealType, widget.day));
-  }
-
-  void _onItemDropped(IntakeEntity entity) {
-    _mealDetailBloc.addIntake(context, entity.unit, entity.amount.toString(),
-        widget.addMealType.getIntakeType(), entity.meal, entity.dateTime);
-    _homeBloc.deleteIntakeItem(entity);
+  void _onItemDropped(IntakeEntity entity) async {
+    await _mealDetailBloc.addIntake(
+      context,
+      entity.unit,
+      entity.amount.toString(),
+      widget.addMealType.getIntakeType(),
+      entity.meal,
+      widget.day,
+    );
+    if (!mounted) return;
+    await locator<CalendarDayBloc>().deleteIntakeItem(
+      context,
+      entity,
+      widget.day,
+    );
 
     // Refresh Home Page
     locator<HomeBloc>().add(const LoadItemsEvent());

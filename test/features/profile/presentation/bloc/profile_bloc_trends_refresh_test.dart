@@ -97,7 +97,8 @@ void main() {
       'weight card)', () async {
     final user = UserEntityFixtures.youngSedentaryMaleWantingToMaintainWeight;
     trendsBloc = _FakeTrendsBloc(
-      const TrendsLoaded(
+      TrendsLoaded(
+        today: DateTime(2026, 9, 29),
         rangeDays: 30,
         windowDays: 30,
         days: <TrackedDayEntity>[],

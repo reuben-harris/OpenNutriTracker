@@ -188,6 +188,11 @@ class ConfigDBO extends HiveObject {
   @HiveField(39)
   bool? defaultToRawFoodUnits;
 
+  @HiveField(40)
+  bool? overviewMacrosAsPercent;
+  @HiveField(41)
+  bool? overviewNutrientsAsPercent;
+
   ConfigDBO(
     this.hasAcceptedDisclaimer,
     this.hasAcceptedPolicy,
@@ -226,6 +231,8 @@ class ConfigDBO extends HiveObject {
     this.policyNoticeRevisionSeen,
     this.healthDeletedWorkouts,
     this.defaultToRawFoodUnits,
+    this.overviewMacrosAsPercent,
+    this.overviewNutrientsAsPercent,
   });
 
   factory ConfigDBO.empty() =>
@@ -236,6 +243,8 @@ class ConfigDBO extends HiveObject {
     entity.hasAcceptedPolicy,
     entity.hasAcceptedSendAnonymousData,
     AppThemeDBO.fromAppThemeEntity(entity.appTheme),
+    overviewMacrosAsPercent: entity.overviewMacrosAsPercent,
+    overviewNutrientsAsPercent: entity.overviewNutrientsAsPercent,
     usesImperialUnits: entity.usesImperialUnits,
     usesImperialFoodUnits: entity.usesImperialFoodUnits,
     usesImperialHeightUnits: entity.usesImperialHeightUnits,

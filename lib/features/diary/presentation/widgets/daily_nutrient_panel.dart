@@ -1,22 +1,23 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
-import 'package:opennutritracker/core/domain/entity/config_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
-import 'package:opennutritracker/core/domain/usecase/get_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_user_usecase.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
+import 'package:opennutritracker/core/presentation/widgets/goal_value_toggle.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/utils/calc/dri_reference.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
-import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:opennutritracker/core/utils/calc/nutrient_totals.dart';
+
+export 'package:opennutritracker/core/utils/calc/nutrient_totals.dart';
 
 /// Daily micronutrient summary that aggregates the nutrients reporters keep
 /// asking for — fibre, sodium, saturated fat, sugar, calcium, iron, potassium,
@@ -28,24 +29,14 @@ import 'package:url_launcher/url_launcher.dart';
 /// between female and male DRIs is large enough that a single number would
 /// mislead one group or the other.
 ///
-/// As a follow-up to #160 the panel now supports two extra dimensions:
-///   * a Day / Week SegmentedButton toggle. "Week" computes a 7-day rolling
-///     average (today + the previous 6 days) so the user can see whether a
-///     single low-iron day was actually an outlier; references stay the
-///     same. The previous days' intakes are fetched via [GetIntakeUsecase]
-///     in [didChangeDependencies] and again whenever [selectedDay] changes.
-///   * a per-nutrient show/hide map persisted on [ConfigEntity]. Defaults to
-///     "everything visible"; the user can hide individual nutrients from
-///     Settings → Nutrients (see [NutrientPanelKeys]).
-///
-/// Computation is on the fly from [intakes] (plus the fetched week window
-/// when Week is selected). PR #314 added the per-meal micronutrient fields
-/// on [MealNutrimentsDBO]; this widget simply sums them.
+/// Sums the selected day's records and respects per-nutrient visibility
+/// settings. History is shown in the micronutrients chart on Trends.
 class DailyNutrientPanel extends StatefulWidget {
   final List<IntakeEntity> intakes;
+  final bool asPercent;
+  final VoidCallback? onToggle;
 
-  /// The day the panel is summarising. Used as the anchor for the weekly
-  /// rolling average (today + the previous 6 days). Defaults to "today".
+  /// The day the panel is summarising.
   final DateTime? selectedDay;
 
   /// Forwarded from the diary day view so the panel can prefer the user's
@@ -59,6 +50,8 @@ class DailyNutrientPanel extends StatefulWidget {
     required this.intakes,
     this.selectedDay,
     this.trackedDay,
+    this.asPercent = false,
+    this.onToggle,
   });
 
   // ---- Default daily references (#173) ----------------------------------
@@ -99,8 +92,7 @@ class DailyNutrientPanel extends StatefulWidget {
   static double resolveIronReference(
     TrackedDayEntity? trackedDay,
     double genderDefault,
-  ) =>
-      trackedDay?.ironGoal ?? genderDefault;
+  ) => trackedDay?.ironGoal ?? genderDefault;
 
   static double resolvePotassiumReference(TrackedDayEntity? trackedDay) =>
       trackedDay?.potassiumGoal ?? defaultPotassiumRefMg;
@@ -119,12 +111,6 @@ class DailyNutrientPanel extends StatefulWidget {
 }
 
 class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
-  _NutrientView _view = _NutrientView.day;
-  // Collapsed by default — see the build method's note on visual weight.
-  // Persists for the lifetime of the screen; revisiting the day view
-  // resets it, which feels right given how secondary the detail is.
-  bool _expanded = false;
-
   Future<_PanelData>? _panelDataFuture;
 
   @override
@@ -137,8 +123,7 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
   void didUpdateWidget(covariant DailyNutrientPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     // The parent passes a fresh intake list whenever the day changes or an
-    // intake is added/removed. Refetch so the weekly average stays accurate
-    // and the visibility map picks up any Settings edits.
+    // intake is added/removed. Refetch the visibility map for Settings edits.
     if (oldWidget.intakes != widget.intakes ||
         oldWidget.selectedDay != widget.selectedDay) {
       _panelDataFuture = _loadPanelData();
@@ -150,9 +135,10 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
     return FutureBuilder<_PanelData>(
       future: _panelDataFuture,
       builder: (context, snapshot) {
-        final data = snapshot.data;
-        // Render the daily view (no weekly history yet) while the future
-        // resolves — keeps the panel from blank-flashing on every rebuild.
+        final data = snapshot.connectionState == ConnectionState.done
+            ? snapshot.data
+            : null;
+        // Keep daily totals visible while loading the display settings.
         return _buildPanel(context, data);
       },
     );
@@ -175,47 +161,13 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
       // Tests without the locator wired up — default to "all visible".
     }
 
-    List<IntakeEntity> weekIntakes = widget.intakes;
-    try {
-      final anchor = widget.selectedDay ?? DateTime.now();
-      weekIntakes = await _fetchLastSevenDaysIntakes(anchor);
-    } catch (_) {
-      // If the intake use case isn't registered (tests), the daily view
-      // still works fine — fall back to whatever the parent gave us.
-      weekIntakes = widget.intakes;
-    }
-
-    return _PanelData(
-      user: user,
-      visibility: visibility,
-      weekIntakes: weekIntakes,
-    );
-  }
-
-  Future<List<IntakeEntity>> _fetchLastSevenDaysIntakes(DateTime anchor) async {
-    final getIntakeUsecase = locator<GetIntakeUsecase>();
-    final all = <IntakeEntity>[];
-    for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
-      final day = DateTime(anchor.year, anchor.month, anchor.day)
-          .subtract(Duration(days: dayOffset));
-      all
-        ..addAll(await getIntakeUsecase.getBreakfastIntakeByDay(day))
-        ..addAll(await getIntakeUsecase.getLunchIntakeByDay(day))
-        ..addAll(await getIntakeUsecase.getDinnerIntakeByDay(day))
-        ..addAll(await getIntakeUsecase.getSnackIntakeByDay(day));
-    }
-    return all;
+    return _PanelData(user: user, visibility: visibility);
   }
 
   Widget _buildPanel(BuildContext context, _PanelData? data) {
     final user = data?.user;
     final visibility = data?.visibility ?? const <String, bool>{};
-    // Pick the right source for totals. Daily view sums today's intakes;
-    // weekly view sums the seven-day window and then divides each total by
-    // seven to get an average daily intake.
-    final isWeekly = _view == _NutrientView.week;
-    final source = isWeekly ? (data?.weekIntakes ?? widget.intakes) : widget.intakes;
-    final totals = NutrientPanelTotals.fromIntakes(source, weekly: isWeekly);
+    final totals = NutrientPanelTotals.fromIntakes(widget.intakes);
     final fiberG = totals.fiberG;
     final sodiumMg = totals.sodiumMg;
     final saturatedFatG = totals.saturatedFatG;
@@ -394,114 +346,53 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
             reference: row.reference,
             unit: row.unit,
             excessMatters: row.excessMatters,
+            asPercent: widget.asPercent,
           ),
         )
         .toList();
 
-    // Collapsed by default: the diary day view already carries a lot of
-    // visual weight (kcal summary, macro circles, sortable meal sections),
-    // so the nutrient detail sits inside an ExpansionTile and only reveals
-    // itself when the user explicitly opens it. The header still shows
-    // "Today's nutrients" so the affordance is discoverable.
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final palette = isDark ? AppPalette.dark : AppPalette.light;
     final textTheme = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        Dimens.spacing16,
-        Dimens.spacing8,
-        Dimens.spacing16,
-        Dimens.spacing4,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: AppCard(
-        padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing8),
-        child: Theme(
-          // Strips the dividers ExpansionTile would otherwise draw above and
-          // below itself — they fight with the calm card surface the panel
-          // now sits inside.
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            shape: const RoundedRectangleBorder(borderRadius: Dimens.borderRadiusL),
-            collapsedShape: const RoundedRectangleBorder(borderRadius: Dimens.borderRadiusL),
-            tilePadding: const EdgeInsets.symmetric(horizontal: Dimens.spacing12),
-            childrenPadding: const EdgeInsets.fromLTRB(
-              Dimens.spacing12,
-              0.0,
-              Dimens.spacing12,
-              Dimens.spacing16,
-            ),
-            title: Row(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
               children: [
                 Expanded(
                   child: AutoSizeText(
-                    s.diaryNutrientPanelTitle,
+                    s.totalNutrientsLabel,
                     maxLines: 1,
-                    minFontSize: 12,
+                    minFontSize: 10,
                     overflow: TextOverflow.ellipsis,
-                    style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-                // Inline info icon. Tapping it pops the data-disclaimer
-                // dialog without expanding the panel — IconButton's own
-                // InkResponse consumes the pointer event, so the
-                // surrounding ExpansionTile doesn't toggle.
                 Semantics(
                   identifier: 'dri-panel-info',
                   child: IconButton(
                     tooltip: s.driPanelInfoTitle,
-                    icon: Icon(
-                      Icons.info_outline_rounded,
-                      size: 22,
-                      color: palette.textMuted,
-                    ),
-                    visualDensity: VisualDensity.compact,
-                    constraints: const BoxConstraints(),
-                    padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing8),
+                    icon: const Icon(Icons.info_outline_rounded),
                     onPressed: () => _showDataDisclaimer(context, s),
                   ),
                 ),
+                if (widget.onToggle != null)
+                  GoalValueToggle(
+                    identifier: 'overview-nutrients-mode',
+                    asPercent: widget.asPercent,
+                    onPressed: widget.onToggle!,
+                  ),
               ],
             ),
-            initiallyExpanded: _expanded,
-            onExpansionChanged: (open) => setState(() => _expanded = open),
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: SegmentedButton<_NutrientView>(
-                  style: const ButtonStyle(
-                    visualDensity: VisualDensity.compact,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  showSelectedIcon: false,
-                  segments: <ButtonSegment<_NutrientView>>[
-                    ButtonSegment(
-                      value: _NutrientView.day,
-                      label: Text(s.nutrientPanelDayLabel),
-                    ),
-                    ButtonSegment(
-                      value: _NutrientView.week,
-                      label: Text(s.nutrientPanelWeekLabel),
-                    ),
-                  ],
-                  selected: <_NutrientView>{_view},
-                  onSelectionChanged: (selection) {
-                    setState(() => _view = selection.first);
-                  },
-                ),
-              ),
-              const SizedBox(height: Dimens.spacing8),
-              if (visibleRows.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: Dimens.spacing4),
-                  child: Text(
-                    s.nutrientPanelAllHiddenLabel,
-                    style: textTheme.bodySmall?.copyWith(color: palette.textMuted),
-                  ),
-                )
-              else
-                ...visibleRows,
-            ],
-          ),
+            const SizedBox(height: 8),
+            if (visibleRows.isEmpty)
+              Text(s.nutrientPanelAllHiddenLabel, style: textTheme.bodySmall)
+            else
+              ...visibleRows,
+          ],
         ),
       ),
     );
@@ -532,21 +423,23 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
                       // platform reports it cannot handle the URL, which is
                       // friendlier than throwing in front of the user.
                       if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri,
-                            mode: LaunchMode.externalApplication);
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
                       }
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
                       child: Text(
                         s.driPanelInfoLinkLabel,
-                        style:
-                            Theme.of(dialogContext).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(dialogContext)
-                                      .colorScheme
-                                      .primary,
-                                  decoration: TextDecoration.underline,
-                                ),
+                        style: Theme.of(dialogContext).textTheme.bodyMedium
+                            ?.copyWith(
+                              color: Theme.of(
+                                dialogContext,
+                              ).colorScheme.primary,
+                              decoration: TextDecoration.underline,
+                            ),
                       ),
                     ),
                   ),
@@ -622,108 +515,11 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
   }
 }
 
-enum _NutrientView { day, week }
-
-/// Pure-function helper that aggregates a list of intakes into per-nutrient
-/// totals. Pulled out of the widget so unit tests can exercise it directly
-/// without spinning up a Flutter binding. `weekly: true` divides every total
-/// by 7 to convert a seven-day window into an average daily intake.
-class NutrientPanelTotals {
-  final double fiberG;
-  final double sodiumMg;
-  final double saturatedFatG;
-  final double sugarG;
-  final double calciumMg;
-  final double ironMg;
-  final double potassiumMg;
-  final double vitaminDMcg;
-  final double vitaminB12Mcg;
-  final double magnesiumMg;
-
-  const NutrientPanelTotals({
-    required this.fiberG,
-    required this.sodiumMg,
-    required this.saturatedFatG,
-    required this.sugarG,
-    required this.calciumMg,
-    required this.ironMg,
-    required this.potassiumMg,
-    required this.vitaminDMcg,
-    required this.vitaminB12Mcg,
-    required this.magnesiumMg,
-  });
-
-  factory NutrientPanelTotals.fromIntakes(
-    List<IntakeEntity> intakes, {
-    bool weekly = false,
-  }) {
-    final divisor = weekly ? 7.0 : 1.0;
-    double sum(double? Function(MealNutrimentsEntity n) pick) {
-      return intakes.fold<double>(0, (running, intake) {
-            final per100 = pick(intake.meal.nutriments);
-            if (per100 == null) return running;
-            return running + intake.amount * per100 / 100.0;
-          }) /
-          divisor;
-    }
-
-    return NutrientPanelTotals(
-      fiberG: sum((n) => n.fiber100),
-      sodiumMg: sum((n) => n.sodium100),
-      saturatedFatG: sum((n) => n.saturatedFat100),
-      sugarG: sum((n) => n.sugars100),
-      calciumMg: sum((n) => n.calcium100),
-      ironMg: sum((n) => n.iron100),
-      potassiumMg: sum((n) => n.potassium100),
-      vitaminDMcg: sum((n) => n.vitaminD100),
-      vitaminB12Mcg: sum((n) => n.vitaminB12100),
-      magnesiumMg: sum((n) => n.magnesium100),
-    );
-  }
-}
-
-/// Stable identifiers for the panel's nutrient rows. These are the keys the
-/// per-nutrient visibility map uses on [ConfigEntity], so renaming any of
-/// them is a backward-incompatible change: existing visibility overrides
-/// would silently lose their associations.
-class NutrientPanelKeys {
-  NutrientPanelKeys._();
-
-  static const String fiber = 'fiber';
-  static const String sodium = 'sodium';
-  static const String saturatedFat = 'saturated_fat';
-  static const String sugar = 'sugar';
-  static const String calcium = 'calcium';
-  static const String iron = 'iron';
-  static const String potassium = 'potassium';
-  static const String vitaminD = 'vitamin_d';
-  static const String vitaminB12 = 'vitamin_b12';
-  static const String magnesium = 'magnesium';
-
-  static const List<String> all = <String>[
-    fiber,
-    sodium,
-    saturatedFat,
-    sugar,
-    calcium,
-    iron,
-    potassium,
-    vitaminD,
-    vitaminB12,
-    magnesium,
-  ];
-}
-
 class _PanelData {
   final UserEntity? user;
   final Map<String, bool> visibility;
-  final List<IntakeEntity> weekIntakes;
 
-  _PanelData({
-    required this.user,
-    required this.visibility,
-    required this.weekIntakes,
-  });
+  _PanelData({required this.user, required this.visibility});
 }
 
 class _PanelRow {
@@ -745,6 +541,7 @@ class _PanelRow {
 }
 
 class _NutrientRow extends StatelessWidget {
+  final bool asPercent;
   final String label;
   final double value;
   final double reference;
@@ -757,6 +554,7 @@ class _NutrientRow extends StatelessWidget {
   final bool excessMatters;
 
   const _NutrientRow({
+    required this.asPercent,
     required this.label,
     required this.value,
     required this.reference,
@@ -771,10 +569,12 @@ class _NutrientRow extends StatelessWidget {
     final palette = isDark ? AppPalette.dark : AppPalette.light;
     final textTheme = Theme.of(context).textTheme;
     final ratio = reference > 0 ? value / reference : 0.0;
-    final clamped = ratio.clamp(0.0, 1.0).toDouble();
+    final clamped = goalProgress(value, reference);
     final color = _colorForRatio(context, ratio);
-    final valueLabel = '${value.toStringAsFixed(value >= 10 ? 0 : 1)}'
-        ' / ${reference.toStringAsFixed(reference >= 10 ? 0 : 1)}$unit';
+    final valueLabel = asPercent
+        ? goalPercentage(value, reference)
+        : '${value.toStringAsFixed(value >= 10 ? 0 : 1)}'
+              ' / ${reference.toStringAsFixed(reference >= 10 ? 0 : 1)}$unit';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Dimens.spacing8),
@@ -782,40 +582,31 @@ class _NutrientRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
+                child: AutoSizeText(
                   label,
-                  style: textTheme.bodyMedium?.copyWith(color: palette.textStrong),
+                  maxLines: 1,
+                  minFontSize: 10,
                   overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: palette.textStrong,
+                  ),
                 ),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // For ceiling nutrients (sodium, saturated fat, sugar) the
-                  // reference is a limit to stay under, not a target to reach.
-                  // A small qualifier says so, since the bare "x / y" reads as
-                  // a goal otherwise.
-                  if (excessMatters) ...[
-                    Text(
-                      s.nutrientPanelLimitLabel,
-                      style: textTheme.labelSmall?.copyWith(
-                        color: palette.textMuted,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    const SizedBox(width: Dimens.spacing4),
-                  ],
-                  Text(
-                    valueLabel,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: palette.textStrong,
-                      fontWeight: FontWeight.w700,
-                    ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: AutoSizeText(
+                  '${excessMatters ? '${s.nutrientPanelLimitLabel} · ' : ''}$valueLabel',
+                  maxLines: 2,
+                  minFontSize: 9,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: palette.textStrong,
+                    fontWeight: FontWeight.w700,
                   ),
-                ],
+                ),
               ),
             ],
           ),

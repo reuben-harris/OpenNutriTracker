@@ -50,6 +50,8 @@ class ConfigEntity extends Equatable {
   final bool usesKilojoules; // #177
   final Map<String, int> mealKcalSharesPct; // #150
   final Map<String, int>? diarySortPreferences;
+  final bool overviewMacrosAsPercent;
+  final bool overviewNutrientsAsPercent;
   // #160 follow-up: per-nutrient show/hide overrides for the daily panel.
   // Keys are nutrient identifiers (see `DailyNutrientPanel.nutrientKeys`),
   // values are explicit user overrides. A nutrient not present in this map
@@ -253,6 +255,8 @@ class ConfigEntity extends Equatable {
     this.usesKilojoules = false,
     this.mealKcalSharesPct = defaultMealKcalSharesPct,
     this.diarySortPreferences,
+    this.overviewMacrosAsPercent = false,
+    this.overviewNutrientsAsPercent = false,
     this.nutrientPanelVisibility = const <String, bool>{},
     this.dayStartOffsetHours = 0,
     this.dayStartOffsetMinutes = 0,
@@ -366,6 +370,8 @@ class ConfigEntity extends Equatable {
     mealKcalSharesPct:
         _sanitiseShares(dbo.mealKcalSharesPct) ?? defaultMealKcalSharesPct,
     diarySortPreferences: dbo.diarySortPreferences,
+    overviewMacrosAsPercent: dbo.overviewMacrosAsPercent ?? false,
+    overviewNutrientsAsPercent: dbo.overviewNutrientsAsPercent ?? false,
     nutrientPanelVisibility:
         dbo.nutrientPanelVisibility ?? const <String, bool>{},
     dayStartOffsetHours: _normaliseOffsetHours(dbo.dayStartOffsetHours),
@@ -480,6 +486,8 @@ class ConfigEntity extends Equatable {
     usesKilojoules,
     mealKcalSharesPct,
     diarySortPreferences,
+    overviewMacrosAsPercent,
+    overviewNutrientsAsPercent,
     nutrientPanelVisibility,
     dayStartOffsetHours,
     dayStartOffsetMinutes,

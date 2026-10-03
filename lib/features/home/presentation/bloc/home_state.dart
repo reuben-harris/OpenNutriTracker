@@ -15,6 +15,11 @@ class HomeLoadingState extends HomeState {
 }
 
 class HomeLoadedState extends HomeState {
+  final DateTime day;
+  final TrackedDayEntity? trackedDay;
+  final WeightLogEntity? weight;
+  final bool overviewMacrosAsPercent;
+  final bool overviewNutrientsAsPercent;
   final bool showDisclaimerDialog;
   final double totalKcalDaily;
   final double totalKcalLeft;
@@ -62,6 +67,11 @@ class HomeLoadedState extends HomeState {
   final List<WaterIntakeEntity> waterIntakes;
 
   const HomeLoadedState({
+    required this.day,
+    required this.trackedDay,
+    required this.weight,
+    required this.overviewMacrosAsPercent,
+    required this.overviewNutrientsAsPercent,
     required this.showDisclaimerDialog,
     required this.totalKcalDaily,
     required this.totalKcalLeft,
@@ -100,6 +110,33 @@ class HomeLoadedState extends HomeState {
 
   @override
   List<Object?> get props => [
+    day,
+    trackedDay,
+    weight,
+    overviewMacrosAsPercent,
+    overviewNutrientsAsPercent,
+    totalKcalLeft,
+    totalKcalSupplied,
+    totalKcalBurned,
+    totalCarbsIntake,
+    totalFatsIntake,
+    totalProteinsIntake,
+    totalCarbsGoal,
+    totalFatsGoal,
+    totalProteinsGoal,
+    userActivityList,
+    showDisclaimerDialog,
+    showMealMacros,
+    userGender,
+    userCaloriesProfile,
+    breakfastKcalTarget,
+    lunchKcalTarget,
+    dinnerKcalTarget,
+    snackKcalTarget,
+    breakfastSharePct,
+    lunchSharePct,
+    dinnerSharePct,
+    snackSharePct,
     breakfastIntakeList,
     lunchIntakeList,
     dinnerIntakeList,

@@ -16,6 +16,7 @@ import 'package:opennutritracker/features/profile/presentation/widgets/set_weigh
 import 'package:opennutritracker/features/profile/presentation/widgets/weight_trend_chart.dart';
 import 'package:opennutritracker/features/trends/presentation/bloc/trends_bloc.dart';
 import 'package:opennutritracker/features/trends/presentation/trends_calc.dart';
+import 'package:opennutritracker/features/trends/presentation/widgets/micronutrients_trend_card.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
 class TrendsPage extends StatefulWidget {
@@ -54,6 +55,8 @@ class _TrendsView extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final palette = isDark ? AppPalette.dark : AppPalette.light;
     return BlocBuilder<TrendsBloc, TrendsState>(
+      buildWhen: (previous, next) =>
+          previous is! TrendsLoaded || next is! TrendsLoading,
       builder: (context, state) {
         if (state is! TrendsLoaded) {
           return const Center(child: CircularProgressIndicator());
@@ -63,6 +66,7 @@ class _TrendsView extends StatelessWidget {
               Dimens.spacing16, Dimens.spacing8, Dimens.spacing16, Dimens.spacing32),
           children: [
             _StreakCard(
+              today: state.today,
               days: state.days,
               priorWeek: state.priorWeek,
               rangeDays: state.windowDays,
@@ -72,12 +76,21 @@ class _TrendsView extends StatelessWidget {
             _RangeSelector(rangeDays: state.rangeDays),
             const SizedBox(height: Dimens.spacing16),
             _CaloriesTrendCard(
+                today: state.today,
                 days: state.days, rangeDays: state.windowDays, palette: palette),
             const SizedBox(height: Dimens.spacing16),
             _MacrosTrendCard(
                 days: state.days, rangeDays: state.windowDays, palette: palette),
             const SizedBox(height: Dimens.spacing16),
+            MicronutrientsTrendCard(
+              today: state.today,
+              rangeDays: state.windowDays,
+              nutrientsByDay: state.nutrientsByDay,
+              visibility: state.nutrientVisibility,
+            ),
+            const SizedBox(height: Dimens.spacing16),
             _WaterTrendCard(
+              today: state.today,
               waterByDay: state.waterByDay,
               goalMl: state.waterGoalMl,
               rangeDays: state.windowDays,
@@ -128,11 +141,13 @@ class _RangeSelector extends StatelessWidget {
 }
 
 class _StreakCard extends StatelessWidget {
+  final DateTime today;
   final List<TrackedDayEntity> days;
   final List<TrackedDayEntity> priorWeek;
   final int rangeDays;
   final AppPalette palette;
   const _StreakCard({
+    required this.today,
     required this.days,
     required this.priorWeek,
     required this.rangeDays,
@@ -144,8 +159,6 @@ class _StreakCard extends StatelessWidget {
     final accent = Theme.of(context).colorScheme.primary;
     final errorColor = Theme.of(context).colorScheme.error;
     final text = Theme.of(context).textTheme;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
     final windowStart =
         DateTime(today.year, today.month, today.day - (rangeDays - 1));
     final weekEnd = today;
@@ -246,23 +259,27 @@ class _WeekDeltaChip extends StatelessWidget {
 }
 
 class _CaloriesTrendCard extends StatelessWidget {
+  final DateTime today;
   final List<TrackedDayEntity> days;
   final int rangeDays;
   final AppPalette palette;
-  const _CaloriesTrendCard({required this.days, required this.rangeDays, required this.palette});
+  const _CaloriesTrendCard({
+    required this.today,
+    required this.days,
+    required this.rangeDays,
+    required this.palette,
+  });
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final accent = Theme.of(context).colorScheme.primary;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
     final byDay = {for (final d in days) DateTime(d.day.year, d.day.month, d.day.day): d};
     // Full per-day series across the window; missing days contribute 0 tracked.
     final spots = <FlSpot>[];
     final goals = <double>[];
     for (int i = 0; i < rangeDays; i++) {
-      final day = today.subtract(Duration(days: rangeDays - 1 - i));
+      final day = DateTime(today.year, today.month, today.day - rangeDays + 1 + i);
       final d = byDay[DateTime(day.year, day.month, day.day)];
       spots.add(FlSpot(i.toDouble(), d?.caloriesTracked ?? 0));
       if (d != null && d.calorieGoal > 0) goals.add(d.calorieGoal);
@@ -336,11 +353,13 @@ class _CaloriesTrendCard extends StatelessWidget {
 }
 
 class _WaterTrendCard extends StatelessWidget {
+  final DateTime today;
   final Map<DateTime, int> waterByDay;
   final int goalMl;
   final int rangeDays;
   final AppPalette palette;
   const _WaterTrendCard({
+    required this.today,
     required this.waterByDay,
     required this.goalMl,
     required this.rangeDays,
@@ -351,13 +370,11 @@ class _WaterTrendCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final color = palette.proteinColor;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
     final spots = <FlSpot>[];
     var sum = 0;
     var loggedDays = 0;
     for (int i = 0; i < rangeDays; i++) {
-      final day = today.subtract(Duration(days: rangeDays - 1 - i));
+      final day = DateTime(today.year, today.month, today.day - rangeDays + 1 + i);
       final ml = waterByDay[DateTime(day.year, day.month, day.day)] ?? 0;
       spots.add(FlSpot(i.toDouble(), ml.toDouble()));
       if (ml > 0) {

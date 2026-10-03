@@ -70,6 +70,7 @@ class _StubGetKcalGoalUsecase extends GetKcalGoalUsecase {
   @override
   Future<double> getKcalGoal({
     userEntity,
+    DateTime? day,
     double? totalKcalActivitiesParam,
     double? kcalUserAdjustment,
   }) async =>

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -5,16 +7,23 @@ import 'package:opennutritracker/core/domain/entity/config_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_activity_entity.dart';
+import 'package:opennutritracker/core/domain/entity/water_intake_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/add_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/add_tracked_day_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/add_water_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/delete_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/delete_user_activity_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/delete_water_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_tracked_day_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_user_activity_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/get_water_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/update_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/update_user_activity_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/update_water_intake_usecase.dart';
+import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
+import 'package:opennutritracker/core/utils/calc/day_boundary_calc.dart';
 import 'package:opennutritracker/core/utils/calc/macro_calc.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
@@ -36,6 +45,13 @@ class CalendarDayBloc extends Bloc<CalendarDayEvent, CalendarDayState> {
   final AddConfigUsecase _addConfigUsecase;
 
   DateTime? _currentDay;
+  final SelectedDayCubit? selection;
+  final GetWaterIntakeUsecase? getWater;
+  final AddWaterIntakeUsecase? addWater;
+  final UpdateWaterIntakeUsecase? updateWater;
+  final DeleteWaterIntakeUsecase? deleteWater;
+  StreamSubscription<SelectedDayState>? _subscription;
+  int _loadVersion = 0;
 
   CalendarDayBloc(
     this._getUserActivityUsecase,
@@ -47,15 +63,25 @@ class CalendarDayBloc extends Bloc<CalendarDayEvent, CalendarDayState> {
     this._updateIntakeUsecase,
     this._updateUserActivityUsecase,
     this._getConfigUsecase,
-    this._addConfigUsecase,
-  ) : super(CalendarDayInitial()) {
+    this._addConfigUsecase, {
+    this.selection,
+    this.getWater,
+    this.addWater,
+    this.updateWater,
+    this.deleteWater,
+  }) : super(CalendarDayInitial()) {
+    _subscription = selection?.stream.listen((state) {
+      ++_loadVersion;
+      add(LoadCalendarDayEvent(state.day));
+    });
     on<LoadCalendarDayEvent>((event, emit) async {
       emit(CalendarDayLoading());
-      _currentDay = event.day;
-      await _loadCalendarDay(event.day, emit);
+      _currentDay = selection?.state.day ?? event.day;
+      await _loadCalendarDay(_currentDay!, emit);
     });
 
     on<RefreshCalendarDayEvent>((event, emit) async {
+      _currentDay = selection?.state.day ?? _currentDay;
       if (_currentDay != null) {
         emit(CalendarDayLoading());
         await _loadCalendarDay(_currentDay!, emit);
@@ -67,6 +93,7 @@ class CalendarDayBloc extends Bloc<CalendarDayEvent, CalendarDayState> {
     DateTime day,
     Emitter<CalendarDayState> emit,
   ) async {
+    final version = ++_loadVersion;
     // #139: when the user has a configured day-start offset, the
     // intake/activity queries need to know about it so entries logged
     // before the boundary roll into the previous day's column. The
@@ -113,19 +140,35 @@ class CalendarDayBloc extends Bloc<CalendarDayEvent, CalendarDayState> {
     final dailyKcalGoal = trackedDayEntity?.calorieGoal ?? 0;
     final breakfastKcalTarget = dailyKcalGoal > 0
         ? configData.targetKcalForMeal(
-            ConfigEntity.mealKeyBreakfast, dailyKcalGoal)
+            ConfigEntity.mealKeyBreakfast,
+            dailyKcalGoal,
+          )
         : 0.0;
     final lunchKcalTarget = dailyKcalGoal > 0
         ? configData.targetKcalForMeal(ConfigEntity.mealKeyLunch, dailyKcalGoal)
         : 0.0;
     final dinnerKcalTarget = dailyKcalGoal > 0
         ? configData.targetKcalForMeal(
-            ConfigEntity.mealKeyDinner, dailyKcalGoal)
+            ConfigEntity.mealKeyDinner,
+            dailyKcalGoal,
+          )
         : 0.0;
     final snackKcalTarget = dailyKcalGoal > 0
         ? configData.targetKcalForMeal(ConfigEntity.mealKeySnack, dailyKcalGoal)
         : 0.0;
 
+    final waterEntries =
+        await getWater?.getEntriesForDay(
+          day,
+          dayStartOffsetTotalMinutes: config.dayStartOffsetTotalMinutes,
+        ) ??
+        <WaterIntakeEntity>[];
+    waterEntries.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    if (emit.isDone ||
+        version != _loadVersion ||
+        (selection != null && day != selection!.state.day)) {
+      return;
+    }
     emit(
       CalendarDayLoaded(
         trackedDayEntity,
@@ -142,6 +185,8 @@ class CalendarDayBloc extends Bloc<CalendarDayEvent, CalendarDayState> {
         configData.mealKcalSharesPct[ConfigEntity.mealKeyLunch] ?? 0,
         configData.mealKcalSharesPct[ConfigEntity.mealKeyDinner] ?? 0,
         configData.mealKcalSharesPct[ConfigEntity.mealKeySnack] ?? 0,
+        day: day,
+        waterEntries: waterEntries,
         diarySortPreferences: config.diarySortPreferences,
       ),
     );
@@ -214,7 +259,10 @@ class CalendarDayBloc extends Bloc<CalendarDayEvent, CalendarDayState> {
     DateTime day,
   ) async {
     await _deleteUserActivityUsecase.deleteUserActivity(activityEntity);
-    _addTrackedDayUsecase.reduceDayCalorieGoal(day, activityEntity.burnedKcal);
+    await _addTrackedDayUsecase.reduceDayCalorieGoal(
+      day,
+      activityEntity.burnedKcal,
+    );
 
     final carbsAmount = MacroCalc.getTotalCarbsGoal(activityEntity.burnedKcal);
     final fatAmount = MacroCalc.getTotalFatsGoal(activityEntity.burnedKcal);
@@ -222,7 +270,7 @@ class CalendarDayBloc extends Bloc<CalendarDayEvent, CalendarDayState> {
       activityEntity.burnedKcal,
     );
 
-    _addTrackedDayUsecase.reduceDayMacroGoals(
+    await _addTrackedDayUsecase.reduceDayMacroGoals(
       day,
       carbsAmount: carbsAmount,
       fatAmount: fatAmount,
@@ -264,5 +312,49 @@ class CalendarDayBloc extends Bloc<CalendarDayEvent, CalendarDayState> {
   Future<void> _updateDiaryPage(DateTime day) async {
     locator<DiaryBloc>().add(const LoadDiaryYearEvent());
     locator<CalendarDayBloc>().add(LoadCalendarDayEvent(day));
+  }
+
+  Future<void> saveWater(
+    DateTime day,
+    int amountMl, {
+    WaterIntakeEntity? entry,
+  }) async {
+    if (amountMl <= 0) throw ArgumentError.value(amountMl, 'amountMl');
+    if (entry != null) {
+      await updateWater!.updateAmount(entry, amountMl);
+    } else {
+      final config = await _getConfigUsecase.getConfig();
+      final now = DayBoundaryCalc.now();
+      await addWater!.addEntry(
+        WaterIntakeEntity(
+          id: 'water-${now.microsecondsSinceEpoch}',
+          dateTime: DayBoundaryCalc.timestampInDay(
+            day,
+            config.dayStartOffsetTotalMinutes,
+            now: now,
+          ),
+          amountMl: amountMl,
+        ),
+      );
+    }
+    _refreshWater();
+  }
+
+  Future<void> removeWater(WaterIntakeEntity entry) async {
+    await deleteWater!.deleteEntry(entry.id);
+    _refreshWater();
+  }
+
+  void _refreshWater() {
+    add(const RefreshCalendarDayEvent());
+    if (locator.isRegistered<DiaryBloc>()) {
+      locator<DiaryBloc>().updateHomePage();
+    }
+  }
+
+  @override
+  Future<void> close() async {
+    await _subscription?.cancel();
+    return super.close();
   }
 }

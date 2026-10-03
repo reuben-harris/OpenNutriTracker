@@ -15,6 +15,12 @@ class ConfigRepository {
     await _configDataSource.addConfig(configDBO);
   }
 
+  Future<void> setOverviewMacrosAsPercent(bool value) =>
+      _configDataSource.setOverviewMacrosAsPercent(value);
+
+  Future<void> setOverviewNutrientsAsPercent(bool value) =>
+      _configDataSource.setOverviewNutrientsAsPercent(value);
+
   Future<void> setConfigDisclaimer(bool hasAcceptedDisclaimer) async {
     await _configDataSource.setConfigDisclaimer(hasAcceptedDisclaimer);
   }

@@ -48,6 +48,14 @@ class AddItemBottomSheet extends StatelessWidget {
                     ),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Text(
+                MaterialLocalizations.of(context).formatFullDate(day),
+                key: const ValueKey('add-item-date'),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
             _buildRecentSection(context),
           if (showActivityTracking) ...[
             Semantics(

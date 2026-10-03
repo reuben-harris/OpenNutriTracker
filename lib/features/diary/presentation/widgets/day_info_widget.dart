@@ -1,28 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_activity_entity.dart';
 import 'package:opennutritracker/core/presentation/widgets/activity_vertial_list.dart';
 import 'package:opennutritracker/core/presentation/widgets/copy_or_delete_dialog.dart';
-import 'package:opennutritracker/core/presentation/widgets/macro_nutriments_widget.dart';
 import 'package:opennutritracker/core/presentation/widgets/copy_dialog.dart';
-import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
-import 'package:opennutritracker/core/presentation/widgets/empty_hint.dart';
 import 'package:opennutritracker/core/presentation/widgets/delete_dialog.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
-import 'package:opennutritracker/core/utils/calc/unit_calc.dart';
 import 'package:opennutritracker/core/utils/custom_icons.dart';
-import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
-import 'package:opennutritracker/features/diary/presentation/widgets/daily_nutrient_panel.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/diary_sort_type.dart';
 import 'package:opennutritracker/features/home/presentation/widgets/intake_vertical_list.dart';
 import 'package:opennutritracker/generated/l10n.dart';
-import 'package:provider/provider.dart';
 
 class DayInfoWidget extends StatefulWidget {
   final DateTime selectedDay;
@@ -71,9 +63,14 @@ class DayInfoWidget extends StatefulWidget {
   final Function(
     UserActivityEntity userActivityEntity,
     TrackedDayEntity? trackedDayEntity,
-  ) onCopyActivity;
-  final Function(BuildContext context, IntakeEntity intake, bool usesImperialUnits)?
-      onEditIntake;
+  )
+  onCopyActivity;
+  final Function(
+    BuildContext context,
+    IntakeEntity intake,
+    bool usesImperialUnits,
+  )?
+  onEditIntake;
   final Function(BuildContext context, UserActivityEntity activity)?
       onEditActivity;
 
@@ -170,104 +167,21 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
     // Persist asynchronously — we don't block the UI on the write. The
     // optimistic widget-state update above means the picker reflects the
     // user's choice immediately even if the disk write is still in flight.
-    locator<CalendarDayBloc>()
-        .setDiarySortPreference(mealType.name, sortType.index);
+    locator<CalendarDayBloc>().setDiarySortPreference(
+      mealType.name,
+      sortType.index,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final trackedDay = widget.trackedDayEntity;
-    final textTheme = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            Dimens.spacing20,
-            Dimens.spacing8,
-            Dimens.spacing20,
-            Dimens.spacing4,
-          ),
-          child: Text(
-            DateFormat.yMMMMEEEEd().format(widget.selectedDay),
-            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-          ),
-        ),
-        const SizedBox(height: Dimens.spacing8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            trackedDay == null
-                ? EmptyHint(
-                    icon: Icons.restaurant_rounded,
-                    title: S.of(context).nothingAddedLabel,
-                  )
-                : const SizedBox(),
-            trackedDay != null
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing16),
-                    child: AppCard(
-                      padding: const EdgeInsets.fromLTRB(
-                        Dimens.spacing20,
-                        Dimens.spacing20,
-                        Dimens.spacing20,
-                        Dimens.spacing20,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: Dimens.spacing16,
-                              vertical: Dimens.spacing12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: widget.trackedDayEntity
-                                  ?.getRatingDayTextBackgroundColor(context),
-                              borderRadius: Dimens.borderRadiusM,
-                            ),
-                            child: Text(
-                              _getCaloriesTrackedDisplayString(
-                                  context, trackedDay),
-                              style: textTheme.titleLarge?.copyWith(
-                                color: widget.trackedDayEntity
-                                    ?.getRatingDayTextColor(context),
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: Dimens.spacing16),
-                          MacroNutrientsView(
-                            totalCarbsIntake: _allIntakes
-                                .fold(0.0, (sum, i) => sum + i.totalCarbsGram),
-                            totalFatsIntake: _allIntakes
-                                .fold(0.0, (sum, i) => sum + i.totalFatsGram),
-                            totalProteinsIntake: _allIntakes
-                                .fold(0.0, (sum, i) => sum + i.totalProteinsGram),
-                            totalCarbsGoal: trackedDay.carbsGoal ?? 0.0,
-                            totalFatsGoal: trackedDay.fatGoal ?? 0.0,
-                            totalProteinsGoal: trackedDay.proteinGoal ?? 0.0,
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : const SizedBox(),
-            // #160 + #173 + #404: Daily micronutrient panel — aggregates
-            // ten nutrients (fibre, sodium, saturated fat, sugar, calcium,
-            // iron, potassium, vitamin D, vitamin B12, magnesium) across
-            // the day's intake list, with a Day/Week toggle that pulls the
-            // previous six days' intakes itself via the locator. The
-            // tracked-day entity is forwarded so the panel can prefer the
-            // user's per-nutrient targets from Settings → Nutrient goals
-            // when they've configured any (#173). No-op when there's
-            // nothing logged for the current day yet.
-            if (_allIntakes.isNotEmpty)
-              DailyNutrientPanel(
-                intakes: _allIntakes,
-                selectedDay: widget.selectedDay,
-                trackedDay: widget.trackedDayEntity,
-              ),
             if (widget.showActivityTracking) ...[
               const SizedBox(height: Dimens.spacing8),
               ActivityVerticalList(
@@ -278,9 +192,11 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 onItemTappedCallback: widget.onEditActivity,
                 onCopyActivityCallback:
                     DateUtils.isSameDay(widget.selectedDay, DateTime.now())
-                        ? null
-                        : (activity) =>
-                            widget.onCopyActivity(activity, widget.trackedDayEntity),
+                    ? null
+                    : (activity) => widget.onCopyActivity(
+                        activity,
+                        widget.trackedDayEntity,
+                      ),
               ),
             ],
             // #150 follow-up: a 0% share hides the section entirely so OMAD
@@ -293,8 +209,9 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 title: S.of(context).breakfastLabel,
                 listIcon: Icons.bakery_dining_outlined,
                 addMealType: AddMealType.breakfastType,
-                intakeList: _sortByMeal[IntakeTypeEntity.breakfast]!
-                    .apply(widget.breakfastIntake),
+                intakeList: _sortByMeal[IntakeTypeEntity.breakfast]!.apply(
+                  widget.breakfastIntake,
+                ),
                 onDeleteIntakeCallback: widget.onDeleteIntake,
                 onItemLongPressedCallback: onIntakeItemLongPressed,
                 onItemTappedCallback: widget.onEditIntake,
@@ -316,8 +233,9 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 title: S.of(context).lunchLabel,
                 listIcon: Icons.lunch_dining_outlined,
                 addMealType: AddMealType.lunchType,
-                intakeList: _sortByMeal[IntakeTypeEntity.lunch]!
-                    .apply(widget.lunchIntake),
+                intakeList: _sortByMeal[IntakeTypeEntity.lunch]!.apply(
+                  widget.lunchIntake,
+                ),
                 onDeleteIntakeCallback: widget.onDeleteIntake,
                 onItemLongPressedCallback: onIntakeItemLongPressed,
                 onItemTappedCallback: widget.onEditIntake,
@@ -339,8 +257,9 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 title: S.of(context).dinnerLabel,
                 listIcon: Icons.dinner_dining_outlined,
                 addMealType: AddMealType.dinnerType,
-                intakeList: _sortByMeal[IntakeTypeEntity.dinner]!
-                    .apply(widget.dinnerIntake),
+                intakeList: _sortByMeal[IntakeTypeEntity.dinner]!.apply(
+                  widget.dinnerIntake,
+                ),
                 onDeleteIntakeCallback: widget.onDeleteIntake,
                 onItemLongPressedCallback: onIntakeItemLongPressed,
                 onItemTappedCallback: widget.onEditIntake,
@@ -361,8 +280,9 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 title: S.of(context).snackLabel,
                 listIcon: CustomIcons.food_apple_outline,
                 addMealType: AddMealType.snackType,
-                intakeList: _sortByMeal[IntakeTypeEntity.snack]!
-                    .apply(widget.snackIntake),
+                intakeList: _sortByMeal[IntakeTypeEntity.snack]!.apply(
+                  widget.snackIntake,
+                ),
                 onDeleteIntakeCallback: widget.onDeleteIntake,
                 onItemLongPressedCallback: onIntakeItemLongPressed,
                 onItemTappedCallback: widget.onEditIntake,
@@ -383,30 +303,6 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
         ),
       ],
     );
-  }
-
-  // #182: Compute from actual intakes instead of stale cached values
-  List<IntakeEntity> get _allIntakes => [
-        ...widget.breakfastIntake,
-        ...widget.lunchIntake,
-        ...widget.dinnerIntake,
-        ...widget.snackIntake,
-      ];
-
-  String _getCaloriesTrackedDisplayString(
-      BuildContext context, TrackedDayEntity trackedDay) {
-    final actualKcal = _allIntakes.fold(0.0, (sum, i) => sum + i.totalKcal);
-    final usesKilojoules =
-        context.watch<EnergyUnitProvider>().usesKilojoules;
-    final clampedKcal = actualKcal < 0 ? 0.0 : actualKcal;
-    final displayActual = usesKilojoules
-        ? UnitCalc.kcalToKj(clampedKcal).toInt()
-        : clampedKcal.toInt();
-    final displayGoal = usesKilojoules
-        ? UnitCalc.kcalToKj(trackedDay.calorieGoal).toInt()
-        : trackedDay.calorieGoal.toInt();
-    final unit = usesKilojoules ? S.of(context).kjLabel : S.of(context).kcalLabel;
-    return '$displayActual/$displayGoal $unit';
   }
 
   void showCopyOrDeleteIntakeDialog(
@@ -434,9 +330,7 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
       IntakeTypeEntity.snack => AddMealType.snackType,
     };
 
-    final copyDialog = CopyDialog(
-      initialValue: defaultMealType,
-    );
+    final copyDialog = CopyDialog(initialValue: defaultMealType);
     final selectedMealType = await showDialog<AddMealType>(
       context: context,
       builder: (context) => copyDialog,

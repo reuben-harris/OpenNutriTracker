@@ -263,11 +263,11 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     );
   }
 
-  void onAddButtonPressed(
+  Future<void> onAddButtonPressed(
     BuildContext context, {
     String? templateName,
     bool saveAsTemplate = false,
-  }) {
+  }) async {
     // The bloc treats `persistActivity`'s first argument as a kcal value
     // for Custom activities (and as minutes for compendium activities),
     // so when the user typed in kJ we hand over the converted figure
@@ -285,7 +285,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
         );
       }
     }
-    _activityDetailBloc.persistActivity(
+    await _activityDetailBloc.persistActivity(
       quantityForBloc,
       totalKcal,
       activityEntity,
@@ -315,6 +315,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     locator<DiaryBloc>().add(const LoadDiaryYearEvent());
     locator<CalendarDayBloc>().add(RefreshCalendarDayEvent());
 
+    if (!context.mounted) return;
     // Show snackbar and return to dashboard
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(S.of(context).infoAddedActivityLabel)),

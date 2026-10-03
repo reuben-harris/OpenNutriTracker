@@ -1,18 +1,28 @@
+import 'dart:async';
+
+import 'package:auto_size_text/auto_size_text.dart';
+
 import 'package:flutter/material.dart';
+import 'package:opennutritracker/core/domain/usecase/add_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
-import 'package:opennutritracker/core/presentation/widgets/add_item_bottom_sheet.dart';
+import 'package:opennutritracker/core/domain/usecase/import_workouts_usecase.dart';
+import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
 import 'package:opennutritracker/core/presentation/widgets/demo_mode_banner.dart';
+import 'package:opennutritracker/core/presentation/widgets/disclaimer_dialog.dart';
+import 'package:opennutritracker/core/presentation/widgets/main_appbar.dart';
+import 'package:opennutritracker/core/presentation/widgets/selected_day_header.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/utils/health_rationale_service.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
-import 'package:opennutritracker/core/utils/meal_type_suggester.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/diary/diary_page.dart';
-import 'package:opennutritracker/core/presentation/widgets/home_appbar.dart';
+import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
+import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
 import 'package:opennutritracker/features/home/home_page.dart';
-import 'package:opennutritracker/core/presentation/widgets/main_appbar.dart';
+import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/features/profile/profile_page.dart';
 import 'package:opennutritracker/features/trends/presentation/trends_page.dart';
+import 'package:opennutritracker/features/trends/presentation/bloc/trends_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
 class MainScreen extends StatefulWidget {
@@ -25,6 +35,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _selectedPageIndex = 0;
   bool _isDemoData = false;
+  bool _ready = false;
 
   /// Guards against two lifecycle events asking the platform at once. The
   /// platform side clears the flag on read, so a race would not open the
@@ -54,7 +65,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     // already running never rebuilds this screen — a resume is the only signal
     // that an intent arrived.
     if (state == AppLifecycleState.resumed) {
-      _maybeOpenHealthRationale();
+      _resume();
     }
   }
 
@@ -75,7 +86,24 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   Future<void> _loadConfigDrivenUi() async {
     final config = await locator<GetConfigUsecase>().getConfig();
     if (!mounted) return;
-    setState(() => _isDemoData = config.isDemoData);
+    await locator<SelectedDayCubit>().initialize();
+    if (!mounted) return;
+    setState(() {
+      _isDemoData = config.isDemoData;
+      _ready = true;
+    });
+    _refreshRecords();
+    unawaited(_importHealthWorkouts());
+    if (!config.hasAcceptedDisclaimer) {
+      final accepted = await showDialog<bool>(
+        context: context,
+        builder: (_) => const DisclaimerDialog(),
+      );
+      if (accepted == true) {
+        await locator<AddConfigUsecase>().setConfigDisclaimer(true);
+      }
+    }
+    if (!mounted) return;
     await _maybeOpenHealthRationale();
   }
 
@@ -102,14 +130,17 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   @override
   void didChangeDependencies() {
     _bodyPages = [
-      const HomePage(),
       const DiaryPage(),
+      const HomePage(),
       const TrendsPage(),
       const ProfilePage(),
     ];
     _appbarPages = [
-      const HomeAppbar(),
       MainAppbar(title: S.of(context).diaryLabel, iconData: Icons.book),
+      MainAppbar(
+        title: S.of(context).onboardingOverviewLabel,
+        iconData: Icons.pie_chart_outline,
+      ),
       MainAppbar(title: S.of(context).trendsLabel, iconData: Icons.insights),
       MainAppbar(title: S.of(context).youLabel, iconData: Icons.account_circle),
     ];
@@ -125,54 +156,42 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       body: Column(
         children: [
           if (_isDemoData) const DemoModeBanner(),
+          if (_ready && _selectedPageIndex < 2) const SelectedDayHeader(),
           Expanded(
-            child: IndexedStack(
-              index: _selectedPageIndex,
-              children: _bodyPages,
-            ),
+            child: !_ready
+                ? const Center(child: CircularProgressIndicator())
+                : IndexedStack(index: _selectedPageIndex, children: _bodyPages),
           ),
         ],
       ),
-      floatingActionButton: Semantics(
-        identifier: 'fab-add-item',
-        child: FloatingActionButton(
-          onPressed: () => _onFabPressed(context),
-          tooltip: S.of(context).addLabel,
-          child: const Icon(Icons.add, size: 30),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         color: palette.surface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         height: 78,
         padding: EdgeInsets.zero,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
         child: Row(
           children: [
             _NavItem(
-              id: 'nav-home',
-              icon: Icons.home_outlined,
-              selectedIcon: Icons.home_rounded,
-              label: S.of(context).homeLabel,
+              id: 'nav-diary',
+              icon: Icons.book_outlined,
+              selectedIcon: Icons.book_rounded,
+              label: S.of(context).diaryLabel,
               index: 0,
               selectedIndex: _selectedPageIndex,
               palette: palette,
               onTap: _setPage,
             ),
             _NavItem(
-              id: 'nav-diary',
-              icon: Icons.book_outlined,
-              selectedIcon: Icons.book_rounded,
-              label: S.of(context).diaryLabel,
+              id: 'nav-overview',
+              icon: Icons.pie_chart_outline,
+              selectedIcon: Icons.pie_chart_rounded,
+              label: S.of(context).onboardingOverviewLabel,
               index: 1,
               selectedIndex: _selectedPageIndex,
               palette: palette,
               onTap: _setPage,
             ),
-            const SizedBox(width: 64), // notch gap for the centre Add FAB
             _NavItem(
               id: 'nav-trends',
               icon: Icons.insights_outlined,
@@ -199,27 +218,39 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     );
   }
 
+  void _refreshRecords() {
+    locator<HomeBloc>().add(const LoadItemsEvent());
+    locator<DiaryBloc>().add(const LoadDiaryYearEvent());
+    locator<CalendarDayBloc>().add(
+      LoadCalendarDayEvent(locator<SelectedDayCubit>().state.day),
+    );
+  }
+
+  Future<void> _resume() async {
+    await locator<SelectedDayCubit>().initialize();
+    if (!mounted || !_ready) return;
+    _refreshRecords();
+    unawaited(_importHealthWorkouts());
+    await _maybeOpenHealthRationale();
+  }
+
+  Future<void> _importHealthWorkouts() async {
+    final imported = await locator<ImportWorkoutsUsecase>().importIfDue();
+    if (imported > 0 && mounted) _refreshRecords();
+  }
+
   void _setPage(int selectedIndex) {
+    if (selectedIndex == 1) locator<HomeBloc>().add(const LoadItemsEvent());
+    if (selectedIndex == 2) {
+      final trends = locator<TrendsBloc>();
+      final state = trends.state;
+      trends.add(
+        LoadTrendsEvent(rangeDays: state is TrendsLoaded ? state.rangeDays : 7),
+      );
+    }
     setState(() {
       _selectedPageIndex = selectedIndex;
     });
-  }
-
-  Future<void> _onFabPressed(BuildContext context) async {
-    final config = await locator<GetConfigUsecase>().getConfig();
-    if (!context.mounted) return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return AddItemBottomSheet(
-          day: DateTime.now(),
-          showActivityTracking: config.showActivityTracking,
-          usesImperialUnits: config.usesImperialFoodUnits,
-          suggestedType: MealTypeSuggester.suggestFromTime(DateTime.now()),
-        );
-      },
-    );
   }
 }
 
@@ -253,18 +284,22 @@ class _NavItem extends StatelessWidget {
     return Expanded(
       child: Semantics(
         identifier: id,
+        container: true,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () => onTap(index),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(selected ? selectedIcon : icon, color: color, size: 26),
                 const SizedBox(height: 3),
-                Text(
+                AutoSizeText(
                   label,
+                  minFontSize: 6,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(
                     context,
                   ).textTheme.labelSmall?.copyWith(color: color),

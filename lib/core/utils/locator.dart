@@ -134,6 +134,8 @@ import 'package:opennutritracker/features/settings/presentation/bloc/custom_meal
 import 'package:opennutritracker/features/settings/presentation/bloc/export_import_bloc.dart';
 import 'package:opennutritracker/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:opennutritracker/core/domain/usecase/update_water_intake_usecase.dart';
+import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
 
 final locator = GetIt.instance;
 
@@ -218,13 +220,15 @@ Future<void> initLocator() async {
   locator.registerLazySingleton<OnboardingBloc>(
     () => OnboardingBloc(locator(), locator(), locator()),
   );
+  locator.registerLazySingleton(
+    () => SelectedDayCubit(
+      locator(),
+      activeProfileId: () => locator<GetProfilesUsecase>().activeProfileId,
+    ),
+  );
+  locator.registerLazySingleton(() => UpdateWaterIntakeUsecase(locator()));
   locator.registerLazySingleton<HomeBloc>(
     () => HomeBloc(
-      locator(),
-      locator(),
-      locator(),
-      locator(),
-      locator(),
       locator(),
       locator(),
       locator(),
@@ -250,6 +254,11 @@ Future<void> initLocator() async {
       locator(),
       locator(),
       locator(),
+      selection: locator(),
+      getWater: locator(),
+      addWater: locator(),
+      updateWater: locator(),
+      deleteWater: locator(),
     ),
   );
   locator.registerLazySingleton<ProfileBloc>(
@@ -259,7 +268,14 @@ Future<void> initLocator() async {
   // Singleton so a unit change in Settings can refresh the live Trends page
   // (it lives in the main IndexedStack and isn't recreated on tab switch).
   locator.registerLazySingleton<TrendsBloc>(
-    () => TrendsBloc(locator(), locator(), locator(), locator(), locator()),
+    () => TrendsBloc(
+      locator(),
+      locator(),
+      locator(),
+      locator(),
+      locator(),
+      locator(),
+    ),
   );
   locator.registerFactory<RecipeBuilderBloc>(
     () => RecipeBuilderBloc(locator(), locator()),

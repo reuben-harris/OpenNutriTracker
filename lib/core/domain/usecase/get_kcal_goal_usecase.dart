@@ -19,6 +19,7 @@ class GetKcalGoalUsecase {
 
   Future<double> getKcalGoal({
     UserEntity? userEntity,
+    DateTime? day,
     double? totalKcalActivitiesParam,
     double? kcalUserAdjustment,
   }) async {
@@ -33,10 +34,11 @@ class GetKcalGoalUsecase {
           // and the boundary is a different day than the one Home's
           // activity list shows — the goal would silently drop those
           // burned calories.
-          DayBoundaryCalc.currentLogicalDayLabel(
-            config.dayStartOffsetHours,
-            config.dayStartOffsetMinutes,
-          ),
+          day ??
+              DayBoundaryCalc.currentLogicalDayLabel(
+                config.dayStartOffsetHours,
+                config.dayStartOffsetMinutes,
+              ),
           dayStartOffsetHours: config.dayStartOffsetHours,
           dayStartOffsetMinutes: config.dayStartOffsetMinutes,
         )).map((activity) => activity.burnedKcal).toList().sum;

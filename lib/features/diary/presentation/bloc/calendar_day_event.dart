@@ -10,7 +10,7 @@ class LoadCalendarDayEvent extends CalendarDayEvent {
   const LoadCalendarDayEvent(this.day);
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [day];
 }
 
 class RefreshCalendarDayEvent extends CalendarDayEvent {

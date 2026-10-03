@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
-import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/fasting/presentation/bloc/fasting_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
@@ -54,8 +53,6 @@ class _FastingHomeChipView extends StatelessWidget {
               borderRadius: Dimens.borderRadiusM,
               child: InkWell(
                 borderRadius: Dimens.borderRadiusM,
-                onTap: () => Navigator.of(context)
-                    .pushNamed(NavigationOptions.fastingRoute),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: Dimens.spacing16,
@@ -74,11 +71,13 @@ class _FastingHomeChipView extends StatelessWidget {
                     children: [
                       Icon(Icons.timer_rounded, size: 18, color: accent),
                       const SizedBox(width: Dimens.spacing8),
-                      Text(
-                        S.of(context).fastingHomeChipBody(remaining),
-                        style: textTheme.labelLarge?.copyWith(
-                          color: palette.textStrong,
-                          fontWeight: FontWeight.w700,
+                      Flexible(
+                        child: Text(
+                          S.of(context).fastingHomeChipBody(remaining),
+                          style: textTheme.labelLarge?.copyWith(
+                            color: palette.textStrong,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],

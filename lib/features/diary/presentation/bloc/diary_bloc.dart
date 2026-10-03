@@ -35,11 +35,10 @@ class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
         config.dayStartOffsetTotalMinutes,
       );
       // #292: Extended to match calendar range (5 years back)
-      const yearDuration = Duration(days: 365 * 5);
 
       final trackedDays = await _getDayTrackedUsecase.getTrackedDaysByRange(
-        currentDay.subtract(yearDuration),
-        currentDay.add(yearDuration),
+        DateTime(currentDay.year, currentDay.month, currentDay.day - 365 * 5),
+        DateTime(currentDay.year, currentDay.month, currentDay.day + 365 * 5),
       );
 
       final trackedDaysMap = {
@@ -47,12 +46,14 @@ class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
           trackedDay.day.toParsedDay(): trackedDay,
       };
 
-      emit(DiaryLoadedState(
-        trackedDaysMap,
-        usesImperialUnits,
-        showMealMacros: showMealMacros,
-        showActivityTracking: showActivityTracking,
-      ));
+      emit(
+        DiaryLoadedState(
+          trackedDaysMap,
+          usesImperialUnits,
+          showMealMacros: showMealMacros,
+          showActivityTracking: showActivityTracking,
+        ),
+      );
     });
   }
 

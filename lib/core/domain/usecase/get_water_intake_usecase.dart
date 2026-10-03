@@ -14,10 +14,18 @@ class GetWaterIntakeUsecase {
     DateTime logicalDayStart, {
     required int dayStartOffsetTotalMinutes,
   }) async {
-    final from = logicalDayStart.add(
-      Duration(minutes: dayStartOffsetTotalMinutes),
+    final from = DayBoundaryCalc.boundaryOf(
+      logicalDayStart,
+      dayStartOffsetTotalMinutes,
     );
-    final to = from.add(const Duration(days: 1));
+    final to = DayBoundaryCalc.boundaryOf(
+      DateTime(
+        logicalDayStart.year,
+        logicalDayStart.month,
+        logicalDayStart.day + 1,
+      ),
+      dayStartOffsetTotalMinutes,
+    );
     return _waterIntakeRepository.getEntriesInRange(from, to);
   }
 

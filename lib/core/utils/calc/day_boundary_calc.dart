@@ -25,6 +25,8 @@ class DayBoundaryCalc {
   @visibleForTesting
   static DateTime Function() clock = DateTime.now;
 
+  static DateTime now() => clock();
+
   /// Returns the wall-clock midnight of the logical day that [moment]
   /// belongs to, given a configured [offsetHours] in the range 0–23.
   ///
@@ -65,7 +67,10 @@ class DayBoundaryCalc {
   ///
   /// Out-of-range values (negative, or ≥ 24 h) are treated as 0 — the
   /// same defensive behaviour as the hours-only overload.
-  static DateTime logicalDayOfMinutes(DateTime moment, int? offsetTotalMinutes) {
+  static DateTime logicalDayOfMinutes(
+    DateTime moment,
+    int? offsetTotalMinutes,
+  ) {
     return _logicalDayOfTotalMinutes(
       moment,
       _sanitiseTotalMinutes(offsetTotalMinutes),
@@ -109,13 +114,18 @@ class DayBoundaryCalc {
     // Some stored entries are themselves labels rather than clock
     // readings, and must be compared as-is: rolling them back would file
     // them a day early. See [_isDayLabel] for who writes them.
-    final momentDay = _isDayLabel(moment)
-        ? moment
-        : logicalDayOfMinutes(moment, offsetTotalMinutes);
+    final momentDay = recordDayLabel(moment, offsetTotalMinutes);
     return momentDay.year == dayLabel.year &&
         momentDay.month == dayLabel.month &&
         momentDay.day == dayLabel.day;
   }
+
+  /// Labels stored intake records consistently with the diary's daily queries.
+  /// Bare midnight values are date labels from imports or calendar entry.
+  static DateTime recordDayLabel(DateTime moment, int? offsetTotalMinutes) =>
+      _isDayLabel(moment)
+          ? DateTime(moment.year, moment.month, moment.day)
+          : logicalDayOfMinutes(moment, offsetTotalMinutes);
 
   /// True when [a] and [b] resolve to the same logical day under
   /// [offsetTotalMinutes].
@@ -134,9 +144,66 @@ class DayBoundaryCalc {
         dayA.day == dayB.day;
   }
 
+  /// Construct local wall-clock boundaries separately: a DST day can have
+  /// 23 or 25 hours, so adding a 24-hour duration is not calendar arithmetic.
+  static DateTime boundaryOf(DateTime day, int offsetTotalMinutes) => DateTime(
+    day.year,
+    day.month,
+    day.day,
+    _sanitiseTotalMinutes(offsetTotalMinutes) ~/ 60,
+    _sanitiseTotalMinutes(offsetTotalMinutes) % 60,
+  );
+
+  /// Project the current local time into the chosen logical day.
+  static DateTime timestampInDay(
+    DateTime day,
+    int offsetTotalMinutes, {
+    DateTime? now,
+  }) {
+    final local = (now ?? clock()).toLocal();
+    final nextDate =
+        local.hour * 60 + local.minute <
+        _sanitiseTotalMinutes(offsetTotalMinutes);
+    final projected = DateTime(
+      day.year,
+      day.month,
+      day.day + (nextDate ? 1 : 0),
+      local.hour,
+      local.minute,
+      local.second,
+      local.millisecond,
+      local.microsecond,
+    );
+    final start = boundaryOf(day, offsetTotalMinutes);
+    final end = boundaryOf(
+      DateTime(day.year, day.month, day.day + 1),
+      offsetTotalMinutes,
+    );
+    if (projected.isBefore(start)) return start;
+    if (!projected.isBefore(end)) {
+      return end.subtract(const Duration(microseconds: 1));
+    }
+    return projected;
+  }
+
   static DateTime _logicalDayOfTotalMinutes(DateTime moment, int totalMinutes) {
-    final shifted = moment.subtract(Duration(minutes: totalMinutes));
-    return DateTime(shifted.year, shifted.month, shifted.day);
+    // Preserve the timestamp's stored zone, as the existing queries do.
+    // Local timestamps use calendar construction so DST cannot shift the
+    // boundary by an hour; UTC timestamps have no DST transition.
+    final boundary = moment.isUtc
+        ? DateTime.utc(
+            moment.year,
+            moment.month,
+            moment.day,
+            totalMinutes ~/ 60,
+            totalMinutes % 60,
+          )
+        : boundaryOf(moment, totalMinutes);
+    return DateTime(
+      moment.year,
+      moment.month,
+      moment.day - (moment.isBefore(boundary) ? 1 : 0),
+    );
   }
 
   /// A bare midnight is how this app spells "the calendar day named

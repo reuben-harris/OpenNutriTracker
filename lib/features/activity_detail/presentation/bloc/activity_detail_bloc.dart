@@ -100,7 +100,7 @@ class ActivityDetailBloc
     await _addCustomActivityTemplateUsecase.addTemplate(entity);
   }
 
-  void persistActivity(
+  Future<void> persistActivity(
     String quantityText,
     double totalKcalBurned,
     PhysicalActivityEntity activityEntity,
@@ -124,16 +124,16 @@ class ActivityDetailBloc
     );
 
     await _addUserActivityUsecase.addUserActivity(userActivityEntity);
-    _updateTrackedDay(day, burnedKcal);
+    await _updateTrackedDay(day, burnedKcal);
   }
 
-  void _updateTrackedDay(DateTime day, double caloriesBurned) async {
+  Future<void> _updateTrackedDay(DateTime day, double caloriesBurned) async {
     final hasTrackedDay = await _addTrackedDayUsecase.hasTrackedDay(day);
     if (!hasTrackedDay) {
       // If the tracked day does not exist, create a new one
       final totalKcalGoal = await _getKcalGoalUsecase.getKcalGoal(
-        totalKcalActivitiesParam: 0,
-      ); // Exclude persisted activities
+        day: day,
+      ); // Includes the activity just persisted for this destination day.
       final totalCarbsGoal = await _getMacroGoalUsecase.getCarbsGoal(
         totalKcalGoal,
       );
@@ -151,14 +151,15 @@ class ActivityDetailBloc
         totalFatGoal,
         totalProteinGoal,
       );
+      return;
     }
 
     final carbsIncrease = MacroCalc.getTotalCarbsGoal(caloriesBurned);
     final fatIncrease = MacroCalc.getTotalFatsGoal(caloriesBurned);
     final proteinIncrease = MacroCalc.getTotalProteinsGoal(caloriesBurned);
 
-    _addTrackedDayUsecase.increaseDayCalorieGoal(day, caloriesBurned);
-    _addTrackedDayUsecase.increaseDayMacroGoals(
+    await _addTrackedDayUsecase.increaseDayCalorieGoal(day, caloriesBurned);
+    await _addTrackedDayUsecase.increaseDayMacroGoals(
       day,
       carbsAmount: carbsIncrease,
       fatAmount: fatIncrease,

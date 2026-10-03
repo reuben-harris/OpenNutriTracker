@@ -15,6 +15,8 @@ class CalendarDayLoading extends CalendarDayState {
 }
 
 class CalendarDayLoaded extends CalendarDayState {
+  final DateTime? day;
+  final List<WaterIntakeEntity> waterEntries;
   final TrackedDayEntity? trackedDayEntity;
   final List<UserActivityEntity> userActivityList;
   final List<IntakeEntity> breakfastIntakeList;
@@ -57,19 +59,28 @@ class CalendarDayLoaded extends CalendarDayState {
     this.dinnerSharePct,
     this.snackSharePct, {
     this.diarySortPreferences,
+    this.day,
+    this.waterEntries = const [],
   });
 
   @override
   List<Object?> get props => [
-        trackedDayEntity,
-        breakfastKcalTarget,
-        lunchKcalTarget,
-        dinnerKcalTarget,
-        snackKcalTarget,
-        breakfastSharePct,
-        lunchSharePct,
-        dinnerSharePct,
-        snackSharePct,
-        diarySortPreferences,
-      ];
+    day,
+    waterEntries,
+    userActivityList,
+    breakfastIntakeList,
+    lunchIntakeList,
+    dinnerIntakeList,
+    snackIntakeList,
+    trackedDayEntity,
+    breakfastKcalTarget,
+    lunchKcalTarget,
+    dinnerKcalTarget,
+    snackKcalTarget,
+    breakfastSharePct,
+    lunchSharePct,
+    dinnerSharePct,
+    snackSharePct,
+    diarySortPreferences,
+  ];
 }

@@ -56,6 +56,8 @@ class ConfigDataSource {
       merged.userFatGoalPct = profile.userFatGoalPct;
       merged.mealKcalSharesPct = profile.mealKcalSharesPct;
       merged.dailyWaterGoalMl = profile.dailyWaterGoalMl;
+      merged.overviewMacrosAsPercent = profile.overviewMacrosAsPercent;
+      merged.overviewNutrientsAsPercent = profile.overviewNutrientsAsPercent;
       merged.healthImportEnabled = profile.healthImportEnabled;
       merged.healthWorkoutKcalMultiplier = profile.healthWorkoutKcalMultiplier;
       merged.healthLastImportAt = profile.healthLastImportAt;
@@ -72,6 +74,8 @@ class ConfigDataSource {
       merged.userFatGoalPct = null;
       merged.mealKcalSharesPct = null;
       merged.dailyWaterGoalMl = null;
+      merged.overviewMacrosAsPercent = null;
+      merged.overviewNutrientsAsPercent = null;
       merged.healthImportEnabled = null;
       merged.healthWorkoutKcalMultiplier = null;
       merged.healthLastImportAt = null;
@@ -248,6 +252,12 @@ class ConfigDataSource {
   Future<void> setConfigUsesKilojoules(bool usesKilojoules) async {
     await _update((c) => c.usesKilojoules = usesKilojoules);
   }
+
+  Future<void> setOverviewMacrosAsPercent(bool value) =>
+      _update((c) => c.overviewMacrosAsPercent = value);
+
+  Future<void> setOverviewNutrientsAsPercent(bool value) =>
+      _update((c) => c.overviewNutrientsAsPercent = value);
 
   Future<void> setConfigDefaultToRawFoodUnits(bool value) async {
     await _update((c) => c.defaultToRawFoodUnits = value);

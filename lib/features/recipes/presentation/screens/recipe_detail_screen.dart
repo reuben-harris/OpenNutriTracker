@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
+import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
 import 'package:opennutritracker/core/presentation/widgets/share_qr_dialog.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
@@ -249,7 +250,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       arguments: MealDetailScreenArguments(
         recipe.toMealEntity(),
         intakeType,
-        DateTime.now(),
+        locator<SelectedDayCubit>().state.day,
         config.usesImperialFoodUnits,
       ),
     );
