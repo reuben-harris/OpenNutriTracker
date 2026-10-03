@@ -97,5 +97,5 @@ dependencies {
     implementation 'androidx.health.connect:connect-client:1.2.0-alpha06'
     // readRecords is a suspend function, and MainActivity answers the method
     // channel from the main dispatcher.
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0'
 }
