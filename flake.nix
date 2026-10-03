@@ -7,6 +7,7 @@
     flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
     gradle2nix.url = "github:tadfisher/gradle2nix/v2";
     gradle2nix.inputs.nixpkgs.follows = "nixpkgs";
+    health-compat.url = "path:./nix/health-compat";
   };
 
   outputs =

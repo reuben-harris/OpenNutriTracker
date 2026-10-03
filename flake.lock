@@ -60,6 +60,17 @@
         "type": "github"
       }
     },
+    "health-compat": {
+      "locked": {
+        "path": "./nix/health-compat",
+        "type": "path"
+      },
+      "original": {
+        "path": "./nix/health-compat",
+        "type": "path"
+      },
+      "parent": []
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1790822859,
@@ -80,6 +91,7 @@
       "inputs": {
         "flake-parts": "flake-parts",
         "gradle2nix": "gradle2nix",
+        "health-compat": "health-compat",
         "nixpkgs": "nixpkgs"
       }
     },
