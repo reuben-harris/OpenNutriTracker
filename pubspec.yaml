@@ -35,7 +35,7 @@ dependencies:
 
   collection: ^1.19.1
   meta: ^1.17.0
-  intl: ^0.20.2
+  intl: ^0.20.3
   get_it: ^9.2.1
   provider: ^6.1.5+1
   http: ^1.6.0
