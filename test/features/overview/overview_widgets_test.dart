@@ -35,6 +35,7 @@ import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/activity_detail/presentation/bloc/activity_detail_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
+import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/daily_nutrient_panel.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/day_info_widget.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/diary_table_calendar.dart';
@@ -460,6 +461,8 @@ void main() {
         h.createCalendar();
       });
       diary = DiaryBloc(GetTrackedDayUsecase(h.tracked), h.getConfig);
+      final clipboard = DiaryClipboardCubit();
+      locator.registerSingleton<DiaryClipboardCubit>(clipboard);
       locator.registerSingleton<SelectedDayCubit>(h.selection);
       locator.registerSingleton<GetConfigUsecase>(h.getConfig);
       locator.registerSingleton<GetIntakeUsecase>(h.getIntakes);
@@ -478,6 +481,7 @@ void main() {
         DayBoundaryCalc.clock = DateTime.now;
         await locator.reset();
         await diary.close();
+        await clipboard.close();
         await h.dispose();
       });
       await tester.pumpWidget(app(const MainScreen()));

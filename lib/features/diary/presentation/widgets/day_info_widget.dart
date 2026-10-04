@@ -5,7 +5,6 @@ import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_activity_entity.dart';
 import 'package:opennutritracker/core/presentation/widgets/activity_vertial_list.dart';
 import 'package:opennutritracker/core/presentation/widgets/copy_or_delete_dialog.dart';
-import 'package:opennutritracker/core/presentation/widgets/copy_dialog.dart';
 import 'package:opennutritracker/core/presentation/widgets/delete_dialog.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
@@ -40,6 +39,9 @@ class DayInfoWidget extends StatefulWidget {
   final int dinnerSharePct;
   final int snackSharePct;
 
+  final IntakeTypeEntity? draggingType;
+  final ValueChanged<IntakeEntity?>? onIntakeDrag;
+  final ValueChanged<DragUpdateDetails>? onIntakeDragUpdate;
   final bool usesImperialUnits;
   final bool showMealMacros;
   // When the user disables Show Activity Tracking in Settings, the diary's
@@ -57,12 +59,6 @@ class DayInfoWidget extends StatefulWidget {
     TrackedDayEntity? trackedDayEntity,
   )
   onDeleteActivity;
-  final Future<void> Function(
-    IntakeEntity intake,
-    TrackedDayEntity? trackedDayEntity,
-    AddMealType? type,
-  )
-  onCopyIntake;
   final Function(
     UserActivityEntity userActivityEntity,
     TrackedDayEntity? trackedDayEntity,
@@ -87,12 +83,14 @@ class DayInfoWidget extends StatefulWidget {
     required this.dinnerIntake,
     required this.snackIntake,
     required this.usesImperialUnits,
+    this.draggingType,
+    this.onIntakeDrag,
+    this.onIntakeDragUpdate,
     this.showMealMacros = true,
     this.showActivityTracking = true,
     this.diarySortPreferences,
     required this.onDeleteIntake,
     required this.onDeleteActivity,
-    required this.onCopyIntake,
     required this.onCopyActivity,
     this.onEditIntake,
     this.onEditActivity,
@@ -219,15 +217,10 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                   widget.breakfastIntake,
                 ),
                 onDeleteIntakeCallback: widget.onDeleteIntake,
-                onItemLongPressedCallback: onIntakeItemLongPressed,
+                draggingType: widget.draggingType,
+                onItemDragCallback: widget.onIntakeDrag,
+                onItemDragUpdate: widget.onIntakeDragUpdate,
                 onItemTappedCallback: widget.onEditIntake,
-                onCopyIntakeCallback:
-                    DateUtils.isSameDay(
-                      widget.selectedDay,
-                      locator<SelectedDayCubit>().state.today,
-                    )
-                    ? null
-                    : widget.onCopyIntake,
                 usesImperialUnits: widget.usesImperialUnits,
                 showMealMacros: widget.showMealMacros,
                 trackedDayEntity: trackedDay,
@@ -246,17 +239,12 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                   widget.lunchIntake,
                 ),
                 onDeleteIntakeCallback: widget.onDeleteIntake,
-                onItemLongPressedCallback: onIntakeItemLongPressed,
+                draggingType: widget.draggingType,
+                onItemDragCallback: widget.onIntakeDrag,
+                onItemDragUpdate: widget.onIntakeDragUpdate,
                 onItemTappedCallback: widget.onEditIntake,
                 usesImperialUnits: widget.usesImperialUnits,
                 showMealMacros: widget.showMealMacros,
-                onCopyIntakeCallback:
-                    DateUtils.isSameDay(
-                      widget.selectedDay,
-                      locator<SelectedDayCubit>().state.today,
-                    )
-                    ? null
-                    : widget.onCopyIntake,
                 trackedDayEntity: trackedDay,
                 mealKcalTarget: widget.lunchKcalTarget,
                 sortType: _sortByMeal[IntakeTypeEntity.lunch],
@@ -273,15 +261,10 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                   widget.dinnerIntake,
                 ),
                 onDeleteIntakeCallback: widget.onDeleteIntake,
-                onItemLongPressedCallback: onIntakeItemLongPressed,
+                draggingType: widget.draggingType,
+                onItemDragCallback: widget.onIntakeDrag,
+                onItemDragUpdate: widget.onIntakeDragUpdate,
                 onItemTappedCallback: widget.onEditIntake,
-                onCopyIntakeCallback:
-                    DateUtils.isSameDay(
-                      widget.selectedDay,
-                      locator<SelectedDayCubit>().state.today,
-                    )
-                    ? null
-                    : widget.onCopyIntake,
                 usesImperialUnits: widget.usesImperialUnits,
                 showMealMacros: widget.showMealMacros,
                 mealKcalTarget: widget.dinnerKcalTarget,
@@ -299,17 +282,12 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                   widget.snackIntake,
                 ),
                 onDeleteIntakeCallback: widget.onDeleteIntake,
-                onItemLongPressedCallback: onIntakeItemLongPressed,
+                draggingType: widget.draggingType,
+                onItemDragCallback: widget.onIntakeDrag,
+                onItemDragUpdate: widget.onIntakeDragUpdate,
                 onItemTappedCallback: widget.onEditIntake,
                 usesImperialUnits: widget.usesImperialUnits,
                 showMealMacros: widget.showMealMacros,
-                onCopyIntakeCallback:
-                    DateUtils.isSameDay(
-                      widget.selectedDay,
-                      locator<SelectedDayCubit>().state.today,
-                    )
-                    ? null
-                    : widget.onCopyIntake,
                 trackedDayEntity: trackedDay,
                 mealKcalTarget: widget.snackKcalTarget,
                 sortType: _sortByMeal[IntakeTypeEntity.snack],
@@ -321,68 +299,6 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
         ),
       ],
     );
-  }
-
-  void showCopyOrDeleteIntakeDialog(
-    BuildContext context,
-    IntakeEntity intakeEntity,
-  ) async {
-    final copyOrDelete = await showDialog<bool>(
-      context: context,
-      builder: (context) => const CopyOrDeleteDialog(),
-    );
-    if (context.mounted) {
-      if (copyOrDelete != null && !copyOrDelete) {
-        showDeleteIntakeDialog(context, intakeEntity);
-      } else if (copyOrDelete != null && copyOrDelete) {
-        showCopyDialog(context, intakeEntity);
-      }
-    }
-  }
-
-  void showCopyDialog(BuildContext context, IntakeEntity intakeEntity) async {
-    final defaultMealType = switch (intakeEntity.type) {
-      IntakeTypeEntity.breakfast => AddMealType.breakfastType,
-      IntakeTypeEntity.lunch => AddMealType.lunchType,
-      IntakeTypeEntity.dinner => AddMealType.dinnerType,
-      IntakeTypeEntity.snack => AddMealType.snackType,
-    };
-
-    final copyDialog = CopyDialog(initialValue: defaultMealType);
-    final selectedMealType = await showDialog<AddMealType>(
-      context: context,
-      builder: (context) => copyDialog,
-    );
-    if (selectedMealType != null) {
-      await widget.onCopyIntake(intakeEntity, null, selectedMealType);
-    }
-  }
-
-  void showDeleteIntakeDialog(
-    BuildContext context,
-    IntakeEntity intakeEntity,
-  ) async {
-    final shouldDeleteIntake = await showDialog<bool>(
-      context: context,
-      builder: (context) => const DeleteDialog(),
-    );
-    if (shouldDeleteIntake != null) {
-      widget.onDeleteIntake(intakeEntity, widget.trackedDayEntity);
-    }
-  }
-
-  void onIntakeItemLongPressed(
-    BuildContext context,
-    IntakeEntity intakeEntity,
-  ) async {
-    if (DateUtils.isSameDay(
-      widget.selectedDay,
-      locator<SelectedDayCubit>().state.today,
-    )) {
-      showDeleteIntakeDialog(context, intakeEntity);
-    } else {
-      showCopyOrDeleteIntakeDialog(context, intakeEntity);
-    }
   }
 
   void onActivityItemLongPressed(

@@ -20,6 +20,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 /// deliberate exception rather than an oversight — see [deleteAll] — and the
 /// confirmation dialog says so.
 class DeleteAllUserDataUsecase {
+  final Future<void> Function()? beforeDataChange;
   final _log = Logger('DeleteAllUserDataUsecase');
   final HiveDBProvider _hiveDBProvider;
   final NotificationService _notificationService;
@@ -30,10 +31,12 @@ class DeleteAllUserDataUsecase {
     this._hiveDBProvider,
     this._notificationService,
     this._configRepository,
-    this._aiCredentials,
-  );
+    this._aiCredentials, {
+    this.beforeDataChange,
+  });
 
   Future<void> deleteAll() async {
+    await beforeDataChange?.call();
     _log.info('Clearing the active profile\'s Hive boxes on user request');
 
     // Before the boxes, not after, and in two halves — either alone leaves
@@ -94,12 +97,12 @@ class DeleteAllUserDataUsecase {
     await _bestEffort(
       () => _configRepository.setNotificationsEnabled(false),
       'Could not switch the daily reminder off; the next launch may schedule '
-          'it again from a setting this wipe does not clear',
+      'it again from a setting this wipe does not clear',
     );
     await _bestEffort(
       () => _notificationService.cancelAllScheduled(),
       'Could not cancel scheduled notifications; an alarm may outlive the '
-          'data it was scheduled from',
+      'data it was scheduled from',
     );
   }
 

@@ -14,6 +14,7 @@ import 'package:opennutritracker/core/utils/tracked_day_total_repair.dart';
 /// and routing the user belong to the presentation layer
 /// (`ProfileSwitchCoordinator`).
 class SwitchProfileUsecase {
+  final Future<void> Function()? beforeDataChange;
   final HiveDBProvider _hiveDBProvider;
   final SecureAppStorageProvider _secureAppStorageProvider;
   final ConfigDataSource _configDataSource;
@@ -21,10 +22,12 @@ class SwitchProfileUsecase {
   SwitchProfileUsecase(
     this._hiveDBProvider,
     this._secureAppStorageProvider,
-    this._configDataSource,
-  );
+    this._configDataSource, {
+    this.beforeDataChange,
+  });
 
   Future<void> switchProfile(ProfileEntity profile) async {
+    await beforeDataChange?.call();
     await _hiveDBProvider.switchProfile(profile.id, profile.boxSuffix);
     await _secureAppStorageProvider.setActiveProfileId(profile.id);
     await ensureConfigInitialized(_configDataSource);

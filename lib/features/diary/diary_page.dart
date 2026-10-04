@@ -1,7 +1,14 @@
+import 'dart:async';
+
+import 'package:opennutritracker/core/presentation/widgets/delete_dialog.dart';
+import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
+import 'package:opennutritracker/features/diary/presentation/widgets/diary_drag_targets.dart';
+import 'package:opennutritracker/features/diary/presentation/widgets/diary_transfer_style.dart';
+import 'package:opennutritracker/features/home/presentation/widgets/recipe_swipe_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
-import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
+import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_activity_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/get_user_usecase.dart';
@@ -11,12 +18,10 @@ import 'package:opennutritracker/core/presentation/widgets/edit_dialog.dart';
 import 'package:opennutritracker/core/utils/calc/met_calc.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/activity_detail/presentation/bloc/activity_detail_bloc.dart';
-import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/day_info_widget.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/diary_water_section.dart';
-import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
 class DiaryPage extends StatefulWidget {
@@ -29,8 +34,79 @@ class DiaryPage extends StatefulWidget {
 class _DiaryPageState extends State<DiaryPage> {
   late DiaryBloc _diaryBloc;
   late CalendarDayBloc _calendarDayBloc;
-  late MealDetailBloc _mealDetailBloc;
   late ActivityDetailBloc _activityDetailBloc;
+
+  final _scrollController = ScrollController();
+  final _viewportKey = GlobalKey();
+  Timer? _edgeScrollTimer;
+  Offset? _dragPosition;
+  double _dateSwipeDistance = 0;
+  IntakeEntity? _draggedEntry;
+  bool get _dragging => _draggedEntry != null;
+
+  @override
+  void dispose() {
+    _edgeScrollTimer?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onIntakeDrag(IntakeEntity? entry) {
+    final dragging = entry != null;
+    if (!mounted) return;
+    if (!dragging) {
+      _edgeScrollTimer?.cancel();
+      _edgeScrollTimer = null;
+      _dragPosition = null;
+    }
+    setState(() => _draggedEntry = entry);
+  }
+
+  void _onIntakeDragUpdate(DragUpdateDetails details) {
+    _dragPosition = details.globalPosition;
+    _edgeScrollTimer ??= Timer.periodic(const Duration(milliseconds: 16), (_) {
+      final position = _dragPosition;
+      final box = _viewportKey.currentContext?.findRenderObject();
+      if (position == null ||
+          box is! RenderBox ||
+          !_scrollController.hasClients) {
+        return;
+      }
+      final y = box.globalToLocal(position).dy;
+      const edge = 72.0;
+      final bottom = box.size.height - 84;
+      final speed = y < edge
+          ? -12 * ((edge - y) / edge).clamp(0.0, 1.0)
+          : y > bottom - edge
+          ? 12 * ((y - bottom + edge) / edge).clamp(0.0, 1.0)
+          : 0.0;
+      if (speed == 0) return;
+      final scroll = _scrollController.position;
+      final next = (scroll.pixels + speed).clamp(
+        scroll.minScrollExtent,
+        scroll.maxScrollExtent,
+      );
+      if (next != scroll.pixels) _scrollController.jumpTo(next);
+    });
+  }
+
+  Future<void> _deleteDraggedEntry(IntakeEntity entry) async {
+    final day = _selectedDate;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => const DeleteDialog(),
+    );
+    if (confirmed != true || !mounted) return;
+    await _calendarDayBloc.deleteIntakeItem(context, entry, day);
+    _diaryBloc.add(const LoadDiaryYearEvent());
+    _calendarDayBloc.add(RefreshCalendarDayEvent());
+    _diaryBloc.updateHomePage();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(S.of(context).itemDeletedSnackbar)),
+      );
+    }
+  }
 
   DateTime get _selectedDate => locator<SelectedDayCubit>().state.day;
 
@@ -38,31 +114,79 @@ class _DiaryPageState extends State<DiaryPage> {
   void initState() {
     _diaryBloc = locator<DiaryBloc>();
     _calendarDayBloc = locator<CalendarDayBloc>();
-    _mealDetailBloc = locator<MealDetailBloc>();
     _activityDetailBloc = locator<ActivityDetailBloc>();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<DiaryBloc, DiaryState>(
-      bloc: _diaryBloc,
-      builder: (context, state) {
-        if (state is DiaryInitial) {
-          _diaryBloc.add(const LoadDiaryYearEvent());
-        } else if (state is DiaryLoadingState) {
-          return _getLoadingContent();
-        } else if (state is DiaryLoadedState) {
-          return _getLoadedContent(
-            context,
-            state.trackedDayMap,
-            state.usesImperialUnits,
-            state.showMealMacros,
-            state.showActivityTracking,
-          );
-        }
-        return const SizedBox();
+    return BlocListener<SelectedDayCubit, SelectedDayState>(
+      bloc: locator<SelectedDayCubit>(),
+      listenWhen: (previous, next) => previous.day != next.day,
+      listener: (_, _) {
+        RecipeSwipeScope.maybeOf(context)?.close();
+        if (_dragging) _onIntakeDrag(null);
       },
+      child: BlocBuilder<DiaryClipboardCubit, List<IntakeEntity>>(
+        bloc: locator<DiaryClipboardCubit>(),
+        builder: (context, entries) => Stack(
+          children: [
+            BlocBuilder<DiaryBloc, DiaryState>(
+              bloc: _diaryBloc,
+              builder: (context, state) {
+                if (state is DiaryInitial) {
+                  _diaryBloc.add(const LoadDiaryYearEvent());
+                } else if (state is DiaryLoadingState) {
+                  return _getLoadingContent();
+                } else if (state is DiaryLoadedState) {
+                  return _getLoadedContent(
+                    context,
+                    state.trackedDayMap,
+                    state.usesImperialUnits,
+                    state.showMealMacros,
+                    state.showActivityTracking,
+                  );
+                }
+                return const SizedBox();
+              },
+            ),
+            if (_dragging)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 12,
+                child: DiaryDragTargets(
+                  onDelete: _deleteDraggedEntry,
+                  onCopy: (entry) =>
+                      locator<DiaryClipboardCubit>().copy([entry]),
+                ),
+              ),
+            if (!_dragging && entries.isNotEmpty)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 12,
+                child: Center(
+                  child: Semantics(
+                    identifier: 'diary-clear-clipboard',
+                    child: IconButton.filled(
+                      style: IconButton.styleFrom(
+                        backgroundColor: diaryCopyButtonColor,
+                        foregroundColor: Colors.white,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: Dimens.borderRadiusL,
+                        ),
+                      ),
+                      tooltip: S.of(context).diaryClearClipboardLabel,
+                      onPressed: locator<DiaryClipboardCubit>().clear,
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -77,16 +201,26 @@ class _DiaryPageState extends State<DiaryPage> {
     bool showActivityTracking,
   ) {
     return ListView(
+      key: _viewportKey,
+      controller: _scrollController,
       padding: const EdgeInsets.only(bottom: 80),
       children: [
         GestureDetector(
           behavior: HitTestBehavior.opaque,
+          onHorizontalDragStart: (_) => _dateSwipeDistance = 0,
+          onHorizontalDragUpdate: (details) =>
+              _dateSwipeDistance += details.delta.dx,
           onHorizontalDragEnd: (details) {
             final velocity = details.primaryVelocity ?? 0;
-            if (velocity != 0) {
-              locator<SelectedDayCubit>().step(velocity < 0 ? 1 : -1);
+            if (_dateSwipeDistance.abs() >= 60 || velocity.abs() >= 250) {
+              final direction = velocity.abs() >= 250
+                  ? velocity
+                  : _dateSwipeDistance;
+              locator<SelectedDayCubit>().step(direction < 0 ? 1 : -1);
             }
+            _dateSwipeDistance = 0;
           },
+          onHorizontalDragCancel: () => _dateSwipeDistance = 0,
           child: BlocBuilder<CalendarDayBloc, CalendarDayState>(
             bloc: _calendarDayBloc,
             builder: (context, state) {
@@ -108,7 +242,9 @@ class _DiaryPageState extends State<DiaryPage> {
                       snackIntake: state.snackIntakeList,
                       onDeleteIntake: _onDeleteIntakeItem,
                       onDeleteActivity: _onDeleteActivityItem,
-                      onCopyIntake: _onCopyIntakeItem,
+                      draggingType: _draggedEntry?.type,
+                      onIntakeDrag: _onIntakeDrag,
+                      onIntakeDragUpdate: _onIntakeDragUpdate,
                       onCopyActivity: _onCopyActivityItem,
                       onEditIntake: _onEditIntakeItem,
                       onEditActivity: _onEditActivityItem,
@@ -176,29 +312,6 @@ class _DiaryPageState extends State<DiaryPage> {
         SnackBar(content: Text(S.of(context).itemDeletedSnackbar)),
       );
     }
-  }
-
-  Future<void> _onCopyIntakeItem(
-    IntakeEntity intakeEntity,
-    TrackedDayEntity? trackedDayEntity,
-    AddMealType? type,
-  ) async {
-    IntakeTypeEntity finalType;
-    if (type == null) {
-      finalType = intakeEntity.type;
-    } else {
-      finalType = type.getIntakeType();
-    }
-    await _mealDetailBloc.addIntake(
-      context,
-      intakeEntity.unit,
-      intakeEntity.amount.toString(),
-      finalType,
-      intakeEntity.meal,
-      locator<SelectedDayCubit>().state.today,
-      copiedFrom: intakeEntity,
-    );
-    _diaryBloc.updateHomePage();
   }
 
   void _onCopyActivityItem(

@@ -1,3 +1,9 @@
+import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/get_intake_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/add_tracked_day_usecase.dart';
+import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
+import 'package:opennutritracker/features/diary/presentation/bloc/diary_copy_cubit.dart';
+import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,7 +15,6 @@ import 'package:opennutritracker/core/domain/usecase/get_profiles_usecase.dart';
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
-import 'package:opennutritracker/core/utils/vertical_list_popup_menu_selections.dart';
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/features/home/presentation/widgets/intake_vertical_list.dart';
@@ -18,7 +23,27 @@ import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
 import '../../../../helpers/test_l10n.dart';
 
-class _FakeMealDetailBloc extends Fake implements MealDetailBloc {}
+class _FakeMealDetailBloc extends Fake implements MealDetailBloc {
+  Future<void> Function()? onLog;
+  @override
+  Future<void> addIntake(
+    BuildContext context,
+    String unit,
+    String amountText,
+    IntakeTypeEntity type,
+    MealEntity meal,
+    DateTime day, {
+    IntakeEntity? copiedFrom,
+  }) async {
+    await onLog?.call();
+  }
+}
+
+class _Config extends Fake implements GetConfigUsecase {}
+
+class _Intakes extends Fake implements GetIntakeUsecase {}
+
+class _Tracked extends Fake implements AddTrackedDayUsecase {}
 
 class _FakeHomeBloc extends Fake implements HomeBloc {}
 
@@ -93,7 +118,17 @@ Widget _wrapWithMaterial(Widget child) {
 void main() {
   setUpAll(() {
     final locator = GetIt.instance;
-    locator.registerFactory<MealDetailBloc>(_FakeMealDetailBloc.new);
+    final logger = _FakeMealDetailBloc();
+    locator.registerSingleton<MealDetailBloc>(logger);
+    final selection = SelectedDayCubit(_Config());
+    selection.emit(
+      SelectedDayState(DateTime(2026, 1, 2), DateTime(2026, 1, 2)),
+    );
+    locator.registerSingleton<SelectedDayCubit>(selection);
+    locator.registerSingleton<DiaryClipboardCubit>(DiaryClipboardCubit());
+    locator.registerSingleton<DiaryCopyCubit>(
+      DiaryCopyCubit(logger, _Intakes(), _Config(), _Tracked(), () {}),
+    );
     locator.registerFactory<HomeBloc>(_FakeHomeBloc.new);
     locator.registerFactory<GetProfilesUsecase>(
       _SingleProfileGetProfilesUsecase.new,
@@ -229,19 +264,16 @@ void main() {
             intakeList: intakes,
             usesImperialUnits: false,
             showMealMacros: true,
-            onCopyIntakeCallback: (_, _, _) async {},
             onDeleteIntakeCallback: (_, _) {},
           ),
         ),
       );
       await tester.pump();
 
-      await tester.tap(
-        find.byType(PopupMenuButton<VerticalListPopupMenuSelections>),
-      );
+      await tester.tap(find.byType(PopupMenuButton<DiaryMealAction>));
       await tester.pumpAndSettle();
 
-      expect(find.text(l10nEn.dialogCopyLabel), findsOneWidget);
+      expect(find.text(l10nEn.diaryCopyToTodayLabel), findsOneWidget);
       expect(find.text(l10nEn.deleteAllLabel), findsOneWidget);
       expect(find.text(l10nEn.shareMealLabel), findsOneWidget);
       expect(find.text(l10nEn.importMealLabel), findsOneWidget);
@@ -267,14 +299,12 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(
-      find.byType(PopupMenuButton<VerticalListPopupMenuSelections>),
-    );
+    await tester.tap(find.byType(PopupMenuButton<DiaryMealAction>));
     await tester.pumpAndSettle();
 
     // Empty section: no Copy/Delete/Share — nothing to act on. Import is
     // always available so the user can scan a QR to populate the section.
-    expect(find.text(l10nEn.dialogCopyLabel), findsNothing);
+    expect(find.text(l10nEn.diaryCopyToTodayLabel), findsNothing);
     expect(find.text(l10nEn.deleteAllLabel), findsNothing);
     expect(find.text(l10nEn.shareMealLabel), findsNothing);
     expect(find.text(l10nEn.importMealLabel), findsOneWidget);
@@ -357,7 +387,7 @@ void main() {
               await tester.pump();
               expect(tester.takeException(), isNull);
               final rect = tester.getRect(
-                find.byType(PopupMenuButton<VerticalListPopupMenuSelections>),
+                find.byType(PopupMenuButton<DiaryMealAction>),
               );
               right ??= rect.right;
               expect(rect.right, right);
@@ -385,6 +415,16 @@ void main() {
     ];
     final started = <int>[];
     final completed = <int>[];
+    (GetIt.instance<MealDetailBloc>() as _FakeMealDetailBloc).onLog = () async {
+      final index = started.length;
+      started.add(index);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      completed.add(index);
+    };
+    addTearDown(
+      () => (GetIt.instance<MealDetailBloc>() as _FakeMealDetailBloc).onLog =
+          null,
+    );
     await tester.pumpWidget(
       _wrapWithMaterial(
         IntakeVerticalList(
@@ -395,20 +435,12 @@ void main() {
           intakeList: source,
           usesImperialUnits: false,
           onDeleteIntakeCallback: (_, _) {},
-          onCopyIntakeCallback: (_, _, _) async {
-            final index = started.length;
-            started.add(index);
-            await Future<void>.delayed(const Duration(milliseconds: 50));
-            completed.add(index);
-          },
         ),
       ),
     );
-    await tester.tap(
-      find.byType(PopupMenuButton<VerticalListPopupMenuSelections>),
-    );
+    await tester.tap(find.byType(PopupMenuButton<DiaryMealAction>));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10nEn.dialogCopyLabel));
+    await tester.tap(find.text(l10nEn.diaryCopyToTodayLabel));
     await tester.pumpAndSettle();
     // Changes to the visible list during a dialog must not change its source.
     source.clear();
@@ -444,17 +476,14 @@ void main() {
           ],
           usesImperialUnits: false,
           onDeleteIntakeCallback: (_, _) {},
-          onCopyIntakeCallback: (_, _, _) async {},
           onSortTypeChanged: (_) {},
         ),
       ),
     );
     expect(find.byIcon(Icons.sort_rounded), findsOneWidget);
-    await tester.tap(
-      find.byType(PopupMenuButton<VerticalListPopupMenuSelections>),
-    );
+    await tester.tap(find.byType(PopupMenuButton<DiaryMealAction>));
     await tester.pumpAndSettle();
-    expect(find.text(l10nEn.dialogCopyLabel), findsOneWidget);
+    expect(find.text(l10nEn.diaryCopyToTodayLabel), findsOneWidget);
     expect(find.text(l10nEn.deleteAllLabel), findsOneWidget);
     expect(find.text(l10nEn.shareMealLabel), findsOneWidget);
   });

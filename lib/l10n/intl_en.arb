@@ -1400,5 +1400,19 @@
   "overviewWeightUnavailableLabel": "No weight recorded on or before this date",
   "@overviewWeightUnavailableLabel": {"description": "Overview and Diary display", "placeholders": {}},
   "displayPreferenceSaveErrorLabel": "Could not save display preference. Please try again.",
-  "@displayPreferenceSaveErrorLabel": {"placeholders": {}}
+  "@displayPreferenceSaveErrorLabel": {"placeholders": {}},
+  "diaryCopyFromYesterdayLabel": "Copy from yesterday",
+  "diaryCopyToTodayLabel": "Copy to today",
+  "diaryCopyToClipboardLabel": "Copy to clipboard",
+  "diaryClearClipboardLabel": "Clear clipboard",
+  "diaryInfoLabel": "Info",
+  "diaryYesterdayEmptyMessage": "No entries in this group yesterday.",
+  "diaryCopyFailedMessage": "Could not finish copying. Saved entries were kept.",
+  "diaryCopyBusyMessage": "A copy is already in progress.",
+  "diaryRecipeUnavailableMessage": "This saved recipe is no longer available.",
+  "diaryMoveFailedMessage": "Could not move this entry.",
+  "diaryPasteLabel": "Paste into {group}",
+  "@diaryPasteLabel": {"placeholders": {"group": {"type": "String"}}},
+  "diaryClipboardCountLabel": "{count} entries",
+  "@diaryClipboardCountLabel": {"placeholders": {"count": {"type": "int"}}}
 }

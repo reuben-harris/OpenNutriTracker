@@ -62,7 +62,7 @@ class IntakeCard extends StatelessWidget {
             padding: const EdgeInsets.all(Dimens.spacing12),
             child: Row(
               children: [
-                _Thumbnail(intake: intake, palette: palette),
+                IntakeThumbnail(intake: intake, palette: palette),
                 const SizedBox(width: Dimens.spacing12),
                 Expanded(
                   child: Column(
@@ -71,7 +71,9 @@ class IntakeCard extends StatelessWidget {
                     children: [
                       AutoSizeText(
                         intake.meal.name ?? "?",
-                        style: textTheme.titleSmall?.copyWith(color: palette.textStrong),
+                        style: textTheme.titleSmall?.copyWith(
+                          color: palette.textStrong,
+                        ),
                         maxLines: 1,
                         minFontSize: 11,
                         overflow: TextOverflow.ellipsis,
@@ -81,7 +83,9 @@ class IntakeCard extends StatelessWidget {
                         value: intake.amount,
                         meal: intake.meal,
                         usesImperialUnits: usesImperialUnits,
-                        textStyle: textTheme.bodySmall?.copyWith(color: palette.textMuted),
+                        textStyle: textTheme.bodySmall?.copyWith(
+                          color: palette.textMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -136,11 +140,15 @@ class IntakeCard extends StatelessWidget {
 
 /// The leading thumbnail: a user photo, the remote OFF/FDC image, or a soft
 /// fallback chip with a food icon — clipped to a rounded square.
-class _Thumbnail extends StatelessWidget {
+class IntakeThumbnail extends StatelessWidget {
   final IntakeEntity intake;
   final AppPalette palette;
 
-  const _Thumbnail({required this.intake, required this.palette});
+  const IntakeThumbnail({
+    super.key,
+    required this.intake,
+    required this.palette,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -169,9 +177,9 @@ class _Thumbnail extends StatelessWidget {
   }
 
   Widget _fallback() => Container(
-        color: palette.surfaceMuted,
-        child: Icon(Icons.restaurant_rounded, color: palette.textMuted, size: 24),
-      );
+    color: palette.surfaceMuted,
+    child: Icon(Icons.restaurant_rounded, color: palette.textMuted, size: 24),
+  );
 }
 
 class _LocalMealImage extends StatelessWidget {

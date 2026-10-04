@@ -1,3 +1,9 @@
+import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
+import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
+import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
+import 'package:opennutritracker/core/utils/navigation_options.dart';
+import 'package:opennutritracker/features/meal_detail/meal_detail_screen.dart';
+import 'package:opennutritracker/features/recipes/presentation/screens/recipe_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
@@ -82,10 +88,12 @@ Widget _app(
   bool active = true,
   bool reducedMotion = false,
   GlobalKey<NavigatorState>? navigatorKey,
+  RouteFactory? onGenerateRoute,
 }) => ChangeNotifierProvider(
   create: (_) => EnergyUnitProvider(),
   child: MaterialApp(
     navigatorKey: navigatorKey,
+    onGenerateRoute: onGenerateRoute,
     localizationsDelegates: const [S.delegate],
     supportedLocales: S.supportedLocales,
     home: MediaQuery(
@@ -106,6 +114,7 @@ Widget _app(
                         intake: entry,
                         usesImperialUnits: false,
                         onItemTapped: (_, _, _) => onTap?.call(),
+                        onLeftSwipe: onDaySwipe,
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -144,6 +153,14 @@ class _FailingExplode extends Fake implements ExplodeRecipeIntakeUsecase {
   @override
   Future<void> explode(String intakeId) async =>
       throw StateError('disk failure');
+}
+
+class _Config extends Fake implements GetConfigUsecase {}
+
+class _Recipes extends Fake implements RecipeRepository {
+  RecipeEntity? recipe;
+  @override
+  RecipeEntity? getRecipeById(String id) => recipe?.id == id ? recipe : null;
 }
 
 void main() {
@@ -401,6 +418,158 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets('short slow right swipes reveal Info on food and recipes', (
+    tester,
+  ) async {
+    var days = 0;
+    var taps = 0;
+    for (final recipe in [false, true]) {
+      await tester.pumpWidget(
+        _app(
+          _recipeIntake(id: '$recipe', recipe: recipe),
+          () => days++,
+          onTap: () => taps++,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final drag = await tester.startGesture(
+        tester.getCenter(_card('$recipe')),
+      );
+      for (var step = 0; step < 3; step++) {
+        await drag.moveBy(const Offset(20, 0));
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.pump(const Duration(milliseconds: 300));
+      await drag.up();
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(_card('$recipe')).dx, 104);
+      expect(days, 0);
+      expect(taps, 0);
+      await tester.tap(_card('$recipe'));
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(_card('$recipe')).dx, 0);
+    }
+  });
+
+  testWidgets(
+    'ordinary right swipe reveals Info and opens existing food detail',
+    (tester) async {
+      var days = 0;
+      var taps = 0;
+      RouteSettings? route;
+      final selected = SelectedDayCubit(_Config());
+      selected.emit(
+        SelectedDayState(DateTime(2026, 9, 20), DateTime(2026, 9, 29)),
+      );
+      locator.registerSingleton<SelectedDayCubit>(selected);
+      addTearDown(() async {
+        await locator.reset();
+        await selected.close();
+      });
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(
+        _app(
+          _recipeIntake(recipe: false),
+          () => days++,
+          onTap: () => taps++,
+          onGenerateRoute: (settings) {
+            route = settings;
+            return MaterialPageRoute<void>(
+              builder: (_) => const Scaffold(body: Text('Food details')),
+            );
+          },
+        ),
+      );
+      expect(
+        find.semantics.byPredicate(
+          (node) => node.getSemanticsData().identifier == 'diary-intake-info',
+        ),
+        findsNothing,
+      );
+      await tester.drag(_card(), const Offset(140, 0));
+      await tester.pumpAndSettle();
+      expect(days, 0);
+      expect(tester.getTopLeft(_card()).dx, 104);
+      expect(
+        find.semantics.byPredicate(
+          (node) => node.getSemanticsData().identifier == 'diary-intake-info',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Info'));
+      await tester.pumpAndSettle();
+      expect(route!.name, NavigationOptions.mealDetailRoute);
+      final args = route!.arguments as MealDetailScreenArguments;
+      expect(args.day, DateTime(2026, 9, 20));
+      expect(args.mealEntity.name, 'Oats');
+      expect(taps, 0);
+      semantics.dispose();
+    },
+  );
+
+  testWidgets('recipe Info opens saved recipe and explains deleted recipes', (
+    tester,
+  ) async {
+    final intake = _recipeIntake();
+    final recipes = _Recipes()..recipe = intake.recipeSnapshot;
+    locator.registerSingleton<RecipeRepository>(recipes);
+    addTearDown(() => locator.reset());
+    RouteSettings? route;
+    final navigator = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      _app(
+        intake,
+        () {},
+        navigatorKey: navigator,
+        onGenerateRoute: (settings) {
+          route = settings;
+          return MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('Saved recipe details')),
+          );
+        },
+      ),
+    );
+    await tester.drag(_card(), const Offset(140, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Info'));
+    await tester.pumpAndSettle();
+    expect(route!.name, NavigationOptions.recipeDetailRoute);
+    expect((route!.arguments as RecipeDetailArguments).recipeId, 'recipe-1');
+    navigator.currentState!.pop();
+    await tester.pumpAndSettle();
+    recipes.recipe = null;
+    await tester.drag(_card(), const Offset(140, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Info'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('This saved recipe is no longer available.'),
+      findsOneWidget,
+    );
+    expect(tester.getTopLeft(_card()).dx, 0);
+  });
+
+  testWidgets(
+    'Info and Explode share one open action and ordinary quantity taps work',
+    (tester) async {
+      var taps = 0;
+      await tester.pumpWidget(
+        _app(
+          _recipeIntake(recipe: false),
+          () {},
+          others: [_recipeIntake(id: 'second')],
+          onTap: () => taps++,
+        ),
+      );
+      await tester.drag(_card(), const Offset(140, 0));
+      await tester.pumpAndSettle();
+      await _open(tester, 'second');
+      expect(tester.getTopLeft(_card()).dx, 0);
+      expect(tester.getTopLeft(_card('second')).dx, -104);
+      await tester.tap(_card());
+      expect(taps, 1);
     },
   );
 }

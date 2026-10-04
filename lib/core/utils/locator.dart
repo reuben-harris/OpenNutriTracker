@@ -1,3 +1,5 @@
+import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
+import 'package:opennutritracker/features/diary/presentation/bloc/diary_copy_cubit.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:get_it/get_it.dart';
 import 'package:opennutritracker/core/data/data_source/config_data_source.dart';
@@ -186,12 +188,20 @@ Future<void> initLocator() async {
       AiEndpointProber(locator<http.Client>()),
     ),
   );
+  Future<void> clearDiarySession() async {
+    locator<DiaryClipboardCubit>().clear();
+    if (locator.isRegistered<DiaryCopyCubit>()) {
+      await locator<DiaryCopyCubit>().cancelAndWait();
+    }
+  }
+
   locator.registerLazySingleton<DeleteAllUserDataUsecase>(
     () => DeleteAllUserDataUsecase(
       locator(),
       locator(),
       locator(),
       locator<AiCredentialStorage>(),
+      beforeDataChange: clearDiarySession,
     ),
   );
 
@@ -240,6 +250,20 @@ Future<void> initLocator() async {
       locator(),
       locator(),
       locator(),
+    ),
+  );
+  locator.registerLazySingleton(() => DiaryClipboardCubit());
+  locator.registerLazySingleton(
+    () => DiaryCopyCubit(
+      locator<MealDetailBloc>(),
+      locator(),
+      locator(),
+      locator(),
+      () {
+        locator<HomeBloc>().add(const LoadItemsEvent());
+        locator<DiaryBloc>().add(const LoadDiaryYearEvent());
+        locator<CalendarDayBloc>().add(RefreshCalendarDayEvent());
+      },
     ),
   );
   locator.registerLazySingleton(() => DiaryBloc(locator(), locator()));
@@ -390,7 +414,12 @@ Future<void> initLocator() async {
     () => CreateProfileUsecase(locator()),
   );
   locator.registerLazySingleton<SwitchProfileUsecase>(
-    () => SwitchProfileUsecase(locator(), locator(), locator()),
+    () => SwitchProfileUsecase(
+      locator(),
+      locator(),
+      locator(),
+      beforeDataChange: clearDiarySession,
+    ),
   );
   locator.registerLazySingleton<UpdateProfileUsecase>(
     () => UpdateProfileUsecase(locator()),
