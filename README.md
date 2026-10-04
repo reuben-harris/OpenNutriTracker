@@ -16,6 +16,8 @@ and dependency hashes are pinned in the repository's lockfiles.
 | `nix run .#format` | Formats changed/new authored Dart files with Dart's formatter and changed/new Nix files with nixfmt, compared with `HEAD`. |
 | `nix flake check` | Checks English localization, static analysis, existing unit/widget tests, and Nix formatting in isolated builds. |
 | `nix build .#apk` | Builds the develop debug APK in the Nix sandbox; the APK is available under `result/`. |
+| `nix build .#food-database` | Builds the standalone pinned USDA SQLite catalogue at `result/food-data.sqlite`. |
+| `nix run .#update-food-data` | Validates the latest official USDA CSV candidates before changing source pins. |
 | `nix run .#update-gradle-deps` | Refreshes the hashed Android dependency manifest after Flutter, plugin, or native dependency changes, keeping selected versions. |
 | `nix flake update` | Deliberately updates pinned Nix inputs. Refresh Android dependencies afterward if the selected toolchain changes. |
 
@@ -29,6 +31,10 @@ must grant your user access, commonly through its `kvm` group. USB development
 requires Android USB debugging, authorization on the phone, and the host's Android
 udev rules (on NixOS, `programs.adb.enable = true`). Host permissions are configured
 outside this flake.
+
+See [the food-data generator documentation](nix/food-data/README.md) for source
+pins, import rules, updating and SQL inspection. The Foundation pin currently
+uses October 2021 because newer USDA CSVs contain an unresolved nutrient lookup.
 
 ## License
 

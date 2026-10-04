@@ -1,0 +1,55 @@
+{
+  "auxiliary": {
+    "foundation_json_2025-12-18": {
+      "format": "json.zip",
+      "release": "2025-12-18",
+      "sha256": "7ff2828e23ae9e7d5027ffa762117ffdfd0749f7851bcda82d7668f40eb14bbf",
+      "url": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_foundation_food_json_2025-12-18.zip"
+    },
+    "foundation_json_2026-04-30": {
+      "format": "json.zip",
+      "release": "2026-04-30",
+      "sha256": "186e988ec542e913f51ef62b86a47758e8cdd0d1dc3889e7b055581f3c09c77a",
+      "url": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_foundation_food_json_2026-04-30.zip"
+    }
+  },
+  "lock_version": 1,
+  "sources": {
+    "foundation": {
+      "data_type": "foundation_food",
+      "food_reference": "fdc_id",
+      "format": "csv.zip",
+      "nutrient_reference": "id",
+      "release": "2026-04-30",
+      "sha256": "70457ee9d9342f43bda2010318c85f04210c689fdeb9cd2da4c513b0e8dbc655",
+      "supporting_source": "supporting",
+      "url": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_foundation_food_csv_2026-04-30.zip"
+    },
+    "sr_legacy": {
+      "data_type": "sr_legacy_food",
+      "food_reference": "fdc_id",
+      "format": "csv.zip",
+      "nutrient_reference": "id",
+      "release": "2018-04",
+      "sha256": "b80817294b8850530aaedf2e515c02593b1824f763a0ff356e5c2081643e6fd0",
+      "supporting_source": "supporting",
+      "url": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_csv_2018-04.zip"
+    },
+    "supporting": {
+      "format": "csv.zip",
+      "release": "2022-10-28",
+      "sha256": "03f5cb6d5ec76fc5285b5af5a5d6beebe73569f0085e59f1d8c2009aae27761d",
+      "url": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_Supporting_Data_csv_2022-10-28.zip"
+    },
+    "survey": {
+      "data_type": "survey_fndds_food",
+      "food_reference": "fdc_id",
+      "format": "csv.zip",
+      "nutrient_reference": "nutrient_nbr",
+      "release": "2024-10-31",
+      "sha256": "5ccc25ec2777a8982fbb61378a42f415316173eb11e48c9a8ba4cb19f5a4f29c",
+      "supporting_source": "supporting",
+      "url": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_survey_food_csv_2024-10-31.zip"
+    }
+  }
+}

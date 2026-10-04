@@ -1,0 +1,72 @@
+{
+  "supporting": {
+    "tables": {
+      "nutrient": [
+        ["id", "name", "unit_name", "nutrient_nbr", "rank"],
+        ["1003", "Protein", "G", "203", "600.0"],
+        ["1008", "Energy", "KCAL", "208", "300.0"],
+        ["1062", "Energy", "KJ", "268", "400.0"],
+        ["2047", "Energy (Atwater General Factors)", "KCAL", "957", "280.0"],
+        ["2048", "Energy (Atwater Specific Factors)", "KCAL", "958", "290.0"],
+        ["1093", "Sodium, Na", "MG", "307", "5800.0"],
+        ["208", "Unrelated nutrient ID", "UG", "999", "9000.0"]
+      ],
+      "food_category": [["id", "code", "description"], ["1", "0100", "Dairy and Egg Products"]],
+      "wweia_food_category": [["wweia_food_category", "wweia_food_category_description"], ["1004", "Milk, reduced fat"]],
+      "measure_unit": [["id", "name", "abbreviation"], ["1000", "cup", "c"], ["9999", "undetermined", ""]],
+      "food_nutrient_source": [["id", "code", "description"], ["1", "1", "Analytical or derived from analytical"]],
+      "food_nutrient_derivation": [["id", "code", "description", "source_id"], ["1", "A", "Analytical", "1"]]
+    }
+  },
+  "foundation": {
+    "own_lookups": ["nutrient", "food_category", "measure_unit"],
+    "tables": {
+      "food": [
+        ["fdc_id", "data_type", "description", "food_category_id", "publication_date"],
+        ["100", "foundation_food", "Crème apple pie", "1", "2026-04-30"],
+        ["101", "foundation_food", "Apple without nutrition", "", "2026-04-30"],
+        ["102", "sample_food", "Sample apple pie", "1", "2026-04-30"],
+        ["103", "foundation_food", "Unpublished apple pie", "1", ""],
+        ["104", "branded_food", "Branded apple pie", "", "2026-04-30"],
+        ["105", "sub_sample_food", "Laboratory apple pie", "1", "2026-04-30"],
+        ["106", "market_acquisition", "Acquired apple pie", "1", "2026-04-30"]
+      ],
+      "foundation_food": [["fdc_id", "NDB_number", "footnote"], ["100", "100001", "Published note"], ["103", "100002", ""]],
+      "food_nutrient": [
+        ["id", "fdc_id", "nutrient_id", "amount", "data_points", "derivation_id", "standard_error", "min", "max", "median", "footnote", "min_year_acquired", "future_metadata"],
+        ["1", "100", "1003", "0.0", "2", "1", "0.00", "0.0", "0.0", "0.0", "Reported zero", "2025", "retained"],
+        ["2", "100", "1008", "123.450", "", "", "", "", "", "", "", "", ""],
+        ["3", "100", "1062", "516", "", "", "", "", "", "", "", "", ""],
+        ["4", "100", "2047", "120", "", "", "", "", "", "", "", "", ""],
+        ["5", "100", "2048", "121", "", "", "", "", "", "", "", "", ""],
+        ["6", "100", "1093", "", "", "", "", "", "", "", "Missing value", "", ""],
+        ["7", "102", "1003", "999", "", "", "", "", "", "", "", "", ""],
+        ["8", "103", "1003", "888", "", "", "", "", "", "", "", "", ""],
+        ["9", "105", "1003", "777", "", "", "", "", "", "", "", "", ""],
+        ["10", "101", "2066", "", "", "", "", "", "", "", "", "", ""]
+      ],
+      "food_portion": [
+        ["id", "fdc_id", "seq_num", "amount", "measure_unit_id", "portion_description", "modifier", "gram_weight", "data_points", "footnote", "min_year_acquired"],
+        ["11", "100", "2", "1.0", "1000", "loosely packed", "diced", "123.40", "3", "Portion note", "2025"],
+        ["12", "102", "1", "1", "1000", "sample", "", "100", "", "", ""]
+      ]
+    }
+  },
+  "sr_legacy": {
+    "tables": {
+      "food": [["fdc_id", "data_type", "description", "food_category_id", "publication_date"], ["200", "sr_legacy_food", "Apple legacy pie", "1", "2019-04-01"]],
+      "sr_legacy_food": [["fdc_id", "NDB_number"], ["200", "01001"]],
+      "food_nutrient": [["id", "fdc_id", "nutrient_id", "amount", "derivation_id"], ["21", "200", "1003", "1.20", "1"], ["22", "200", "1008", "100", ""], ["23", "200", "1062", "418", ""]],
+      "food_portion": [["id", "fdc_id", "seq_num", "amount", "measure_unit_id", "portion_description", "modifier", "gram_weight"], ["24", "200", "1", "2", "9999", "", "slices, thin", "50.0"]]
+    }
+  },
+  "survey": {
+    "own_lookups": ["nutrient", "measure_unit", "wweia_food_category"],
+    "tables": {
+      "food": [["fdc_id", "data_type", "description", "food_category_id", "publication_date"], ["300", "survey_fndds_food", "Milk apple drink", "1004", "2022-10-28"]],
+      "survey_fndds_food": [["fdc_id", "food_code", "wweia_category_number", "start_date", "end_date"], ["300", "11100000", "1004", "2021-01-01", "2023-12-31"]],
+      "food_nutrient": [["id", "fdc_id", "nutrient_id", "amount", "derivation_id"], ["31", "300", "203", "0", ""], ["32", "300", "208", "90", ""], ["33", "300", "268", "376.56", ""]],
+      "food_portion": [["id", "fdc_id", "seq_num", "amount", "measure_unit_id", "portion_description", "modifier", "gram_weight"], ["34", "300", "1", "", "9999", "1 cup", "10205", "246.0"], ["35", "300", "2", "", "9999", "Quantity not specified", "90000", "0.0"]]
+    }
+  }
+}

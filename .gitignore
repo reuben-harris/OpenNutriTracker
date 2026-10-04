@@ -46,6 +46,9 @@ result-*
 
 # Local database and provider probes
 *.hive
+*.sqlite
+*.sqlite-*
+__pycache__/
 *.lock
 !flake.lock
 !pubspec.lock

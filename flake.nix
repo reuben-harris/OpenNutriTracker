@@ -8,6 +8,7 @@
     gradle2nix.url = "github:tadfisher/gradle2nix/v2";
     gradle2nix.inputs.nixpkgs.follows = "nixpkgs";
     health-compat.url = "path:./nix/health-compat";
+    food-data.url = "path:./nix/food-data";
   };
 
   outputs =
@@ -21,6 +22,7 @@
         ./nix/devshell.nix
         ./nix/commands.nix
         ./nix/checks.nix
+        inputs.food-data.flakeModules.default
       ];
     };
 }

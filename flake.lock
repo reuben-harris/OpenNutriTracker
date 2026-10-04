@@ -38,6 +38,17 @@
         "type": "github"
       }
     },
+    "food-data": {
+      "locked": {
+        "path": "./nix/food-data",
+        "type": "path"
+      },
+      "original": {
+        "path": "./nix/food-data",
+        "type": "path"
+      },
+      "parent": []
+    },
     "gradle2nix": {
       "inputs": {
         "flake-utils": "flake-utils",
@@ -90,6 +101,7 @@
     "root": {
       "inputs": {
         "flake-parts": "flake-parts",
+        "food-data": "food-data",
         "gradle2nix": "gradle2nix",
         "health-compat": "health-compat",
         "nixpkgs": "nixpkgs"
