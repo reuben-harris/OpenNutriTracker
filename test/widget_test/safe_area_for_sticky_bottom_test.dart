@@ -11,7 +11,7 @@
 // file contains a `SafeArea` in its source. It is deliberately a source-
 // level check rather than a widget-pump: these screens depend on the GetIt
 // service locator, BLoCs, route arguments, and (for some) network or
-// Supabase access, and standing up that surface inside a unit test costs
+// product network access, and standing up that surface inside a unit test costs
 // more than the rule is worth. A source-level check is honest about what it
 // actually verifies — the lexical pattern that the SafeArea fix landed in
 // the right files, and that the next contributor who adds a sticky-bottom

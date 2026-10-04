@@ -6,27 +6,6 @@ import 'package:opennutritracker/core/utils/app_locale.dart';
 import 'package:opennutritracker/core/utils/supported_language.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
-/// Local cache of remote meal lookups (Open Food Facts AND Supabase FDC).
-/// Every successful network search or barcode lookup writes its result
-/// here so that subsequent searches and scans for the same product
-/// resolve from disk — fast, and works offline.
-///
-/// Cached entries keep their original [MealSourceDBO] (`off` / `fdc`);
-/// they are NOT custom meals, just a local mirror of the remote result
-/// we last saw. This is separate from `CustomMealBox` so the user's own
-/// meals stay distinct from cached remote data and can be deleted
-/// independently.
-///
-/// Each entry has an associated "last touched" timestamp stored in a
-/// sidecar box. The timestamp is set on initial cache and refreshed
-/// whenever the user explicitly selects (logs an intake of) the item.
-/// [pruneStale] drops entries whose timestamp is older than the supplied
-/// age — typically 90 days, called on app startup.
-///
-/// The on-disk box names (`CachedOffMealBox`, `CachedOffMealTimestampsBox`)
-/// are kept for backward compatibility with installs that already have
-/// data in them; only the Dart class name was generalised when FDC
-/// caching was added.
 class RemoteSearchCacheDataSource {
   final Box<MealDBO> _cacheBox;
   final Box<int> _timestampsBox;

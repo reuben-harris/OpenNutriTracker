@@ -122,9 +122,8 @@ void main() {
             body: MediaQuery(
               data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
               child: OnboardingOtherOptionsPageBody(
-                setPageContent: (_, _, _, _, _) {},
+                setPageContent: (_, _, _, _) {},
                 initialTheme: AppThemeEntity.system,
-                initialFoodSourceToggles: const {},
                 initialDailyReminderEnabled: false,
                 initialUseMaterialYou: true,
                 initialAccentColor: null,
@@ -183,14 +182,14 @@ void main() {
     // keeps the eight tests written before this row from needing a locator.
     await pumpPage(tester);
 
-    expect(find.byType(SectionHeader), findsNWidgets(3));
+    expect(find.byType(SectionHeader), findsNWidgets(2));
     expect(find.text(l10nEn.aiAssistExperimentalLabel), findsNothing);
   });
 
   testWidgets('the row is last, and marked experimental', (tester) async {
     await pumpPage(tester, credentials: storage);
 
-    expect(find.byType(SectionHeader), findsNWidgets(4));
+    expect(find.byType(SectionHeader), findsNWidgets(3));
     expect(find.text(l10nEn.aiAssistExperimentalLabel), findsOneWidget);
 
     // Last on the page: it needs an account and a card at a model provider,

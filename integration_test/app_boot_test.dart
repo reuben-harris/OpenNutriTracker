@@ -19,7 +19,7 @@ import 'package:opennutritracker/main.dart' as app;
 ///   - boot health: `main()` finishes and lands a MaterialApp, and nothing
 ///     trips `FlutterError.onError` along the way. The first catches loud
 ///     failures (Hive can't open, secure storage can't derive its AES key,
-///     Supabase init throws, a missing GetIt dependency); the second catches
+///     initialization throws, a missing GetIt dependency); the second catches
 ///     quiet ones (a Hive type-id collision, a dropped `await` in plugin
 ///     init, a half-broken notification re-register) that leave something
 ///     half-initialised without crashing the visible screen.
@@ -49,23 +49,33 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 30));
 
       // Boot health.
-      expect(find.byType(MaterialApp), findsOneWidget,
-          reason: 'app should reach a MaterialApp');
+      expect(
+        find.byType(MaterialApp),
+        findsOneWidget,
+        reason: 'app should reach a MaterialApp',
+      );
       expect(
         caught,
         isEmpty,
-        reason: 'no Flutter errors should fire during boot, got: '
+        reason:
+            'no Flutter errors should fire during boot, got: '
             '${caught.map((e) => e.exception).toList()}',
       );
 
       // Routing: with no user data, the first screen is onboarding.
-      expect(find.byType(OnboardingScreen), findsOneWidget,
-          reason: 'with no user data, the first screen should be onboarding');
+      expect(
+        find.byType(OnboardingScreen),
+        findsOneWidget,
+        reason: 'with no user data, the first screen should be onboarding',
+      );
 
       // Bloc state: IntroductionScreen mounts only after the bloc reaches
       // OnboardingLoadedState.
-      expect(find.byType(IntroductionScreen), findsOneWidget,
-          reason: 'OnboardingBloc should transition into loaded state');
+      expect(
+        find.byType(IntroductionScreen),
+        findsOneWidget,
+        reason: 'OnboardingBloc should transition into loaded state',
+      );
 
       // Localisation: the delegates resolved and the appDescription ARB entry
       // reached the intro page body. Looked up for whichever locale the app
@@ -74,11 +84,18 @@ void main() {
       // a German phone even though nothing was wrong.
       final introContext = tester.element(find.byType(OnboardingIntroPageBody));
       final localizedDescription = S.of(introContext).appDescription;
-      expect(localizedDescription, isNotEmpty,
-          reason: 'appDescription should be translated for '
-              '${S.of(introContext).localeName}');
-      expect(find.text(localizedDescription), findsOneWidget,
-          reason: 'the localised appDescription should render on the intro page');
+      expect(
+        localizedDescription,
+        isNotEmpty,
+        reason:
+            'appDescription should be translated for '
+            '${S.of(introContext).localeName}',
+      );
+      expect(
+        find.text(localizedDescription),
+        findsOneWidget,
+        reason: 'the localised appDescription should render on the intro page',
+      );
 
       // On an English device, also pin the copy itself: a verbatim copy of the
       // English ARB entry, so a wording change has to be made here too. CI
@@ -87,8 +104,11 @@ void main() {
         const appDescriptionEn =
             'OpenNutriTracker is a free and open-source calorie and '
             'nutrient tracker that respects your privacy.';
-        expect(localizedDescription, appDescriptionEn,
-            reason: 'the English appDescription copy changed');
+        expect(
+          localizedDescription,
+          appDescriptionEn,
+          reason: 'the English appDescription copy changed',
+        );
       }
     },
   );

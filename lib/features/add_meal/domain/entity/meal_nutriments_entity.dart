@@ -5,7 +5,6 @@ import 'package:opennutritracker/core/utils/extensions.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_const.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_food_nutriment_dto.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/off/off_product_nutriments_dto.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/sp/sp_food_dto.dart';
 
 class MealNutrimentsEntity extends Equatable {
   final double? energyKcal100;
@@ -215,55 +214,10 @@ class MealNutrimentsEntity extends Equatable {
     );
   }
 
-  /// Open Food Facts normalises every `<nutrient>_100g` field to grams, while
-  /// this entity carries each micronutrient in the unit the app displays it
-  /// in: milligrams for the minerals, micrograms for vitamins A, D and B12.
-  /// The field comments above are the reference for which is which.
-  ///
-  /// Without these two conversions a product's 2.1 mg of iron was stored as
-  /// 0.0021 and its 5 µg of vitamin D as 0.000005, which is why vitamin D
-  /// read `0.00µg` everywhere and why an OFF food contributed essentially
-  /// nothing to the daily micronutrient panel (#716).
-  ///
-  /// The other two sources need no conversion: the Supabase view already
-  /// pivots into the app's units, and FDC publishes these nutrients in mg and
-  /// µg natively.
   static double? _gToMg(double? grams) => grams == null ? null : grams * 1000;
 
   static double? _gToUg(double? grams) =>
       grams == null ? null : grams * 1000000;
-
-  /// Nutrients from the Supabase `food_summary` view. The view already
-  /// pivots the canonical per-100g nutrient rows into flat columns in the
-  /// app's units, so this is a straight field-for-field copy.
-  factory MealNutrimentsEntity.fromSpFoodSummary(SpFoodDTO food) {
-    return MealNutrimentsEntity(
-      energyKcal100: food.energyKcal100,
-      carbohydrates100: food.carbohydrates100,
-      fat100: food.fat100,
-      proteins100: food.proteins100,
-      sugars100: food.sugars100,
-      saturatedFat100: food.saturatedFat100,
-      fiber100: food.fiber100,
-      monounsaturatedFat100: food.monounsaturatedFat100,
-      polyunsaturatedFat100: food.polyunsaturatedFat100,
-      transFat100: food.transFat100,
-      cholesterol100: food.cholesterol100,
-      sodium100: food.sodium100,
-      potassium100: food.potassium100,
-      magnesium100: food.magnesium100,
-      calcium100: food.calcium100,
-      iron100: food.iron100,
-      zinc100: food.zinc100,
-      phosphorus100: food.phosphorus100,
-      vitaminA100: food.vitaminA100,
-      vitaminC100: food.vitaminC100,
-      vitaminD100: food.vitaminD100,
-      vitaminB6100: food.vitaminB6100,
-      vitaminB12100: food.vitaminB12100,
-      niacin100: food.niacin100,
-    );
-  }
 
   factory MealNutrimentsEntity.fromFDCNutriments(
     List<FDCFoodNutrimentDTO> fdcNutriment,
@@ -348,15 +302,6 @@ class MealNutrimentsEntity extends Equatable {
   ];
 }
 
-/// Outcome of running the three physical-plausibility checks against a
-/// [MealNutrimentsEntity] parsed from a remote source (FDC via Supabase, OFF,
-/// or the direct FDC API). When [isConsistent] is false, [failureReason]
-/// names the first rule that tripped — that is the value to attach to a
-/// Sentry breadcrumb so we can spot systematic upstream problems.
-///
-/// The rules come from issue #222 and are deliberately conservative: they
-/// only fire on data that is physically impossible on a 100g basis, so a
-/// borderline-noisy-but-plausible item is left alone.
 class NutrimentsValidationResult {
   final bool isConsistent;
   final String? failureReason;

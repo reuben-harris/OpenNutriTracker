@@ -21,9 +21,6 @@ double convertQuantityToBaseUnit(
   String unit,
   MealEntity meal,
 ) {
-  // A named portion scales by its own weight. Falls through to the old
-  // serving path when the food has no portion list — every meal that is not
-  // a fresh backend search result — so nothing that worked before changes.
   if (isPortionUnit(unit) && meal.portions.isNotEmpty) {
     final index = effectivePortionIndex(unit);
     if (index < meal.portions.length) {

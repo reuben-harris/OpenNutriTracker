@@ -10,15 +10,6 @@ class GetConfigUsecase {
     return await _configRepository.getConfig();
   }
 
-  /// Whether the user has ever chosen which food databases to search.
-  /// Null in the DBO means untouched; [ConfigEntity] flattens that to an
-  /// empty map, which reads the same as "all enabled".
-  Future<bool> hasExplicitFoodSourceToggles() async {
-    final config = await _configRepository.getConfigDBO();
-    final toggles = config.foodSourceToggles;
-    return toggles != null && toggles.isNotEmpty;
-  }
-
   /// Whether a unit preference has ever been stored, as opposed to merely
   /// defaulted. [ConfigEntity] coerces unset units to metric, so this reads
   /// the DBO where the split unit fields remain nullable. The legacy flag is

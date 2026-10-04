@@ -67,12 +67,7 @@ class RefreshDiaryIntakeUsecase {
           }
         }
       case MealSourceEntity.fdc:
-        if (code != null && source.backendSource != null) {
-          meal = await _products.getBackendFoodById(
-            code,
-            source.backendSource!,
-          );
-        }
+        break;
       case MealSourceEntity.custom:
         final saved = _custom.getAllCustomMeals().firstWhereOrNull(
           (m) => code != null
@@ -111,8 +106,7 @@ class RefreshDiaryIntakeUsecase {
     final updated = await _intakes.updateIntake(id, fields);
     if (identical(box, _db.intakeBox) &&
         profile == _db.activeProfileId &&
-        (meal.source == MealSourceEntity.off ||
-            meal.source == MealSourceEntity.fdc)) {
+        meal.source == MealSourceEntity.off) {
       await _cache.cache(dbo);
     }
     return updated;

@@ -179,41 +179,6 @@ void main() {
     });
   });
 
-  group('food databases follow the same first-run rule', () {
-    test('a fresh install gets the locale-appropriate sources', () async {
-      final bloc = await loadedBloc(freshConfig());
-      addTearDown(bloc.close);
-
-      expect(
-        bloc.userSelection.foodSourceToggles,
-        defaultFoodSourceToggles(Platform.localeName),
-      );
-    });
-
-    test('a stored set of toggles is restored untouched', () async {
-      final stored = {
-        'fdc_foundation': false,
-        'fdc_sr_legacy': true,
-        'fdc_survey': false,
-        'fdc_branded': false,
-        'bls': true,
-      };
-      final bloc = await loadedBloc(
-        ConfigDBO(
-          false,
-          false,
-          false,
-          AppThemeDBO.system,
-          usesImperialUnits: null,
-          foodSourceToggles: stored,
-        ),
-      );
-      addTearDown(bloc.close);
-
-      expect(bloc.userSelection.foodSourceToggles, stored);
-    });
-  });
-
   group('a second run through onboarding', () {
     test('re-seeds instead of keeping the first run\'s state', () async {
       // The bloc is a lazy singleton and its state persists, so the load

@@ -15,7 +15,6 @@ import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/utils/off_const.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/sp/sp_const.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
 import 'package:opennutritracker/features/add_meal/util/food_emoji_resolver.dart';
@@ -218,12 +217,7 @@ class _MealItemCardState extends State<MealItemCard> {
     return chip ?? quantity ?? const SizedBox();
   }
 
-  /// Database-of-origin label: the Supabase backend source (BLS, FDC SR
-  /// Legacy...) when known, Open Food Facts for OFF products, null for the
-  /// user's own custom meals.
   String? _sourceLabel() {
-    final backendLabel = SPConst.foodSourceShortNames[mealEntity.backendSource];
-    if (backendLabel != null) return backendLabel;
     if (mealEntity.source == MealSourceEntity.off) {
       return OFFConst.offSourceName;
     }

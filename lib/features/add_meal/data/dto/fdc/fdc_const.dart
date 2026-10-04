@@ -1,7 +1,4 @@
 class FDCConst {
-  // Public FDC website. Used only to build the attribution/detail links the
-  // user can tap through to; the app makes no requests to USDA itself — FDC
-  // food data reaches the app through the Supabase backend.
   static const fdcWebsiteUrl = "https://fdc.nal.usda.gov/fdc-app.html#";
   static const _fdcFoodDetailPath = "/food-details/";
   static const _fdcFoodDetailNutrientsPath = "/nutrients";
@@ -145,13 +142,6 @@ class FDCConst {
     }
   }
 
-  // Nutriment codes. These are FDC nutrient *ids* (the `nutrient.id` /
-  // `nutrientId` field), not the FDC nutrient *numbers*. The Supabase
-  // `fdc_nutrients.nutrient_id` column keys on the id. The Atwater energy ids
-  // differ from their numbers (957/958), so they must be the ids 2047/2048 to
-  // match; using the numbers meant Foundation foods that carry only Atwater
-  // energy (no plain Energy 1008) silently resolved to no kcal and were
-  // rejected as "missing required kcal" (#252).
   static const fdcTotalKcalId = 1008;
   static const fdcKcalAtwaterGeneralId = 2047; // number 957
   static const fdcKcalAtwaterSpecificId = 2048; // number 958

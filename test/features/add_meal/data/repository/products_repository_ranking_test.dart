@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/utils/off_country.dart';
 import 'package:opennutritracker/features/add_meal/data/data_sources/off_data_source.dart';
-import 'package:opennutritracker/features/add_meal/data/data_sources/sp_food_data_source.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/off/off_product_dto.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/off/off_product_nutriments_dto.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/off/off_word_response_dto.dart';
@@ -81,7 +80,7 @@ ProductsRepository _repoReturning(
     page_size: productsInRelevanceOrder.length,
     products: productsInRelevanceOrder,
   );
-  return ProductsRepository(_FakeOffDataSource(response), SpFoodDataSource());
+  return ProductsRepository(_FakeOffDataSource(response));
 }
 
 void main() {

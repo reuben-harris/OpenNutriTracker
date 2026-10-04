@@ -67,8 +67,7 @@ class _FakeMealDetailBloc extends Fake implements MealDetailBloc {
     MealEntity meal,
     DateTime day, {
     IntakeEntity? copiedFrom,
-  }
-  ) async {
+  }) async {
     if (failOnSecondWrite && writes.length == 1) {
       throw StateError('write failed');
     }
@@ -108,7 +107,7 @@ class _FakeSearch implements SearchProductsUseCase {
   );
 
   @override
-  Future<SearchProductsResult> searchFDCFoodByString(
+  Future<SearchProductsResult> searchLocalFoodsByString(
     String searchString, {
     bool skipRemote = false,
     bool forResolution = false,

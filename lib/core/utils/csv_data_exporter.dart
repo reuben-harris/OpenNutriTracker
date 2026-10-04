@@ -81,7 +81,6 @@ class CsvDataExporter {
     'recipe_snapshot_json',
     'conversion_parent_id',
     'meal_is_quick_add',
-    'meal_backend_source',
   ];
 
   static const userActivityColumns = <String>[
@@ -173,7 +172,6 @@ class CsvDataExporter {
         ),
         _cell(intake.conversionParentId),
         _cell(MealEntity.fromMealDBO(meal).isQuickAdd.toString()),
-        _cell(meal.backendSource),
       ];
       buf.writeln(cells.join(','));
     }
@@ -297,7 +295,6 @@ class CsvDataExporter {
         isQuickAdd: _nullable(row['meal_is_quick_add']) == null
             ? null
             : row['meal_is_quick_add'] == 'true',
-        backendSource: _nullable(row['meal_backend_source']),
         source: _parseMealSource(row['meal_source']),
         nutriments: nutriments,
         dataVersion: CsvRowParser.parseDoubleOrNull(

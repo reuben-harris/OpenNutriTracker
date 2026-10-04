@@ -32,8 +32,6 @@ class MealDBOAdapter extends TypeAdapter<MealDBO> {
       source: fields[10] as MealSourceDBO,
       localImagePath: fields[13] as String?,
       detailed: fields[14] as bool?,
-      backendSource: fields[15] as String?,
-      machineTranslatedName: fields[16] as bool?,
       dataVersion: (fields[17] as num?)?.toInt(),
       isQuickAdd: fields[18] as bool?,
     );
@@ -42,7 +40,7 @@ class MealDBOAdapter extends TypeAdapter<MealDBO> {
   @override
   void write(BinaryWriter writer, MealDBO obj) {
     writer
-      ..writeByte(19)
+      ..writeByte(17)
       ..writeByte(0)
       ..write(obj.code)
       ..writeByte(1)
@@ -73,10 +71,6 @@ class MealDBOAdapter extends TypeAdapter<MealDBO> {
       ..write(obj.localImagePath)
       ..writeByte(14)
       ..write(obj.detailed)
-      ..writeByte(15)
-      ..write(obj.backendSource)
-      ..writeByte(16)
-      ..write(obj.machineTranslatedName)
       ..writeByte(17)
       ..write(obj.dataVersion)
       ..writeByte(18)
@@ -165,8 +159,6 @@ MealDBO _$MealDBOFromJson(Map<String, dynamic> json) => MealDBO(
   source: $enumDecode(_$MealSourceDBOEnumMap, json['source']),
   localImagePath: json['localImagePath'] as String?,
   detailed: json['detailed'] as bool?,
-  backendSource: json['backendSource'] as String?,
-  machineTranslatedName: json['machineTranslatedName'] as bool?,
   dataVersion: (json['dataVersion'] as num?)?.toInt(),
   isQuickAdd: json['isQuickAdd'] as bool?,
 );
@@ -187,8 +179,6 @@ Map<String, dynamic> _$MealDBOToJson(MealDBO instance) => <String, dynamic>{
   'nutriments': instance.nutriments,
   'localImagePath': instance.localImagePath,
   'detailed': instance.detailed,
-  'backendSource': instance.backendSource,
-  'machineTranslatedName': instance.machineTranslatedName,
   'dataVersion': instance.dataVersion,
   'isQuickAdd': instance.isQuickAdd,
 };

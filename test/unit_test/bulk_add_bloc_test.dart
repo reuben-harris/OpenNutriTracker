@@ -55,7 +55,7 @@ class _FakeSearch implements SearchProductsUseCase {
   }
 
   @override
-  Future<SearchProductsResult> searchFDCFoodByString(
+  Future<SearchProductsResult> searchLocalFoodsByString(
     String searchString, {
     bool skipRemote = false,
     bool forResolution = false,
@@ -124,8 +124,10 @@ class _FixedInterpreter implements MealTextInterpreter {
   _FixedInterpreter(this.items);
 
   @override
-  Future<MealTextParseResult> interpret(String input, {String? localeCode}) async =>
-      MealTextParseResult(items: items, errors: const []);
+  Future<MealTextParseResult> interpret(
+    String input, {
+    String? localeCode,
+  }) async => MealTextParseResult(items: items, errors: const []);
 }
 
 BulkAddBloc blocWithModelReply(
@@ -260,7 +262,8 @@ void main() {
       expect(
         fieldPattern.hasMatch(row.amountText),
         isTrue,
-        reason: '${row.meal?.name}: "${row.amountText}" fails the submit '
+        reason:
+            '${row.meal?.name}: "${row.amountText}" fails the submit '
             'check, and that check refuses the entire batch',
       );
     }
@@ -841,13 +844,16 @@ void main() {
       // Before this, a wrong key produced a screen indistinguishable from a
       // working one. The rows are still the parser's — what changes is that
       // the user is told the better reader never ran.
-      final bloc = blocWithFailingReader({
-        'toast': [meal('Toast')],
-      }, const MealInterpreterException(
-        'unauthorized',
-        failure: MealInterpreterFailure.auth,
-        statusCode: 401,
-      ));
+      final bloc = blocWithFailingReader(
+        {
+          'toast': [meal('Toast')],
+        },
+        const MealInterpreterException(
+          'unauthorized',
+          failure: MealInterpreterFailure.auth,
+          statusCode: 401,
+        ),
+      );
       addTearDown(bloc.close);
 
       final state = await parse(bloc, '100g toast');
@@ -862,13 +868,16 @@ void main() {
     });
 
     test('a model nothing can serve reaches the state', () async {
-      final bloc = blocWithFailingReader({
-        'toast': [meal('Toast')],
-      }, const MealInterpreterException(
-        'no endpoints',
-        failure: MealInterpreterFailure.unsupported,
-        statusCode: 404,
-      ));
+      final bloc = blocWithFailingReader(
+        {
+          'toast': [meal('Toast')],
+        },
+        const MealInterpreterException(
+          'no endpoints',
+          failure: MealInterpreterFailure.unsupported,
+          statusCode: 404,
+        ),
+      );
       addTearDown(bloc.close);
 
       final state = await parse(bloc, '100g toast');
@@ -881,13 +890,16 @@ void main() {
       // Deliberate. A banner that fires on a dropped connection is one
       // people learn to scroll past, and it would cost the notice the value
       // it has for the failures that never fix themselves.
-      final bloc = blocWithFailingReader({
-        'toast': [meal('Toast')],
-      }, const MealInterpreterException(
-        'rate limited',
-        failure: MealInterpreterFailure.transient,
-        statusCode: 429,
-      ));
+      final bloc = blocWithFailingReader(
+        {
+          'toast': [meal('Toast')],
+        },
+        const MealInterpreterException(
+          'rate limited',
+          failure: MealInterpreterFailure.transient,
+          statusCode: 429,
+        ),
+      );
       addTearDown(bloc.close);
 
       final state = await parse(bloc, '100g toast');
@@ -931,17 +943,20 @@ void main() {
       expect((state as BulkAddPhotoErrorState).error, BulkAddPhotoError.auth);
     });
 
-    test('exhausted credit is not offered as retryable or an auth fix', () async {
-      final state = await readPhoto(
-        {},
-        const MealPhotoFailed(MealPhotoFailure.billing),
-      );
+    test(
+      'exhausted credit is not offered as retryable or an auth fix',
+      () async {
+        final state = await readPhoto(
+          {},
+          const MealPhotoFailed(MealPhotoFailure.billing),
+        );
 
-      expect(
-        (state as BulkAddPhotoErrorState).error,
-        BulkAddPhotoError.billing,
-      );
-    });
+        expect(
+          (state as BulkAddPhotoErrorState).error,
+          BulkAddPhotoError.billing,
+        );
+      },
+    );
 
     test('a transient failure is offered as retryable', () async {
       final state = await readPhoto(
@@ -955,17 +970,20 @@ void main() {
       );
     });
 
-    test('a refused plaintext photo points at the address, not the model', () async {
-      final state = await readPhoto(
-        {},
-        const MealPhotoFailed(MealPhotoFailure.insecureDestination),
-      );
+    test(
+      'a refused plaintext photo points at the address, not the model',
+      () async {
+        final state = await readPhoto(
+          {},
+          const MealPhotoFailed(MealPhotoFailure.insecureDestination),
+        );
 
-      expect(
-        (state as BulkAddPhotoErrorState).error,
-        BulkAddPhotoError.insecureDestination,
-      );
-    });
+        expect(
+          (state as BulkAddPhotoErrorState).error,
+          BulkAddPhotoError.insecureDestination,
+        );
+      },
+    );
 
     test('a photo that never encoded reaches the same error surface', () async {
       final bloc = blocWith({});
@@ -1076,12 +1094,17 @@ void main() {
     });
   });
 
-
   group('the typed word picks the portion (#864)', () {
     const cup = MealPortionEntity(
-        label: '1 cup', gramWeight: 244, localized: false);
+      label: '1 cup',
+      gramWeight: 244,
+      localized: false,
+    );
     const slice = MealPortionEntity(
-        label: '1 slice', gramWeight: 38, localized: false);
+      label: '1 slice',
+      gramWeight: 38,
+      localized: false,
+    );
 
     test('"3 slices of bread" preselects the slice, not the cup', () async {
       // The whole point. Without this the row takes the first portion and
@@ -1098,18 +1121,22 @@ void main() {
       expect(row.amountText, '3');
     });
 
-    test('naming no portion leaves the preselection exactly as it was',
-        () async {
-      // Decision 7: this only ever narrows. A bare count with no word still
-      // means the default portion, which is what the row did before.
-      final bloc = blocWith({
-        'bread': [meal('Bread', servingQuantity: 244, portions: [cup, slice])],
-      });
+    test(
+      'naming no portion leaves the preselection exactly as it was',
+      () async {
+        // Decision 7: this only ever narrows. A bare count with no word still
+        // means the default portion, which is what the row did before.
+        final bloc = blocWith({
+          'bread': [
+            meal('Bread', servingQuantity: 244, portions: [cup, slice]),
+          ],
+        });
 
-      final row = (await parse(bloc, '3 bread')).rows.single;
+        final row = (await parse(bloc, '3 bread')).rows.single;
 
-      expect(row.unit, 'serving');
-    });
+        expect(row.unit, 'serving');
+      },
+    );
 
     test('a stated unit still wins over a named portion', () async {
       // "100g toast" is grams whatever else the text says: the parser
@@ -1148,7 +1175,11 @@ void main() {
       // thing that can name a slice on that path. Driven here through the
       // text interpreter, which is the same ParsedMealItem either way.
       final bloc = blocWithModelReply(
-        {'bread': [meal('Bread', servingQuantity: 244, portions: [cup, slice])]},
+        {
+          'bread': [
+            meal('Bread', servingQuantity: 244, portions: [cup, slice]),
+          ],
+        },
         const [ParsedMealItem(query: 'bread', quantity: 3, portion: 'slice')],
       );
 
@@ -1161,7 +1192,11 @@ void main() {
       // The weak failure this design chose: an unusable key is ignored, and
       // the row keeps the preselection it would have had.
       final bloc = blocWithModelReply(
-        {'bread': [meal('Bread', servingQuantity: 244, portions: [cup, slice])]},
+        {
+          'bread': [
+            meal('Bread', servingQuantity: 244, portions: [cup, slice]),
+          ],
+        },
         const [ParsedMealItem(query: 'bread', quantity: 3, portion: 'thimble')],
       );
 

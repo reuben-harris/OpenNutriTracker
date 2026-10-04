@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
 import 'package:opennutritracker/core/utils/locale_units.dart';
 import 'package:opennutritracker/core/utils/off_country.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/sp/sp_const.dart';
 
 void main() {
   group('countryCodeFromLocale', () {
@@ -81,44 +80,6 @@ void main() {
         expect(defaults.heightUsesImperial, isFalse, reason: locale);
         expect(defaults.bodyWeightUnit, BodyWeightUnit.kg, reason: locale);
       }
-    });
-  });
-
-  group('defaultFoodSourceToggles', () {
-    test('German-speaking locales get the BLS and drop US branded foods', () {
-      for (final locale in ['de_DE', 'de_AT', 'de_CH']) {
-        final toggles = defaultFoodSourceToggles(locale);
-        expect(toggles['bls'], isTrue, reason: locale);
-        expect(toggles['fdc_branded'], isFalse, reason: locale);
-        // The generic FDC sources stay: food_translation gives them German
-        // names, so they read as reference entries rather than noise.
-        expect(toggles['fdc_foundation'], isTrue, reason: locale);
-        expect(toggles['fdc_sr_legacy'], isTrue, reason: locale);
-        expect(toggles['fdc_survey'], isTrue, reason: locale);
-      }
-    });
-
-    test('everywhere else gets the FDC set and no BLS', () {
-      for (final locale in ['en_US', 'en_GB', 'it_IT', 'pl_PL']) {
-        final toggles = defaultFoodSourceToggles(locale);
-        expect(toggles['bls'], isFalse, reason: locale);
-        expect(toggles['fdc_branded'], isTrue, reason: locale);
-        expect(toggles['fdc_foundation'], isTrue, reason: locale);
-      }
-    });
-
-    test('a locale without a country is treated as non-German', () {
-      final toggles = defaultFoodSourceToggles('de');
-      expect(toggles['bls'], isFalse);
-      expect(toggles['fdc_branded'], isTrue);
-    });
-
-    test('covers exactly the selectable sources', () {
-      expect(
-        defaultFoodSourceToggles('en_US').keys.toSet(),
-        SPConst.settingsSelectableFoodSources.toSet(),
-        reason: 'a new backend source must be given a default here',
-      );
     });
   });
 }

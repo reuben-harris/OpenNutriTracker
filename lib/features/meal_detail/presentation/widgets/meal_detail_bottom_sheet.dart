@@ -382,8 +382,6 @@ class _MealDetailBottomSheetState extends State<MealDetailBottomSheet> {
     // description should fall through to the constructed label so the option
     // doesn't render blank — otherwise '' wins over the ?? fallback (#495).
     final servingSize = widget.product.servingSize;
-    // Serving labels are stored in English (see MealEntity._spServingLabel);
-    // translate the common household units at display time.
     final servingText = (servingSize != null && servingSize.trim().isNotEmpty)
         ? localizeServingLabel(S.of(context), servingSize)
         : '${S.of(context).servingLabel} (${widget.product.servingQuantity} ${widget.product.servingUnit})';

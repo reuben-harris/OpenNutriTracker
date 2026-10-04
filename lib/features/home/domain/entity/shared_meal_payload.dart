@@ -77,7 +77,6 @@ class SharedMealItem {
   final bool isQuickAdd;
   final bool hasQuickAddWeight;
   final String? quickAddInputUnit;
-  final String? backendSource;
 
   const SharedMealItem({
     required this.name,
@@ -98,7 +97,6 @@ class SharedMealItem {
     this.isQuickAdd = false,
     this.hasQuickAddWeight = false,
     this.quickAddInputUnit,
-    this.backendSource,
   });
 
   factory SharedMealItem.fromIntakeEntity(IntakeEntity intake) {
@@ -121,7 +119,6 @@ class SharedMealItem {
       isQuickAdd: intake.meal.isQuickAdd,
       hasQuickAddWeight: intake.meal.hasQuickAddWeight,
       quickAddInputUnit: intake.meal.servingUnit,
-      backendSource: intake.meal.backendSource,
     );
   }
 
@@ -149,9 +146,8 @@ class SharedMealItem {
       source: source,
       code: atStr(14),
       isQuickAdd: a.length > 15 && a[15] == true,
-      backendSource: atStr(16),
-      hasQuickAddWeight: a.length > 17 && a[17] == true,
-      quickAddInputUnit: atStr(18),
+      hasQuickAddWeight: a.length > 16 && a[16] == true,
+      quickAddInputUnit: atStr(17),
     );
   }
 
@@ -173,7 +169,6 @@ class SharedMealItem {
       source == MealSourceEntity.fdc ? 'fdc' : 'custom',
       code,
       isQuickAdd,
-      backendSource,
       hasQuickAddWeight,
       quickAddInputUnit,
     ];
@@ -189,7 +184,6 @@ class SharedMealItem {
           : IdGenerator.getUniqueID(),
       name: name,
       isQuickAdd: isQuickAdd,
-      backendSource: backendSource,
       brands: brands,
       thumbnailImageUrl: thumbnailImageUrl,
       mainImageUrl: mainImageUrl,

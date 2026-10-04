@@ -40,12 +40,6 @@ class UserDataMaskEntity {
   /// the system, matching ConfigDBO.empty().
   AppThemeEntity appTheme = AppThemeEntity.system;
 
-  /// Per-source enable flags for the food search, keyed by backend
-  /// food_source code — same semantics as ConfigEntity.foodSourceToggles
-  /// (absent key = enabled). Left empty when the user doesn't touch the
-  /// switches, which keeps every source on.
-  Map<String, bool> foodSourceToggles = <String, bool>{};
-
   /// Whether the user opted into the daily logging reminder. The actual
   /// permission request and scheduling happen when onboarding finishes.
   bool dailyReminderEnabled = false;
@@ -146,8 +140,9 @@ class UserDataMaskEntity {
       gender: userGender,
       goal: userGoal,
       pal: userPal,
-      caloriesProfile:
-          userGender == UserGenderEntity.nonBinary ? caloriesProfile : null,
+      caloriesProfile: userGender == UserGenderEntity.nonBinary
+          ? caloriesProfile
+          : null,
       targetWeightKg: targetWeight,
     );
   }

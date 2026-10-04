@@ -8,37 +8,20 @@ import 'package:opennutritracker/features/add_meal/domain/usecase/run_ai_endpoin
 import 'package:opennutritracker/features/settings/presentation/widgets/ai_assist_dialog.dart';
 import 'package:opennutritracker/core/styles/accent_colors.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
-import 'package:opennutritracker/core/utils/off_const.dart';
 import 'package:opennutritracker/core/utils/theme_mode_provider.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/sp/sp_const.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
 
-/// Onboarding "Other options" page: app theme, the food databases used by
-/// search, the daily logging reminder, and AI meal assistance. Everything
-/// here is optional — the page is pre-filled with the defaults (system theme,
-/// all sources on, no reminder, no AI key) and can be skipped by tapping next;
-/// each choice can be revisited later in Settings.
-///
-/// **AI meal assistance is the one row that does not follow the page's staging
-/// model**, and deliberately. Every other control publishes to the bloc and is
-/// written only when onboarding completes; the AI dialog persists a provider,
-/// a model and a keystore credential the moment they are touched. Staging a
-/// credential to write later would mean holding it in memory across the rest
-/// of onboarding for no benefit, and the dialog is shared with Settings, where
-/// immediate writes are correct. So the row reads its state directly and
-/// refreshes after the dialog closes. See #728.
 class OnboardingOtherOptionsPageBody extends StatefulWidget {
   final Function(
     AppThemeEntity selectedTheme,
-    Map<String, bool> foodSourceToggles,
     bool dailyReminderEnabled,
     bool useMaterialYou,
     int? accentColor,
-  ) setPageContent;
+  )
+  setPageContent;
 
   final AppThemeEntity initialTheme;
-  final Map<String, bool> initialFoodSourceToggles;
   final bool initialDailyReminderEnabled;
   final bool initialUseMaterialYou;
   final int? initialAccentColor;
@@ -58,7 +41,6 @@ class OnboardingOtherOptionsPageBody extends StatefulWidget {
     super.key,
     required this.setPageContent,
     required this.initialTheme,
-    required this.initialFoodSourceToggles,
     required this.initialDailyReminderEnabled,
     required this.initialUseMaterialYou,
     required this.initialAccentColor,
@@ -74,8 +56,6 @@ class OnboardingOtherOptionsPageBody extends StatefulWidget {
 class _OnboardingOtherOptionsPageBodyState
     extends State<OnboardingOtherOptionsPageBody> {
   late AppThemeEntity _selectedTheme = widget.initialTheme;
-  late final Map<String, bool> _foodSourceToggles =
-      Map<String, bool>.from(widget.initialFoodSourceToggles);
   late bool _dailyReminderEnabled = widget.initialDailyReminderEnabled;
   late bool _useMaterialYou = widget.initialUseMaterialYou;
   late int? _accentColor = widget.initialAccentColor;
@@ -86,6 +66,7 @@ class _OnboardingOtherOptionsPageBodyState
   bool? _aiConfigured;
   String? _aiEndpoint;
   bool _aiEnabled = false;
+
   /// Null when the stored name is unrecognised — see #753.
   AiProvider? _aiProvider;
 
@@ -123,7 +104,6 @@ class _OnboardingOtherOptionsPageBodyState
   void _publish() {
     widget.setPageContent(
       _selectedTheme,
-      _foodSourceToggles,
       _dailyReminderEnabled,
       _useMaterialYou,
       _accentColor,
@@ -163,11 +143,6 @@ class _OnboardingOtherOptionsPageBodyState
     _publish();
   }
 
-  void _onSourceToggled(String sourceCode, bool enabled) {
-    setState(() => _foodSourceToggles[sourceCode] = enabled);
-    _publish();
-  }
-
   /// Horizontally scrollable swatch row: the Material You "auto" swatch
   /// (Android only, where the wallpaper palette actually exists) followed
   /// by the shared accent presets. Mirrors the Settings accent screen in a
@@ -204,8 +179,8 @@ class _OnboardingOtherOptionsPageBodyState
               child: _swatch(
                 context,
                 color: color,
-                selected: !materialYouSelected &&
-                    _accentColor == color.toARGB32(),
+                selected:
+                    !materialYouSelected && _accentColor == color.toARGB32(),
                 onTap: () => _onAccentColorSelected(color),
               ),
             ),
@@ -236,9 +211,7 @@ class _OnboardingOtherOptionsPageBodyState
                   color: Theme.of(context).colorScheme.onSurface,
                   width: 3,
                 )
-              : Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
+              : Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: selected && child == null
             ? const Icon(Icons.check_rounded, color: Colors.white)
@@ -310,9 +283,7 @@ class _OnboardingOtherOptionsPageBodyState
               ],
             ),
             const SizedBox(height: Dimens.spacing24),
-            SectionHeader(label: s.settingsFoodSourcesLabel),
             const SizedBox(height: Dimens.spacing12),
-            SectionGroup(tiles: [_buildFoodSourcesTile(context)]),
             const SizedBox(height: Dimens.spacing24),
             SectionHeader(label: s.settingsNotificationsLabel),
             const SizedBox(height: Dimens.spacing12),
@@ -391,55 +362,5 @@ class _OnboardingOtherOptionsPageBodyState
         ],
       ),
     ];
-  }
-
-  /// The database list is long and every entry is already set sensibly for
-  /// the user's region, so it collapses. The subtitle reports the state
-  /// while closed, which is the only thing most users need from it.
-  Widget _buildFoodSourcesTile(BuildContext context) {
-    final s = S.of(context);
-    // Open Food Facts is always searched and has no switch, so it counts
-    // towards both sides of the summary.
-    const alwaysOnCount = 1;
-    final enabled =
-        alwaysOnCount +
-        SPConst.settingsSelectableFoodSources
-            .where((source) => _foodSourceToggles[source] ?? true)
-            .length;
-    final total = alwaysOnCount + SPConst.settingsSelectableFoodSources.length;
-
-    return Semantics(
-      identifier: 'onboarding-food-sources',
-      child: ExpansionTile(
-        shape: const Border(),
-        collapsedShape: const Border(),
-        title: Text(
-          s.settingsFoodSourcesLabel,
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-        subtitle: Text(s.onboardingFoodSourcesEnabledCount(enabled, total)),
-        children: [
-          SwitchListTile(
-            dense: true,
-            title: const Text(OFFConst.offSourceName),
-            subtitle: Text(s.foodSourcesAlwaysEnabledLabel),
-            value: true,
-            onChanged: null,
-          ),
-          for (final sourceCode in SPConst.settingsSelectableFoodSources)
-            Semantics(
-              identifier: 'onboarding-food-source-${sourceCode.replaceAll('_', '-')}',
-              child: SwitchListTile(
-                dense: true,
-                title: Text(
-                  SPConst.foodSourceDisplayNames[sourceCode] ?? sourceCode,
-                ),
-                value: _foodSourceToggles[sourceCode] ?? true,
-                onChanged: (value) => _onSourceToggled(sourceCode, value),
-              ),
-            ),
-        ],
-      ),
-    );
   }
 }

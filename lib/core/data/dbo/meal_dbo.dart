@@ -59,19 +59,6 @@ class MealDBO extends HiveObject {
   @HiveField(14)
   final bool? detailed;
 
-  /// Backend food_source.code ('fdc_sr_legacy', 'bls'...) for foods from
-  /// the Supabase backend. Null for OFF/custom/recipe meals and for rows
-  /// cached before this field existed — the UI then falls back to the
-  /// generic FoodData Central label.
-  @HiveField(15)
-  final String? backendSource;
-
-  /// True when [name] is an unreviewed machine translation (see
-  /// MealEntity.machineTranslatedName). Nullable for rows cached before
-  /// this field existed — treated as false.
-  @HiveField(16)
-  final bool? machineTranslatedName;
-
   /// Which convention this row's nutriments were written under; see
   /// [currentDataVersion]. Null on rows written before the field existed —
   /// every intake, cached product and recipe ingredient from a released
@@ -79,6 +66,7 @@ class MealDBO extends HiveObject {
   /// `OffMicronutrientRepair` acts on (#1152). Copied through JSON and CSV
   /// exports so a bundle re-imported into a repaired install is not scaled
   /// a second time.
+  // Hive fields 15 and 16 retired.
   @HiveField(17)
   final int? dataVersion;
 
@@ -114,8 +102,6 @@ class MealDBO extends HiveObject {
     required this.source,
     this.localImagePath,
     this.detailed,
-    this.backendSource,
-    this.machineTranslatedName,
     this.dataVersion,
     this.isQuickAdd,
   });
@@ -140,8 +126,6 @@ class MealDBO extends HiveObject {
     source: MealSourceDBO.fromMealSourceEntity(mealEntity.source),
     localImagePath: mealEntity.localImagePath,
     detailed: mealEntity.detailed,
-    backendSource: mealEntity.backendSource,
-    machineTranslatedName: mealEntity.machineTranslatedName,
     dataVersion: currentDataVersion,
     isQuickAdd: mealEntity.isQuickAdd,
   );

@@ -1242,10 +1242,6 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
   /// food names its own portion, and "3 slice" says what "3 serving" only
   /// implies. Display only — the value behind it stays `serving` (#864).
   String _unitLabel(BuildContext context, String unit, BulkAddRow row) {
-    // A named portion shows its own word — "slice", "cup" — which is the
-    // whole point of offering more than one. Only when the text is in the
-    // reader's language: the backend says per portion whether it is, and
-    // showing English to the other eight locales is what #966 gated.
     final portions = row.meal?.portions ?? const [];
     if (isPortionUnit(unit) && portions.isNotEmpty) {
       final index = effectivePortionIndex(unit);
@@ -1273,7 +1269,6 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
           householdPortionLabel(
                 row.meal?.servingSize,
                 languageCode: Localizations.localeOf(context).languageCode,
-                textIsLocalized: row.meal?.servingSizeIsLocalized ?? false,
               ) ??
               S.of(context).servingLabel,
       };

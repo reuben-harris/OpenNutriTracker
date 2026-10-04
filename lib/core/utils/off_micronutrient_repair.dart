@@ -11,40 +11,6 @@ import 'package:opennutritracker/core/utils/hive_db_provider.dart';
 
 final _log = Logger('OffMicronutrientRepair');
 
-/// Brings Open Food Facts rows written before #775 into the app's units
-/// (#1152).
-///
-/// Open Food Facts sends every `<nutrient>_100g` field in grams. Until #775,
-/// `MealNutrimentsEntity.fromOffNutriments` copied those values through
-/// unconverted, so every mineral was stored a thousand times too small and
-/// vitamins A, D and B12 a million times too small — on the intake, on the
-/// cached product, and on any recipe ingredient snapshotted from it. #775
-/// fixed the mapping for new writes only.
-///
-/// The stored numbers cannot tell the two conventions apart on their own:
-/// a 400 mg sodium food written as `0.4` looks exactly like a genuinely
-/// low-sodium food. What tells them apart is [MealDBO.dataVersion]: a build
-/// that carries #775 also carries this field and stamps every row it
-/// writes, so an Open Food Facts row without it was written by the old
-/// mapping. That holds because no build with #775 and without the stamp
-/// ever shipped — the two land in the same release.
-///
-/// Every row is either fully repaired and stamped in one write, or not
-/// touched at all, so a pass can stop anywhere (the app killed, a box that
-/// fails to write) and the next pass picks up exactly the rows that are
-/// still unstamped. Rows from any other source are never rewritten: the
-/// Supabase view and FDC already deliver app units, and a custom meal holds
-/// what the user typed.
-///
-/// Two shapes are knowingly left as they are. A recipe-sourced row — an
-/// intake logged from a recipe, or a recipe picked off the builder's recent
-/// tab as an ingredient of another recipe — holds the aggregate it was
-/// snapshotted with, a blend of pre-#775 and correct ingredients that no
-/// single factor applies to; rebuilding it from the recipe library would
-/// replace what was logged with whatever the recipe is today, so #1152
-/// keeps recipe rows untouched. And an Open Food Facts row whose
-/// micronutrient a user re-typed in app units through the edit form on an
-/// old build carries no trace of that edit, so it is scaled like the rest.
 class OffMicronutrientRepair {
   // The same two factors #775 added to `fromOffNutriments`.
   static const _gToMg = 1000.0;
@@ -105,8 +71,6 @@ class OffMicronutrientRepair {
       localImagePath: meal.localImagePath,
       detailed: meal.detailed,
       isQuickAdd: meal.isQuickAdd,
-      backendSource: meal.backendSource,
-      machineTranslatedName: meal.machineTranslatedName,
       dataVersion: MealDBO.dataVersionOffMicronutrientsInAppUnits,
     );
   }

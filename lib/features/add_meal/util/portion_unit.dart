@@ -39,11 +39,6 @@ int? portionIndexOf(String unit) {
   return int.tryParse(unit.substring(at + 1));
 }
 
-/// Which portion a serving-shaped [unit] scales by: the named one, or the
-/// first when none is named.
-///
-/// Exists so a row saved before portions existed, and a row that simply took
-/// the default, both resolve to the portion `food_summary` would have picked.
 int effectivePortionIndex(String unit) => portionIndexOf(unit) ?? 0;
 
 /// True when [unit] is any portion of a food, named or not.

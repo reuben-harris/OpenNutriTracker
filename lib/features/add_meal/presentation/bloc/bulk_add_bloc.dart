@@ -245,11 +245,6 @@ class BulkAddRow extends Equatable {
       meal?.servingQuantity == null;
 
   List<String> get allowedUnits => [
-    // One entry per portion the food actually has — cup, slice, ounce —
-    // rather than the single one `food_summary` picked. The values are
-    // `serving`, `serving#1`, ...; `storedUnit` strips the suffix before
-    // anything is written, so the published unit vocabulary is unchanged.
-    // #864.
     if (meal?.portions.isNotEmpty ?? false)
       for (var i = 0; i < meal!.portions.length; i++) portionUnit(i)
     // Only when the serving can actually be scaled. `hasServingValues` is

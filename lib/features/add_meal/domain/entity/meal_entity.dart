@@ -6,11 +6,9 @@ import 'package:opennutritracker/core/utils/app_locale.dart';
 import 'package:opennutritracker/core/utils/supported_language.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_const.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_food_dto.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/sp/sp_const.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/sp/sp_food_dto.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/off/off_product_dto.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
-import 'package:opennutritracker/features/add_meal/util/backend_title.dart';
+import 'package:opennutritracker/features/add_meal/util/food_title.dart';
 
 /// A number immediately followed by a metric mass or volume unit, as it
 /// appears inside an Open Food Facts `serving_size` string.
@@ -74,62 +72,10 @@ class MealEntity extends Equatable {
 
   final MealSourceEntity source;
 
-  /// Backend food_source.code ('fdc_sr_legacy', 'bls', 'indb'...) for
-  /// meals from the Supabase backend, null for OFF/custom/recipe meals
-  /// and legacy cached entries. Persisted so the UI can name the actual
-  /// database a food came from (see SPConst.foodSourceDisplayNames) even
-  /// though [source] groups them all under [MealSourceEntity.fdc].
-  final String? backendSource;
-
-  /// True when [name] is an unreviewed machine translation from the
-  /// backend's food_translation table. The meal detail page shows a small
-  /// disclosure hint under the title for these.
-  final bool machineTranslatedName;
-
-  /// True when [servingSize] holds a translation a human has verified, rather
-  /// than the English text every food record carries.
-  ///
-  /// Needed because the two are indistinguishable by inspection: "1 Scheibe"
-  /// and "1 slice" are both just strings on the entity, and showing the
-  /// second one to a German reader is the defect #966 had to gate against.
-  /// Only [withServingLabel] sets it, so it is false everywhere a label did
-  /// not come from the backend's verified set — including every meal read
-  /// back from the database, which stores no such provenance.
-  final bool servingSizeIsLocalized;
-
-  /// Every way this food can be counted, in the backend's order, so the first
-  /// is the portion `food_summary` picked and a picker opens where the app
-  /// already stood.
-  ///
-  /// Empty for everything that is not a fresh backend search result — Open
-  /// Food Facts, custom meals, anything read back from the database — and the
-  /// row then behaves exactly as it did before portions existed.
+  /// Optional household measures with a known gram weight. Not persisted.
   final List<MealPortionEntity> portions;
 
-  /// True when [portions] is empty because the lookup that fills it could
-  /// not be made — not because the backend has none for this food.
-  ///
-  /// The two look the same on the entity and mean opposite things to the
-  /// resolver, which takes 0.15 off a backend record with no portion
-  /// (`_noPortionsPenalty` in `resolver_relevance.dart`): a food the backend
-  /// has no portion for cannot scale the amount the resolver logs, and the
-  /// penalty is right; a page whose portion lookup failed in transit tells
-  /// nothing about any food on it, and the penalty would report a search
-  /// that succeeded as a guess (#1170 review). Only `ProductsRepository`
-  /// sets this, through [withPortionsUnavailable], on the entities of a
-  /// page whose lookup answered null.
-  ///
-  /// Never persisted: `MealDBO` has no column for it, as it has none for
-  /// [portions], so a copy read back from the search cache is neither
-  /// flagged nor portioned and the resolver penalises it as it always has.
-  /// That is deliberate. The cache cannot say whether the backend has a
-  /// portion for the row — it never stored one — and a cached copy cannot
-  /// scale an amount whatever the backend holds, which is what the penalty
-  /// measures; when this search's page did return the row, the fresh
-  /// entity, flag or portions and all, stands in the cached copy's slot
-  /// (`SearchProductsUseCase._freshest`). What is left penalised is a row
-  /// the page did not return, and that is the gap `noPortionsPenalty`'s
-  /// comment already records.
+  /// Distinguishes an unavailable portion lookup from a confirmed empty list.
   final bool portionsUnavailable;
 
   /// Relative path (`meal_images/<code>.webp`) to a user-attached photo
@@ -161,61 +107,12 @@ class MealEntity extends Equatable {
 
   bool get isSolid => solidUnits.contains(mealUnit);
 
-  /// The text the search scorers match this meal on: for a backend record
-  /// the [name] up to its first comma — "Egg" for "Egg, whole, raw" — and
-  /// for everything else the name itself. What follows the comma is
-  /// [scoringQualifiers], which the scorers read only where the query
-  /// names one.
-  ///
-  /// [name] is both what the row shows and what the scorers read, so when
-  /// #1164 changed backend records to show their full description it
-  /// changed their scoring with it, and the resolver's soft Dice charges
-  /// every extra token: on `egg`, "Egg, creamed" (two tokens) beat "Egg,
-  /// whole, raw" (three) and "Egg, whole, boiled or poached" (five), so the
-  /// tie-break that was to pick among the family was never reached; on
-  /// `rice`, "Bread, rice" and "Chips, rice" outscored "Rice, cooked,
-  /// NFS"; and `eggs` → "Egg, whole, raw" fell to 0.375, under the
-  /// resolver's confidence floor. Scoring the title puts the siblings back
-  /// on equal terms — every "Egg" scores 1.0 on `egg` — and the display
-  /// change stays a display change.
-  ///
-  /// The derivation is `deriveTitle` in `backend_title.dart`, shared with
-  /// the data source's truncation so that the twenty rows it keeps and the
-  /// one the resolver picks are scored on the same text (#1170; what that
-  /// does and does not guarantee is at `rankAndTruncateFoodsByName`); that
-  /// file says why the title is derived from the name rather than carried
-  /// from the backend's `short_title` column, and why nothing is persisted
-  /// for it — a copy read back from the search cache derives the same
-  /// title from the same name.
-  ///
-  /// Backend records only. The comma convention is FDC's and BLS's — the
-  /// family first, the qualifiers after — and nothing else the app scores
-  /// follows it: an Open Food Facts product name is whatever the label
-  /// says, and custom meals and recipes are the user's own words, so all
-  /// of those score on the whole name as they always have.
   String? get scoringName {
     final text = name;
     if (text == null || source != MealSourceEntity.fdc) return text;
     return deriveTitle(text);
   }
 
-  /// What follows the title in a backend record's [name] — "whole, raw"
-  /// for "Egg, whole, raw" — and null for everything else: a meal from any
-  /// other source, a backend name with no comma, or nothing after it.
-  ///
-  /// The scorers read these the opposite way from the title. The title is
-  /// scored whole, so a qualifier the query does not mention costs its
-  /// record nothing — that is what puts a family of siblings on equal
-  /// terms on `egg`. A qualifier the query *does* mention joins the scored
-  /// text, so `dried apple` scores "Apple, dried" as a record called
-  /// "Apple dried" and its siblings as "Apple": 1.0 against 0.667. Scored
-  /// on the title alone, the three tied at 0.667 and the tie-break logged
-  /// the everyday form — the qualifier the user typed was the one thing
-  /// the scorers could not see (#1164 review). Which mention counts: the
-  /// resolver and the data source's cut name a qualifier by soft prefix,
-  /// one rule for both (`namedQualifiers` in `soft_text_score.dart`); the
-  /// Food tab's `scoreMealRelevance` by the exact token, as it matches
-  /// every token.
   String? get scoringQualifiers {
     final text = name;
     if (text == null || source != MealSourceEntity.fdc) return null;
@@ -236,9 +133,6 @@ class MealEntity extends Equatable {
     required this.servingSize,
     required this.nutriments,
     required this.source,
-    this.backendSource,
-    this.machineTranslatedName = false,
-    this.servingSizeIsLocalized = false,
     this.portions = const [],
     this.portionsUnavailable = false,
     this.localImagePath,
@@ -246,43 +140,6 @@ class MealEntity extends Equatable {
     this.isQuickAdd = false,
   });
 
-  /// The same meal with a verified translation in place of the English
-  /// serving label.
-  ///
-  /// Deliberately narrow: it replaces the text and records where it came
-  /// from, and touches nothing else. [servingQuantity] in particular stays
-  /// as it was, because the backend picks the label and the gram weight from
-  /// the same portion row — swapping one without the other is how "1 slice"
-  /// ends up beside 240 g.
-  MealEntity withServingLabel(String label) => MealEntity(
-    code: code,
-    name: name,
-    brands: brands,
-    thumbnailImageUrl: thumbnailImageUrl,
-    mainImageUrl: mainImageUrl,
-    url: url,
-    mealQuantity: mealQuantity,
-    mealUnit: mealUnit,
-    servingQuantity: servingQuantity,
-    servingUnit: servingUnit,
-    servingSize: label,
-    nutriments: nutriments,
-    source: source,
-    backendSource: backendSource,
-    machineTranslatedName: machineTranslatedName,
-    servingSizeIsLocalized: true,
-    portions: portions,
-    portionsUnavailable: portionsUnavailable,
-    localImagePath: localImagePath,
-    detailed: detailed,
-    isQuickAdd: isQuickAdd,
-  );
-
-  /// The same meal knowing every portion it can be counted in.
-  ///
-  /// Separate from [withServingLabel] because the two arrive from different
-  /// calls and either can be absent: a food may have a verified default label
-  /// and no picker-worthy list, or several portions and no translation.
   MealEntity withPortions(List<MealPortionEntity> found) => MealEntity(
     code: code,
     name: name,
@@ -297,9 +154,6 @@ class MealEntity extends Equatable {
     servingSize: servingSize,
     nutriments: nutriments,
     source: source,
-    backendSource: backendSource,
-    machineTranslatedName: machineTranslatedName,
-    servingSizeIsLocalized: servingSizeIsLocalized,
     portions: found,
     portionsUnavailable: portionsUnavailable,
     localImagePath: localImagePath,
@@ -326,9 +180,6 @@ class MealEntity extends Equatable {
     servingSize: servingSize,
     nutriments: nutriments,
     source: source,
-    backendSource: backendSource,
-    machineTranslatedName: machineTranslatedName,
-    servingSizeIsLocalized: servingSizeIsLocalized,
     portions: portions,
     portionsUnavailable: true,
     localImagePath: localImagePath,
@@ -363,8 +214,6 @@ class MealEntity extends Equatable {
     servingSize: mealDBO.servingSize,
     nutriments: MealNutrimentsEntity.fromMealNutrimentsDBO(mealDBO.nutriments),
     source: MealSourceEntity.fromMealSourceDBO(mealDBO.source),
-    backendSource: mealDBO.backendSource,
-    machineTranslatedName: mealDBO.machineTranslatedName ?? false,
     localImagePath: mealDBO.localImagePath,
     detailed: mealDBO.detailed ?? false,
     isQuickAdd: mealDBO.isQuickAdd ?? _isHistoricalQuickAdd(mealDBO),
@@ -454,101 +303,6 @@ class MealEntity extends Equatable {
     );
   }
 
-  factory MealEntity.fromSpFood(SpFoodDTO foodItem) {
-    final defaultUnit = _spDefaultUnit(foodItem);
-    return MealEntity(
-      code: foodItem.foodId?.toString(),
-      name: foodItem.displayName,
-      brands: foodItem.brands,
-      // Only USDA FDC foods have a public detail page to link to; foods
-      // from the other backend sources (BLS, INDB, TBCA...) link nowhere.
-      url: foodItem.isFdc
-          ? FDCConst.getFoodDetailUrlString(foodItem.sourceCode)
-          : null,
-      mealQuantity: null,
-      mealUnit: defaultUnit,
-      servingQuantity: foodItem.servingGramWeight,
-      servingUnit: defaultUnit,
-      servingSize: _spServingLabel(foodItem),
-      nutriments: MealNutrimentsEntity.fromSpFoodSummary(foodItem),
-      // All Supabase backend foods keep the fdc source tag: MealSourceDBO
-      // is persisted in Hive, so a per-source enum value would need a data
-      // migration. `fdc` here means "reference food database" as opposed
-      // to OFF/custom; the true origin is carried in [backendSource].
-      source: MealSourceEntity.fdc,
-      backendSource: foodItem.source,
-      machineTranslatedName: foodItem.displayNameIsMachineTranslated,
-    );
-  }
-
-  /// Default entry unit for a backend food. The nutrient basis is per
-  /// 100 g everywhere, but beverages are naturally measured in
-  /// millilitres: BLS encodes its food group in the first letter of the
-  /// source code, and groups N (alkoholfreie Getränke) and P (alkoholische
-  /// Getränke) are drinks. Everything else — and every non-BLS source,
-  /// which carries no such classification — defaults to grams rather than
-  /// the old 'g/ml' placeholder, which the meal detail rendered as "N/A".
-  static String _spDefaultUnit(SpFoodDTO foodItem) {
-    final sourceCode = foodItem.sourceCode;
-    if (foodItem.source == SPConst.blsSourceCode &&
-        sourceCode != null &&
-        sourceCode.isNotEmpty &&
-        SPConst.blsBeverageGroups.contains(sourceCode[0].toUpperCase())) {
-      return 'ml';
-    }
-    return 'g';
-  }
-
-  /// Matches an explicit weight/volume figure ("38 g", "240ml") so labels
-  /// that already state one don't get a second appended.
-  static final _containsWeightFigure = RegExp(
-    r'\d\s*(g|kg|ml|l|oz)\b',
-    caseSensitive: false,
-  );
-
-  /// Human-readable default-serving label in the style of the FDC website
-  /// ("1 slice (38 g)", "1 cup, sliced (240 g)"), falling back to the
-  /// serving weight in grams when the portion has no description at all.
-  static String? _spServingLabel(SpFoodDTO foodItem) {
-    final gramWeight = foodItem.servingGramWeight;
-
-    final description = foodItem.servingSize;
-    if (description != null) {
-      // Backend-provided household measure ("1 slice", "1 cup, sliced").
-      // Append the portion's weight unless the text already states one.
-      if (gramWeight != null && !_containsWeightFigure.hasMatch(description)) {
-        return '$description (${_formatAmount(gramWeight)} g)';
-      }
-      return description;
-    }
-
-    final quantity = foodItem.servingQuantity;
-    // FDC's measure_unit 9999 is literally named 'undetermined'. The
-    // food_summary view maps it to 'portion' since schema v2.1; keep the
-    // same mapping here for backends that haven't refreshed the view yet.
-    final unit = foodItem.servingUnit == 'undetermined'
-        ? 'portion'
-        : foodItem.servingUnit;
-    if (quantity != null && unit != null) {
-      final label = '${_formatAmount(quantity)} $unit';
-      // A count-based unit ("1 portion", "2 slices") says nothing about
-      // how much food that actually is — append the portion's weight so
-      // the user can judge it. Weight/volume units already do.
-      final isWeightOrVolume =
-          solidUnits.contains(unit) || liquidUnits.contains(unit);
-      if (!isWeightOrVolume && gramWeight != null) {
-        return '$label (${_formatAmount(gramWeight)} g)';
-      }
-      return label;
-    }
-    if (gramWeight != null) return '${_formatAmount(gramWeight)} g';
-    return null;
-  }
-
-  static String _formatAmount(double value) => value == value.roundToDouble()
-      ? value.toInt().toString()
-      : value.toString();
-
   /// Value returned from OFF can either be String, int or double.
   /// Try casting it to a double value for calculation
   static double? _tryQuantityCast(dynamic value) {
@@ -612,7 +366,6 @@ class MealEntity extends Equatable {
     servingUnit,
     servingQuantity,
     servingSize,
-    backendSource,
     localImagePath,
   ];
 }

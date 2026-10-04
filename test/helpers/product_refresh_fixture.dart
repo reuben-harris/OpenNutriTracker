@@ -24,7 +24,6 @@ import 'package:opennutritracker/core/domain/usecase/get_macro_goal_usecase.dart
 import 'package:opennutritracker/core/domain/usecase/get_tracked_day_usecase.dart';
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
 import 'package:opennutritracker/features/add_meal/data/data_sources/off_data_source.dart';
-import 'package:opennutritracker/features/add_meal/data/data_sources/sp_food_data_source.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/off/off_product_dto.dart';
 import 'package:opennutritracker/features/add_meal/data/repository/products_repository.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
@@ -110,7 +109,6 @@ class ProductRefreshFixture {
           return respond!(request);
         }),
       ),
-      _UnusedBackend(),
     );
   }
 
@@ -208,8 +206,6 @@ class _NoTrackedDayWrites extends Fake implements AddTrackedDayUsecase {}
 class _UnusedKcalGoal extends Fake implements GetKcalGoalUsecase {}
 
 class _UnusedMacroGoal extends Fake implements GetMacroGoalUsecase {}
-
-class _UnusedBackend extends Fake implements SpFoodDataSource {}
 
 class _DailyTotals extends Fake implements GetTrackedDayUsecase {
   @override

@@ -14,7 +14,6 @@ MealEntity _meal() => MealEntity(
   servingUnit: 'g',
   servingSize: '1 slice (38 g)',
   source: MealSourceEntity.fdc,
-  backendSource: 'fdc_survey',
   nutriments: MealNutrimentsEntity.empty(),
 );
 
@@ -28,33 +27,6 @@ void main() {
   group('MealEntity.portionsUnavailable (#1170 review)', () {
     test('is off until the repository says otherwise', () {
       expect(_meal().portionsUnavailable, isFalse);
-    });
-
-    test('withPortionsUnavailable sets it and moves nothing else', () {
-      final marked = _meal().withPortionsUnavailable();
-
-      expect(marked.portionsUnavailable, isTrue);
-      expect(marked.portions, isEmpty);
-      expect(marked.code, '123');
-      expect(marked.name, 'Bread, rye');
-      expect(marked.servingSize, '1 slice (38 g)');
-      expect(marked.servingQuantity, 38);
-      expect(marked.servingSizeIsLocalized, isFalse);
-      expect(marked.backendSource, 'fdc_survey');
-      expect(marked.source, MealSourceEntity.fdc);
-    });
-
-    test('withServingLabel carries it across', () {
-      // The repository applies the label and the flag one after the other,
-      // in whichever order the two lookups are read; a copier that dropped
-      // the flag would un-mark the record halfway through decoration.
-      final marked = _meal().withPortionsUnavailable().withServingLabel(
-        '1 Scheibe (38 g)',
-      );
-
-      expect(marked.servingSize, '1 Scheibe (38 g)');
-      expect(marked.servingSizeIsLocalized, isTrue);
-      expect(marked.portionsUnavailable, isTrue);
     });
 
     test('withPortions carries it across', () {

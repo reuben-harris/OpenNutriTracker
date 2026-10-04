@@ -41,7 +41,6 @@ MealEntity food({
   servingUnit: 'gml',
   servingSize: '',
   source: source,
-  backendSource: source == MealSourceEntity.fdc ? 'bls' : null,
   isQuickAdd: quick,
   nutriments: MealNutrimentsEntity(
     energyKcal100: kcal,
@@ -67,8 +66,6 @@ class _Products extends Fake implements ProductsRepository {
 
   @override
   Future<MealEntity> getOFFProductByBarcode(String barcode) => fetch();
-  @override
-  Future<MealEntity?> getBackendFoodById(String id, String source) => fetch();
 }
 
 void main() {
@@ -149,7 +146,7 @@ void main() {
       },
     );
   }
-  for (final source in [MealSourceEntity.off, MealSourceEntity.fdc]) {
+  for (final source in [MealSourceEntity.off]) {
     test(
       '$source refresh bypasses old snapshot, deduplicates and retains intervening weight',
       () async {

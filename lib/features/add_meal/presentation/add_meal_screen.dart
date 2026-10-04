@@ -19,7 +19,6 @@ import 'package:opennutritracker/features/add_meal/presentation/widgets/no_resul
 import 'package:opennutritracker/features/add_meal/presentation/widgets/meal_item_card.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/quick_add_bottom_sheet.dart';
 import 'package:opennutritracker/features/add_meal/presentation/bloc/products_bloc.dart';
-import 'package:opennutritracker/features/add_meal/util/meal_relevance_ranker.dart';
 import 'package:opennutritracker/features/edit_meal/presentation/edit_meal_screen.dart';
 import 'package:opennutritracker/features/scanner/scanner_screen.dart';
 import 'package:opennutritracker/features/scanner/util/barcode_check_digit.dart';
@@ -178,8 +177,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
 
   bool _searchesProducts(_SearchSource s) =>
       s == _SearchSource.all || s == _SearchSource.products;
-  bool _searchesFood(_SearchSource s) =>
-      s == _SearchSource.all || s == _SearchSource.food;
+  bool _searchesFood(_SearchSource s) => s == _SearchSource.food;
 
   void _onSearchSubmit(String inputText) {
     final trimmed = inputText.trim();
@@ -317,66 +315,6 @@ class _AddMealScreenState extends State<AddMealScreen> {
   Widget _buildResults(BuildContext context, AppPalette palette, String query) {
     switch (_source) {
       case _SearchSource.all:
-        // One merged list across product sources; each card already shows its
-        // own brand/source, so provenance stays clear.
-        return Column(
-          children: [
-            _resultsHeader(context, palette),
-            Expanded(
-              child: BlocBuilder<ProductsBloc, ProductsState>(
-                bloc: _productsBloc,
-                builder: (context, ps) {
-                  return BlocBuilder<FoodBloc, FoodState>(
-                    bloc: _foodBloc,
-                    builder: (context, fs) {
-                      // Wait for BOTH sources (OFF and the Supabase backend)
-                      // before rendering the merged list — showing whichever
-                      // lands first would make results pop in and shift when
-                      // the second source arrives. A failed source counts as
-                      // answered, so one outage doesn't block the other's
-                      // results.
-                      if (_productsPending(ps, query) ||
-                          _foodPending(fs, query)) {
-                        return _pendingSpinner;
-                      }
-                      final products = ps is ProductsLoadedState
-                          ? ps.products
-                          : const <MealEntity>[];
-                      final foods = fs is FoodLoadedState
-                          ? fs.food
-                          : const <MealEntity>[];
-                      final merged = mergeAndRankMeals(products, foods, query);
-                      final imperial = ps is ProductsLoadedState
-                          ? ps.usesImperialUnits
-                          : (fs is FoodLoadedState
-                                ? fs.usesImperialUnits
-                                : false);
-                      if (merged.isEmpty) {
-                        if (ps is ProductsInitial && fs is FoodInitial) {
-                          return const DefaultsResultsWidget();
-                        }
-                        return NoResultsWidget(
-                          onScanBarcode: _onBarcodeIconPressed,
-                          onCreateCustomFood: () =>
-                              _onCustomAddButtonPressed(imperial),
-                        );
-                      }
-                      return ListView.builder(
-                        itemCount: merged.length,
-                        itemBuilder: (context, index) => MealItemCard(
-                          day: _day,
-                          mealEntity: merged[index],
-                          addMealType: _mealType,
-                          usesImperialUnits: imperial,
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        );
       case _SearchSource.products:
         return Column(
           children: [

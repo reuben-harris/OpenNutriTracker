@@ -4,7 +4,6 @@ import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.d
 import 'package:opennutritracker/core/data/data_source/recipe_data_source.dart';
 import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
-import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_intake_usecase.dart';
 import 'package:opennutritracker/features/add_meal/data/repository/products_repository.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
@@ -33,7 +32,6 @@ class SearchProductsUseCase {
   final CustomMealDataSource _customMealDataSource;
   final RemoteSearchCacheDataSource _cachedOffMealDataSource;
   final RecipeDataSource _recipeDataSource;
-  final GetConfigUsecase _getConfigUsecase;
 
   SearchProductsUseCase(
     this._productsRepository,
@@ -41,7 +39,6 @@ class SearchProductsUseCase {
     this._customMealDataSource,
     this._cachedOffMealDataSource,
     this._recipeDataSource,
-    this._getConfigUsecase,
   );
 
   /// [skipRemote] limits the search to local matches (custom meals, recipes,
@@ -52,8 +49,12 @@ class SearchProductsUseCase {
     bool skipRemote = false,
   }) async {
     if (skipRemote) {
-      return _buildResult(searchString, const [],
-          remoteSkipped: true, cacheSource: MealSourceEntity.off);
+      return _buildResult(
+        searchString,
+        const [],
+        remoteSkipped: true,
+        cacheSource: MealSourceEntity.off,
+      );
     }
     final remote = await _safeRemoteCall(
       'OFF',
@@ -65,42 +66,15 @@ class SearchProductsUseCase {
     // get their timestamp refreshed and stay until 90 days after the
     // last selection.
     await _cacheRemoteResults(remote);
-    return _buildResult(searchString, remote,
-        cacheSource: MealSourceEntity.off);
+    return _buildResult(
+      searchString,
+      remote,
+      cacheSource: MealSourceEntity.off,
+    );
   }
 
-  /// Searches the reference-food corpus. "FDC" here names the *data* (USDA
-  /// FoodData Central and the other datasets ingested alongside it), not the
-  /// host: the request goes to the Supabase backend, never to USDA. The name
-  /// is kept because [MealSourceEntity.fdc] is persisted in Hive and renaming
-  /// it would need a data migration.
-  ///
-  /// [forResolution] is what `ResolveParsedMealsUseCase` passes and the
-  /// Food tab does not: the backend's hundred rows are cut to twenty in
-  /// the data source, and for the resolver's page — which it auto-selects
-  /// from — that cut reads each row's `has_portion` column, where the
-  /// Food tab's page is cut without it (#1164 part 3, #1190; the cut's
-  /// comment in `sp_food_data_source.dart` has the measurements).
-  Future<SearchProductsResult> searchFDCFoodByString(
-    String searchString, {
-    bool skipRemote = false,
-    bool forResolution = false,
-  }) async {
-    if (skipRemote) {
-      return _buildResult(searchString, const [],
-          remoteSkipped: true, cacheSource: MealSourceEntity.fdc);
-    }
-    final remote = await _safeRemoteCall(
-      'FDC',
-      () => _productsRepository.getSupabaseFoodsByString(
-        searchString,
-        forResolution: forResolution,
-      ),
-    );
-    await _cacheRemoteResults(remote);
-    return _buildResult(searchString, remote,
-        cacheSource: MealSourceEntity.fdc);
-  }
+  Future<SearchProductsResult> searchLocalFoodsByString(String query) =>
+      _buildResult(query, const [], remoteSkipped: true, cacheSource: null);
 
   Future<void> _cacheRemoteResults(List<MealEntity> remote) async {
     if (remote.isEmpty) return;
@@ -109,8 +83,9 @@ class SearchProductsUseCase {
     // earlier (its timestamp got bumped via the intent path) keeps that
     // newer timestamp even when a subsequent search re-includes it,
     // letting it remain at the top of the cache-sorted list.
-    await _cachedOffMealDataSource
-        .cacheFromSearch(remote.map(MealDBO.fromMealEntity));
+    await _cachedOffMealDataSource.cacheFromSearch(
+      remote.map(MealDBO.fromMealEntity),
+    );
   }
 
   /// Run a remote search and fall back to an empty list when the source
@@ -137,7 +112,7 @@ class SearchProductsUseCase {
     String searchString,
     List<MealEntity> remoteResults, {
     bool remoteSkipped = false,
-    required MealSourceEntity cacheSource,
+    required MealSourceEntity? cacheSource,
   }) async {
     // When the remote source was deliberately skipped (short query), don't
     // claim it returned nothing — that would show a misleading "no results"
@@ -187,34 +162,6 @@ class SearchProductsUseCase {
         .where((meal) => _mealMatchesSearch(meal, normalizedSearchString))
         .toList();
 
-    // Sorted with the most recently touched entries first so an item the
-    // user just selected (logged) appears at the top of the next search
-    // result list, ahead of other cached items they haven't touched.
-    //
-    // The cache box holds both OFF and FDC entries (cacheFromSearch writes
-    // whatever either remote returned), so filter to the source of the tab
-    // being built. Without this, a prior OFF search leaks branded products
-    // into the FDC "Food" tab and vice versa, since both tabs share this
-    // helper. Custom meals, recipes and intake history above are the user's
-    // own and are intentionally surfaced in both tabs.
-    // Cached entries respect the food-source selection (Settings → Food
-    // databases) just like fresh remote results, which the data source
-    // already filters server-side. Entries without a backendSource (OFF
-    // products, pre-migration rows) are always kept — only Supabase backend
-    // sources are user-selectable.
-    //
-    // A record this search's remote page returned is in the cache already
-    // — `_cacheRemoteResults` ran first — and its cached copy takes the
-    // fresh copy's place in the dedup below. The cache cannot hold
-    // everything a fresh backend result carries, though: `MealDBO` has no
-    // column for `portions` or for `servingSizeIsLocalized`, so the copy
-    // read back is the same record with its portions gone, and the
-    // resolver, which scores portions (#1164) and offers them for picking
-    // (#968), saw none on this path from the first search on. Every
-    // persisted field agrees between the two — the cache was just written
-    // from the page — so the fresh entity stands in the cached copy's slot:
-    // the position is the cache's, the data the page's (see [_freshest]).
-    final config = await _getConfigUsecase.getConfig();
     final freshByKey = {
       for (final meal in remoteResults) _dedupKey(meal): meal,
     };
@@ -222,9 +169,6 @@ class SearchProductsUseCase {
         .getAllByMostRecentlyTouched()
         .map(MealEntity.fromMealDBO)
         .where((meal) => meal.source == cacheSource)
-        .where((meal) =>
-            meal.backendSource == null ||
-            config.isFoodSourceEnabled(meal.backendSource!))
         .where((meal) => _mealMatchesSearch(meal, normalizedSearchString))
         .map((meal) => _freshest(meal, freshByKey))
         .toList();

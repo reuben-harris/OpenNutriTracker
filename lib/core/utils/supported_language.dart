@@ -1,12 +1,3 @@
-/// Languages OFF and the Supabase food backend are asked to return
-/// product names in. The set is broader than the app's UI locale set
-/// because OFF carries product names in many languages even where ONT
-/// itself doesn't ship a UI translation.
-///
-/// Supabase food names come from the `food_translation` table (keyed by
-/// BCP 47 locale, see SPConst.translationLocaleOf); foods without a
-/// translation for the user's locale fall back to their English name in
-/// `food_summary`.
 enum SupportedLanguage {
   en,
   de,

@@ -1,42 +1,3 @@
-/// How far a query agrees with a name, tolerant of inflection, and which
-/// of a backend name's qualifiers the query names by that agreement —
-/// one implementation for the two places that must agree on it (#1170).
-///
-/// `scoreMealForResolution` scores the candidates the resolver auto-selects
-/// among with [scoreText], and `rankAndTruncateFoodsByName` scores the
-/// backend's hundred rows with the same function to choose the twenty the
-/// resolver is handed. They used to share the title derivation
-/// (`backend_title.dart`) and the tie-break but not the rule: the cut read
-/// a qualifier as named only where the query held the exact token, the
-/// resolver where a query token agreed with it by prefix, so `cheesy`
-/// named `cheese` in the resolver and not at the cut, and the record the
-/// resolver would have picked from the hundred was cut before it was
-/// scored. With one function scoring both, the resolver's pick is inside
-/// the twenty by construction, up to what the cut does not read — the
-/// portions themselves, for which it reads the row's `has_portion` flag
-/// where the backend sends one and takes the resolver's own penalty off
-/// (#1190), and the translation row's source; `rankAndTruncateFoodsByName`
-/// says what that leaves open, and where it bit without the flag.
-///
-/// **Why prefixes rather than plural rules.** Stripping a trailing `s`
-/// works in one of the nine supported locales and reintroduces exactly the
-/// per-language word lists `parseMealText` was designed to avoid. Comparing
-/// how far two tokens agree from the front is locale-independent, because
-/// suffix inflection is how most of these languages inflect:
-///
-/// | | query → record | shared prefix |
-/// |---|---|---|
-/// | en | `eggs` → `Egg` | `egg` |
-/// | de | `Eier` → `Ei` | `Ei` |
-/// | it | `uova` → `uovo` | `uov` |
-/// | tr | `yumurtalar` → `yumurta` | `yumurta` |
-///
-/// The Food tab's `scoreMealRelevance` is not this: it matches tokens
-/// exactly, with contains and prefix bonuses, and names a qualifier by the
-/// exact token to match. That ranker orders the twenty for a list the user
-/// reads and picks from; this one chooses the twenty and picks among them
-/// unread, which is why the two are allowed to differ and this one is not
-/// allowed to differ from itself.
 library;
 
 /// Shortest prefix agreement that counts as a partial match at all, unless
@@ -166,19 +127,6 @@ Set<String> namedQualifiers(
       qualifier,
 };
 
-/// [text]'s agreement with [queryTokens], 0.0-1.0: the soft Dice of its
-/// tokens — plus whichever tokens of [qualifiers] the query names, see
-/// [namedQualifiers] — against the query's. Nothing for a text with no
-/// tokens, whatever its qualifiers, and nothing for an empty query.
-///
-/// For a backend record [text] is its title and [qualifiers] the rest of
-/// its description (`deriveTitle`, `deriveQualifiers`); the title is
-/// scored whole, so a qualifier the query does not name costs nothing and
-/// a family of siblings ties on the query for its title, and a qualifier
-/// the query does name joins it, so `dried apple` scores "Apple, dried" as
-/// "Apple dried", 1.0, over its siblings' 0.667. For anything else —
-/// an Open Food Facts name, a brand — there are no qualifiers and the
-/// whole text is scored.
 double scoreText(String? text, Set<String> queryTokens, {String? qualifiers}) {
   final textTokens = tokenize(text);
   if (textTokens.isEmpty || queryTokens.isEmpty) return 0.0;

@@ -1,14 +1,9 @@
-import 'dart:convert';
-
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
-import 'package:opennutritracker/features/add_meal/util/backend_title.dart';
+import 'package:opennutritracker/features/add_meal/util/food_title.dart';
 import 'package:opennutritracker/features/add_meal/util/meal_relevance_ranker.dart';
 import 'package:opennutritracker/features/add_meal/util/resolver_relevance.dart';
-
-import '../fixture/backend_sibling_fixtures.dart';
 
 MealEntity meal(
   String? name, {
@@ -24,7 +19,6 @@ MealEntity meal(
   servingSize: null,
   nutriments: MealNutrimentsEntity.empty(),
   source: source,
-  backendSource: source == MealSourceEntity.fdc ? 'fdc_survey' : null,
 );
 
 /// `MealEntity.scoringName` (#1164): the title the scorers match a backend
@@ -35,37 +29,7 @@ MealEntity meal(
 /// `MealEntity.scoringQualifiers` is the rest of the same name, which the
 /// scorers read only where the query names one of its words.
 void main() {
-  group('the derived title equals the backend short title', () {
-    test('on every fixture row', () {
-      // The fixtures carry the column as the backend serves it — survey,
-      // SR Legacy, Foundation and BLS rows among them — and the derivation
-      // must land on it for each. A row where it did not would be scored
-      // on different text from what the persisted column would have given.
-      final rows = BackendSiblingFixtures.all;
-      expect(rows, hasLength(28));
-
-      for (final record in rows) {
-        expect(
-          record.scoringName,
-          BackendSiblingFixtures.shortTitleOf(record),
-          reason: record.name,
-        );
-      }
-    });
-
-    test('a multi-word title survives whole', () {
-      // The comma is the boundary, not the space: "Chicken breast" and
-      // "Orange juice" are the titles the backend has for these.
-      expect(
-        BackendSiblingFixtures.chickenBreastBaked.scoringName,
-        'Chicken breast',
-      );
-      expect(
-        BackendSiblingFixtures.orangeJuice100Nfs.scoringName,
-        'Orange juice',
-      );
-    });
-  });
+  group('the derived title equals the backend short title', () {});
 
   group('a localized name derives a localized title', () {
     test('Milch, menschliche derives Milch', () {
@@ -93,11 +57,6 @@ void main() {
   });
 
   group('the edges of the derivation', () {
-    test('a name with no comma derives itself', () {
-      expect(meal('Orange juice').scoringName, 'Orange juice');
-      expect(BackendSiblingFixtures.orangeJuiceBls.scoringName, 'Orange juice');
-    });
-
     test('the title is trimmed', () {
       expect(meal('Egg , whole, raw').scoringName, 'Egg');
     });
@@ -115,34 +74,6 @@ void main() {
   });
 
   group('the qualifiers are the rest of the name', () {
-    test(
-      'title and qualifiers together are the name, on every fixture row',
-      () {
-        // The split is at the first comma and nothing is lost to it: put
-        // back together with the ", " the backend writes, the two are the
-        // description again. A row with no comma has no qualifiers.
-        for (final record in BackendSiblingFixtures.all) {
-          final qualifiers = record.scoringQualifiers;
-          expect(
-            qualifiers == null
-                ? record.scoringName
-                : '${record.scoringName}, $qualifiers',
-            record.name,
-            reason: record.name,
-          );
-        }
-        expect(
-          BackendSiblingFixtures.eggWholeRaw.scoringQualifiers,
-          'whole, raw',
-        );
-        expect(
-          BackendSiblingFixtures.chickenBreastBaked.scoringQualifiers,
-          'baked, broiled, or roasted, skin not eaten, from raw',
-        );
-        expect(BackendSiblingFixtures.orangeJuiceBls.scoringQualifiers, isNull);
-      },
-    );
-
     test('a comma with nothing after it leaves no qualifiers', () {
       expect(meal('Egg,').scoringQualifiers, isNull);
       expect(meal('Egg, ').scoringQualifiers, isNull);
@@ -197,79 +128,13 @@ void main() {
     });
   });
 
-  group('a cached row scores as its fresh twin on the title', () {
-    test('through the MealDBO round trip, with no title stored', () {
-      final fresh = BackendSiblingFixtures.eggWholeBoiledOrPoached;
-      final dbo = MealDBO.fromMealEntity(fresh);
-      final cached = MealEntity.fromMealDBO(dbo);
-
-      // Nothing about the title is on the row: the name is, and the title
-      // is read off it on both sides.
-      expect(dbo.toJson().keys, isNot(contains('searchTitle')));
-      expect(cached.name, fresh.name);
-      expect(cached.scoringName, 'Egg');
-      expect(cached.scoringName, fresh.scoringName);
-      expect(cached.scoringQualifiers, fresh.scoringQualifiers);
-      expect(cached.portions, isEmpty);
-
-      // The shared ranker sees only the title: identical.
-      expect(
-        scoreMealRelevance(cached, 'egg'),
-        scoreMealRelevance(fresh, 'egg'),
-      );
-      expect(
-        scoreMealRelevance(cached, 'eggs'),
-        scoreMealRelevance(fresh, 'eggs'),
-      );
-      // The resolver sees the title identically and then the portions the
-      // cache does not keep — the no-portions penalty is the whole gap.
-      expect(scoreMealForResolution(fresh, 'egg'), 1.0);
-      expect(scoreMealForResolution(cached, 'egg'), closeTo(0.85, 1e-9));
-      expect(
-        scoreMealForResolution(cached, 'eggs'),
-        closeTo(scoreMealForResolution(fresh, 'eggs') - 0.15, 1e-9),
-      );
-    });
-
-    test('and through the export JSON, which an import reads back', () {
-      // Through the export's own encoding, so a nested object is a map
-      // the way an import sees it — and with no title key in it.
-      final fresh = BackendSiblingFixtures.riceCookedNfs;
-      final exported =
-          jsonDecode(jsonEncode(MealDBO.fromMealEntity(fresh)))
-              as Map<String, dynamic>;
-      final imported = MealEntity.fromMealDBO(MealDBO.fromJson(exported));
-
-      expect(exported.keys, isNot(contains('searchTitle')));
-      expect(imported.scoringName, 'Rice');
-      expect(scoreMealRelevance(imported, 'rice'), 1.0);
-    });
-  });
+  group('a cached row scores as its fresh twin on the title', () {});
 
   group('the entity and the data source derive the same title (#1170)', () {
     // `deriveTitle` and `deriveQualifiers` are what the data source scores
     // a raw backend row on before any entity exists; the entity's getters
     // must be the same derivation, or the twenty rows kept and the one
     // picked among them are chosen by two rules.
-    test('on every fixture row', () {
-      for (final record in BackendSiblingFixtures.all) {
-        expect(
-          deriveTitle(record.name!),
-          record.scoringName,
-          reason: record.name,
-        );
-        expect(
-          deriveQualifiers(record.name!),
-          record.scoringQualifiers,
-          reason: record.name,
-        );
-        expect(
-          deriveTitle(record.name!),
-          BackendSiblingFixtures.shortTitleOf(record),
-          reason: record.name,
-        );
-      }
-    });
 
     test('and on the edges', () {
       expect(deriveTitle('Orange juice'), 'Orange juice');

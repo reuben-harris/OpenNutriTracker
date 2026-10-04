@@ -37,7 +37,6 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     on<LoadOnboardingEvent>((event, emit) async {
       emit(OnboardingLoadingState());
       await _seedUnitSelection();
-      await _seedFoodSourceSelection();
       emit(OnboardingLoadedState());
     });
   }
@@ -78,22 +77,6 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     userSelection.foodUsesImperial = defaults.foodUsesImperial;
   }
 
-  /// Picks which food databases the "Other options" page starts with.
-  /// Follows the same rule as the units: a stored choice wins, and only a
-  /// first run falls back to the locale.
-  Future<void> _seedFoodSourceSelection() async {
-    if (await _getConfigUsecase.hasExplicitFoodSourceToggles()) {
-      final config = await _getConfigUsecase.getConfig();
-      userSelection.foodSourceToggles = Map<String, bool>.from(
-        config.foodSourceToggles,
-      );
-      return;
-    }
-    userSelection.foodSourceToggles = defaultFoodSourceToggles(
-      Platform.localeName,
-    );
-  }
-
   Future<void> saveOnboardingData(
     UserEntity userEntity,
     bool hasAcceptedDataCollection,
@@ -101,7 +84,6 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     BodyWeightUnit bodyWeightUnit,
     bool foodImperial, {
     required AppThemeEntity appTheme,
-    required Map<String, bool> foodSourceToggles,
     required bool dailyReminderEnabled,
     required bool useMaterialYou,
     required int? accentColor,
@@ -127,14 +109,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     // Food units are chosen explicitly during onboarding, so someone on feet
     // and stones can still log food in grams.
     await _addConfigUsecase.setConfigUsesImperialFoodUnits(foodImperial);
-    // "Other options" page: theme, food databases and the daily reminder
-    // flag. The reminder's permission request and scheduling are handled by
-    // the screen before this is called — dailyReminderEnabled arrives here
-    // already downgraded to false when the permission was denied.
     await _addConfigUsecase.setConfigAppTheme(appTheme);
-    if (foodSourceToggles.isNotEmpty) {
-      await _addConfigUsecase.setConfigFoodSourceToggles(foodSourceToggles);
-    }
     await _addConfigUsecase.setNotificationsEnabled(dailyReminderEnabled);
     await _addConfigUsecase.setConfigUseMaterialYou(useMaterialYou);
     await _addConfigUsecase.setConfigAccentColor(accentColor);

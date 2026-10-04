@@ -554,11 +554,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                     showMicronutrients: _showMicronutrients,
                   ),
                   const SizedBox(height: 32.0),
-                  MealInfoButton(
-                    url: meal.url,
-                    source: meal.source,
-                    backendSource: meal.backendSource,
-                  ),
+                  MealInfoButton(url: meal.url, source: meal.source),
                   meal.source == MealSourceEntity.off
                       ? const Column(
                           children: [SizedBox(height: 32), OffDisclaimer()],

@@ -182,10 +182,6 @@ class ConfigRepository {
     await _configDataSource.setConfigScannerPortraitLock(value);
   }
 
-  Future<void> setConfigFoodSourceToggles(Map<String, bool> toggles) async {
-    await _configDataSource.setConfigFoodSourceToggles(toggles);
-  }
-
   Future<void> setConfigHealthImportEnabled(bool enabled) async {
     await _configDataSource.setConfigHealthImportEnabled(enabled);
   }

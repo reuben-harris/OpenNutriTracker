@@ -1,27 +1,9 @@
 import 'package:logging/logging.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/usecase/search_products_usecase.dart';
-import 'package:opennutritracker/features/add_meal/util/meal_relevance_ranker.dart';
 import 'package:opennutritracker/features/add_meal/util/meal_text_parser.dart';
 import 'package:opennutritracker/features/add_meal/util/resolver_relevance.dart';
 
-/// Below this the top candidate is a guess rather than an answer, and the
-/// review screen (#602) should say so instead of presenting it as settled.
-///
-/// The value is a judgement, not a measurement: it sits above what an
-/// unrelated long product name scores on a short query (`eggs` → `Cadbury
-/// Creme Eggs Multipack 5 Pack` is 0.29) and below what a
-/// same-word-different-inflection match scores against a one-word name
-/// (`eggs` → `Egg` is 0.75).
-///
-/// It was set while backend records were shown by their short title, and
-/// #1164 changed what they show to the full description without moving
-/// it. That did not move the scores either: a backend record is still
-/// scored on its title (`MealEntity.scoringName`), so `eggs` → "Egg,
-/// whole, raw" is the `eggs` → `Egg` match above, 0.75, and clears the
-/// floor as it always did. Scored on the description it would be 0.375 —
-/// every token past the one that matched costs — and the #601 case this
-/// scorer exists for would have been flagged as a guess.
 const kResolutionConfidenceFloor = 0.45;
 
 /// One parsed item and what the food search made of it.
@@ -76,10 +58,7 @@ class ResolveParsedMealsUseCase {
 
   ResolveParsedMealsUseCase(this._searchProductsUseCase);
 
-  /// Resolves every item concurrently. The two sources are independent and
-  /// each already degrades to local-only results on failure inside
-  /// `SearchProductsUseCase`, so one source being down does not fail the
-  /// batch — it just narrows the candidate list.
+  /// Resolves items concurrently using product search and its local fallback.
   Future<List<ResolvedMealItem>> resolve(List<ParsedMealItem> items) async {
     if (items.isEmpty) return const [];
     return Future.wait(items.map(_resolveOne));
@@ -104,33 +83,9 @@ class ResolveParsedMealsUseCase {
   Future<ResolvedMealItem> _resolveOne(ParsedMealItem item) async {
     final query = item.query;
 
-    // Both entry points run in parallel. `searchFDCFoodByString` queries
-    // Supabase despite the name, and `forResolution` asks for the page
-    // this class auto-selects from: cut with the row's `has_portion`
-    // column read, so a portion-bearing record the ranking below would
-    // pick is not lost before it is scored (#1190). The Food tab's page
-    // is the same search cut without it (#1164).
-    //
-    // Each is guarded separately rather than wrapped in a single
-    // `Future.wait`, which fails fast: one source erroring must narrow the
-    // candidate list, never fail the item or the batch. `SearchProductsUseCase`
-    // already degrades internally via `_safeRemoteCall`, so this should not
-    // trigger today — it is here so that a future change there cannot turn a
-    // transient network error into a lost row.
-    final results = await Future.wait([
-      _search(() => _searchProductsUseCase.searchOFFProductsByString(query)),
-      _search(
-        () => _searchProductsUseCase.searchFDCFoodByString(
-          query,
-          forResolution: true,
-        ),
-      ),
-    ]);
-
-    // mergeAndRankMeals still does the work only it does: dedup across
-    // sources, near-duplicate collapsing, and keeping the user's own
-    // content in a tier above remote results.
-    final merged = mergeAndRankMeals(results[0], results[1], query);
+    final merged = await _search(
+      () => _searchProductsUseCase.searchOFFProductsByString(query),
+    );
 
     // Then re-order within those tiers with the inflection-tolerant score.
     // The shared ranker scores `eggs` against `Egg` at exactly 0.0, and

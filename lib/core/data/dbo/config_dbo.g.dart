@@ -44,7 +44,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
         usesImperialFoodUnits: fields[28] as bool?,
         usesImperialHeightUnits: fields[29] as bool?,
         bodyWeightUnitIndex: (fields[30] as num?)?.toInt(),
-        foodSourceToggles: (fields[31] as Map?)?.cast<String, bool>(),
         isDemoData: fields[32] as bool?,
         healthImportEnabled: fields[33] as bool?,
         healthWorkoutKcalMultiplier: (fields[34] as num?)?.toDouble(),
@@ -64,7 +63,7 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
   @override
   void write(BinaryWriter writer, ConfigDBO obj) {
     writer
-      ..writeByte(41)
+      ..writeByte(40)
       ..writeByte(0)
       ..write(obj.hasAcceptedDisclaimer)
       ..writeByte(1)
@@ -125,8 +124,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
       ..write(obj.usesImperialHeightUnits)
       ..writeByte(30)
       ..write(obj.bodyWeightUnitIndex)
-      ..writeByte(31)
-      ..write(obj.foodSourceToggles)
       ..writeByte(32)
       ..write(obj.isDemoData)
       ..writeByte(33)
@@ -200,8 +197,6 @@ ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
         usesImperialFoodUnits: json['usesImperialFoodUnits'] as bool?,
         usesImperialHeightUnits: json['usesImperialHeightUnits'] as bool?,
         bodyWeightUnitIndex: (json['bodyWeightUnitIndex'] as num?)?.toInt(),
-        foodSourceToggles: (json['foodSourceToggles'] as Map<String, dynamic>?)
-            ?.map((k, e) => MapEntry(k, e as bool)),
         isDemoData: json['isDemoData'] as bool?,
         healthImportEnabled: json['healthImportEnabled'] as bool?,
         healthWorkoutKcalMultiplier:
@@ -258,7 +253,6 @@ Map<String, dynamic> _$ConfigDBOToJson(ConfigDBO instance) => <String, dynamic>{
   'usesImperialFoodUnits': instance.usesImperialFoodUnits,
   'usesImperialHeightUnits': instance.usesImperialHeightUnits,
   'bodyWeightUnitIndex': instance.bodyWeightUnitIndex,
-  'foodSourceToggles': instance.foodSourceToggles,
   'isDemoData': instance.isDemoData,
   'healthImportEnabled': instance.healthImportEnabled,
   'healthWorkoutKcalMultiplier': instance.healthWorkoutKcalMultiplier,

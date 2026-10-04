@@ -62,9 +62,6 @@ class _FakeConfigRepository implements ConfigRepository {
   Future<void> setConfigAppTheme(AppThemeEntity _) async {}
 
   @override
-  Future<void> setConfigFoodSourceToggles(Map<String, bool> _) async {}
-
-  @override
   Future<void> setNotificationsEnabled(bool _) async {}
 
   @override
@@ -133,7 +130,6 @@ void main() {
           BodyWeightUnit.kg,
           false,
           appTheme: AppThemeEntity.system,
-          foodSourceToggles: const {},
           dailyReminderEnabled: false,
           useMaterialYou: true,
           accentColor: null,
