@@ -6,15 +6,31 @@ import 'package:opennutritracker/generated/l10n.dart';
 class DiaryDragTargets extends StatelessWidget {
   final ValueChanged<IntakeEntity> onDelete;
   final ValueChanged<IntakeEntity> onCopy;
+  final ValueChanged<IntakeEntity>? onExplode;
   const DiaryDragTargets({
     super.key,
     required this.onDelete,
     required this.onCopy,
+    this.onExplode,
   });
 
   @override
   Widget build(BuildContext context) => Row(
     children: [
+      if (onExplode != null) ...[
+        Expanded(
+          child: _target(
+            context,
+            'diary-explode-target',
+            S.of(context).explodeRecipeLabel,
+            Icons.call_split_rounded,
+            Theme.of(context).colorScheme.primary,
+            Theme.of(context).colorScheme.onPrimary,
+            onExplode!,
+          ),
+        ),
+        const SizedBox(width: 12),
+      ],
       Expanded(
         child: _target(
           context,
@@ -63,21 +79,20 @@ class DiaryDragTargets extends StatelessWidget {
           foreground: foreground,
           hovering: candidates.isNotEmpty,
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: foreground, size: 32),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge?.copyWith(color: foreground),
-              ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: foreground),
             ),
           ],
         ),

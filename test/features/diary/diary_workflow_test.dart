@@ -488,7 +488,7 @@ void main() {
   );
 
   testWidgets(
-    'ordinary left swipes and header swipes change dates and close Info',
+    'row left swipes reveal Refresh; header swipes change dates and close Info',
     (tester) async {
       await mount(tester);
       final card = find.byType(IntakeCard).first;
@@ -510,7 +510,8 @@ void main() {
         () => tester.drag(find.byType(IntakeCard).first, const Offset(-140, 0)),
       );
       await settleStorage(tester);
-      expect(h.selection.state.day, DateTime(2026, 9, 30));
+      expect(h.selection.state.day, DateTime(2026, 9, 29));
+      expect(control('diary-intake-refresh'), findsOneWidget);
     },
   );
 }

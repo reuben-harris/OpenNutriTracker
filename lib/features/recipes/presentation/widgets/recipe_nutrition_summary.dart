@@ -18,8 +18,8 @@ class RecipeNutritionSummary extends StatelessWidget {
     required this.totalWeightG,
   });
 
-  double _total(double? per100) {
-    return (per100 ?? 0) * totalWeightG / 100;
+  double? _total(double? per100) {
+    return per100 == null ? null : per100 * totalWeightG / 100;
   }
 
   @override
@@ -34,10 +34,15 @@ class RecipeNutritionSummary extends StatelessWidget {
     final usesKilojoules = context.watch<EnergyUnitProvider>().usesKilojoules;
     final energyLabel = usesKilojoules ? s.kjLabel : s.kcalLabel;
     final energyTotalKcal = _total(nutrimentsPer100.energyKcal100);
-    final energyTotalDisplay =
-        usesKilojoules ? UnitCalc.kcalToKj(energyTotalKcal) : energyTotalKcal;
-    final energyPer100Kcal = nutrimentsPer100.energyKcal100 ?? 0;
-    final energyPer100Display = usesKilojoules
+    final energyTotalDisplay = energyTotalKcal == null
+        ? null
+        : (usesKilojoules
+              ? UnitCalc.kcalToKj(energyTotalKcal)
+              : energyTotalKcal);
+    final energyPer100Kcal = nutrimentsPer100.energyKcal100;
+    final energyPer100Display = energyPer100Kcal == null
+        ? null
+        : usesKilojoules
         ? UnitCalc.kcalToKj(energyPer100Kcal)
         : energyPer100Kcal;
     return AppCard(
@@ -47,7 +52,9 @@ class RecipeNutritionSummary extends StatelessWidget {
         children: [
           Text(
             s.recipeNutritionPreviewLabel,
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: Dimens.spacing16),
           Row(
@@ -87,14 +94,19 @@ class RecipeNutritionSummary extends StatelessWidget {
               ),
             ],
           ),
-          Divider(height: Dimens.spacing24 + Dimens.spacing8, color: palette.border),
+          Divider(
+            height: Dimens.spacing24 + Dimens.spacing8,
+            color: palette.border,
+          ),
           Text(
             '${s.recipeNutritionPer100Label} · '
-            '${energyPer100Display.toStringAsFixed(0)} $energyLabel · '
-            '${s.carbsLabelShort.toUpperCase()} ${(nutrimentsPer100.carbohydrates100 ?? 0).toStringAsFixed(1)}g · '
-            '${s.fatLabelShort.toUpperCase()} ${(nutrimentsPer100.fat100 ?? 0).toStringAsFixed(1)}g · '
-            '${s.proteinLabelShort.toUpperCase()} ${(nutrimentsPer100.proteins100 ?? 0).toStringAsFixed(1)}g',
-            style: theme.textTheme.bodySmall?.copyWith(color: palette.textMuted),
+            '${energyPer100Display?.toStringAsFixed(0) ?? '—'} $energyLabel · '
+            '${s.carbsLabelShort.toUpperCase()} ${nutrimentsPer100.carbohydrates100?.toStringAsFixed(1) ?? '—'}g · '
+            '${s.fatLabelShort.toUpperCase()} ${nutrimentsPer100.fat100?.toStringAsFixed(1) ?? '—'}g · '
+            '${s.proteinLabelShort.toUpperCase()} ${nutrimentsPer100.proteins100?.toStringAsFixed(1) ?? '—'}g',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: palette.textMuted,
+            ),
           ),
         ],
       ),
@@ -103,7 +115,7 @@ class RecipeNutritionSummary extends StatelessWidget {
 }
 
 class _NutrientCell extends StatelessWidget {
-  final double value;
+  final double? value;
   final String label;
   final Color color;
   final AppPalette palette;
@@ -121,10 +133,13 @@ class _NutrientCell extends StatelessWidget {
     return Column(
       children: [
         Text(
-          value.toStringAsFixed(0),
+          value?.toStringAsFixed(0) ?? '—',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.w800),
+          style: textTheme.titleLarge?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(height: 2),
         Text(

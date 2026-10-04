@@ -1,4 +1,3 @@
-
 import 'package:equatable/equatable.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_portion_entity.dart';
 import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
@@ -151,6 +150,13 @@ class MealEntity extends Equatable {
   /// hydration step in MealDetailBloc.
   final bool detailed;
 
+  final bool isQuickAdd;
+
+  bool get hasQuickAddWeight =>
+      isQuickAdd &&
+      mealUnit != 'gml' &&
+      (double.tryParse(mealQuantity ?? '') ?? 0) > 0;
+
   bool get isLiquid => liquidUnits.contains(mealUnit);
 
   bool get isSolid => solidUnits.contains(mealUnit);
@@ -237,6 +243,7 @@ class MealEntity extends Equatable {
     this.portionsUnavailable = false,
     this.localImagePath,
     this.detailed = false,
+    this.isQuickAdd = false,
   });
 
   /// The same meal with a verified translation in place of the English
@@ -268,6 +275,7 @@ class MealEntity extends Equatable {
     portionsUnavailable: portionsUnavailable,
     localImagePath: localImagePath,
     detailed: detailed,
+    isQuickAdd: isQuickAdd,
   );
 
   /// The same meal knowing every portion it can be counted in.
@@ -296,6 +304,7 @@ class MealEntity extends Equatable {
     portionsUnavailable: portionsUnavailable,
     localImagePath: localImagePath,
     detailed: detailed,
+    isQuickAdd: isQuickAdd,
   );
 
   /// The same meal, recording that its portions could not be looked up.
@@ -324,6 +333,7 @@ class MealEntity extends Equatable {
     portionsUnavailable: true,
     localImagePath: localImagePath,
     detailed: detailed,
+    isQuickAdd: isQuickAdd,
   );
 
   factory MealEntity.empty() => MealEntity(
@@ -357,7 +367,21 @@ class MealEntity extends Equatable {
     machineTranslatedName: mealDBO.machineTranslatedName ?? false,
     localImagePath: mealDBO.localImagePath,
     detailed: mealDBO.detailed ?? false,
+    isQuickAdd: mealDBO.isQuickAdd ?? _isHistoricalQuickAdd(mealDBO),
   );
+
+  static bool _isHistoricalQuickAdd(MealDBO m) =>
+      m.source == MealSourceDBO.custom &&
+      m.mealQuantity == '100' &&
+      m.mealUnit == 'gml' &&
+      m.servingQuantity == null &&
+      m.servingUnit == 'gml' &&
+      m.servingSize == '' &&
+      m.brands == null &&
+      m.url == null &&
+      m.thumbnailImageUrl == null &&
+      m.mainImageUrl == null &&
+      m.localImagePath == null;
 
   /// [detailed] is true for full-product responses (the v2 barcode endpoint),
   /// false for the thin Search-a-licious text-search projection.
@@ -578,7 +602,19 @@ class MealEntity extends Equatable {
   }
 
   @override
-  List<Object?> get props => [code, name];
+  List<Object?> get props => [
+    code,
+    name,
+    nutriments,
+    isQuickAdd,
+    mealQuantity,
+    mealUnit,
+    servingUnit,
+    servingQuantity,
+    servingSize,
+    backendSource,
+    localImagePath,
+  ];
 }
 
 enum MealSourceEntity {

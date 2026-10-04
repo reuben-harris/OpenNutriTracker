@@ -1,3 +1,4 @@
+import 'dart:ui' show ImageFilter;
 import 'dart:io';
 
 import 'package:auto_size_text/auto_size_text.dart';
@@ -25,6 +26,7 @@ class IntakeCard extends StatelessWidget {
   final Function(BuildContext, IntakeEntity, bool)? onItemTapped;
   final bool firstListElement;
   final bool usesImperialUnits;
+  final bool isRefreshing;
 
   const IntakeCard({
     required super.key,
@@ -33,6 +35,7 @@ class IntakeCard extends StatelessWidget {
     this.onItemTapped,
     required this.firstListElement,
     required this.usesImperialUnits,
+    this.isRefreshing = false,
   });
 
   @override
@@ -59,10 +62,15 @@ class IntakeCard extends StatelessWidget {
               : null,
           child: AppCard(
             borderRadius: Dimens.radiusM,
+            borderColor: intake.isIncomplete ? Colors.orange : null,
             padding: const EdgeInsets.all(Dimens.spacing12),
             child: Row(
               children: [
-                IntakeThumbnail(intake: intake, palette: palette),
+                IntakeThumbnail(
+                  intake: intake,
+                  palette: palette,
+                  isRefreshing: isRefreshing,
+                ),
                 const SizedBox(width: Dimens.spacing12),
                 Expanded(
                   child: Column(
@@ -79,13 +87,36 @@ class IntakeCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      MealValueUnitText(
-                        value: intake.amount,
-                        meal: intake.meal,
-                        usesImperialUnits: usesImperialUnits,
-                        textStyle: textTheme.bodySmall?.copyWith(
+                      AutoSizeText.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text:
+                                  intake.meal.isQuickAdd &&
+                                      !intake.meal.hasQuickAddWeight
+                                  ? '—'
+                                  : MealValueUnitText.format(
+                                      context,
+                                      intake.amount,
+                                      intake.meal,
+                                      usesImperialUnits: usesImperialUnits,
+                                    ),
+                            ),
+                            if (intake.isIncomplete)
+                              TextSpan(
+                                text: ' · ${s.missingNutritionLabel}',
+                                style: const TextStyle(
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                          ],
+                        ),
+                        style: textTheme.bodySmall?.copyWith(
                           color: palette.textMuted,
                         ),
+                        maxLines: 1,
+                        minFontSize: 8,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -97,7 +128,12 @@ class IntakeCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       AutoSizeText(
-                        EnergyDisplay.formatWithUnit(context, intake.totalKcal),
+                        intake.meal.nutriments.energyKcal100 == null
+                            ? '—'
+                            : EnergyDisplay.formatWithUnit(
+                                context,
+                                intake.totalKcal,
+                              ),
                         maxLines: 1,
                         minFontSize: 8,
                         overflow: TextOverflow.ellipsis,
@@ -108,9 +144,9 @@ class IntakeCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       AutoSizeText(
-                        '${intake.totalCarbsGram.toStringAsFixed(0)} ${s.carbsLabelShort} '
-                        '${intake.totalFatsGram.toStringAsFixed(0)} ${s.fatLabelShort} '
-                        '${intake.totalProteinsGram.toStringAsFixed(0)} ${s.proteinLabelShort}',
+                        '${_known(intake.meal.nutriments.carbohydrates100, intake.totalCarbsGram)} ${s.carbsLabelShort} '
+                        '${_known(intake.meal.nutriments.fat100, intake.totalFatsGram)} ${s.fatLabelShort} '
+                        '${_known(intake.meal.nutriments.proteins100, intake.totalProteinsGram)} ${s.proteinLabelShort}',
                         maxLines: 1,
                         minFontSize: 8,
                         overflow: TextOverflow.ellipsis,
@@ -129,6 +165,9 @@ class IntakeCard extends StatelessWidget {
     );
   }
 
+  String _known(double? value, double total) =>
+      value == null ? '—' : total.toStringAsFixed(0);
+
   void onLongPressedItem(BuildContext context) {
     onItemLongPressed?.call(context, intake);
   }
@@ -143,11 +182,13 @@ class IntakeCard extends StatelessWidget {
 class IntakeThumbnail extends StatelessWidget {
   final IntakeEntity intake;
   final AppPalette palette;
+  final bool isRefreshing;
 
   const IntakeThumbnail({
     super.key,
     required this.intake,
     required this.palette,
+    this.isRefreshing = false,
   });
 
   @override
@@ -171,7 +212,33 @@ class IntakeThumbnail extends StatelessWidget {
       child: SizedBox(
         width: IntakeCard.thumbSize,
         height: IntakeCard.thumbSize,
-        child: content,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (isRefreshing)
+              ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                child: content,
+              )
+            else
+              content,
+            if (isRefreshing)
+              ColoredBox(
+                color: palette.surface.withValues(alpha: 0.35),
+                child: Center(
+                  child: Semantics(
+                    identifier: 'diary-intake-refresh-progress',
+                    label: S.of(context).diaryRefreshLabel,
+                    child: const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

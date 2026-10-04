@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Keeps one Info or Explode action open across all meal sections on a screen.
+/// Keeps one Info or Refresh action open across all meal sections on a screen.
 class RecipeSwipeScope extends StatefulWidget {
   final Widget child;
   final bool active;

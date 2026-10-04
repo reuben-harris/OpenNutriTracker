@@ -95,6 +95,9 @@ class MealDBO extends HiveObject {
   /// field changes again.
   static const currentDataVersion = dataVersionOffMicronutrientsInAppUnits;
 
+  @HiveField(18)
+  final bool? isQuickAdd;
+
   MealDBO({
     required this.code,
     required this.name,
@@ -114,32 +117,34 @@ class MealDBO extends HiveObject {
     this.backendSource,
     this.machineTranslatedName,
     this.dataVersion,
+    this.isQuickAdd,
   });
 
   /// Entities always carry app units — every remote mapping converts on
   /// the way in — so a row built from one is stamped current.
   factory MealDBO.fromMealEntity(MealEntity mealEntity) => MealDBO(
-        code: mealEntity.code,
-        name: mealEntity.name,
-        brands: mealEntity.brands,
-        thumbnailImageUrl: mealEntity.thumbnailImageUrl,
-        mainImageUrl: mealEntity.mainImageUrl,
-        url: mealEntity.url,
-        mealQuantity: mealEntity.mealQuantity,
-        mealUnit: mealEntity.mealUnit,
-        servingQuantity: mealEntity.servingQuantity,
-        servingUnit: mealEntity.servingUnit,
-        servingSize: mealEntity.servingSize,
-        nutriments: MealNutrimentsDBO.fromProductNutrimentsEntity(
-          mealEntity.nutriments,
-        ),
-        source: MealSourceDBO.fromMealSourceEntity(mealEntity.source),
-        localImagePath: mealEntity.localImagePath,
-        detailed: mealEntity.detailed,
-        backendSource: mealEntity.backendSource,
-        machineTranslatedName: mealEntity.machineTranslatedName,
-        dataVersion: currentDataVersion,
-      );
+    code: mealEntity.code,
+    name: mealEntity.name,
+    brands: mealEntity.brands,
+    thumbnailImageUrl: mealEntity.thumbnailImageUrl,
+    mainImageUrl: mealEntity.mainImageUrl,
+    url: mealEntity.url,
+    mealQuantity: mealEntity.mealQuantity,
+    mealUnit: mealEntity.mealUnit,
+    servingQuantity: mealEntity.servingQuantity,
+    servingUnit: mealEntity.servingUnit,
+    servingSize: mealEntity.servingSize,
+    nutriments: MealNutrimentsDBO.fromProductNutrimentsEntity(
+      mealEntity.nutriments,
+    ),
+    source: MealSourceDBO.fromMealSourceEntity(mealEntity.source),
+    localImagePath: mealEntity.localImagePath,
+    detailed: mealEntity.detailed,
+    backendSource: mealEntity.backendSource,
+    machineTranslatedName: mealEntity.machineTranslatedName,
+    dataVersion: currentDataVersion,
+    isQuickAdd: mealEntity.isQuickAdd,
+  );
 
   factory MealDBO.fromJson(Map<String, dynamic> json) =>
       _$MealDBOFromJson(json);

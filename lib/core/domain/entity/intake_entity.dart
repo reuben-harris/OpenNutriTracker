@@ -47,6 +47,13 @@ class IntakeEntity extends Equatable {
     );
   }
 
+  bool get isIncomplete =>
+      meal.nutriments.isIncomplete ||
+      (recipeSnapshot?.ingredients.any(
+            (i) => i.snapshotMeal.nutriments.isIncomplete,
+          ) ??
+          false);
+
   double get totalKcal => amount * (meal.nutriments.energyPerUnit ?? 0);
 
   double get totalCarbsGram =>
@@ -64,6 +71,7 @@ class IntakeEntity extends Equatable {
     amount,
     type,
     dateTime,
+    meal,
     recipeSnapshot,
     conversionParentId,
   ];

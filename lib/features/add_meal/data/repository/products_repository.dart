@@ -51,10 +51,11 @@ class ProductsRepository {
     final candidates = <_RankedOffProduct>[];
     for (var i = 0; i < offWordResponse.products.length; i++) {
       final dto = offWordResponse.products[i];
-      if (dto.nutriments == null) continue;
+
       final meal = MealEntity.fromOFFProduct(dto);
       if (!_keepIfConsistent(meal)) continue;
-      final inUserCountry = userCountryTag != null &&
+      final inUserCountry =
+          userCountryTag != null &&
           (dto.countries_tags?.contains(userCountryTag) ?? false);
       candidates.add(
         _RankedOffProduct(meal, dto.popularity_key ?? 0, i, inUserCountry),
@@ -79,7 +80,8 @@ class ProductsRepository {
     }
 
     double score(_RankedOffProduct p) {
-      final fused = 1 / (_rankFusionK + p.relevanceRank) +
+      final fused =
+          1 / (_rankFusionK + p.relevanceRank) +
           1 / (_rankFusionK + popularityRank[p]!);
       return p.inUserCountry ? fused * _localCountryBoost : fused;
     }
@@ -93,8 +95,9 @@ class ProductsRepository {
 
     final ranked = [...candidates]
       ..sort((a, b) {
-        final byConsistency =
-            consistencyBucket(a).compareTo(consistencyBucket(b));
+        final byConsistency = consistencyBucket(
+          a,
+        ).compareTo(consistencyBucket(b));
         if (byConsistency != 0) return byConsistency;
         return score(b).compareTo(score(a));
       });
@@ -136,10 +139,7 @@ class ProductsRepository {
       _spBackendDataSource.fetchPortions(ids),
     ).wait;
 
-    return [
-      for (final meal in products)
-        _decorate(meal, labels, portions),
-    ];
+    return [for (final meal in products) _decorate(meal, labels, portions)];
   }
 
   /// Applies whichever of the two lookups had something for this meal.
@@ -171,6 +171,20 @@ class ProductsRepository {
     return result;
   }
 
+  Future<MealEntity?> getBackendFoodById(String code, String source) async {
+    final id = int.tryParse(code);
+    if (id == null) return null;
+    final food = await _spBackendDataSource.fetchFoodById(id, source);
+    if (food == null) return null;
+    final meal = MealEntity.fromSpFood(food);
+    if (!_keepIfConsistent(meal)) throw StateError('Invalid source nutrition');
+    final (labels, portions) = await (
+      _spBackendDataSource.fetchPortionLabels([id]),
+      _spBackendDataSource.fetchPortions([id]),
+    ).wait;
+    return _decorate(meal, labels, portions);
+  }
+
   Future<MealEntity> getOFFProductByBarcode(String barcode) async {
     final productResponse = await _offDataSource.fetchBarcodeResults(barcode);
     if (productResponse.status != 1) throw ProductNotFoundException();
@@ -196,17 +210,19 @@ class ProductsRepository {
       'Dropping ${meal.source.name} item code=${meal.code} '
       'name="${meal.name}" — failed rule: $reason',
     );
-    Sentry.addBreadcrumb(Breadcrumb(
-      category: 'food_import.validation',
-      level: SentryLevel.warning,
-      message: 'Dropped corrupt food entry from search results',
-      data: {
-        'source': meal.source.name,
-        'code': meal.code,
-        'name': meal.name,
-        'rule': reason,
-      },
-    ));
+    Sentry.addBreadcrumb(
+      Breadcrumb(
+        category: 'food_import.validation',
+        level: SentryLevel.warning,
+        message: 'Dropped corrupt food entry from search results',
+        data: {
+          'source': meal.source.name,
+          'code': meal.code,
+          'name': meal.name,
+          'rule': reason,
+        },
+      ),
+    );
     return false;
   }
 }

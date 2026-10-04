@@ -2,7 +2,7 @@
   "explodeRecipeLabel": "Explode",
   "explodeRecipeConfirmTitle": "Explode recipe?",
   "explodeRecipeOneWayHint": "This replaces the recipe row with editable ingredients and cannot be undone.",
-  "explodeRecipeOldEntryMessage": "This older entry has no saved ingredients. Log the recipe again to use Explode.",
+  "explodeRecipeOldEntryMessage": "This entry has no usable saved ingredients. Refresh it from a saved recipe to use Explode.",
   "explodeRecipeSuccessMessage": "Recipe replaced with ingredients.",
   "explodeRecipeFailedMessage": "Could not finish exploding the recipe. Reload the diary to check the result.",
   "@PHYSICAL_ACTIVITIES": {},
@@ -1414,5 +1414,13 @@
   "diaryPasteLabel": "Paste into {group}",
   "@diaryPasteLabel": {"placeholders": {"group": {"type": "String"}}},
   "diaryClipboardCountLabel": "{count} entries",
-  "@diaryClipboardCountLabel": {"placeholders": {"count": {"type": "int"}}}
+  "@diaryClipboardCountLabel": {"placeholders": {"count": {"type": "int"}}},
+  "missingNutritionLabel": "Missing information",
+  "diaryRefreshLabel": "Refresh",
+  "diaryRefreshSuccess": "Entry refreshed",
+  "diaryRefreshFailed": "Could not refresh this entry. Try again.",
+  "diaryRefreshUnavailable": "The source is unavailable. The recorded entry was kept.",
+  "quickAddSaveChanges": "Save changes",
+  "quickAddReuseFailed": "Could not add this entry. Try again.",
+  "quickAddWeightLabel": "Weight / volume (optional)"
 }

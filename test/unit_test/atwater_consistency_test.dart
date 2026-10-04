@@ -6,16 +6,15 @@ MealNutrimentsEntity _n({
   double? carbs,
   double? fat,
   double? protein,
-}) =>
-    MealNutrimentsEntity(
-      energyKcal100: energy,
-      carbohydrates100: carbs,
-      fat100: fat,
-      proteins100: protein,
-      sugars100: null,
-      saturatedFat100: null,
-      fiber100: null,
-    );
+}) => MealNutrimentsEntity(
+  energyKcal100: energy,
+  carbohydrates100: carbs,
+  fat100: fat,
+  proteins100: protein,
+  sugars100: null,
+  saturatedFat100: null,
+  fiber100: null,
+);
 
 void main() {
   group('Atwater energy consistency', () {
@@ -41,6 +40,12 @@ void main() {
 
     test('no declared energy -> no opinion (treated as consistent)', () {
       final n = _n(energy: null, carbs: 10, fat: 5, protein: 5);
+      expect(atwaterEnergyRelativeError(n), isNull);
+      expect(isAtwaterConsistent(n), isTrue);
+    });
+
+    test('one missing macro gives no opinion rather than assuming zero', () {
+      final n = _n(energy: 500, carbs: 1, fat: 0);
       expect(atwaterEnergyRelativeError(n), isNull);
       expect(isAtwaterConsistent(n), isTrue);
     });

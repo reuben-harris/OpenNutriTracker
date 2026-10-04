@@ -1,4 +1,3 @@
-
 import 'package:collection/collection.dart';
 import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
@@ -68,6 +67,36 @@ class SpFoodDataSource {
   /// are: the resolver's, and the cut reads each row's `has_portion`
   /// column; or the Food tab's — the default — and it does not (#1164,
   /// #1190; the cut's comment says why the two differ).
+  Future<SpFoodDTO?> fetchFoodById(int id, String source) async {
+    return withRetry(() async {
+      final client = locator<SupabaseClient>();
+      final rows = await _rpcRows(client, SPConst.foodSummaryByIdsFn, {
+        'ids': [id],
+        'sources': [source],
+      });
+      final row = rows.firstWhereOrNull(
+        (r) => r['food_id'] == id && r['source'] == source,
+      );
+      if (row == null) return null;
+      final food = SpFoodDTO.fromJson(row);
+      final locale = _foodLocale();
+      if (locale != null) {
+        final translations = await client
+            .from(SPConst.foodTranslationTable)
+            .select('description, source')
+            .eq('food_id', id)
+            .eq('locale', locale);
+        if (_foodLocale() != locale) return fetchFoodById(id, source);
+        if (translations.isNotEmpty) {
+          food.localizedName = translations.first['description'] as String?;
+          food.localizedNameIsMachineTranslated =
+              translations.first['source'] == SPConst.translationSourceMachine;
+        }
+      }
+      return food;
+    });
+  }
+
   Future<List<SpFoodDTO>> fetchSearchWordResults(
     String searchString, {
     bool forResolution = false,
@@ -584,13 +613,16 @@ List<T> _rankAndTruncate<T>(
         portioned: hasPortion(item) == true ? 1 : 0,
       ),
   ];
-  mergeSort(decorated, compare: (a, b) {
-    final byScore = b.score.compareTo(a.score);
-    if (byScore != 0) return byScore;
-    final byLength = a.length.compareTo(b.length);
-    if (byLength != 0) return byLength;
-    return b.portioned.compareTo(a.portioned);
-  });
+  mergeSort(
+    decorated,
+    compare: (a, b) {
+      final byScore = b.score.compareTo(a.score);
+      if (byScore != 0) return byScore;
+      final byLength = a.length.compareTo(b.length);
+      if (byLength != 0) return byLength;
+      return b.portioned.compareTo(a.portioned);
+    },
+  );
   return [
     for (final entry in decorated.take(SPConst.maxNumberOfItems)) entry.item,
   ];

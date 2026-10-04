@@ -23,19 +23,28 @@ class MealValueUnitText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mealUnit = meal.mealUnit ?? S.of(context).gramMilliliterUnit;
-    final unitToDisplay = displayUnit ?? _convertUnit(context, mealUnit);
-    final convertedValue = _convertValue(value, mealUnit, unitToDisplay);
-
     return Text(
-      '$prefix${_formatValue(convertedValue)} $unitToDisplay',
+      '$prefix${format(context, value, meal, usesImperialUnits: usesImperialUnits, displayUnit: displayUnit)}',
       style: textStyle,
       overflow: TextOverflow.ellipsis,
       maxLines: 1,
     );
   }
 
-  double _convertValue(double value, String fromUnit, String toUnit) {
+  static String format(
+    BuildContext context,
+    double value,
+    MealEntity meal, {
+    required bool usesImperialUnits,
+    String? displayUnit,
+  }) {
+    final mealUnit = meal.mealUnit ?? S.of(context).gramMilliliterUnit;
+    final unit =
+        displayUnit ?? _convertUnit(context, mealUnit, usesImperialUnits);
+    return '${_formatValue(_convertValue(value, mealUnit, unit))} $unit';
+  }
+
+  static double _convertValue(double value, String fromUnit, String toUnit) {
     // If units are the same, no conversion needed
     if (fromUnit == toUnit) return value;
 
@@ -46,7 +55,7 @@ class MealValueUnitText extends StatelessWidget {
     return _convertFromBaseUnit(baseValue, toUnit);
   }
 
-  double _convertToBaseUnit(double value, String fromUnit) {
+  static double _convertToBaseUnit(double value, String fromUnit) {
     switch (fromUnit) {
       case 'oz':
         return UnitCalc.ozToG(value);
@@ -57,7 +66,7 @@ class MealValueUnitText extends StatelessWidget {
     }
   }
 
-  double _convertFromBaseUnit(double value, String toUnit) {
+  static double _convertFromBaseUnit(double value, String toUnit) {
     switch (toUnit) {
       case 'oz':
         return UnitCalc.gToOz(value);
@@ -68,7 +77,11 @@ class MealValueUnitText extends StatelessWidget {
     }
   }
 
-  String _convertUnit(BuildContext context, String unit) {
+  static String _convertUnit(
+    BuildContext context,
+    String unit,
+    bool usesImperialUnits,
+  ) {
     switch (unit) {
       case 'g':
         return usesImperialUnits
@@ -87,12 +100,12 @@ class MealValueUnitText extends StatelessWidget {
     }
   }
 
-  String _formatValue(double value) {
+  static String _formatValue(double value) {
     final formattedValue = value.toStringAsFixed(2);
     return formattedValue.endsWith('.00')
         ? formattedValue.substring(0, formattedValue.length - 3)
         : formattedValue.endsWith('0')
-            ? formattedValue.substring(0, formattedValue.length - 1)
-            : formattedValue;
+        ? formattedValue.substring(0, formattedValue.length - 1)
+        : formattedValue;
   }
 }

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/utils/app_locale.dart';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -16,13 +17,14 @@ import '../helpers/hive_test_setup.dart';
 /// an empty PostgREST result set.
 class _RecordingClient extends http.BaseClient {
   final sent = <http.Request>[];
+  List<Map<String, dynamic>> rows = [];
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final req = request as http.Request;
     sent.add(req);
     return http.StreamedResponse(
-      Stream.value(utf8.encode('[]')),
+      Stream.value(utf8.encode(jsonEncode(rows))),
       200,
       headers: {'content-type': 'application/json; charset=utf-8'},
       request: request,
@@ -74,10 +76,44 @@ void main() {
   });
 
   tearDown(() async {
+    AppLocale.reset();
     locator.unregister<SupabaseClient>();
     locator.unregister<ConfigDataSource>();
     await Hive.deleteFromDisk();
   });
+
+  test(
+    'refresh lookup posts exact food ID and verifies database provenance',
+    () async {
+      AppLocale.select('en');
+      http_.rows = [
+        {
+          'food_id': 42,
+          'source': 'bls',
+          'source_code': 'B001',
+          'name': 'Food',
+          'energy_kcal_per_100g': null,
+        },
+      ];
+      final result = await SpFoodDataSource().fetchFoodById(42, 'bls');
+      expect(result?.foodId, 42);
+      expect(result?.source, 'bls');
+      expect(http_.sent.single.method, 'POST');
+      expect(http_.sent.single.url.path, '/rest/v1/rpc/food_summary_by_ids');
+      expect(jsonDecode(http_.sent.single.body), {
+        'ids': [42],
+        'sources': ['bls'],
+      });
+      http_.rows = [
+        {'food_id': 42, 'source': 'fdc_sr_legacy', 'name': 'Wrong database'},
+      ];
+      expect(await SpFoodDataSource().fetchFoodById(42, 'bls'), isNull);
+      http_.rows = [
+        {'food_id': 43, 'source': 'bls', 'name': 'Wrong food'},
+      ];
+      expect(await SpFoodDataSource().fetchFoodById(42, 'bls'), isNull);
+    },
+  );
 
   // A term that cannot occur by accident in a URL, so a substring match on it
   // is a real signal rather than a coincidence.

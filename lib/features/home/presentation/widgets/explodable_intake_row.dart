@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/domain/usecase/refresh_diary_intake_usecase.dart';
+import 'package:opennutritracker/features/add_meal/presentation/widgets/quick_add_bottom_sheet.dart';
 import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
 import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
@@ -5,7 +7,6 @@ import 'package:opennutritracker/features/meal_detail/meal_detail_screen.dart';
 import 'package:opennutritracker/features/recipes/presentation/screens/recipe_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
-import 'package:opennutritracker/core/domain/usecase/explode_recipe_intake_usecase.dart';
 import 'package:opennutritracker/core/presentation/widgets/intake_card.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
@@ -16,8 +17,7 @@ import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart'
 import 'package:opennutritracker/features/home/presentation/widgets/recipe_swipe_scope.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
-/// Right swipes reveal Info; recipe left swipes reveal Explode. Ordinary
-/// left swipes are forwarded to the diary date navigator.
+/// Entry swipes reveal Info on the right and Refresh on the left.
 class ExplodableIntakeRow extends StatefulWidget {
   final IntakeEntity intake;
   final bool usesImperialUnits;
@@ -49,7 +49,6 @@ class _ExplodableIntakeRowState extends State<ExplodableIntakeRow>
   bool _busy = false;
 
   double _startOffset = 0;
-  double _swipeDistance = 0;
   bool get _isRecipe => widget.intake.meal.source == MealSourceEntity.recipe;
 
   double get _offset => _slide.value;
@@ -115,19 +114,23 @@ class _ExplodableIntakeRowState extends State<ExplodableIntakeRow>
     final card = IntakeCard(
       key: ValueKey('card-${widget.intake.id}'),
       intake: widget.intake,
+      isRefreshing: _busy,
       onItemLongPressed: widget.onItemLongPressed,
       onItemTapped: (context, intake, imperial) {
         if (_offset != 0) {
           _close();
         } else {
-          widget.onItemTapped?.call(context, intake, imperial);
+          if (intake.meal.isQuickAdd) {
+            _openQuickAdd();
+          } else {
+            widget.onItemTapped?.call(context, intake, imperial);
+          }
         }
       },
       firstListElement: false,
       usesImperialUnits: widget.usesImperialUnits,
     );
 
-    final available = widget.intake.recipeSnapshot != null;
     final color = Theme.of(context).colorScheme.primary;
     final actionEnabled = _offset == -_actionWidth && !_slide.isAnimating;
     return TapRegion(
@@ -140,16 +143,14 @@ class _ExplodableIntakeRowState extends State<ExplodableIntakeRow>
               ? null
               : (_) {
                   _startOffset = _offset;
-                  _swipeDistance = 0;
                   _slide.stop();
                   _group?.open(_close);
                 },
           onHorizontalDragUpdate: _busy
               ? null
               : (details) {
-                  _swipeDistance += details.delta.dx;
                   _slide.value = (_offset + details.delta.dx).clamp(
-                    _isRecipe ? -_actionWidth : 0.0,
+                    -_actionWidth,
                     _actionWidth,
                   );
                 },
@@ -157,19 +158,13 @@ class _ExplodableIntakeRowState extends State<ExplodableIntakeRow>
               ? null
               : (details) {
                   final velocity = details.primaryVelocity ?? 0;
-                  if (!_isRecipe && _startOffset == 0 && _swipeDistance < 0) {
-                    _settle(0);
-                    if (_swipeDistance <= -60 || velocity < -250) {
-                      widget.onLeftSwipe?.call();
-                    }
-                  } else if (_startOffset != 0 && velocity * _startOffset < 0) {
+                  if (_startOffset != 0 && velocity * _startOffset < 0) {
                     _settle(0);
                   } else if (velocity > 250 ||
                       (velocity >= -250 && _offset >= _infoRevealThreshold)) {
                     _settle(_actionWidth);
-                  } else if (_isRecipe &&
-                      (velocity < -250 ||
-                          (velocity <= 250 && _offset < -_actionWidth / 2))) {
+                  } else if ((velocity < -250 ||
+                      (velocity <= 250 && _offset < -_actionWidth / 2))) {
                     _settle(-_actionWidth);
                   } else {
                     _settle(0);
@@ -179,7 +174,7 @@ class _ExplodableIntakeRowState extends State<ExplodableIntakeRow>
           child: ClipRect(
             child: Stack(
               children: [
-                if (_isRecipe && _offset <= 0)
+                if (_offset <= 0)
                   Positioned(
                     right: Dimens.spacing16,
                     top: Dimens.spacing4,
@@ -191,11 +186,9 @@ class _ExplodableIntakeRowState extends State<ExplodableIntakeRow>
                         child: ExcludeSemantics(
                           excluding: !actionEnabled,
                           child: Semantics(
-                            identifier: 'explode-recipe-action',
+                            identifier: 'diary-intake-refresh',
                             child: Material(
-                              color: available
-                                  ? color
-                                  : Theme.of(context).disabledColor,
+                              color: color,
                               borderRadius: BorderRadius.circular(
                                 Dimens.radiusM,
                               ),
@@ -203,18 +196,18 @@ class _ExplodableIntakeRowState extends State<ExplodableIntakeRow>
                                 borderRadius: BorderRadius.circular(
                                   Dimens.radiusM,
                                 ),
-                                onTap: _busy ? null : _onExplode,
+                                onTap: _busy ? null : _onRefresh,
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Icon(
-                                      Icons.call_split_rounded,
+                                    Icon(
+                                      Icons.refresh_rounded,
                                       size: 28,
                                       color: Colors.white,
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      S.of(context).explodeRecipeLabel,
+                                      S.of(context).diaryRefreshLabel,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: Theme.of(context)
@@ -323,66 +316,60 @@ class _ExplodableIntakeRowState extends State<ExplodableIntakeRow>
     }
   }
 
-  Future<void> _onExplode() async {
-    if (_busy) return;
+  void _openQuickAdd() {
     _close();
-    if (widget.intake.recipeSnapshot == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(S.of(context).explodeRecipeOldEntryMessage)),
-      );
+    final intake = widget.intake;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => QuickAddBottomSheet(
+        intakeType: intake.type,
+        day: intake.dateTime,
+        editingIntake: intake,
+      ),
+    );
+  }
+
+  Future<void> _onRefresh() async {
+    if (_busy) return;
+    if (widget.intake.meal.isQuickAdd) {
+      _openQuickAdd();
       return;
     }
-
+    _close();
     setState(() => _busy = true);
     try {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => const _ExplodeConfirmDialog(),
-      );
-      if (confirmed != true) return;
-      await locator<ExplodeRecipeIntakeUsecase>().explode(widget.intake.id);
+      final results = await Future.wait([
+        locator<RefreshDiaryIntakeUsecase>().refresh(widget.intake.id),
+        Future<IntakeEntity?>.delayed(
+          const Duration(milliseconds: 500),
+          () => null,
+        ),
+      ]);
+      final updated = results.first;
+      if (updated == null) return;
       locator<HomeBloc>().add(const LoadItemsEvent());
       locator<DiaryBloc>().add(const LoadDiaryYearEvent());
       locator<CalendarDayBloc>().add(RefreshCalendarDayEvent());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).explodeRecipeSuccessMessage)),
+          SnackBar(content: Text(S.of(context).diaryRefreshSuccess)),
         );
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).explodeRecipeFailedMessage)),
+          SnackBar(
+            content: Text(
+              error is DiarySourceUnavailable
+                  ? S.of(context).diaryRefreshUnavailable
+                  : S.of(context).diaryRefreshFailed,
+            ),
+          ),
         );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
-  }
-}
-
-class _ExplodeConfirmDialog extends StatelessWidget {
-  const _ExplodeConfirmDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    return AlertDialog(
-      title: Text(s.explodeRecipeConfirmTitle),
-      content: Text(s.explodeRecipeOneWayHint),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(s.dialogCancelLabel),
-        ),
-        Semantics(
-          identifier: 'explode-recipe-confirm',
-          child: FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(s.explodeRecipeLabel),
-          ),
-        ),
-      ],
-    );
   }
 }

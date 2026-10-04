@@ -224,33 +224,7 @@ class CalendarDayBloc extends Bloc<CalendarDayEvent, CalendarDayState> {
     Map<String, dynamic> fields,
     DateTime day,
   ) async {
-    final oldIntake = await _getIntakeUsecase.getIntakeById(intakeId);
-    assert(oldIntake != null);
-    final newIntake = await _updateIntakeUsecase.updateIntake(intakeId, fields);
-    assert(newIntake != null);
-    if (oldIntake!.amount > newIntake!.amount) {
-      await _addTrackedDayUsecase.removeDayCaloriesTracked(
-        day,
-        oldIntake.totalKcal - newIntake.totalKcal,
-      );
-      await _addTrackedDayUsecase.removeDayMacrosTracked(
-        day,
-        carbsTracked: oldIntake.totalCarbsGram - newIntake.totalCarbsGram,
-        fatTracked: oldIntake.totalFatsGram - newIntake.totalFatsGram,
-        proteinTracked: oldIntake.totalProteinsGram - newIntake.totalProteinsGram,
-      );
-    } else if (newIntake.amount > oldIntake.amount) {
-      await _addTrackedDayUsecase.addDayCaloriesTracked(
-        day,
-        newIntake.totalKcal - oldIntake.totalKcal,
-      );
-      await _addTrackedDayUsecase.addDayMacrosTracked(
-        day,
-        carbsTracked: newIntake.totalCarbsGram - oldIntake.totalCarbsGram,
-        fatTracked: newIntake.totalFatsGram - oldIntake.totalFatsGram,
-        proteinTracked: newIntake.totalProteinsGram - oldIntake.totalProteinsGram,
-      );
-    }
+    await _updateIntakeUsecase.updateIntake(intakeId, fields);
   }
 
   Future<void> deleteUserActivityItem(

@@ -26,8 +26,11 @@ class SharedMealOffRef {
   final double amount;
   final String unit;
 
-  const SharedMealOffRef(
-      {required this.barcode, required this.amount, required this.unit});
+  const SharedMealOffRef({
+    required this.barcode,
+    required this.amount,
+    required this.unit,
+  });
 
   factory SharedMealOffRef.fromIntakeEntity(IntakeEntity intake) {
     return SharedMealOffRef(
@@ -71,6 +74,10 @@ class SharedMealItem {
   final String? mainImageUrl;
   final MealSourceEntity source;
   final String? code;
+  final bool isQuickAdd;
+  final bool hasQuickAddWeight;
+  final String? quickAddInputUnit;
+  final String? backendSource;
 
   const SharedMealItem({
     required this.name,
@@ -88,6 +95,10 @@ class SharedMealItem {
     required this.mainImageUrl,
     required this.source,
     required this.code,
+    this.isQuickAdd = false,
+    this.hasQuickAddWeight = false,
+    this.quickAddInputUnit,
+    this.backendSource,
   });
 
   factory SharedMealItem.fromIntakeEntity(IntakeEntity intake) {
@@ -107,6 +118,10 @@ class SharedMealItem {
       mainImageUrl: intake.meal.mainImageUrl,
       source: intake.meal.source,
       code: intake.meal.code,
+      isQuickAdd: intake.meal.isQuickAdd,
+      hasQuickAddWeight: intake.meal.hasQuickAddWeight,
+      quickAddInputUnit: intake.meal.servingUnit,
+      backendSource: intake.meal.backendSource,
     );
   }
 
@@ -133,6 +148,10 @@ class SharedMealItem {
       mainImageUrl: atStr(12),
       source: source,
       code: atStr(14),
+      isQuickAdd: a.length > 15 && a[15] == true,
+      backendSource: atStr(16),
+      hasQuickAddWeight: a.length > 17 && a[17] == true,
+      quickAddInputUnit: atStr(18),
     );
   }
 
@@ -153,6 +172,10 @@ class SharedMealItem {
       mainImageUrl,
       source == MealSourceEntity.fdc ? 'fdc' : 'custom',
       code,
+      isQuickAdd,
+      backendSource,
+      hasQuickAddWeight,
+      quickAddInputUnit,
     ];
   }
 
@@ -165,14 +188,16 @@ class SharedMealItem {
           ? code
           : IdGenerator.getUniqueID(),
       name: name,
+      isQuickAdd: isQuickAdd,
+      backendSource: backendSource,
       brands: brands,
       thumbnailImageUrl: thumbnailImageUrl,
       mainImageUrl: mainImageUrl,
       url: null,
-      mealQuantity: null,
-      mealUnit: null,
+      mealQuantity: hasQuickAddWeight ? amount.toString() : null,
+      mealUnit: hasQuickAddWeight ? unit : null,
       servingQuantity: null,
-      servingUnit: null,
+      servingUnit: hasQuickAddWeight ? quickAddInputUnit : null,
       servingSize: null,
       nutriments: MealNutrimentsEntity(
         energyKcal100: energyKcal100,
@@ -210,11 +235,7 @@ class SharedMealRecipeItem {
     );
   }
 
-  List<dynamic> toArray() => [
-        _compact(amount),
-        unit,
-        recipe.toJsonArray(),
-      ];
+  List<dynamic> toArray() => [_compact(amount), unit, recipe.toJsonArray()];
 }
 
 class SharedMealPayload {
@@ -271,14 +292,17 @@ class SharedMealPayload {
       } else if (meal.source == MealSourceEntity.recipe &&
           (intake.recipeSnapshot != null ||
               (meal.code != null && recipeRepository != null))) {
-        final recipe = intake.recipeSnapshot ??
+        final recipe =
+            intake.recipeSnapshot ??
             recipeRepository!.getRecipeById(meal.code!);
         if (recipe != null) {
-          recipes.add(SharedMealRecipeItem(
-            recipe: SharedRecipePayload.fromRecipe(recipe),
-            amount: intake.amount,
-            unit: intake.unit,
-          ));
+          recipes.add(
+            SharedMealRecipeItem(
+              recipe: SharedRecipePayload.fromRecipe(recipe),
+              amount: intake.amount,
+              unit: intake.unit,
+            ),
+          );
           continue;
         }
         // Recipe template gone: degrade to a custom snapshot from the intake.
@@ -300,11 +324,13 @@ class SharedMealPayload {
     try {
       String jsonString;
       try {
-        final decompressed =
-            gzip.decode(base64Url.decode(base64Url.normalize(input)));
+        final decompressed = gzip.decode(
+          base64Url.decode(base64Url.normalize(input)),
+        );
         if (decompressed.length > _kMaxDecompressedBytes) {
           throw SharedMealParseException(
-              'Payload too large to decode (>$_kMaxDecompressedBytes bytes)');
+            'Payload too large to decode (>$_kMaxDecompressedBytes bytes)',
+          );
         }
         jsonString = utf8.decode(decompressed);
       } on SharedMealParseException {
@@ -328,8 +354,9 @@ class SharedMealPayload {
       final rawOffRefs = decoded[1] as List<dynamic>;
       final rawItems = decoded[2] as List<dynamic>;
       // recipes bucket is v2+; older payloads simply don't have it.
-      final rawRecipes =
-          decoded.length > 3 ? decoded[3] as List<dynamic> : const [];
+      final rawRecipes = decoded.length > 3
+          ? decoded[3] as List<dynamic>
+          : const [];
 
       return SharedMealPayload(
         version: version,

@@ -1,3 +1,5 @@
+import 'package:opennutritracker/features/diary/presentation/widgets/explode_diary_recipe.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'dart:async';
 
 import 'package:opennutritracker/core/presentation/widgets/delete_dialog.dart';
@@ -157,6 +159,10 @@ class _DiaryPageState extends State<DiaryPage> {
                 bottom: 12,
                 child: DiaryDragTargets(
                   onDelete: _deleteDraggedEntry,
+                  onExplode:
+                      _draggedEntry?.meal.source == MealSourceEntity.recipe
+                      ? (entry) => explodeDiaryRecipe(context, entry)
+                      : null,
                   onCopy: (entry) =>
                       locator<DiaryClipboardCubit>().copy([entry]),
                 ),

@@ -104,6 +104,7 @@ class OffMicronutrientRepair {
       ),
       localImagePath: meal.localImagePath,
       detailed: meal.detailed,
+      isQuickAdd: meal.isQuickAdd,
       backendSource: meal.backendSource,
       machineTranslatedName: meal.machineTranslatedName,
       dataVersion: MealDBO.dataVersionOffMicronutrientsInAppUnits,

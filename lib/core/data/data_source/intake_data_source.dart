@@ -1,4 +1,8 @@
 import 'package:collection/collection.dart';
+import 'package:opennutritracker/core/data/data_source/config_data_source.dart';
+import 'package:opennutritracker/core/data/data_source/tracked_day_data_source.dart';
+import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
+import 'package:opennutritracker/core/domain/entity/config_entity.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:opennutritracker/core/data/dbo/intake_dbo.dart';
@@ -52,9 +56,47 @@ class IntakeDataSource {
       log.fine('Cannot update intake $intakeId as it is non existent');
       return null;
     }
+    final box = _intakeBox;
     intakeObject.$2.amount = fields['amount'] ?? intakeObject.$2.amount;
+    intakeObject.$2.unit = fields['unit'] ?? intakeObject.$2.unit;
+    if (fields.containsKey('meal')) intakeObject.$2.meal = fields['meal'];
+    if (fields.containsKey('recipeSnapshot')) {
+      intakeObject.$2.recipeSnapshot = fields['recipeSnapshot'];
+    }
     await _intakeBox.putAt(intakeObject.$1, intakeObject.$2);
-    return _intakeBox.getAt(intakeObject.$1);
+    await _reconcileDay(box, intakeObject.$2.dateTime);
+    return box.getAt(intakeObject.$1);
+  }
+
+  Future<void> _reconcileDay(Box<IntakeDBO> box, DateTime moment) async {
+    final config = ConfigEntity.fromConfigDBO(
+      await ConfigDataSource(_db).getConfig(),
+    );
+    if (!identical(box, _intakeBox)) return;
+    final offset = config.dayStartOffsetTotalMinutes;
+    final wallDay = DateTime(moment.year, moment.month, moment.day);
+    final day =
+        DayBoundaryCalc.isMomentInLogicalDayMinutes(wallDay, moment, offset)
+        ? wallDay
+        : DateTime(moment.year, moment.month, moment.day - 1);
+    var kcal = 0.0, carbs = 0.0, fat = 0.0, protein = 0.0;
+    for (final dbo in visibleIntakes(box.values)) {
+      if (!DayBoundaryCalc.isMomentInLogicalDayMinutes(
+        day,
+        dbo.dateTime,
+        offset,
+      )) {
+        continue;
+      }
+      final intake = IntakeEntity.fromIntakeDBO(dbo);
+      kcal += intake.totalKcal;
+      carbs += intake.totalCarbsGram;
+      fat += intake.totalFatsGram;
+      protein += intake.totalProteinsGram;
+    }
+    await TrackedDayDataSource(
+      _db,
+    ).reconcileCaloriesAndMacrosTracked(day, kcal, carbs, fat, protein);
   }
 
   Future<IntakeDBO?> getIntakeById(String intakeId) async {

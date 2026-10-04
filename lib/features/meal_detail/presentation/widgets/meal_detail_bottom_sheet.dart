@@ -107,7 +107,6 @@ class _MealDetailBottomSheetState extends State<MealDetailBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final productMissingRequiredInfo = _hasRequiredProductInfoMissing();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final palette = isDark ? AppPalette.dark : AppPalette.light;
     return BottomSheet(
@@ -119,12 +118,10 @@ class _MealDetailBottomSheetState extends State<MealDetailBottomSheet> {
         // typing. Uses the food's own serving when it has one and 100 g
         // for solids. Computed once so the collection-if below can drop
         // the row entirely when nothing applies (no orphan SizedBox).
-        final quickOptions = productMissingRequiredInfo
-            ? const <QuickServingOption>[]
-            : quickServingOptionsFor(
-                widget.product,
-                S.of(context).gramUnit,
-              );
+        final quickOptions = quickServingOptionsFor(
+          widget.product,
+          S.of(context).gramUnit,
+        );
         return Container(
           decoration: BoxDecoration(
             border: Border(
@@ -148,7 +145,7 @@ class _MealDetailBottomSheetState extends State<MealDetailBottomSheet> {
                         children: [
                           Expanded(
                             child: TextFormField(
-                              enabled: !productMissingRequiredInfo,
+                              enabled: true,
                               controller: widget.quantityTextController,
                               focusNode: _quantityFocusNode,
                               onTap: _selectAllQuantityText,
@@ -209,9 +206,7 @@ class _MealDetailBottomSheetState extends State<MealDetailBottomSheet> {
                       ),
                       if (quickOptions.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(
-                            top: Dimens.spacing12,
-                          ),
+                          padding: const EdgeInsets.only(top: Dimens.spacing12),
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: Wrap(
@@ -219,8 +214,7 @@ class _MealDetailBottomSheetState extends State<MealDetailBottomSheet> {
                               children: [
                                 for (final option in quickOptions)
                                   Semantics(
-                                    identifier:
-                                        'meal-detail-chip-${option.id}',
+                                    identifier: 'meal-detail-chip-${option.id}',
                                     child: ActionChip(
                                       label: Text(option.label),
                                       onPressed: () =>
@@ -237,11 +231,7 @@ class _MealDetailBottomSheetState extends State<MealDetailBottomSheet> {
                         child: SizedBox(
                           width: double.infinity, // Make button full width
                           child: FilledButton.icon(
-                            onPressed: !productMissingRequiredInfo
-                                ? () {
-                                    onAddButtonPressed(context);
-                                  }
-                                : null,
+                            onPressed: () => onAddButtonPressed(context),
                             style: FilledButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                 vertical: Dimens.spacing16,
@@ -255,15 +245,6 @@ class _MealDetailBottomSheetState extends State<MealDetailBottomSheet> {
                           ),
                         ),
                       ),
-                      productMissingRequiredInfo
-                          ? Text(
-                              S.of(context).missingProductInfo,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: Theme.of(context).colorScheme.error,
-                                  ),
-                            )
-                          : const SizedBox(),
                     ],
                   ),
                 ),
@@ -273,18 +254,6 @@ class _MealDetailBottomSheetState extends State<MealDetailBottomSheet> {
         );
       },
     );
-  }
-
-  bool _hasRequiredProductInfoMissing() {
-    final productNutriments = widget.product.nutriments;
-    if (productNutriments.energyKcal100 == null ||
-        productNutriments.carbohydrates100 == null ||
-        productNutriments.fat100 == null ||
-        productNutriments.proteins100 == null) {
-      return true;
-    } else {
-      return false;
-    }
   }
 
   Future<void> onAddButtonPressed(BuildContext context) async {

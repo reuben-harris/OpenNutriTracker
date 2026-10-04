@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/core/presentation/widgets/intake_card.dart';
-import 'package:opennutritracker/core/presentation/widgets/meal_value_unit_text.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
@@ -436,12 +435,12 @@ void main() {
           tester.getCenter(macros).dy,
           greaterThan(tester.getCenter(energy).dy),
         );
-        final amount = tester.widget<MealValueUnitText>(
-          find.byType(MealValueUnitText),
+        final amount = tester.widget<RichText>(
+          find.text('25 g', findRichText: true),
         );
         expect(
           tester.widget<Text>(macros).style!.color,
-          amount.textStyle!.color,
+          amount.text.style!.color,
         );
         expect(tester.takeException(), isNull);
       }

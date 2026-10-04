@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/usecase/refresh_diary_intake_usecase.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_copy_cubit.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -463,6 +464,16 @@ Future<void> initLocator() async {
   );
   locator.registerLazySingleton<ExplodeRecipeIntakeUsecase>(
     () => ExplodeRecipeIntakeUsecase(hiveDBProvider, locator()),
+  );
+  locator.registerLazySingleton<RefreshDiaryIntakeUsecase>(
+    () => RefreshDiaryIntakeUsecase(
+      locator(),
+      locator(),
+      locator(),
+      locator(),
+      locator(),
+      locator(),
+    ),
   );
   locator.registerLazySingleton<UpdateIntakeUsecase>(
     () => UpdateIntakeUsecase(locator()),

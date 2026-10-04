@@ -650,7 +650,9 @@ void main() {
             (c) =>
                 c != 'meal_data_version' &&
                 c != 'recipe_snapshot_json' &&
-                c != 'conversion_parent_id',
+                c != 'conversion_parent_id' &&
+                c != 'meal_is_quick_add' &&
+                c != 'meal_backend_source',
           )
           .toList();
       final csv = CsvDataExporter.intakesToCsv([

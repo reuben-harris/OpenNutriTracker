@@ -1,3 +1,4 @@
+import 'package:opennutritracker/features/add_meal/presentation/widgets/quick_add_bottom_sheet.dart';
 import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
@@ -7,7 +8,7 @@ import 'package:opennutritracker/features/recipes/presentation/screens/recipe_de
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
-import 'package:opennutritracker/core/domain/usecase/explode_recipe_intake_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/refresh_diary_intake_usecase.dart';
 import 'package:opennutritracker/core/presentation/widgets/intake_card.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
@@ -21,7 +22,7 @@ import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
 import 'package:opennutritracker/features/home/presentation/widgets/recipe_swipe_scope.dart';
 
-IntakeEntity _recipeIntake({
+IntakeEntity recipeIntake({
   bool old = false,
   String id = 'intake-1',
   bool recipe = true,
@@ -142,17 +143,28 @@ Finder _row([String id = 'intake-1']) => find.byKey(ValueKey(id));
 Finder _card([String id = 'intake-1']) =>
     find.descendant(of: _row(id), matching: find.byType(IntakeCard));
 Finder _action([String id = 'intake-1']) =>
-    find.descendant(of: _row(id), matching: find.text('Explode'));
+    find.descendant(of: _row(id), matching: find.text('Refresh'));
 
 Future<void> _open(WidgetTester tester, [String id = 'intake-1']) async {
   await tester.drag(_card(id), const Offset(-140, 0));
   await tester.pumpAndSettle();
 }
 
-class _FailingExplode extends Fake implements ExplodeRecipeIntakeUsecase {
+class _FailingRefresh extends Fake implements RefreshDiaryIntakeUsecase {
   @override
-  Future<void> explode(String intakeId) async =>
-      throw StateError('disk failure');
+  Future<IntakeEntity?> refresh(String id) async =>
+      throw StateError('network failure');
+}
+
+class _UnavailableRefresh extends Fake implements RefreshDiaryIntakeUsecase {
+  @override
+  Future<IntakeEntity?> refresh(String id) async =>
+      throw DiarySourceUnavailable();
+}
+
+class _ImmediateRefresh extends Fake implements RefreshDiaryIntakeUsecase {
+  @override
+  Future<IntakeEntity?> refresh(String id) async => null;
 }
 
 class _Config extends Fake implements GetConfigUsecase {}
@@ -164,58 +176,115 @@ class _Recipes extends Fake implements RecipeRepository {
 }
 
 void main() {
-  testWidgets('row swipe wins over diary day swipe and opens confirmation', (
+  testWidgets('refresh progress blurs the thumbnail for at least 500ms', (
     tester,
   ) async {
-    var daySwipes = 0;
-    await tester.pumpWidget(_app(_recipeIntake(), () => daySwipes++));
-    await tester.pumpAndSettle();
-
-    await tester.drag(find.text('Morning oats'), const Offset(-140, 0));
-    await tester.pumpAndSettle();
-    expect(daySwipes, 0);
-    expect(find.text('Explode'), findsOneWidget);
-
-    await tester.tap(find.text('Explode'));
-    await tester.pumpAndSettle();
-    expect(find.text('Explode recipe?'), findsOneWidget);
+    locator.registerSingleton<RefreshDiaryIntakeUsecase>(_ImmediateRefresh());
+    addTearDown(() => locator.reset());
+    await tester.pumpWidget(_app(recipeIntake(recipe: false), () {}));
+    await _open(tester);
+    await tester.tap(_action());
+    await tester.pump(const Duration(milliseconds: 250));
+    final thumb = find.byType(IntakeThumbnail);
     expect(
-      find.text(
-        'This replaces the recipe row with editable ingredients and '
-        'cannot be undone.',
-      ),
+      find.descendant(of: thumb, matching: find.byType(ImageFiltered)),
       findsOneWidget,
     );
-    expect(find.text('Oats'), findsNothing);
-    await tester.tap(find.text('CANCEL'));
-    await tester.pumpAndSettle();
-    expect(find.text('Morning oats'), findsOneWidget);
-    expect(tester.getTopLeft(_card()).dx, 0);
+    final progress = find.descendant(
+      of: thumb,
+      matching: find.byType(CircularProgressIndicator),
+    );
+    expect(progress, findsOneWidget);
+    expect(tester.getCenter(progress), tester.getCenter(thumb));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(progress, findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(progress, findsNothing);
   });
-
-  testWidgets('old entry explains why Explode is unavailable', (tester) async {
-    await tester.pumpWidget(_app(_recipeIntake(old: true), () {}));
+  testWidgets('Quick Add swipe Refresh opens the same editor as tapping', (
+    tester,
+  ) async {
+    final base = recipeIntake(recipe: false);
+    final meal = MealEntity(
+      code: 'quick',
+      name: 'Quick meal',
+      url: null,
+      mealQuantity: '100',
+      mealUnit: 'gml',
+      servingQuantity: null,
+      servingUnit: 'gml',
+      servingSize: '',
+      nutriments: base.meal.nutriments,
+      source: MealSourceEntity.custom,
+      isQuickAdd: true,
+    );
+    final intake = IntakeEntity(
+      id: base.id,
+      unit: base.unit,
+      amount: base.amount,
+      type: base.type,
+      dateTime: base.dateTime,
+      meal: meal,
+    );
+    await tester.pumpWidget(_app(intake, () {}));
     await tester.pumpAndSettle();
-
-    await tester.drag(find.text('Morning oats'), const Offset(-140, 0));
+    await _open(tester);
+    expect(find.text('Refresh'), findsOneWidget);
+    await tester.tap(find.text('Refresh'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Explode'));
-    await tester.pumpAndSettle();
-    expect(tester.getTopLeft(_card()).dx, 0);
-
     expect(
-      find.text(
-        'This older entry has no saved ingredients. '
-        'Log the recipe again to use Explode.',
-      ),
-      findsOneWidget,
+      tester
+          .widget<QuickAddBottomSheet>(find.byType(QuickAddBottomSheet))
+          .editingIntake,
+      intake,
+    );
+    expect(find.text('Save changes'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    await tester.tap(_card());
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<QuickAddBottomSheet>(find.byType(QuickAddBottomSheet))
+          .editingIntake,
+      intake,
     );
   });
+  testWidgets('row swipe wins over day navigation for every food source', (
+    tester,
+  ) async {
+    for (final recipe in [true, false]) {
+      var days = 0;
+      await tester.pumpWidget(_app(recipeIntake(recipe: recipe), () => days++));
+      await tester.pumpAndSettle();
+      await _open(tester);
+      expect(days, 0);
+      expect(_action(), findsOneWidget);
+      expect(tester.getTopLeft(_card()).dx, -104);
+      await tester.pumpWidget(const SizedBox());
+    }
+  });
+
+  testWidgets(
+    'old entry keeps Refresh visible and explains unavailable source',
+    (tester) async {
+      locator.registerSingleton<RefreshDiaryIntakeUsecase>(
+        _UnavailableRefresh(),
+      );
+      addTearDown(() => locator.reset());
+      await tester.pumpWidget(_app(recipeIntake(old: true), () {}));
+      await _open(tester);
+      await tester.tap(_action());
+      await tester.pumpAndSettle();
+      expect(find.textContaining('source is unavailable'), findsOneWidget);
+      expect(tester.getTopLeft(_card()).dx, 0);
+    },
+  );
 
   testWidgets('settles smoothly, stays open, and reverses or cancels a drag', (
     tester,
   ) async {
-    await tester.pumpWidget(_app(_recipeIntake(), () {}));
+    await tester.pumpWidget(_app(recipeIntake(), () {}));
     await tester.pumpAndSettle();
     final start = tester.getCenter(_card());
     final drag = await tester.startGesture(start);
@@ -253,7 +322,7 @@ void main() {
     tester,
   ) async {
     var taps = 0;
-    await tester.pumpWidget(_app(_recipeIntake(), () {}, onTap: () => taps++));
+    await tester.pumpWidget(_app(recipeIntake(), () {}, onTap: () => taps++));
     await _open(tester);
     await tester.tap(_card());
     await tester.pumpAndSettle();
@@ -268,7 +337,7 @@ void main() {
   ) async {
     var taps = 0;
     await tester.pumpWidget(
-      _app(_recipeIntake(), () {}, onOutsideTap: () => taps++),
+      _app(recipeIntake(), () {}, onOutsideTap: () => taps++),
     );
     await _open(tester);
     await tester.tap(find.byKey(const ValueKey('outside')));
@@ -278,7 +347,7 @@ void main() {
   });
 
   testWidgets('scroll starting on the open card closes it', (tester) async {
-    await tester.pumpWidget(_app(_recipeIntake(), () {}));
+    await tester.pumpWidget(_app(recipeIntake(), () {}));
     await _open(tester);
     await tester.drag(_card(), const Offset(0, -40));
     await tester.pumpAndSettle();
@@ -287,7 +356,7 @@ void main() {
 
   testWidgets('only one recipe opens across sections', (tester) async {
     await tester.pumpWidget(
-      _app(_recipeIntake(), () {}, others: [_recipeIntake(id: 'second')]),
+      _app(recipeIntake(), () {}, others: [recipeIntake(id: 'second')]),
     );
     await _open(tester);
     await _open(tester, 'second');
@@ -299,11 +368,11 @@ void main() {
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
-    await tester.pumpWidget(_app(_recipeIntake(), () {}));
+    await tester.pumpWidget(_app(recipeIntake(), () {}));
     await tester.pumpAndSettle();
     expect(
       find.semantics.byPredicate(
-        (node) => node.getSemanticsData().identifier == 'explode-recipe-action',
+        (node) => node.getSemanticsData().identifier == 'diary-intake-refresh',
       ),
       findsNothing,
     );
@@ -313,7 +382,7 @@ void main() {
     await _open(tester);
     expect(
       find.semantics.byPredicate(
-        (node) => node.getSemanticsData().identifier == 'explode-recipe-action',
+        (node) => node.getSemanticsData().identifier == 'diary-intake-refresh',
       ),
       findsOneWidget,
     );
@@ -321,58 +390,43 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.semantics.byPredicate(
-        (node) => node.getSemanticsData().identifier == 'explode-recipe-action',
+        (node) => node.getSemanticsData().identifier == 'diary-intake-refresh',
       ),
       findsNothing,
     );
     semantics.dispose();
   });
 
-  testWidgets('dismissal and failure leave the row closed', (tester) async {
-    await tester.pumpWidget(_app(_recipeIntake(), () {}));
-    await _open(tester);
-    await tester.tap(_action());
-    await tester.pumpAndSettle();
-    await tester.tapAt(const Offset(10, 10));
-    await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsNothing);
-    expect(tester.getTopLeft(_card()).dx, 0);
-
-    locator.registerSingleton<ExplodeRecipeIntakeUsecase>(_FailingExplode());
+  testWidgets('refresh failure leaves the row closed', (tester) async {
+    locator.registerSingleton<RefreshDiaryIntakeUsecase>(_FailingRefresh());
     addTearDown(() => locator.reset());
+    await tester.pumpWidget(_app(recipeIntake(), () {}));
     await _open(tester);
     await tester.tap(_action());
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Explode'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Could not finish exploding'), findsOneWidget);
+    expect(find.textContaining('Could not refresh'), findsOneWidget);
     expect(tester.getTopLeft(_card()).dx, 0);
   });
 
-  testWidgets('outside and non-recipe swipes retain day navigation', (
-    tester,
-  ) async {
-    var days = 0;
-    var taps = 0;
-    await tester.pumpWidget(
-      _app(_recipeIntake(recipe: false), () => days++, onTap: () => taps++),
-    );
-    await tester.drag(_card(), const Offset(-140, 0));
-    await tester.pumpAndSettle();
-    expect(days, 1);
-    expect(find.text('Explode'), findsNothing);
-    await tester.tap(_card());
-    expect(taps, 1);
-    await tester.dragFrom(const Offset(300, 350), const Offset(-140, 0));
-    expect(days, 2);
-  });
+  testWidgets(
+    'ordinary row swipes reveal Refresh, outside swipes navigate days',
+    (tester) async {
+      var days = 0;
+      await tester.pumpWidget(_app(recipeIntake(recipe: false), () => days++));
+      await _open(tester);
+      expect(days, 0);
+      expect(_action(), findsOneWidget);
+      await tester.dragFrom(const Offset(300, 350), const Offset(-140, 0));
+      expect(days, 1);
+    },
+  );
 
   testWidgets('tab changes, navigation and replaced intakes reset the row', (
     tester,
   ) async {
     final navigator = GlobalKey<NavigatorState>();
     await tester.pumpWidget(
-      _app(_recipeIntake(), () {}, navigatorKey: navigator),
+      _app(recipeIntake(), () {}, navigatorKey: navigator),
     );
     await _open(tester);
     navigator.currentState!.push(
@@ -386,16 +440,16 @@ void main() {
     expect(tester.getTopLeft(_card()).dx, 0);
     await _open(tester);
     await tester.pumpWidget(
-      _app(_recipeIntake(), () {}, active: false, navigatorKey: navigator),
+      _app(recipeIntake(), () {}, active: false, navigatorKey: navigator),
     );
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(_card()).dx, 0);
     await tester.pumpWidget(
-      _app(_recipeIntake(), () {}, navigatorKey: navigator),
+      _app(recipeIntake(), () {}, navigatorKey: navigator),
     );
     await _open(tester);
     await tester.pumpWidget(
-      _app(_recipeIntake(id: 'new-day'), () {}, navigatorKey: navigator),
+      _app(recipeIntake(id: 'new-day'), () {}, navigatorKey: navigator),
     );
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(_card('new-day')).dx, 0);
@@ -404,14 +458,12 @@ void main() {
   testWidgets(
     'reduced motion closes immediately; disposal during settling is safe',
     (tester) async {
-      await tester.pumpWidget(
-        _app(_recipeIntake(), () {}, reducedMotion: true),
-      );
+      await tester.pumpWidget(_app(recipeIntake(), () {}, reducedMotion: true));
       await _open(tester);
       await tester.tap(_card());
       await tester.pump();
       expect(tester.getTopLeft(_card()).dx, 0);
-      await tester.pumpWidget(_app(_recipeIntake(), () {}));
+      await tester.pumpWidget(_app(recipeIntake(), () {}));
       await _open(tester);
       await tester.tap(_card());
       await tester.pump(const Duration(milliseconds: 20));
@@ -428,7 +480,7 @@ void main() {
     for (final recipe in [false, true]) {
       await tester.pumpWidget(
         _app(
-          _recipeIntake(id: '$recipe', recipe: recipe),
+          recipeIntake(id: '$recipe', recipe: recipe),
           () => days++,
           onTap: () => taps++,
         ),
@@ -471,7 +523,7 @@ void main() {
       final semantics = tester.ensureSemantics();
       await tester.pumpWidget(
         _app(
-          _recipeIntake(recipe: false),
+          recipeIntake(recipe: false),
           () => days++,
           onTap: () => taps++,
           onGenerateRoute: (settings) {
@@ -512,7 +564,7 @@ void main() {
   testWidgets('recipe Info opens saved recipe and explains deleted recipes', (
     tester,
   ) async {
-    final intake = _recipeIntake();
+    final intake = recipeIntake();
     final recipes = _Recipes()..recipe = intake.recipeSnapshot;
     locator.registerSingleton<RecipeRepository>(recipes);
     addTearDown(() => locator.reset());
@@ -552,14 +604,14 @@ void main() {
   });
 
   testWidgets(
-    'Info and Explode share one open action and ordinary quantity taps work',
+    'Info and Refresh share one open action and ordinary quantity taps work',
     (tester) async {
       var taps = 0;
       await tester.pumpWidget(
         _app(
-          _recipeIntake(recipe: false),
+          recipeIntake(recipe: false),
           () {},
-          others: [_recipeIntake(id: 'second')],
+          others: [recipeIntake(id: 'second')],
           onTap: () => taps++,
         ),
       );
