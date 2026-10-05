@@ -1,3 +1,5 @@
+import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
+import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/presentation/widgets/empty_hint.dart';
 import 'package:opennutritracker/core/presentation/widgets/error_dialog.dart';
@@ -37,6 +39,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
   late AddMealType _mealType;
   late DateTime _day;
 
+  late AddMealBloc _addMealBloc;
   late ProductsBloc _productsBloc;
   late FoodBloc _foodBloc;
   late RecentMealBloc _recentMealBloc;
@@ -48,8 +51,12 @@ class _AddMealScreenState extends State<AddMealScreen> {
 
   @override
   void initState() {
+    _addMealBloc = locator<AddMealBloc>()..add(InitializeAddMealEvent());
     _productsBloc = locator<ProductsBloc>();
-    _foodBloc = locator<FoodBloc>();
+    _foodBloc = FoodBloc.catalogue(
+      locator<FoodCatalogue>(),
+      locator<GetConfigUsecase>(),
+    );
     _recentMealBloc = locator<RecentMealBloc>();
     super.initState();
   }
@@ -66,6 +73,10 @@ class _AddMealScreenState extends State<AddMealScreen> {
   @override
   void dispose() {
     _searchStringListener.dispose();
+    _addMealBloc.close();
+    _productsBloc.close();
+    _foodBloc.close();
+    _recentMealBloc.close();
     super.dispose();
   }
 
@@ -89,7 +100,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
             ),
           ),
           BlocBuilder<AddMealBloc, AddMealState>(
-            bloc: locator<AddMealBloc>()..add(InitializeAddMealEvent()),
+            bloc: _addMealBloc,
             builder: (BuildContext context, AddMealState state) {
               if (state is AddMealLoadedState) {
                 return Row(
@@ -165,13 +176,13 @@ class _AddMealScreenState extends State<AddMealScreen> {
     _recentMealBloc.add(const LoadRecentMealEvent(searchString: ""));
   }
 
-  /// Resolves the source to search for a query: an empty query always returns
-  /// to Recent; a non-empty query searches Products by default, unless the user
-  /// has explicitly chosen Food. Keeps the chip selection and the results in sync.
+  /// Empty input keeps Food selected; other sources return to Recent. Typing
+  /// from Recent selects All. Explicit Products and Food selections persist.
   _SearchSource _resolveSource(String trimmed) {
-    if (trimmed.isEmpty) return _SearchSource.recent;
-    // Typing searches every source at once (All); an explicit Products / Food
-    // choice narrows that merged list.
+    if (trimmed.isEmpty && _source != _SearchSource.food) {
+      return _SearchSource.recent;
+    }
+    // Typing from Recent selects All, which uses the product search path.
     return _source == _SearchSource.recent ? _SearchSource.all : _source;
   }
 
@@ -206,9 +217,8 @@ class _AddMealScreenState extends State<AddMealScreen> {
     }
   }
 
-  /// Debounced search-as-you-type. Recent filters local intake history; the
-  /// remote sources debounce via their own *InputChanged events. "All" searches
-  /// products and food together into one merged list.
+  /// Recent filters intake history, Products retains its debounce, and Food
+  /// queries the bundled catalogue immediately.
   void _onSearchChanged(String inputText) {
     final trimmed = inputText.trim();
     final source = _resolveSource(trimmed);
@@ -241,11 +251,14 @@ class _AddMealScreenState extends State<AddMealScreen> {
   Widget _buildSourceChips(BuildContext context, AppPalette palette) {
     Widget chip(_SearchSource source, String label) => Padding(
       padding: const EdgeInsets.only(right: Dimens.spacing8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: _source == source,
-        showCheckmark: false,
-        onSelected: (_) => _selectSource(source),
+      child: Semantics(
+        identifier: 'diary-search-${source.name}',
+        child: ChoiceChip(
+          label: Text(label),
+          selected: _source == source,
+          showCheckmark: false,
+          onSelected: (_) => _selectSource(source),
+        ),
       ),
     );
     return Align(
@@ -291,7 +304,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
 
   static bool _foodPending(FoodState state, String query) {
     if (state is FoodLoadingState) return true;
-    if (query.trim().length < minQueryLength) return false;
+    if (catalogueMatch(query) == null) return false;
     if (state is FoodInitial) return true;
     if (state is FoodLoadedState) return state.query != query;
     return false;
@@ -399,20 +412,20 @@ class _AddMealScreenState extends State<AddMealScreen> {
                     );
                   }
                   return Flexible(
-                    child: ListView.builder(
-                      itemCount:
-                          state.food.length + (state.remoteSourceEmpty ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (index == state.food.length) {
-                          return const NoResultsWidget();
-                        }
-                        return MealItemCard(
-                          day: _day,
-                          mealEntity: state.food[index],
-                          addMealType: _mealType,
-                          usesImperialUnits: state.usesImperialUnits,
-                        );
-                      },
+                    child: Semantics(
+                      identifier: 'diary-food-results',
+                      label: S.of(context).searchFoodPage,
+                      child: ListView.builder(
+                        itemCount: state.food.length,
+                        itemBuilder: (context, index) {
+                          return MealItemCard(
+                            day: _day,
+                            mealEntity: state.food[index],
+                            addMealType: _mealType,
+                            usesImperialUnits: state.usesImperialUnits,
+                          );
+                        },
+                      ),
                     ),
                   );
                 } else if (state is FoodFailedState) {

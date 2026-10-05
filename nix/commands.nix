@@ -6,6 +6,7 @@
       lib,
       toolchain,
       dependencies,
+      foodData,
       ...
     }:
     let
@@ -14,6 +15,8 @@
         + ''
           export ONT_PUB_CACHE=${dependencies.pubCache}
           export ONT_FLUTTER=${toolchain.flutter}
+          export ONT_FOOD_ASSETS=${foodData.foodAssets}
+          export ONT_SQLITE_LIBRARIES=${foodData.sqliteLibraries}
         ''
         + builtins.readFile ./prepare.sh;
       offline = ''

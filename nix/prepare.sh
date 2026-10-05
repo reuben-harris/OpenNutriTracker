@@ -38,6 +38,10 @@ ont_prepare() {
     printf '%s' "$ONT_FLUTTER" > "$FLUTTER_ROOT/.source"
   fi
 
+  mkdir -p assets/food-data .nix-cache/sqlite3
+  cp -f "$ONT_FOOD_ASSETS/food-data.sqlite" "$ONT_FOOD_ASSETS/fingerprint" assets/food-data/
+  cp -f "$ONT_SQLITE_LIBRARIES/"* .nix-cache/sqlite3/
+
   printf 'sdk.dir=%s\nflutter.sdk=%s\n' "$ANDROID_HOME" "$FLUTTER_ROOT" > android/local.properties
   flutter --suppress-analytics pub get --offline --enforce-lockfile
   rm -rf lib/generated

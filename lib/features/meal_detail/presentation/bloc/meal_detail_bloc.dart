@@ -1,3 +1,4 @@
+import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'dart:async';
 
 import 'package:equatable/equatable.dart';
@@ -34,6 +35,7 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
   final ProductsRepository _productsRepository;
   final RemoteSearchCacheDataSource _remoteSearchCacheDataSource;
   final RecipeRepository? _recipeRepository;
+  final FoodCatalogue? _catalogue;
 
   int _mealRequest = 0;
   Future<void>? _hydrationCacheWrite;
@@ -47,7 +49,9 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
     this._productsRepository,
     this._remoteSearchCacheDataSource, {
     RecipeRepository? recipeRepository,
+    FoodCatalogue? catalogue,
   }) : _recipeRepository = recipeRepository,
+       _catalogue = catalogue,
        super(
          MealDetailInitial(
            totalQuantityConverted: '100',
@@ -108,12 +112,7 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
           );
         } else {
           final goal = await _getKcalGoalUsecase.getKcalGoal(day: event.day);
-          emit(
-            state.copyWith(
-              dayKcalConsumed: 0,
-              dayKcalGoal: goal,
-            ),
-          );
+          emit(state.copyWith(dayKcalConsumed: 0, dayKcalGoal: goal));
         }
       } catch (e) {
         log.severe('Error loading daily totals: $e');
@@ -124,6 +123,30 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
     on<HydrateMealEvent>((event, emit) async {
       final meal = event.meal;
       final code = meal.code;
+      if (meal.isCatalogueFood && _catalogue != null) {
+        if (state.isRefreshing) return;
+        final request = ++_mealRequest;
+        emit(state.copyWith(isHydrating: true));
+        try {
+          final full = await _catalogue.getById(code!);
+          if (emit.isDone || request != _mealRequest) return;
+          if (full != null) {
+            emit(
+              state.copyWith(
+                hydratedMeal: full,
+                mealRevision: state.mealRevision + 1,
+              ),
+            );
+          }
+        } catch (error, stack) {
+          log.warning('Catalogue lookup failed for $code', error, stack);
+        } finally {
+          if (!emit.isDone && request == _mealRequest) {
+            emit(state.copyWith(isHydrating: false));
+          }
+        }
+        return;
+      }
       if (state.refreshStatus != ProductRefreshStatus.idle ||
           meal.source != MealSourceEntity.off ||
           meal.detailed ||
@@ -167,7 +190,8 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
     on<RefreshMealEvent>((event, emit) async {
       final code = event.meal.code;
       if (state.isRefreshing ||
-          event.meal.source != MealSourceEntity.off ||
+          (event.meal.source != MealSourceEntity.off &&
+              !event.meal.isCatalogueFood) ||
           code == null ||
           code.isEmpty) {
         return;
@@ -182,7 +206,10 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
         ),
       );
       try {
-        final fresh = await _productsRepository.getOFFProductByBarcode(code);
+        final fresh = event.meal.isCatalogueFood
+            ? await _catalogue?.getById(code)
+            : await _productsRepository.getOFFProductByBarcode(code);
+        if (fresh == null) throw StateError('Catalogue food unavailable');
         if (emit.isDone) return;
         // If hydration was already writing, let it finish first so this fresh
         // result is the last cache write. Its response cannot update the UI.
@@ -192,7 +219,11 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
           // A failed older write does not prevent caching the fresh response.
         }
         if (emit.isDone) return;
-        await _remoteSearchCacheDataSource.cache(MealDBO.fromMealEntity(fresh));
+        if (fresh.source == MealSourceEntity.off) {
+          await _remoteSearchCacheDataSource.cache(
+            MealDBO.fromMealEntity(fresh),
+          );
+        }
         if (emit.isDone) return;
         emit(
           state.copyWith(
@@ -202,7 +233,7 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
           ),
         );
       } catch (e, st) {
-        log.warning('OFF refresh failed for $code', e, st);
+        log.warning('Meal refresh failed for $code', e, st);
         if (emit.isDone) return;
         emit(state.copyWith(refreshStatus: ProductRefreshStatus.failure));
       }
@@ -251,17 +282,12 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
 
   /// Best-effort cache refresh after the user logs a meal. For OFF items
   /// with a barcode, attempts a fresh lookup and overwrites the cache
-  /// entry with the result. For everything else (FDC, custom, no
-  /// barcode), just touches the cache timestamp so the entry doesn't
-  /// age out of the 90-day TTL window.
+  /// entry with the result. Catalogue and personal foods bypass this cache.
   Future<void> _refreshCacheForSelectedMeal(MealEntity meal) async {
     final code = meal.code;
     if (code == null || code.isEmpty) return;
 
-    if (meal.source != MealSourceEntity.off) {
-      await _remoteSearchCacheDataSource.touch(code);
-      return;
-    }
+    if (meal.source != MealSourceEntity.off) return;
     try {
       final fresh = await _productsRepository.getOFFProductByBarcode(code);
       await _remoteSearchCacheDataSource.cache(MealDBO.fromMealEntity(fresh));

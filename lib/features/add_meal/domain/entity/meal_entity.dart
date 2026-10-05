@@ -103,6 +103,9 @@ class MealEntity extends Equatable {
       mealUnit != 'gml' &&
       (double.tryParse(mealQuantity ?? '') ?? 0) > 0;
 
+  bool get isCatalogueFood =>
+      source == MealSourceEntity.fdc && (code?.startsWith('usda:') ?? false);
+
   bool get isLiquid => liquidUnits.contains(mealUnit);
 
   bool get isSolid => solidUnits.contains(mealUnit);

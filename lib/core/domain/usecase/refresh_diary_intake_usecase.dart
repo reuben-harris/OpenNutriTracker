@@ -1,3 +1,4 @@
+import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:collection/collection.dart';
 import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
@@ -21,6 +22,7 @@ class RefreshDiaryIntakeUsecase {
   final CustomMealDataSource _custom;
   final RecipeRepository _recipes;
   final RemoteSearchCacheDataSource _cache;
+  final FoodCatalogue? _catalogue;
   final _inFlight = <(Object, String, String), Future<IntakeEntity?>>{};
 
   RefreshDiaryIntakeUsecase(
@@ -29,8 +31,9 @@ class RefreshDiaryIntakeUsecase {
     this._products,
     this._custom,
     this._recipes,
-    this._cache,
-  );
+    this._cache, {
+    FoodCatalogue? catalogue,
+  }) : _catalogue = catalogue;
 
   Future<IntakeEntity?> refresh(String id) async {
     final box = _db.intakeBox;
@@ -67,7 +70,7 @@ class RefreshDiaryIntakeUsecase {
           }
         }
       case MealSourceEntity.fdc:
-        break;
+        if (code != null) meal = await _catalogue?.getById(code);
       case MealSourceEntity.custom:
         final saved = _custom.getAllCustomMeals().firstWhereOrNull(
           (m) => code != null

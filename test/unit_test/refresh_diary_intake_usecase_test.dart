@@ -21,6 +21,7 @@ import 'package:opennutritracker/core/domain/entity/recipe_ingredient_entity.dar
 import 'package:opennutritracker/core/domain/usecase/explode_recipe_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/refresh_diary_intake_usecase.dart';
 import 'package:opennutritracker/features/add_meal/data/repository/products_repository.dart';
+import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import '../helpers/fake_hive_db_provider.dart';
@@ -31,8 +32,9 @@ MealEntity food({
   double? kcal = 100,
   double? carbs = 10,
   bool quick = false,
+  String code = 'food',
 }) => MealEntity(
-  code: 'food',
+  code: code,
   name: 'Food',
   url: null,
   mealQuantity: '100',
@@ -68,6 +70,20 @@ class _Products extends Fake implements ProductsRepository {
   Future<MealEntity> getOFFProductByBarcode(String barcode) => fetch();
 }
 
+class _Catalogue implements FoodCatalogue {
+  final ids = <String>[];
+  Completer<MealEntity?>? pending;
+
+  @override
+  Future<MealEntity?> getById(String id) {
+    ids.add(id);
+    return pending!.future;
+  }
+
+  @override
+  Future<List<MealEntity>> search(String query) => throw UnimplementedError();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late Directory dir;
@@ -80,6 +96,7 @@ void main() {
   late IntakeRepository repo;
   late RefreshDiaryIntakeUsecase refresh;
   late _Products products;
+  late _Catalogue catalogue;
   final moment = DateTime(2026, 10, 3, 2);
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('refresh-test');
@@ -102,6 +119,7 @@ void main() {
     );
     repo = IntakeRepository(IntakeDataSource(db));
     products = _Products();
+    catalogue = _Catalogue();
     refresh = RefreshDiaryIntakeUsecase(
       db,
       repo,
@@ -109,6 +127,7 @@ void main() {
       CustomMealDataSource(db),
       RecipeRepository(RecipeDataSource(db)),
       RemoteSearchCacheDataSource(cache, await Hive.openBox<int>('timestamps')),
+      catalogue: catalogue,
     );
   });
   tearDown(() async {
@@ -146,6 +165,36 @@ void main() {
       },
     );
   }
+  test(
+    'catalogue refresh uses exact ID, preserves grams and bypasses search cache',
+    () async {
+      await log(food(source: MealSourceEntity.fdc, code: 'usda:1'));
+      await log(
+        food(source: MealSourceEntity.fdc, code: 'usda:1'),
+        id: 'other',
+      );
+      catalogue.pending = Completer<MealEntity?>();
+      final a = refresh.refresh('entry');
+      final b = refresh.refresh('entry');
+      await Future<void>.delayed(Duration.zero);
+      await repo.updateIntake('entry', {'amount': 200.0});
+      catalogue.pending!.complete(
+        food(
+          source: MealSourceEntity.fdc,
+          code: 'usda:1',
+          kcal: 250,
+          carbs: null,
+        ),
+      );
+      expect((await a)!.totalKcal, 500);
+      expect((await b)!.amount, 200);
+      expect(catalogue.ids, ['usda:1']);
+      expect(products.calls, 0);
+      expect(cache.values, isEmpty);
+      expect((await repo.getIntakeById('other'))!.totalKcal, 150);
+    },
+  );
+
   for (final source in [MealSourceEntity.off]) {
     test(
       '$source refresh bypasses old snapshot, deduplicates and retains intervening weight',

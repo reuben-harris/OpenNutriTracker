@@ -1,3 +1,4 @@
+import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'package:opennutritracker/core/domain/usecase/refresh_diary_intake_usecase.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_copy_cubit.dart';
@@ -350,6 +351,7 @@ Future<void> initLocator() async {
       locator(),
       locator(),
       recipeRepository: locator(),
+      catalogue: locator(),
     ),
   );
   locator.registerFactory<ScannerBloc>(() => ScannerBloc(locator(), locator()));
@@ -363,6 +365,7 @@ Future<void> initLocator() async {
   locator.registerFactory<ProductsBloc>(
     () => ProductsBloc(locator(), locator()),
   );
+  locator.registerLazySingleton<FoodCatalogue>(() => SQLiteFoodCatalogue());
   locator.registerFactory<FoodBloc>(() => FoodBloc(locator(), locator()));
   locator.registerFactory(() => RecentMealBloc(locator(), locator()));
   // #84: fasting timer. Factory so the screen-scoped timer and dialog
@@ -457,6 +460,7 @@ Future<void> initLocator() async {
       locator(),
       locator(),
       locator(),
+      catalogue: locator(),
     ),
   );
   locator.registerLazySingleton<UpdateIntakeUsecase>(

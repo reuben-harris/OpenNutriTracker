@@ -23,6 +23,7 @@
         ./nix/commands.nix
         ./nix/checks.nix
         inputs.food-data.flakeModules.default
+        inputs.food-data.flakeModules.app-assets
       ];
     };
 }

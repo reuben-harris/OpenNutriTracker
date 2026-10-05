@@ -1,3 +1,4 @@
+import 'package:opennutritracker/features/add_meal/util/portion_unit.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -171,7 +172,9 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     // stays the classifier — a record with no parseable serving still
     // falls through to weight/volume the same way it always did.
     final preferServing =
-        meal.scalableServingQuantity != null && !_defaultToRawFoodUnits;
+        !meal.isCatalogueFood &&
+        meal.scalableServingQuantity != null &&
+        !_defaultToRawFoodUnits;
 
     _applyingInitialSelection = true;
     try {
@@ -179,7 +182,9 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
         // `scalableServingQuantity`, not `hasServingValues` (#629): the latter
         // is true for a record whose serving is unparseable text, and nothing
         // can scale those — they defaulted to "1 serving" and logged 1 g.
-        if (preferServing) {
+        if (meal.isCatalogueFood) {
+          _initialUnit = UnitDropdownItem.g.toString();
+        } else if (preferServing) {
           _initialUnit = UnitDropdownItem.serving.toString();
         } else if (meal.isLiquid) {
           _initialUnit = _usesImperialUnits
@@ -203,7 +208,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
         if (preferServing) {
           _initialQuantity = "1";
           quantityTextController.text = "1";
-        } else if (_usesImperialUnits) {
+        } else if (_usesImperialUnits && !meal.isCatalogueFood) {
           _initialQuantity = _initialQuantityImperial;
           quantityTextController.text = _initialQuantityImperial;
         } else {
@@ -266,8 +271,10 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   }
 
   bool _supportsUnit(MealEntity product, String unit) {
-    if (unit == UnitDropdownItem.serving.toString()) {
-      return product.scalableServingQuantity != null;
+    if (isPortionUnit(unit)) {
+      return product.portions.isNotEmpty
+          ? effectivePortionIndex(unit) < product.portions.length
+          : product.scalableServingQuantity != null;
     }
     if (unit == UnitDropdownItem.g.toString() ||
         unit == UnitDropdownItem.oz.toString()) {
@@ -419,7 +426,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
             ),
           ),
           actions: [
-            if (meal.source == MealSourceEntity.off &&
+            if ((meal.source == MealSourceEntity.off || meal.isCatalogueFood) &&
                 (meal.code?.isNotEmpty ?? false))
               Semantics(
                 identifier: 'meal-detail-refresh',
@@ -503,9 +510,10 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                       MealValueUnitText(
                         value: double.parse(totalQuantity),
                         meal: meal,
-                        displayUnit:
-                            selectedUnit == UnitDropdownItem.serving.toString()
-                            ? meal.servingUnit
+                        displayUnit: isPortionUnit(selectedUnit)
+                            ? (meal.portions.isNotEmpty
+                                  ? meal.mealUnit
+                                  : meal.servingUnit)
                             : selectedUnit,
                         usesImperialUnits: _usesImperialUnits,
                         textStyle: Theme.of(context).textTheme.bodyMedium,

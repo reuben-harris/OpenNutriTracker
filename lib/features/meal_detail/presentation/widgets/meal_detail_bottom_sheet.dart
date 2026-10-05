@@ -1,3 +1,4 @@
+import 'package:opennutritracker/features/add_meal/util/portion_unit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
@@ -167,39 +168,58 @@ class _MealDetailBottomSheetState extends State<MealDetailBottomSheet> {
                           ),
                           const SizedBox(width: 16.0),
                           Expanded(
-                            child: DropdownButtonFormField(
-                              isExpanded: true,
-                              itemHeight: null,
-                              initialValue: widget.selectedUnit,
-                              key: ValueKey(widget.selectedUnit),
-                              decoration: InputDecoration(
-                                border: const OutlineInputBorder(
-                                  borderRadius: Dimens.borderRadiusM,
+                            child: Semantics(
+                              identifier: 'meal-detail-unit',
+                              child: DropdownButtonFormField(
+                                isExpanded: true,
+                                itemHeight: null,
+                                initialValue: widget.selectedUnit,
+                                key: ValueKey(widget.selectedUnit),
+                                decoration: InputDecoration(
+                                  border: const OutlineInputBorder(
+                                    borderRadius: Dimens.borderRadiusM,
+                                  ),
+                                  labelText: S.of(context).unitLabel,
                                 ),
-                                labelText: S.of(context).unitLabel,
+                                items: <DropdownMenuItem<String>>[
+                                  // #629: a serving the app cannot scale
+                                  // is a no-op dressed as a unit.
+                                  if (widget.product.portions.isNotEmpty)
+                                    for (
+                                      var i = 0;
+                                      i < widget.product.portions.length;
+                                      i++
+                                    )
+                                      DropdownMenuItem<String>(
+                                        value: portionUnit(i),
+                                        child: Text(
+                                          '${widget.product.portions[i].label} = ${widget.product.portions[i].gramWeight} g',
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      )
+                                  else if (widget
+                                          .product
+                                          .scalableServingQuantity !=
+                                      null)
+                                    _getServingDropdownItem(context),
+                                  if (widget.product.isSolid ||
+                                      !widget.product.isLiquid &&
+                                          !widget.product.isSolid)
+                                    ..._getSolidUnitDropdownItems(context),
+                                  if (widget.product.isLiquid ||
+                                      !widget.product.isLiquid &&
+                                          !widget.product.isSolid)
+                                    ..._getLiquidUnitDropdownItems(context),
+                                  ..._getOtherDropdownItems(context),
+                                ],
+                                onChanged: (value) {
+                                  widget.onQuantityOrUnitChanged(
+                                    widget.quantityTextController.text,
+                                    value,
+                                  );
+                                },
                               ),
-                              items: <DropdownMenuItem<String>>[
-                                // #629: a serving the app cannot scale
-                                // is a no-op dressed as a unit.
-                                if (widget.product.scalableServingQuantity !=
-                                    null)
-                                  _getServingDropdownItem(context),
-                                if (widget.product.isSolid ||
-                                    !widget.product.isLiquid &&
-                                        !widget.product.isSolid)
-                                  ..._getSolidUnitDropdownItems(context),
-                                if (widget.product.isLiquid ||
-                                    !widget.product.isLiquid &&
-                                        !widget.product.isSolid)
-                                  ..._getLiquidUnitDropdownItems(context),
-                                ..._getOtherDropdownItems(context),
-                              ],
-                              onChanged: (value) {
-                                widget.onQuantityOrUnitChanged(
-                                  widget.quantityTextController.text,
-                                  value,
-                                );
-                              },
                             ),
                           ),
                         ],
@@ -298,7 +318,10 @@ class _MealDetailBottomSheetState extends State<MealDetailBottomSheet> {
 
     widget.mealDetailBloc.addIntake(
       context,
-      widget.mealDetailBloc.state.selectedUnit,
+      widget.product.isCatalogueFood &&
+              isPortionUnit(widget.mealDetailBloc.state.selectedUnit)
+          ? UnitDropdownItem.g.toString()
+          : storedUnit(widget.mealDetailBloc.state.selectedUnit),
       widget.mealDetailBloc.state.totalQuantityConverted,
       widget.intakeTypeEntity,
       widget.product,

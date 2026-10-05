@@ -56,3 +56,6 @@ __pycache__/
 tool/live_*.dart
 tool/verify_openai_key.dart
 devtools_options.yaml
+
+# Prepared from the pinned food-data flake.
+assets/food-data/
