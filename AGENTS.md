@@ -34,7 +34,16 @@ attribution, assistant names, or AI co-author trailers.
   only where layout requires it and verify tight bounds on Android.
 - Constrain Row titles with Expanded, bounded lines, and ellipsis; use AutoSizeText
   for prominent titles. Avoid Flexible titles competing with a Spacer.
+- Prefix catalogue food `code` values with `<datasource>:<id>` when adding new food 
+  databases to prevent ID collisions.
+  Keep `isCatalogueFood` and catalogue lookup parsing in sync with new prefixes.
 - Keep formatting scoped to changed files and exclude generated Dart.
+
+## Documentation
+
+- Do not add or create additional documentation unless explicitly requested.
+  Update existing documentation references only when the changed surface
+  requires it.
 
 ## Known tooling issues
 
