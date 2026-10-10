@@ -132,13 +132,28 @@ class OFFConst {
 
   static String _joinFields(List<String> fields) => fields.join(",");
 
-  static Uri getOffWordSearchUrl(String searchString, {String langs = 'en'}) {
+  static Uri getOffWordSearchUrl(
+    String searchString, {
+    String langs = 'en',
+    int page = 1,
+    int pageSize = searchCandidatePoolSize,
+    bool relevanceOnly = false,
+  }) {
     final queryParameters = {
       _salQueryTag: searchString,
-      _salFieldsTag: _joinFields(_searchReturnFields),
+      _salFieldsTag: _joinFields(
+        relevanceOnly
+            ? _searchReturnFields
+                  .where(
+                    (f) =>
+                        f != _offPopularityKeyTag && f != _offCountriesTagsTag,
+                  )
+                  .toList()
+            : _searchReturnFields,
+      ),
       _salLangsTag: langs,
-      _salPageSizeTag: '$searchCandidatePoolSize',
-      _salPageTag: '1',
+      _salPageSizeTag: '$pageSize',
+      _salPageTag: '$page',
     };
 
     return Uri.https(_salBaseUrl, _salSearchTag, queryParameters);

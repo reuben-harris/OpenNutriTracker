@@ -88,7 +88,8 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late Directory dir;
   late Box<IntakeDBO> intakes;
-  late Box<MealDBO> custom, cache;
+  late Box<MealDBO> custom;
+  late RemoteSearchCacheDataSource cache;
   late Box<RecipeDBO> recipes;
   late Box<ConfigDBO> config;
   late Box<TrackedDayDBO> days;
@@ -104,7 +105,9 @@ void main() {
     registerHiveAdaptersOnce();
     intakes = await Hive.openBox<IntakeDBO>('intakes');
     custom = await Hive.openBox<MealDBO>('custom');
-    cache = await Hive.openBox<MealDBO>('cache');
+    cache = RemoteSearchCacheDataSource(
+      databasePath: () async => '${dir.path}/cache.sqlite',
+    );
     recipes = await Hive.openBox<RecipeDBO>('recipes');
     config = await Hive.openBox<ConfigDBO>('config');
     days = await Hive.openBox<TrackedDayDBO>('days');
@@ -126,7 +129,7 @@ void main() {
       products,
       CustomMealDataSource(db),
       RecipeRepository(RecipeDataSource(db)),
-      RemoteSearchCacheDataSource(cache, await Hive.openBox<int>('timestamps')),
+      cache,
       catalogue: catalogue,
     );
   });
@@ -190,7 +193,7 @@ void main() {
       expect((await b)!.amount, 200);
       expect(catalogue.ids, ['usda:1']);
       expect(products.calls, 0);
-      expect(cache.values, isEmpty);
+      expect(await cache.count, 0);
       expect((await repo.getIntakeById('other'))!.totalKcal, 150);
     },
   );
@@ -211,7 +214,10 @@ void main() {
         expect((await a)!.totalKcal, 500);
         expect((await b)!.amount, 200);
         expect(products.calls, 1);
-        expect(cache.values.single.nutriments.carbohydrates100, isNull);
+        expect(
+          (await cache.getAll()).single.nutriments.carbohydrates100,
+          isNull,
+        );
       },
     );
   }
@@ -232,7 +238,7 @@ void main() {
     await intakes.clear();
     products.response!.complete(food(source: MealSourceEntity.off));
     expect(await run, isNull);
-    expect(cache.isEmpty, isTrue);
+    expect(await cache.count, 0);
   });
   test('profile change discards response', () async {
     await log(food(source: MealSourceEntity.off));

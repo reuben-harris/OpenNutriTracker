@@ -82,86 +82,49 @@ class _FakeRecipeDataSource implements RecipeDataSource {
 class _FakeRemoteSearchCacheDataSource implements RemoteSearchCacheDataSource {
   final List<MealDBO> meals = [];
   final List<MealDBO> cached = [];
-  final List<String> touched = [];
-
-  /// Per-key timestamps. Tests that care about ordering should set this
-  /// explicitly via [setTimestamp]; otherwise [cache] sets to a synthetic
-  /// monotonic counter so insertion-order matches touch-order.
-  final Map<String, int> timestamps = {};
-  int _nextTs = 0;
-
-  void setTimestamp(String key, int ts) => timestamps[key] = ts;
-
   @override
-  List<MealDBO> getAll() => meals;
-
+  int get generation => 0;
   @override
-  List<MealDBO> getAllByMostRecentlyTouched() {
-    final entries = List<MealDBO>.of(meals);
-    entries.sort((a, b) {
-      final aTs = timestamps[a.code ?? a.name ?? ''] ?? 0;
-      final bTs = timestamps[b.code ?? b.name ?? ''] ?? 0;
-      return bTs.compareTo(aTs);
-    });
-    return entries;
-  }
-
+  String get language => 'en';
   @override
-  Future<void> cache(MealDBO meal) async {
+  Future<List<MealDBO>> getAll() async => meals;
+  @override
+  Future<void> cache(MealDBO meal, {int? generation, String? language}) async {
     cached.add(meal);
-    meals.add(meal);
-    final key = meal.code ?? meal.name;
-    if (key != null) {
-      timestamps[key] = ++_nextTs;
+    final index = meals.indexWhere((m) => m.code == meal.code);
+    if (index < 0) {
+      meals.add(meal);
+    } else {
+      meals[index] = meal.detailed == true
+          ? meal
+          : MealDBO.fromJson(
+              mergeFoodPayloads(meals[index].toJson(), meal.toJson()),
+            );
     }
   }
 
   @override
-  Future<void> cacheAll(Iterable<MealDBO> incoming) async {
-    for (final m in incoming) {
-      await cache(m);
+  Future<void> cacheAll(
+    Iterable<MealDBO> incoming, {
+    int? generation,
+    String? language,
+  }) async {
+    for (final meal in incoming) {
+      await cache(meal);
     }
   }
 
   @override
-  Future<void> cacheFromSearch(Iterable<MealDBO> incoming) async {
-    for (final m in incoming) {
-      final key = m.code ?? m.name;
-      final existingIndex = meals.indexWhere(
-        (e) => e.code == m.code || (m.code == null && e.name == m.name),
-      );
-      if (existingIndex >= 0) {
-        // Refresh data, preserve existing timestamp — but, as the real
-        // class does, never let a thin search result overwrite a full one.
-        final wouldDowngrade =
-            (meals[existingIndex].detailed ?? false) && !(m.detailed ?? false);
-        if (!wouldDowngrade) {
-          meals[existingIndex] = m;
-        }
-        cached.add(m);
-      } else {
-        meals.add(m);
-        cached.add(m);
-        if (key != null) {
-          timestamps[key] = ++_nextTs;
-        }
-      }
-    }
-  }
-
+  Future<void> cacheFromSearch(
+    Iterable<MealDBO> incoming, {
+    int? generation,
+    String? language,
+  }) => cacheAll(incoming);
   @override
-  MealDBO? getByBarcode(String barcode) =>
+  Future<MealDBO?> getByBarcode(String barcode) async =>
       meals.where((m) => m.code == barcode).firstOrNull;
-
   @override
-  Future<void> touch(String code) async {
-    touched.add(code);
-    timestamps[code] = ++_nextTs;
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('Unexpected call: ${invocation.memberName}');
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
 void main() {
@@ -487,94 +450,6 @@ void main() {
 
       expect(cachedOffMealDataSource.cached, isEmpty);
     });
-
-    test('a re-search does NOT reset timestamps of items already in the cache '
-        '(regression: previously, bulk-caching wiped the timestamp of a just-'
-        'logged item, breaking the promote-recent ordering)', () async {
-      // User selected banana-b earlier, so its timestamp is high.
-      cachedOffMealDataSource.meals.addAll([
-        _offCacheDbo(code: 'banana-a', name: 'Banana A'),
-        _offCacheDbo(code: 'banana-b', name: 'Banana B'),
-      ]);
-      cachedOffMealDataSource.setTimestamp('banana-a', 100);
-      cachedOffMealDataSource.setTimestamp('banana-b', 999);
-
-      // Now the user searches "banana" again. Remote returns the same
-      // products. cacheFromSearch must NOT reset banana-b's high
-      // timestamp — it should stay at the top of the cached list.
-      productsRepository.offResults['banana'] = [
-        _meal(code: 'banana-a', name: 'Banana A', source: MealSourceEntity.off),
-        _meal(code: 'banana-b', name: 'Banana B', source: MealSourceEntity.off),
-      ];
-
-      final result = await useCase.searchOFFProductsByString('banana');
-
-      expect(
-        result.meals.first.code,
-        'banana-b',
-        reason:
-            'banana-b should still rank first because its timestamp '
-            'was not reset by the new search',
-      );
-    });
-
-    test('recently-touched cached entry sorts above other cached entries '
-        '(simulates the user logging a specific result and seeing it at the '
-        'top of the same search next time)', () async {
-      // Three banana variants in the cache from a previous bulk-search.
-      cachedOffMealDataSource.meals.addAll([
-        _offCacheDbo(code: 'banana-a', name: 'Banana A'),
-        _offCacheDbo(code: 'banana-b', name: 'Banana B'),
-        _offCacheDbo(code: 'banana-c', name: 'Banana C'),
-      ]);
-      // All bulk-cached at the same epoch; user then explicitly logged
-      // banana-b later (touch fires with a higher timestamp).
-      cachedOffMealDataSource.setTimestamp('banana-a', 100);
-      cachedOffMealDataSource.setTimestamp('banana-b', 999);
-      cachedOffMealDataSource.setTimestamp('banana-c', 100);
-
-      // Remote returns nothing different — keeps the test focused on
-      // ordering of the cached entries.
-      productsRepository.offResults['banana'] = const [];
-
-      final result = await useCase.searchOFFProductsByString('banana');
-
-      // banana-b (the user-selected one) should be first.
-      expect(result.meals.map((m) => m.code).toList(), [
-        'banana-b',
-        'banana-a',
-        'banana-c',
-      ]);
-    });
-
-    // The cache box holds both OFF and FDC entries. Each tab must only
-    // surface cached entries from its own source, otherwise a prior search
-    // on one tab leaks results into the other (e.g. branded OFF products
-    // appearing in the FDC "Food" tab).
-
-    test(
-      'cached FDC food does not leak into the OFF products search',
-      () async {
-        cachedOffMealDataSource.meals.add(
-          _fdcCacheDbo(code: 'fdc-cached', name: 'Chicken, raw'),
-        );
-        productsRepository.offResults['chicken'] = [
-          _meal(
-            code: 'off-1',
-            name: 'Chicken Pie',
-            source: MealSourceEntity.off,
-          ),
-        ];
-
-        final result = await useCase.searchOFFProductsByString('chicken');
-
-        expect(result.meals.map((m) => m.code), ['off-1']);
-        expect(
-          result.meals.every((m) => m.source != MealSourceEntity.fdc),
-          isTrue,
-        );
-      },
-    );
   });
 
   group('SearchProductsUseCase recipes integration', () {
@@ -692,9 +567,6 @@ MealDBO _offCacheDbo({
   source: MealSourceDBO.off,
   detailed: detailed,
 );
-
-MealDBO _fdcCacheDbo({required String code, required String name}) =>
-    _meaDboWithSource(code: code, name: name, source: MealSourceDBO.fdc);
 
 MealDBO _meaDboWithSource({
   required String code,

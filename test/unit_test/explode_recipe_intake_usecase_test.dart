@@ -157,7 +157,9 @@ class _RecipeRepository extends Fake implements RecipeRepository {
 
 class _RemoteCache extends Fake implements RemoteSearchCacheDataSource {
   @override
-  Future<void> touch(String code) async {}
+  int get generation => 0;
+  @override
+  String get language => 'en';
 }
 
 class _BuildContext extends Fake implements BuildContext {}

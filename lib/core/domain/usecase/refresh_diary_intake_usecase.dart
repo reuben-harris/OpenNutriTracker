@@ -51,6 +51,8 @@ class RefreshDiaryIntakeUsecase {
   }
 
   Future<IntakeEntity?> _refresh(String id, Object box, String profile) async {
+    final cacheGeneration = _cache.generation;
+    final cacheLanguage = _cache.language;
     final intake = await _intakes.getIntakeById(id);
     if (intake == null ||
         (!identical(box, _db.intakeBox) || profile != _db.activeProfileId)) {
@@ -110,7 +112,11 @@ class RefreshDiaryIntakeUsecase {
     if (identical(box, _db.intakeBox) &&
         profile == _db.activeProfileId &&
         meal.source == MealSourceEntity.off) {
-      await _cache.cache(dbo);
+      await _cache.cache(
+        dbo,
+        generation: cacheGeneration,
+        language: cacheLanguage,
+      );
     }
     return updated;
   }

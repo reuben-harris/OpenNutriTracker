@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:hive_ce/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:opennutritracker/core/data/data_source/remote_search_cache_data_source.dart';
@@ -71,8 +70,6 @@ MealEntity refreshMeal({double kcal = 100, bool detailed = true}) =>
 /// Shared by host widget tests and the Android integration test.
 class ProductRefreshFixture {
   late Directory directory;
-  late Box<MealDBO> meals;
-  late Box<int> timestamps;
   late RemoteSearchCacheDataSource cache;
   late ProductsRepository repository;
   final requests = <http.Request>[];
@@ -89,9 +86,9 @@ class ProductRefreshFixture {
     );
     directory = await Directory.systemTemp.createTemp('off-refresh-');
     registerHiveAdaptersOnce();
-    meals = await Hive.openBox<MealDBO>('meals', path: directory.path);
-    timestamps = await Hive.openBox<int>('timestamps', path: directory.path);
-    cache = RemoteSearchCacheDataSource(meals, timestamps);
+    cache = RemoteSearchCacheDataSource(
+      databasePath: () async => '${directory.path}/cache.sqlite',
+    );
     await cache.cache(MealDBO.fromMealEntity(refreshMeal()));
     // A second entry proves refresh does not clear the whole cache.
     await cache.cache(
@@ -153,8 +150,6 @@ class ProductRefreshFixture {
 
   Future<void> close() async {
     await GetIt.instance.reset();
-    await meals.close();
-    await timestamps.close();
     await directory.delete(recursive: true);
   }
 
@@ -164,7 +159,8 @@ class ProductRefreshFixture {
     cache,
   ).searchProductByBarcode(refreshBarcode);
 
-  MealDBO get cached => cache.getDetailedByBarcode(refreshBarcode)!;
+  Future<MealDBO> get cached async =>
+      (await cache.getDetailedByBarcode(refreshBarcode))!;
 
   static http.Response success({
     double kcal = 200,

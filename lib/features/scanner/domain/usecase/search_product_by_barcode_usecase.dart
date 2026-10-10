@@ -42,13 +42,21 @@ class SearchProductByBarcodeUseCase {
       return MealEntity.fromMealDBO(customMatch);
     }
 
-    final cachedMatch = _cachedOffMealDataSource.getDetailedByBarcode(barcode);
+    final generation = _cachedOffMealDataSource.generation;
+    final language = _cachedOffMealDataSource.language;
+    final cachedMatch = await _cachedOffMealDataSource.getDetailedByBarcode(
+      barcode,
+    );
     if (cachedMatch != null) {
       return MealEntity.fromMealDBO(cachedMatch);
     }
 
     final remote = await _productsRepository.getOFFProductByBarcode(barcode);
-    await _cachedOffMealDataSource.cache(MealDBO.fromMealEntity(remote));
+    await _cachedOffMealDataSource.cache(
+      MealDBO.fromMealEntity(remote),
+      generation: generation,
+      language: language,
+    );
     return remote;
   }
 }
