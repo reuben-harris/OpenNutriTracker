@@ -56,6 +56,7 @@ class DeleteAllUserDataUsecase {
     await Future.wait([
       _hiveDBProvider.configBox.clear(),
       _hiveDBProvider.intakeBox.clear(),
+      _hiveDBProvider.foodAmountMemoryBox.clear(),
       _hiveDBProvider.userActivityBox.clear(),
       _hiveDBProvider.userBox.clear(),
       _hiveDBProvider.trackedDayBox.clear(),

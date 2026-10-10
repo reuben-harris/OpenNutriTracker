@@ -39,6 +39,7 @@ class HiveDBProvider extends ChangeNotifier {
 
   static const configBoxName = 'ConfigBox';
   static const intakeBoxName = 'IntakeBox';
+  static const foodAmountMemoryBoxName = 'FoodAmountMemoryBox';
   static const userActivityBoxName = 'UserActivityBox';
   static const userBoxName = 'UserBox';
   static const trackedDayBoxName = 'TrackedDayBox';
@@ -72,6 +73,7 @@ class HiveDBProvider extends ChangeNotifier {
   static const perProfileBoxNames = <String>[
     configBoxName,
     intakeBoxName,
+    foodAmountMemoryBoxName,
     userActivityBoxName,
     userBoxName,
     trackedDayBoxName,
@@ -97,6 +99,7 @@ class HiveDBProvider extends ChangeNotifier {
   // error through `_requireBox` instead of Hive's opaque closed-box error.
   Box<ConfigDBO>? _configBox;
   Box<IntakeDBO>? _intakeBox;
+  Box<Map>? _foodAmountMemoryBox;
   Box<UserActivityDBO>? _userActivityBox;
   Box<UserDBO>? _userBox;
   Box<TrackedDayDBO>? _trackedDayBox;
@@ -112,6 +115,8 @@ class HiveDBProvider extends ChangeNotifier {
   String get activeProfileId => _activeProfileId;
 
   Box<ConfigDBO> get configBox => _requireBox(_configBox, configBoxName);
+  Box<Map> get foodAmountMemoryBox =>
+      _requireBox(_foodAmountMemoryBox, foodAmountMemoryBoxName);
   Box<IntakeDBO> get intakeBox => _requireBox(_intakeBox, intakeBoxName);
   Box<UserActivityDBO> get userActivityBox =>
       _requireBox(_userActivityBox, userActivityBoxName);
@@ -203,6 +208,9 @@ class HiveDBProvider extends ChangeNotifier {
     final suffix = _activeBoxSuffix;
     _configBox = await _openEncryptedBox(boxNameFor(configBoxName, suffix));
     _intakeBox = await _openEncryptedBox(boxNameFor(intakeBoxName, suffix));
+    _foodAmountMemoryBox = await _openEncryptedBox(
+      boxNameFor(foodAmountMemoryBoxName, suffix),
+    );
     _userActivityBox = await _openEncryptedBox(
       boxNameFor(userActivityBoxName, suffix),
     );
@@ -223,6 +231,7 @@ class HiveDBProvider extends ChangeNotifier {
     await Future.wait([
       if (_configBox != null) _configBox!.close(),
       if (_intakeBox != null) _intakeBox!.close(),
+      if (_foodAmountMemoryBox != null) _foodAmountMemoryBox!.close(),
       if (_userActivityBox != null) _userActivityBox!.close(),
       if (_userBox != null) _userBox!.close(),
       if (_trackedDayBox != null) _trackedDayBox!.close(),
@@ -232,6 +241,7 @@ class HiveDBProvider extends ChangeNotifier {
     ]);
     _configBox = null;
     _intakeBox = null;
+    _foodAmountMemoryBox = null;
     _userActivityBox = null;
     _userBox = null;
     _trackedDayBox = null;
