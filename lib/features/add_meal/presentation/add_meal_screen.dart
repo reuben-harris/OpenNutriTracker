@@ -26,7 +26,6 @@ class AddMealScreen extends StatefulWidget {
 }
 
 class _AddMealScreenState extends State<AddMealScreen> {
-
   late AddMealType _mealType;
   late DateTime _day;
 
@@ -46,7 +45,8 @@ class _AddMealScreenState extends State<AddMealScreen> {
         ModalRoute.of(context)?.settings.arguments as AddMealScreenArguments;
     _mealType = args.mealType;
     _day = args.day;
-    _search ??= args.search ?? FoodSearchController(locator<FoodSearchEngine>());
+    _search ??=
+        args.search ?? FoodSearchController(locator<FoodSearchEngine>());
     super.didChangeDependencies();
   }
 
@@ -106,29 +106,49 @@ class _AddMealScreenState extends State<AddMealScreen> {
           ),
         ],
       ),
-      body: BlocBuilder<AddMealBloc, AddMealState>(bloc: _addMealBloc, builder: (context, state) {
-        final imperial = state is AddMealLoadedState && state.usesImperialUnits;
-        return FoodSearchView(
-          controller: _search,
-          itemBuilder: (context, meal) => MealItemCard(key: ValueKey(foodIdentity(meal)),
-            mealEntity: meal, onSelected: _selectFood, onInfo: () async {
-              final selected = await showFoodInformation(context, meal: meal, day: _day, type: _mealType.getIntakeType(), imperial: imperial);
-              if (selected != null && mounted) _selectFood(selected);
-            }),
-          onBarcodePressed: (barcode) => _onBarcodeIconPressed(barcode),
-          onCreateCustomFood: () => _onCustomAddButtonPressed(imperial),
-        );
-      }),
+      body: BlocBuilder<AddMealBloc, AddMealState>(
+        bloc: _addMealBloc,
+        builder: (context, state) {
+          final imperial =
+              state is AddMealLoadedState && state.usesImperialUnits;
+          return FoodSearchView(
+            controller: _search,
+            itemBuilder: (context, meal) => MealItemCard(
+              key: ValueKey(foodIdentity(meal)),
+              mealEntity: meal,
+              onSelected: _selectFood,
+              onInfo: () async {
+                final selected = await showFoodInformation(
+                  context,
+                  meal: meal,
+                  day: _day,
+                  type: _mealType.getIntakeType(),
+                  imperial: imperial,
+                );
+                if (selected != null && mounted) _selectFood(selected);
+              },
+            ),
+            onBarcodePressed: (barcode) => _onBarcodeIconPressed(barcode),
+            onCreateCustomFood: () => _onCustomAddButtonPressed(imperial),
+          );
+        },
+      ),
     );
   }
 
   Future<void> _selectFood(MealEntity meal) async {
+    if (_handedOff) return;
     final navigator = Navigator.of(context);
     final search = _search!;
     final args = AddMealScreenArguments(_mealType, _day, search: search);
     _handedOff = true;
     navigator.pop();
-    final saved = await logFoodAmount(navigator.context, meal: meal, day: _day, type: _mealType.getIntakeType());
+    final saved = await logFoodAmount(
+      navigator.context,
+      meal: meal,
+      day: _day,
+      type: _mealType.getIntakeType(),
+    );
     if (!saved && navigator.mounted) {
       navigator.pushNamed(NavigationOptions.addMealRoute, arguments: args);
     } else {
@@ -136,11 +156,16 @@ class _AddMealScreenState extends State<AddMealScreen> {
     }
   }
 
-  void _onBarcodeIconPressed([String? barcode]) {
-    Navigator.of(context).pushNamed(
+  Future<void> _onBarcodeIconPressed([String? barcode]) async {
+    final selected = await Navigator.of(context).pushNamed(
       NavigationOptions.scannerRoute,
-      arguments: ScannerScreenArguments(_day, _mealType.getIntakeType(), initialBarcode: barcode),
+      arguments: ScannerScreenArguments(
+        _day,
+        _mealType.getIntakeType(),
+        initialBarcode: barcode,
+      ),
     );
+    if (selected is MealEntity && mounted) await _selectFood(selected);
   }
 
   void _onBulkAddPressed(bool usesImperialUnits) {
