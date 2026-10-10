@@ -147,7 +147,16 @@ void main() {
       expect(find.textContaining('Apple juice'), findsNothing);
       expect(find.textContaining('Apple cake'), findsNothing);
       expect(online.cancelled, 1);
-      await tester.enterText(find.byType(TextField), '');
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Semantics && w.properties.identifier == 'meal-search-clear',
+        ),
+      );
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        isEmpty,
+      );
       await tester.pumpAndSettle();
       expect(tester.widget<ChoiceChip>(chip('food')).selected, isTrue);
       expect(find.textContaining('Apple'), findsNothing);
