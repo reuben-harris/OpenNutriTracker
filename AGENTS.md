@@ -18,6 +18,32 @@ Use [Scoped Commits](https://scopedcommits.com/): `<scope>: <description>`, with
 subsystem scope such as `nix`, `android`, or `settings`. Never add assistant
 attribution, assistant names, or AI co-author trailers.
 
+## Architecture and reuse
+
+- Treat this as a new app. Design changes around the intended final
+  architecture, as if designing the affected feature from scratch.
+  Update callers directly and remove obsolete code. Backwards compatibility
+  is not required unless explicitly requested, including compatibility with
+  older database schemas. Do not add compatibility adapters, deprecated
+  aliases, legacy branches, or database migrations solely to preserve an
+  older implementation.
+
+- Keep the current database schema internally consistent. Hive type and
+  field IDs may change as part of an intentional schema redesign; preserving
+  previously stored development data is not required. Regenerate annotated
+  adapters when changing models, and never edit generated code by hand.
+
+- Build one reusable implementation for UI structure and behavior shared
+  across features. Centralize repeated layout, spacing, image loading,
+  loading feedback, and interaction patterns.
+  Feature components should supply their specific content and actions.
+
+- Keep shared primitives focused and compose them into reusable components.
+  Create abstractions around existing repeated patterns or an identified
+  next consumer. Retain feature wrappers when they assemble meaningful
+  feature content or behavior; remove wrappers that only preserve an old
+  name or forward arguments
+
 ## App conventions
 
 - English UI strings live in `lib/l10n/intl_en.arb`. Reuse existing keys before
