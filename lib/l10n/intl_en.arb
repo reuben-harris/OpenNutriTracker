@@ -1409,6 +1409,7 @@
   "@diaryClipboardCountLabel": {"placeholders": {"count": {"type": "int"}}},
   "missingNutritionLabel": "Missing information",
   "diaryRefreshLabel": "Refresh",
+  "foodImageLoadingLabel": "Loading image",
   "diaryRefreshSuccess": "Entry refreshed",
   "diaryRefreshFailed": "Could not refresh this entry. Try again.",
   "diaryRefreshUnavailable": "The source is unavailable. The recorded entry was kept.",
