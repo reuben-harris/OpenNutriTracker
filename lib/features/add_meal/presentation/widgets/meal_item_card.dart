@@ -127,15 +127,36 @@ class _MealItemCardState extends State<MealItemCard> {
     String? emoji,
   ) {
     final radius = BorderRadius.circular(Dimens.radiusM);
+    final background = isRecipe
+        ? accent.withValues(alpha: 0.16)
+        : palette.surfaceMuted;
     if (mealEntity.thumbnailImageUrl != null) {
-      return ClipRRect(
-        borderRadius: radius,
+      return Container(
+        width: Dimens.mealThumb,
+        height: Dimens.mealThumb,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(borderRadius: radius, color: background),
         child: CachedNetworkImage(
           cacheManager: locator<CacheManager>(),
           fit: BoxFit.cover,
           width: Dimens.mealThumb,
           height: Dimens.mealThumb,
           imageUrl: mealEntity.thumbnailImageUrl ?? "",
+          placeholder: (context, url) => Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: palette.textMuted,
+              ),
+            ),
+          ),
+          errorWidget: (context, url, error) => Icon(
+            Icons.restaurant_rounded,
+            size: 26,
+            color: palette.textMuted,
+          ),
         ),
       );
     }
@@ -143,10 +164,7 @@ class _MealItemCardState extends State<MealItemCard> {
       width: Dimens.mealThumb,
       height: Dimens.mealThumb,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: radius,
-        color: isRecipe ? accent.withValues(alpha: 0.16) : palette.surfaceMuted,
-      ),
+      decoration: BoxDecoration(borderRadius: radius, color: background),
       child: emoji != null
           ? ExcludeSemantics(
               child: Text(emoji, style: const TextStyle(fontSize: 30)),
