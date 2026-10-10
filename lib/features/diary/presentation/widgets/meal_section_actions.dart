@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/food_amount/log_food_amount.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
@@ -46,10 +48,20 @@ class MealSectionActions extends StatelessWidget {
                 ),
                 tooltip: s.scanProductLabel,
                 icon: Icon(CustomIcons.barcode_scan, color: palette.textMuted),
-                onPressed: () => Navigator.of(context).pushNamed(
-                  NavigationOptions.scannerRoute,
-                  arguments: ScannerScreenArguments(day, intakeType),
-                ),
+                onPressed: () async {
+                  final selected = await Navigator.of(context).pushNamed(
+                    NavigationOptions.scannerRoute,
+                    arguments: ScannerScreenArguments(day, intakeType),
+                  );
+                  if (selected is MealEntity && context.mounted) {
+                    await logFoodAmount(
+                      context,
+                      meal: selected,
+                      day: day,
+                      type: intakeType,
+                    );
+                  }
+                },
               ),
             ),
           ),

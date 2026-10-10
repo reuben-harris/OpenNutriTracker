@@ -16,7 +16,6 @@ import 'package:opennutritracker/core/utils/shared_payload_router.dart';
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
 import 'package:opennutritracker/features/home/presentation/screens/import_activity_scanner_screen.dart';
 import 'package:opennutritracker/features/home/presentation/screens/import_meal_scanner_screen.dart';
-import 'package:opennutritracker/features/meal_detail/meal_detail_screen.dart';
 import 'package:opennutritracker/features/recipes/presentation/screens/import_recipe_scanner_screen.dart';
 import 'package:opennutritracker/features/scanner/presentation/scanner_bloc.dart';
 import 'package:opennutritracker/features/scanner/util/barcode_check_digit.dart';
@@ -62,6 +61,7 @@ class _ScannerScreenState extends State<ScannerScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_cameraController.dispose());
+    unawaited(_scannerBloc.close());
     super.dispose();
   }
 
@@ -122,22 +122,7 @@ class _ScannerScreenState extends State<ScannerScreen>
             _navigatedAfterLoad = true;
             Future.microtask(() {
               if (!context.mounted) return;
-              if (_pickMode) {
-                // Recipe ingredient picker — hand the loaded MealEntity back
-                // to whoever pushed us instead of routing into the meal-detail
-                // logging flow.
-                Navigator.of(context).pop(state.product);
-                return;
-              }
-              Navigator.of(context).pushReplacementNamed(
-                NavigationOptions.mealDetailRoute,
-                arguments: MealDetailScreenArguments(
-                  state.product,
-                  _intakeTypeEntity!,
-                  _day!,
-                  state.usesImperialUnits,
-                ),
-              );
+              Navigator.of(context).pop(state.product);
             });
           }
         } else if (state is ScannerFailedState) {
@@ -244,8 +229,13 @@ class _ScannerScreenState extends State<ScannerScreen>
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   shape: Dimens.shapeM,
-                  side: BorderSide(color: palette.border, width: Dimens.hairline),
-                  padding: const EdgeInsets.symmetric(vertical: Dimens.spacing16),
+                  side: BorderSide(
+                    color: palette.border,
+                    width: Dimens.hairline,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: Dimens.spacing16,
+                  ),
                 ),
                 icon: const Icon(Icons.keyboard_rounded),
                 label: Text(S.of(context).scannerManualEntryButton),
@@ -292,7 +282,8 @@ class _ScannerScreenState extends State<ScannerScreen>
             Semantics(
               identifier: 'scanner-manual-entry-submit',
               child: TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(controller.text.trim()),
+                onPressed: () =>
+                    Navigator.of(dialogContext).pop(controller.text.trim()),
                 child: Text(S.of(dialogContext).scannerManualEntrySubmit),
               ),
             ),
@@ -376,15 +367,15 @@ class ScannerScreenArguments {
     DateTime forDay,
     IntakeTypeEntity forIntakeType, {
     this.initialBarcode,
-  })  : day = forDay,
-        intakeTypeEntity = forIntakeType,
-        pickMode = false;
+  }) : day = forDay,
+       intakeTypeEntity = forIntakeType,
+       pickMode = false;
 
   /// Opens the scanner in "pick" mode: on a successful product load it pops
   /// the resulting [MealEntity] back to the caller instead of routing into
   /// the meal-detail logging screen. Used by the recipe ingredient picker.
   ScannerScreenArguments.pick({this.initialBarcode})
-      : day = null,
-        intakeTypeEntity = null,
-        pickMode = true;
+    : day = null,
+      intakeTypeEntity = null,
+      pickMode = true;
 }

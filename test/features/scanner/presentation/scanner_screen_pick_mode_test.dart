@@ -8,7 +8,6 @@ import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
-import 'package:opennutritracker/features/meal_detail/meal_detail_screen.dart';
 import 'package:opennutritracker/features/scanner/domain/usecase/search_product_by_barcode_usecase.dart';
 import 'package:opennutritracker/features/scanner/presentation/scanner_bloc.dart';
 import 'package:opennutritracker/features/scanner/scanner_screen.dart';
@@ -142,38 +141,35 @@ void main() {
     });
 
     testWidgets(
-      'replaces the scanner with MealDetailScreen carrying day + intake type',
+      'returns a product once to its logging owner and bypasses information',
       (tester) async {
-        final pushedArgs = <Object?>[];
+        Object? selected;
+        final pushedRoutes = <String?>[];
 
         await tester.pumpWidget(
           MaterialApp(
             onGenerateRoute: (settings) {
-              if (settings.name == NavigationOptions.mealDetailRoute) {
-                pushedArgs.add(settings.arguments);
-                return MaterialPageRoute(
-                  settings: settings,
-                  builder: (_) => const Scaffold(body: Text('meal-detail')),
-                );
-              }
+              pushedRoutes.add(settings.name);
               return null;
             },
             home: Builder(
               builder: (context) => Scaffold(
                 body: Center(
                   child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        settings: RouteSettings(
-                          arguments: ScannerScreenArguments(
-                            DateTime(2026, 5, 21),
-                            IntakeTypeEntity.breakfast,
-                            initialBarcode: '5449000000996',
+                    onPressed: () async {
+                      selected = await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          settings: RouteSettings(
+                            arguments: ScannerScreenArguments(
+                              DateTime(2026, 5, 21),
+                              IntakeTypeEntity.breakfast,
+                              initialBarcode: '5449000000996',
+                            ),
                           ),
+                          builder: (_) => const ScannerScreen(),
                         ),
-                        builder: (_) => const ScannerScreen(),
-                      ),
-                    ),
+                      );
+                    },
                     child: const Text('open scanner'),
                   ),
                 ),
@@ -185,17 +181,16 @@ void main() {
         await tester.tap(find.text('open scanner'));
         await tester.pumpAndSettle();
 
-        expect(find.text('meal-detail'), findsOneWidget);
-        expect(pushedArgs, hasLength(1),
-            reason: 'scanner should replace itself with meal-detail exactly once');
-        final args = pushedArgs.single as MealDetailScreenArguments;
-        expect(args.day, DateTime(2026, 5, 21));
-        expect(args.intakeTypeEntity, IntakeTypeEntity.breakfast);
-        expect(args.mealEntity.code, '1234567890123');
+        expect(selected, isA<MealEntity>());
+        expect((selected as MealEntity).code, '1234567890123');
+        expect(
+          pushedRoutes,
+          isNot(contains(NavigationOptions.mealDetailRoute)),
+        );
+        expect(find.byType(ScannerScreen), findsNothing);
       },
     );
   });
-
 }
 
 final _loadedMeal = MealEntity(
@@ -233,12 +228,8 @@ class _FakeSearchUseCase implements SearchProductByBarcodeUseCase {
 
 class _FakeGetConfigUsecase implements GetConfigUsecase {
   @override
-  Future<ConfigEntity> getConfig() async => const ConfigEntity(
-        true,
-        true,
-        false,
-        AppThemeEntity.system,
-      );
+  Future<ConfigEntity> getConfig() async =>
+      const ConfigEntity(true, true, false, AppThemeEntity.system);
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
