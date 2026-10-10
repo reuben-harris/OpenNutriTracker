@@ -183,38 +183,17 @@ class _MealItemCardState extends State<MealItemCard> {
     Color accent,
     bool isRecipe,
   ) {
-    if (isRecipe) {
-      return _labelChip(
-        context,
-        S.of(context).additionalInfoLabelRecipe,
-        background: accent.withValues(alpha: 0.16),
-        foreground: accent,
-      );
-    }
-
-    // Remote foods carry their database of origin; show it as a muted chip
-    // (Open Food Facts, BLS, FDC SR Legacy...) so users can tell sources
-    // apart. OFF products may additionally have a package quantity — keep
-    // it visible next to the chip.
-    if (mealEntity.isQuickAdd) {
-      return mealEntity.hasQuickAddWeight
-          ? MealValueUnitText(
-              value: double.parse(mealEntity.mealQuantity!),
-              meal: mealEntity,
-              usesImperialUnits: usesImperialUnits,
-            )
-          : const Text('—');
-    }
-    final sourceLabel = _sourceLabel();
-    final chip = sourceLabel != null
-        ? _labelChip(
-            context,
-            sourceLabel,
-            background: palette.textMuted.withValues(alpha: 0.12),
-            foreground: palette.textMuted,
-          )
-        : null;
-    final quantity = mealEntity.mealQuantity != null
+    final chip = _labelChip(
+      context,
+      _sourceLabel(context),
+      background: isRecipe
+          ? accent.withValues(alpha: 0.16)
+          : palette.textMuted.withValues(alpha: 0.12),
+      foreground: isRecipe ? accent : palette.textMuted,
+    );
+    final quantity =
+        mealEntity.mealQuantity != null &&
+            (!mealEntity.isQuickAdd || mealEntity.hasQuickAddWeight)
         ? MealValueUnitText(
             value: double.parse(mealEntity.mealQuantity ?? "0"),
             meal: mealEntity,
@@ -222,7 +201,7 @@ class _MealItemCardState extends State<MealItemCard> {
           )
         : null;
 
-    if (chip != null && quantity != null) {
+    if (quantity != null) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -232,15 +211,16 @@ class _MealItemCardState extends State<MealItemCard> {
         ],
       );
     }
-    return chip ?? quantity ?? const SizedBox();
+    return chip;
   }
 
-  String? _sourceLabel() {
-    if (mealEntity.source == MealSourceEntity.off) {
-      return OFFConst.offSourceName;
-    }
-    return null;
-  }
+  String _sourceLabel(BuildContext context) => switch (mealEntity.source) {
+    MealSourceEntity.off => OFFConst.offSourceName,
+    MealSourceEntity.fdc => 'USDA FoodData Central',
+    MealSourceEntity.custom => S.of(context).additionalInfoLabelCustom,
+    MealSourceEntity.recipe => S.of(context).additionalInfoLabelRecipe,
+    MealSourceEntity.unknown => S.of(context).additionalInfoLabelUnknown,
+  };
 
   Widget _labelChip(
     BuildContext context,
