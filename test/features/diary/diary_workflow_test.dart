@@ -10,6 +10,7 @@ import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_tracked_day_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/update_intake_usecase.dart';
 import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_thumbnail.dart';
 import 'package:opennutritracker/core/presentation/widgets/intake_card.dart';
 import 'package:opennutritracker/core/utils/calc/day_boundary_calc.dart';
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
@@ -260,7 +261,7 @@ void main() {
         );
       }
       expect(
-        find.descendant(of: preview, matching: find.byType(IntakeThumbnail)),
+        find.descendant(of: preview, matching: find.byType(FoodThumbnail)),
         findsOneWidget,
       );
       expect(find.byIcon(Icons.content_paste_rounded), findsNothing);
@@ -449,7 +450,7 @@ void main() {
       expect(find.text('2 entries'), findsNWidgets(4));
       final preview = control('diary-breakfast-paste');
       expect(
-        find.descendant(of: preview, matching: find.byType(IntakeThumbnail)),
+        find.descendant(of: preview, matching: find.byType(FoodThumbnail)),
         findsNothing,
       );
       for (final hidden in ['Diary oats', 'Saved recipe', '125 g', '50 g']) {

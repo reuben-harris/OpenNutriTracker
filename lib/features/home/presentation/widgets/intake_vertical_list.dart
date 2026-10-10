@@ -256,7 +256,6 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                               child: IntakeCard(
                                 key: ValueKey('fb-${entry.id}'),
                                 intake: entry,
-                                firstListElement: false,
                                 usesImperialUnits: widget.usesImperialUnits,
                               ),
                             ),
@@ -269,7 +268,6 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                             child: IntakeCard(
                               key: ValueKey('placeholder-${entry.id}'),
                               intake: entry,
-                              firstListElement: false,
                               usesImperialUnits: widget.usesImperialUnits,
                             ),
                           ),

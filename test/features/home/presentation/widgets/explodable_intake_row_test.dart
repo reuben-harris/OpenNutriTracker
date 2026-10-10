@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/refresh_diary_intake_usecase.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_thumbnail.dart';
 import 'package:opennutritracker/core/presentation/widgets/intake_card.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
@@ -185,7 +186,7 @@ void main() {
     await _open(tester);
     await tester.tap(_action());
     await tester.pump(const Duration(milliseconds: 250));
-    final thumb = find.byType(IntakeThumbnail);
+    final thumb = find.byType(FoodThumbnail);
     expect(
       find.descendant(of: thumb, matching: find.byType(ImageFiltered)),
       findsOneWidget,

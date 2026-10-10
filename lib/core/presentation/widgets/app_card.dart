@@ -16,6 +16,7 @@ class AppCard extends StatelessWidget {
   final double? width;
   final double? height;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final bool bordered;
   final Color? borderColor;
 
@@ -28,6 +29,7 @@ class AppCard extends StatelessWidget {
     this.width,
     this.height,
     this.onTap,
+    this.onLongPress,
     this.bordered = true,
     this.borderColor,
   });
@@ -79,11 +81,16 @@ class AppCard extends StatelessWidget {
               child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
             ),
     );
-    if (onTap == null) return tile;
+    if (onTap == null && onLongPress == null) return tile;
     return Material(
       color: Colors.transparent,
       borderRadius: radius,
-      child: InkWell(borderRadius: radius, onTap: onTap, child: tile),
+      child: InkWell(
+        borderRadius: radius,
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: tile,
+      ),
     );
   }
 }

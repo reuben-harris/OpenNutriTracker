@@ -127,7 +127,6 @@ class _ExplodableIntakeRowState extends State<ExplodableIntakeRow>
           }
         }
       },
-      firstListElement: false,
       usesImperialUnits: widget.usesImperialUnits,
     );
 

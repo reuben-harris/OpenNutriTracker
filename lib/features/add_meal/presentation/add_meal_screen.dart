@@ -123,12 +123,12 @@ class _AddMealScreenState extends State<AddMealScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing16),
-          child: Column(
-            children: [
-              const SizedBox(height: Dimens.spacing8),
-              MealSearchBar(
+        child: Column(
+          children: [
+            const SizedBox(height: Dimens.spacing8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing16),
+              child: MealSearchBar(
                 searchStringListener: _searchStringListener,
                 onSearchSubmit: _onSearchSubmit,
                 onSearchChanged: _onSearchChanged,
@@ -136,17 +136,20 @@ class _AddMealScreenState extends State<AddMealScreen> {
                 showSubmitButton: false,
                 showClearButton: true,
               ),
-              const SizedBox(height: Dimens.spacing12),
-              _buildSourceChips(context, palette),
-              const SizedBox(height: Dimens.spacing12),
-              Expanded(
-                child: BlocBuilder<AddMealBloc, AddMealState>(
-                  bloc: _addMealBloc,
-                  builder: (context, _) => _buildResults(context, palette),
-                ),
+            ),
+            const SizedBox(height: Dimens.spacing12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing16),
+              child: _buildSourceChips(context, palette),
+            ),
+            const SizedBox(height: Dimens.spacing12),
+            Expanded(
+              child: BlocBuilder<AddMealBloc, AddMealState>(
+                bloc: _addMealBloc,
+                builder: (context, _) => _buildResults(context, palette),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -210,7 +213,10 @@ class _AddMealScreenState extends State<AddMealScreen> {
   }
 
   Widget _resultsHeader(BuildContext context, AppPalette palette) => Container(
-    padding: const EdgeInsets.symmetric(vertical: Dimens.spacing4),
+    padding: const EdgeInsets.symmetric(
+      horizontal: Dimens.spacing16,
+      vertical: Dimens.spacing4,
+    ),
     alignment: Alignment.centerLeft,
     child: Text(
       S.of(context).searchResultsLabel,
@@ -289,7 +295,10 @@ class _AddMealScreenState extends State<AddMealScreen> {
           ),
           if (state.failures.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: Dimens.spacing8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: Dimens.spacing16,
+                vertical: Dimens.spacing8,
+              ),
               child: Row(
                 children: [
                   Expanded(
