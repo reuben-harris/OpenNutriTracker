@@ -16,7 +16,7 @@ import 'package:opennutritracker/core/domain/entity/user_activity_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/get_user_usecase.dart';
 import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
 import 'package:opennutritracker/core/presentation/widgets/edit_activity_dialog.dart';
-import 'package:opennutritracker/core/presentation/widgets/edit_dialog.dart';
+import 'package:opennutritracker/core/food_amount/edit_food_amount.dart';
 import 'package:opennutritracker/core/utils/calc/met_calc.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/activity_detail/presentation/bloc/activity_detail_bloc.dart';
@@ -358,26 +358,11 @@ class _DiaryPageState extends State<DiaryPage> {
     IntakeEntity intakeEntity,
     bool usesImperialUnits,
   ) async {
-    final day = _selectedDate;
-    final changeIntakeAmount = await showDialog<double>(
-      context: context,
-      builder: (context) => EditDialog(
-        intakeEntity: intakeEntity,
-        usesImperialUnits: usesImperialUnits,
-      ),
-    );
-    if (changeIntakeAmount != null) {
-      await _calendarDayBloc.updateIntakeItem(intakeEntity.id, {
-        'amount': changeIntakeAmount,
-      }, day);
-      _diaryBloc.add(const LoadDiaryYearEvent());
-      _calendarDayBloc.add(LoadCalendarDayEvent(_selectedDate));
-      _diaryBloc.updateHomePage();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).itemUpdatedSnackbar)),
-        );
-      }
+    final saved = await editFoodAmount(context, intakeEntity);
+    if (saved && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(S.of(context).itemUpdatedSnackbar)),
+      );
     }
   }
 
