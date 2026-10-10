@@ -1417,5 +1417,9 @@
   "quickAddReuseFailed": "Could not add this entry. Try again.",
   "quickAddWeightLabel": "Weight / volume (optional)",
   "logThisFoodLabel": "Log this food",
-  "foodAmountInvalidLabel": "Enter a valid amount greater than 0."
+  "foodAmountInvalidLabel": "Enter a valid amount greater than 0.",
+  "foodSourceCustomLabel": "Custom",
+  "foodSourceFdcLabel": "FoodData Central",
+  "unknownBrandLabel": "Unknown Brand",
+  "foodSourceUnknownLabel": "Unknown"
 }

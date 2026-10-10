@@ -1,10 +1,8 @@
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_card.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_card_text.dart';
 import 'package:opennutritracker/core/presentation/widgets/meal_value_unit_text.dart';
-import 'package:opennutritracker/core/styles/app_palette.dart';
-import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/utils/energy_display.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
@@ -29,9 +27,6 @@ class IntakeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final palette = isDark ? AppPalette.dark : AppPalette.light;
-    final textTheme = Theme.of(context).textTheme;
     final s = S.of(context);
     return FoodCard(
       meal: intake.meal,
@@ -43,89 +38,34 @@ class IntakeCard extends StatelessWidget {
       onLongPress: onItemLongPressed != null
           ? () => onLongPressedItem(context)
           : null,
-      content: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AutoSizeText(
-                  intake.meal.name ?? "?",
-                  style: textTheme.titleSmall?.copyWith(
-                    color: palette.textStrong,
-                  ),
-                  maxLines: 1,
-                  minFontSize: 11,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                AutoSizeText.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text:
-                            intake.meal.isQuickAdd &&
-                                !intake.meal.hasQuickAddWeight
-                            ? '—'
-                            : MealValueUnitText.format(
-                                context,
-                                intake.amount,
-                                intake.meal,
-                                usesImperialUnits: usesImperialUnits,
-                              ),
-                      ),
-                      if (intake.isIncomplete)
-                        TextSpan(
-                          text: ' · ${s.missingNutritionLabel}',
-                          style: const TextStyle(fontStyle: FontStyle.italic),
-                        ),
-                    ],
-                  ),
-                  style: textTheme.bodySmall?.copyWith(
-                    color: palette.textMuted,
-                  ),
-                  maxLines: 1,
-                  minFontSize: 8,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+      content: FoodCardText(
+        title: intake.meal.name ?? '?',
+        subtitle: TextSpan(
+          children: [
+            TextSpan(
+              text: intake.meal.isQuickAdd && !intake.meal.hasQuickAddWeight
+                  ? '—'
+                  : MealValueUnitText.format(
+                      context,
+                      intake.amount,
+                      intake.meal,
+                      usesImperialUnits: usesImperialUnits,
+                    ),
             ),
-          ),
-          const SizedBox(width: Dimens.spacing8),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                AutoSizeText(
-                  intake.meal.nutriments.energyKcal100 == null
-                      ? '—'
-                      : EnergyDisplay.formatWithUnit(context, intake.totalKcal),
-                  maxLines: 1,
-                  minFontSize: 8,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.labelMedium?.copyWith(
-                    color: palette.textStrong,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                AutoSizeText(
-                  '${_known(intake.meal.nutriments.carbohydrates100, intake.totalCarbsGram)} ${s.carbsLabelShort} '
-                  '${_known(intake.meal.nutriments.fat100, intake.totalFatsGram)} ${s.fatLabelShort} '
-                  '${_known(intake.meal.nutriments.proteins100, intake.totalProteinsGram)} ${s.proteinLabelShort}',
-                  maxLines: 1,
-                  minFontSize: 8,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: palette.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+            if (intake.isIncomplete)
+              TextSpan(
+                text: ' · ${s.missingNutritionLabel}',
+                style: const TextStyle(fontStyle: FontStyle.italic),
+              ),
+          ],
+        ),
+        trailingTitle: intake.meal.nutriments.energyKcal100 == null
+            ? '—'
+            : EnergyDisplay.formatWithUnit(context, intake.totalKcal),
+        trailingSubtitle:
+            '${_known(intake.meal.nutriments.carbohydrates100, intake.totalCarbsGram)} ${s.carbsLabelShort} '
+            '${_known(intake.meal.nutriments.fat100, intake.totalFatsGram)} ${s.fatLabelShort} '
+            '${_known(intake.meal.nutriments.proteins100, intake.totalProteinsGram)} ${s.proteinLabelShort}',
       ),
     );
   }

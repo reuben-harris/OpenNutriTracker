@@ -11,6 +11,7 @@ import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
 import '../../search/food_search_engine_test.dart' show food;
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 
 void main() {
   for (final brightness in Brightness.values) {
@@ -22,9 +23,24 @@ void main() {
           tester.view.devicePixelRatio = 1;
           addTearDown(tester.view.resetPhysicalSize);
           addTearDown(tester.view.resetDevicePixelRatio);
-          final meal = food(
-            'usda:1',
-            'An unusually long food name that needs room to fit safely',
+          final meal = MealEntity(
+            code: 'usda:1',
+            name: 'An unusually long food name that needs room to fit safely',
+            url: null,
+            mealQuantity: null,
+            mealUnit: 'g',
+            servingQuantity: null,
+            servingUnit: 'g',
+            servingSize: null,
+            nutriments: const MealNutrimentsEntity(
+              energyKcal100: 200,
+              carbohydrates100: 20,
+              fat100: 10,
+              proteins100: 5,
+              sugars100: null,
+              saturatedFat100: null,
+              fiber100: null,
+            ),
             source: MealSourceEntity.fdc,
           );
           final day = DateTime(2026, 10, 1);
@@ -56,13 +72,17 @@ void main() {
                           key: const ValueKey('search'),
                           mealEntity: meal,
                           onSelected: (_) {},
-                          usesImperialUnits: false,
+                          onInfo: () {},
                         ),
                         MealItemCard(
                           key: const ValueKey('next'),
-                          mealEntity: meal,
+                          mealEntity: food(
+                            'usda:2',
+                            'Pear',
+                            source: MealSourceEntity.fdc,
+                          ),
                           onSelected: (_) {},
-                          usesImperialUnits: false,
+                          onInfo: () {},
                         ),
                       ],
                     ),
@@ -81,7 +101,8 @@ void main() {
             expect(card.left, 16);
             expect(card.right, 304);
             expect(card.height, greaterThanOrEqualTo(76));
-            expect(thumb.size, const Size.square(52));
+            expect(thumb.width, closeTo(52, 0.000001));
+            expect(thumb.height, closeTo(52, 0.000001));
             // AppCard's border surrounds the shared 12px content padding.
             final borderWidth =
                 tester.widget<AppCard>(cards.at(i)).borderColor == null
@@ -101,6 +122,18 @@ void main() {
               expect(card.top - tester.getRect(cards.at(i - 1)).bottom, 8);
             }
           }
+          expect(
+            tester.getRect(cards.at(0)).height,
+            closeTo(tester.getRect(cards.at(1)).height, 0.000001),
+          );
+          if (scale == 1) {
+            expect(tester.getRect(cards.at(1)).height, 78);
+          }
+          expect(
+            tester.getRect(cards.at(1)).height,
+            closeTo(tester.getRect(cards.at(2)).height, 0.000001),
+          );
+          expect(find.byIcon(Icons.add_rounded), findsNothing);
           expect(tester.takeException(), isNull);
         },
       );

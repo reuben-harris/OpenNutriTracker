@@ -9,7 +9,6 @@ import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/config_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
-import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/add_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/add_tracked_day_usecase.dart';
@@ -28,7 +27,6 @@ import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_det
 import 'package:opennutritracker/core/food_amount/food_amount_sheet.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/generated/l10n.dart';
-
 
 // #1216: "Seabrook sea salted crisps" opened from the search list shows
 // "N/A" in the unit dropdown, and when the user picks the 31.8 g serving
@@ -166,14 +164,24 @@ void main() {
 
   Future<void> pumpSheet(WidgetTester tester, MealEntity meal) async {
     hydration = Completer<MealEntity>();
-    await tester.pumpWidget(MaterialApp(localizationsDelegates: S.localizationsDelegates,
-      supportedLocales: S.supportedLocales, home: Scaffold(body: FoodAmountSheet(meal: meal,
-        onConfirm: (_, __) async => false))));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: S.localizationsDelegates,
+        supportedLocales: S.supportedLocales,
+        home: Scaffold(
+          body: FoodAmountSheet(meal: meal, onConfirm: (_, _) async => false),
+        ),
+      ),
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
   }
-  TextEditingController quantity(WidgetTester tester) => tester.widget<TextField>(find.byType(TextField)).controller!;
-  testWidgets('hydration reveals and selects the scalable serving', (tester) async {
+
+  TextEditingController quantity(WidgetTester tester) =>
+      tester.widget<TextField>(find.byType(TextField)).controller!;
+  testWidgets('hydration reveals and selects the scalable serving', (
+    tester,
+  ) async {
     await pumpSheet(tester, _thin(_seabrookCrispsSearchHit));
     expect(quantity(tester).text, '100');
     hydration.complete(_full(_seabrookCrispsProduct));
@@ -191,23 +199,31 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('31.8g'), findsOneWidget);
   });
-  testWidgets('late hydration preserves typed amount and chosen conversion', (tester) async {
+  testWidgets('late hydration preserves typed amount and chosen conversion', (
+    tester,
+  ) async {
     await pumpSheet(tester, _thin(_seabrookCrispsSearchHit));
     await tester.enterText(find.byType(TextField), '53');
     hydration.complete(_full(_seabrookCrispsProduct));
     await tester.pumpAndSettle();
     expect(quantity(tester).text, '53');
-    final dropdown = tester.widget<DropdownButtonFormField<String>>(find.byType(DropdownButtonFormField<String>));
-    expect(dropdown.initialValue, const FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1).identity);
+    final dropdown = tester.widget<DropdownButtonFormField<String>>(
+      find.byType(DropdownButtonFormField<String>),
+    );
+    expect(
+      dropdown.initialValue,
+      const FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1).identity,
+    );
   });
-  testWidgets('package size without a serving keeps a gram default', (tester) async {
+  testWidgets('package size without a serving keeps a gram default', (
+    tester,
+  ) async {
     await pumpSheet(tester, _thin(_seabrookMultipackSearchHit));
     hydration.complete(_full(_seabrookMultipackProduct));
     await tester.pumpAndSettle();
     expect(quantity(tester).text, '100');
     expect(find.text('g'), findsOneWidget);
   });
-
 }
 
 class _FakeGetConfigUsecase implements GetConfigUsecase {
