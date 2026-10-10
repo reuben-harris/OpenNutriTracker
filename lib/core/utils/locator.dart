@@ -1,3 +1,10 @@
+import 'package:opennutritracker/core/utils/food_cache_maintenance.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
+import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
+import 'package:opennutritracker/core/search/food_search_engine.dart';
+import 'package:opennutritracker/core/search/food_search_ranker.dart';
+import 'package:opennutritracker/core/search/off_food_search_source.dart';
+import 'package:opennutritracker/core/utils/app_locale.dart';
 import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'package:opennutritracker/core/domain/usecase/refresh_diary_intake_usecase.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
@@ -214,6 +221,10 @@ Future<void> initLocator() async {
     () => OntImageCacheManager.instance,
   );
 
+  locator.registerLazySingleton<FoodCacheMaintenance>(
+    () => FoodCacheMaintenance(locator(), locator()),
+  );
+
   // BLoCs
   locator.registerLazySingleton<OnboardingBloc>(
     () => OnboardingBloc(locator(), locator(), locator()),
@@ -366,6 +377,37 @@ Future<void> initLocator() async {
     () => ProductsBloc(locator(), locator()),
   );
   locator.registerLazySingleton<FoodCatalogue>(() => SQLiteFoodCatalogue());
+  locator.registerLazySingleton<OffFoodSearchSource>(
+    () => OffFoodSearchSource(),
+  );
+  locator.registerLazySingleton<FoodSearchEngine>(
+    () => FoodSearchEngine(
+      catalogue: locator(),
+      cache: locator(),
+      online: locator(),
+      contextIdentity: () =>
+          '${hiveDBProvider.activeProfileId}:${AppLocale.localeName}',
+      savedMeals: () async => [
+        ...locator<CustomMealDataSource>().getAllCustomMeals().map(
+          MealEntity.fromMealDBO,
+        ),
+        ...locator<RecipeDataSource>().getAllRecipes().map(
+          (r) => RecipeEntity.fromDBO(r).toMealEntity(),
+        ),
+      ],
+      recentMeals: () async {
+        final intakes = await locator<IntakeDataSource>().getAllIntakes();
+        intakes.sort((a, b) {
+          final byDate = b.dateTime.compareTo(a.dateTime);
+          return byDate != 0 ? byDate : a.id.compareTo(b.id);
+        });
+        final seen = <String>{};
+        return [
+          for (final intake in intakes) MealEntity.fromMealDBO(intake.meal),
+        ].where((meal) => seen.add(foodIdentity(meal))).toList();
+      },
+    ),
+  );
   locator.registerFactory<FoodBloc>(() => FoodBloc(locator(), locator()));
   locator.registerFactory(() => RecentMealBloc(locator(), locator()));
   // #84: fasting timer. Factory so the screen-scoped timer and dialog
@@ -657,12 +699,7 @@ Future<void> initLocator() async {
   );
   locator.registerLazySingleton(() => CustomMealDataSource(hiveDBProvider));
   locator.registerLazySingleton(() => RecipeDataSource(hiveDBProvider));
-  locator.registerLazySingleton(
-    () => RemoteSearchCacheDataSource(
-      hiveDBProvider.cachedOffMealBox,
-      hiveDBProvider.cachedOffMealTimestampsBox,
-    ),
-  );
+  locator.registerLazySingleton(() => RemoteSearchCacheDataSource());
   locator.registerLazySingleton<CustomActivityTemplateDataSource>(
     () => CustomActivityTemplateDataSource(hiveDBProvider),
   );

@@ -160,7 +160,11 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
       try {
         // A full cache entry (from an earlier scan/hydration) lets us skip the
         // network entirely and works offline; otherwise fetch and cache it.
-        final cached = _remoteSearchCacheDataSource.getDetailedByBarcode(code);
+        final generation = _remoteSearchCacheDataSource.generation;
+        final language = _remoteSearchCacheDataSource.language;
+        final cached = await _remoteSearchCacheDataSource.getDetailedByBarcode(
+          code,
+        );
         final full = cached != null
             ? MealEntity.fromMealDBO(cached)
             : await _productsRepository.getOFFProductByBarcode(code);
@@ -168,6 +172,8 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
         if (cached == null) {
           await (_hydrationCacheWrite = _remoteSearchCacheDataSource.cache(
             MealDBO.fromMealEntity(full),
+            generation: generation,
+            language: language,
           ));
         }
         if (request != _mealRequest || emit.isDone) return;
@@ -205,6 +211,8 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
           isHydrating: false,
         ),
       );
+      final generation = _remoteSearchCacheDataSource.generation;
+      final language = _remoteSearchCacheDataSource.language;
       try {
         final fresh = event.meal.isCatalogueFood
             ? await _catalogue?.getById(code)
@@ -222,6 +230,8 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
         if (fresh.source == MealSourceEntity.off) {
           await _remoteSearchCacheDataSource.cache(
             MealDBO.fromMealEntity(fresh),
+            generation: generation,
+            language: language,
           );
         }
         if (emit.isDone) return;
@@ -285,19 +295,20 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
   /// entry with the result. Catalogue and personal foods bypass this cache.
   Future<void> _refreshCacheForSelectedMeal(MealEntity meal) async {
     final code = meal.code;
-    if (code == null || code.isEmpty) return;
-
-    if (meal.source != MealSourceEntity.off) return;
+    if (code == null || code.isEmpty || meal.source != MealSourceEntity.off) {
+      return;
+    }
+    final generation = _remoteSearchCacheDataSource.generation;
+    final language = _remoteSearchCacheDataSource.language;
     try {
       final fresh = await _productsRepository.getOFFProductByBarcode(code);
-      await _remoteSearchCacheDataSource.cache(MealDBO.fromMealEntity(fresh));
-    } catch (e, st) {
-      log.warning(
-        'Background OFF refresh failed for $code; touching cache instead',
-        e,
-        st,
+      await _remoteSearchCacheDataSource.cache(
+        MealDBO.fromMealEntity(fresh),
+        generation: generation,
+        language: language,
       );
-      await _remoteSearchCacheDataSource.touch(code);
+    } catch (e, st) {
+      log.warning('Background OFF refresh failed for $code', e, st);
     }
   }
 

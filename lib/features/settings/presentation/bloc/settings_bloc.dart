@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logging/logging.dart';
-import 'package:opennutritracker/core/data/data_source/remote_search_cache_data_source.dart';
+import 'package:opennutritracker/core/utils/food_cache_maintenance.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
@@ -25,7 +25,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   final AddTrackedDayUsecase _addTrackedDayUsecase;
   final GetKcalGoalUsecase _getKcalGoalUsecase;
   final GetMacroGoalUsecase _getMacroGoalUsecase;
-  final RemoteSearchCacheDataSource _cachedOffMealDataSource;
+  final FoodCacheMaintenance _foodCache;
   // #173: needed so the Calculations dialog can pre-fill its
   // fibre / sat-fat / sugar sliders with the user's existing per-day
   // overrides rather than always starting from defaults.
@@ -37,7 +37,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     this._addTrackedDayUsecase,
     this._getKcalGoalUsecase,
     this._getMacroGoalUsecase,
-    this._cachedOffMealDataSource,
+    this._foodCache,
     this._getTrackedDayUsecase,
   ) : super(SettingsInitial()) {
     on<LoadSettingsEvent>((event, emit) async {
@@ -46,9 +46,8 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       final userConfig = await _getConfigUsecase.getConfig();
       final appVersion = await AppConst.getVersionNumber();
       final usesImperialUnits = userConfig.usesImperialUnits;
-      final offCacheCount = _cachedOffMealDataSource.count;
-      final offCacheSizeBytes = await _cachedOffMealDataSource
-          .getStorageSizeBytes();
+      final offCacheCount = await _foodCache.products.count;
+      final offCacheSizeBytes = await _foodCache.getStorageSizeBytes();
 
       emit(
         SettingsLoadedState(
@@ -82,8 +81,11 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   }
 
   Future<void> clearOffCache() async {
-    await _cachedOffMealDataSource.clear();
-    add(LoadSettingsEvent());
+    try {
+      await _foodCache.clear();
+    } finally {
+      add(LoadSettingsEvent());
+    }
   }
 
   Future<void> setHasAcceptedAnonymousData(bool hasAcceptedAnonymousData) {

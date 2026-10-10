@@ -54,8 +54,7 @@ class MealDBO extends HiveObject {
   /// results from Search-a-licious are cached thin (`false` / null on legacy
   /// rows); barcode and hydrated lookups are cached full (`true`). Used so a
   /// thin cache entry doesn't satisfy a hydration/barcode lookup and so
-  /// [RemoteSearchCacheDataSource.cacheFromSearch] never downgrades a full
-  /// entry. Nullable for backward compatibility with pre-existing rows.
+  /// the SQLite cache preserves full-only fields when updating from search.
   @HiveField(14)
   final bool? detailed;
 

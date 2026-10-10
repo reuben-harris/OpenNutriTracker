@@ -56,16 +56,17 @@ class SearchProductsUseCase {
         cacheSource: MealSourceEntity.off,
       );
     }
+    final generation = _cachedOffMealDataSource.generation;
+    final language = _cachedOffMealDataSource.language;
     final remote = await _safeRemoteCall(
       'OFF',
       () => _productsRepository.getOFFProductsByString(searchString),
     );
-    // Cache the result page. Untouched entries age out after 90 days
-    // (RemoteSearchCacheDataSource.pruneStale), so this can't grow
-    // unbounded. Items the user actually selects (logs an intake of)
-    // get their timestamp refreshed and stay until 90 days after the
-    // last selection.
-    await _cacheRemoteResults(remote);
+    await _cacheRemoteResults(
+      remote,
+      generation: generation,
+      language: language,
+    );
     return _buildResult(
       searchString,
       remote,
@@ -76,15 +77,16 @@ class SearchProductsUseCase {
   Future<SearchProductsResult> searchLocalFoodsByString(String query) =>
       _buildResult(query, const [], remoteSkipped: true, cacheSource: null);
 
-  Future<void> _cacheRemoteResults(List<MealEntity> remote) async {
+  Future<void> _cacheRemoteResults(
+    List<MealEntity> remote, {
+    required int generation,
+    required String language,
+  }) async {
     if (remote.isEmpty) return;
-    // cacheFromSearch (vs cacheAll) preserves timestamps for entries
-    // already in the cache. Important so that an item the user logged
-    // earlier (its timestamp got bumped via the intent path) keeps that
-    // newer timestamp even when a subsequent search re-includes it,
-    // letting it remain at the top of the cache-sorted list.
     await _cachedOffMealDataSource.cacheFromSearch(
       remote.map(MealDBO.fromMealEntity),
+      generation: generation,
+      language: language,
     );
   }
 
@@ -165,8 +167,7 @@ class SearchProductsUseCase {
     final freshByKey = {
       for (final meal in remoteResults) _dedupKey(meal): meal,
     };
-    final fromCache = _cachedOffMealDataSource
-        .getAllByMostRecentlyTouched()
+    final fromCache = (await _cachedOffMealDataSource.getAll())
         .map(MealEntity.fromMealDBO)
         .where((meal) => meal.source == cacheSource)
         .where((meal) => _mealMatchesSearch(meal, normalizedSearchString))
@@ -200,10 +201,8 @@ class SearchProductsUseCase {
   /// The fresh copy of [cached] when this search's remote page returned the
   /// same record, else [cached] itself.
   ///
-  /// The one fresh copy not taken is the one
-  /// [RemoteSearchCacheDataSource.cacheFromSearch] refuses to write: a thin
-  /// search result standing in for a product already hydrated to its full
-  /// record. The cache kept the full one, and so does the list.
+  /// A hydrated cache record already contains the refreshed search fields
+  /// merged with serving and nutrient fields absent from the thin response.
   MealEntity _freshest(MealEntity cached, Map<String, MealEntity> freshByKey) {
     final fresh = freshByKey[_dedupKey(cached)];
     if (fresh == null) return cached;

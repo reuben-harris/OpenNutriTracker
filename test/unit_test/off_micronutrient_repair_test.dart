@@ -577,44 +577,44 @@ void main() {
       expect(events.map((e) => (e.value as IntakeDBO).id), ['control']);
     });
 
-    test('ensureOffMicronutrientsRepaired covers all four boxes', () async {
-      await intakeBox.add(_intake('old-off', _meal(source: MealSourceDBO.off)));
-      await cacheBox.add(_meal(source: MealSourceDBO.off, detailed: true));
-      await customMealBox.add(_meal(source: MealSourceDBO.off));
-      await recipeBox.add(
-        _recipe('r', [_ingredient(_meal(source: MealSourceDBO.off), 50)]),
-      );
-      final db = FakeHiveDBProvider(
-        intakeBox: intakeBox,
-        cachedOffMealBox: cacheBox,
-        customMealBox: customMealBox,
-        recipeBox: recipeBox,
-      );
+    test(
+      'ensureOffMicronutrientsRepaired covers personal boxes without a Hive product cache',
+      () async {
+        await intakeBox.add(
+          _intake('old-off', _meal(source: MealSourceDBO.off)),
+        );
+        await customMealBox.add(_meal(source: MealSourceDBO.off));
+        await recipeBox.add(
+          _recipe('r', [_ingredient(_meal(source: MealSourceDBO.off), 50)]),
+        );
+        final db = FakeHiveDBProvider(
+          intakeBox: intakeBox,
+          customMealBox: customMealBox,
+          recipeBox: recipeBox,
+        );
 
-      await ensureOffMicronutrientsRepaired(db);
+        await ensureOffMicronutrientsRepaired(db);
 
-      _expectAppUnits(intakeBox.values.single.meal.nutriments);
-      _expectAppUnits(cacheBox.values.single.nutriments);
-      _expectAppUnits(customMealBox.values.single.nutriments);
-      _expectAppUnits(
-        recipeBox.values.single.ingredients.single.snapshotMeal.nutriments,
-      );
+        _expectAppUnits(intakeBox.values.single.meal.nutriments);
+        _expectAppUnits(customMealBox.values.single.nutriments);
+        _expectAppUnits(
+          recipeBox.values.single.ingredients.single.snapshotMeal.nutriments,
+        );
 
-      // And again, to prove the second launch is a no-op on every box.
-      final after = [
-        _json(intakeBox.values.single.toJson()),
-        _json(cacheBox.values.single.toJson()),
-        _json(customMealBox.values.single.toJson()),
-        _json(recipeBox.values.single.toJson()),
-      ];
-      await ensureOffMicronutrientsRepaired(db);
-      expect([
-        _json(intakeBox.values.single.toJson()),
-        _json(cacheBox.values.single.toJson()),
-        _json(customMealBox.values.single.toJson()),
-        _json(recipeBox.values.single.toJson()),
-      ], after);
-    });
+        // And again, to prove the second launch is a no-op on every box.
+        final after = [
+          _json(intakeBox.values.single.toJson()),
+          _json(customMealBox.values.single.toJson()),
+          _json(recipeBox.values.single.toJson()),
+        ];
+        await ensureOffMicronutrientsRepaired(db);
+        expect([
+          _json(intakeBox.values.single.toJson()),
+          _json(customMealBox.values.single.toJson()),
+          _json(recipeBox.values.single.toJson()),
+        ], after);
+      },
+    );
   });
 
   group('OffMicronutrientRepair on imported bundles', () {

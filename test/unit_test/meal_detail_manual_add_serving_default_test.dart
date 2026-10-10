@@ -36,7 +36,12 @@ class _FakeGetTrackedDayUsecase extends Fake implements GetTrackedDayUsecase {}
 class _FakeProductsRepository extends Fake implements ProductsRepository {}
 
 class _FakeRemoteSearchCacheDataSource extends Fake
-    implements RemoteSearchCacheDataSource {}
+    implements RemoteSearchCacheDataSource {
+  @override
+  int get generation => 0;
+  @override
+  String get language => 'en';
+}
 
 MealDetailBloc _buildBloc() => MealDetailBloc(
   _FakeAddIntakeUsecase(),
