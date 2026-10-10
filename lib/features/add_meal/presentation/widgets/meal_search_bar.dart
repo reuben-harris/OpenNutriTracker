@@ -38,6 +38,12 @@ class _MealSearchBarState extends State<MealSearchBar> {
   final _searchTextController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _searchTextController.text = widget.searchStringListener.value;
+  }
+
+  @override
   void dispose() {
     _searchTextController.dispose();
     super.dispose();

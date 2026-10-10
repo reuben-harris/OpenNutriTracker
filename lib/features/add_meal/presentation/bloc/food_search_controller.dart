@@ -1,11 +1,12 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/search/food_search_engine.dart';
 import 'package:opennutritracker/core/utils/app_locale.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 
-class DiarySearchCubit extends Cubit<FoodSearchSnapshot> {
-  DiarySearchCubit(this.engine)
+class FoodSearchController extends Cubit<FoodSearchSnapshot> {
+  FoodSearchController(this.engine)
     : super(
         FoodSearchSnapshot(
           request: FoodSearchRequest('', language: AppLocale.localeName),
@@ -14,12 +15,15 @@ class DiarySearchCubit extends Cubit<FoodSearchSnapshot> {
     _cacheSubscription = engine.cache.cleared.listen((_) => _cacheCleared());
   }
   final FoodSearchEngine engine;
+  final query = ValueNotifier<String>('');
+  final scroll = ScrollController();
   late final StreamSubscription<void> _cacheSubscription;
   FoodSearchSession? _session;
   StreamSubscription<FoodSearchSnapshot>? _subscription;
   Future<List<MealEntity>>? _recent;
 
   void search(String query, FoodSearchFilter filter, {bool submit = false}) {
+    this.query.value = query;
     final previous = _session;
     if (submit &&
         previous != null &&
@@ -74,6 +78,8 @@ class DiarySearchCubit extends Cubit<FoodSearchSnapshot> {
 
   @override
   Future<void> close() async {
+    query.dispose();
+    scroll.dispose();
     _session?.cancel();
     await _subscription?.cancel();
     await _cacheSubscription.cancel();

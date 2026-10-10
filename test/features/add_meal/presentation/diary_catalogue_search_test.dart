@@ -10,6 +10,7 @@ import 'package:opennutritracker/features/add_meal/presentation/add_meal_screen.
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
 import 'package:opennutritracker/features/add_meal/presentation/bloc/add_meal_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
+import 'package:opennutritracker/features/add_meal/presentation/widgets/food_search_view.dart';
 import '../../../core/search/food_search_engine_test.dart'
     show Catalogue, Cache, Online, food;
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
@@ -95,6 +96,22 @@ void main() {
     expect(done(), isTrue);
   }
 
+  testWidgets('shared ingredient picker returns food without logging', (tester) async {
+    MealEntity? selected;
+    await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: const [S.delegate], supportedLocales: S.supportedLocales,
+      home: Scaffold(body: FoodSearchView(itemBuilder: (context, meal) => ListTile(
+        key: ValueKey(meal.code), title: Text(meal.name!), onTap: () => selected = meal,
+      ))),
+    ));
+    await tester.enterText(find.byType(TextField), 'apple');
+    await settle(tester, () => find.text('Apple cake').evaluate().isNotEmpty);
+    await tester.tap(find.text('Apple cake'));
+    expect(selected?.source, MealSourceEntity.recipe);
+    expect(selected?.code, 'recipe');
+    // No diary logger is registered: selection belongs to the caller.
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
     'All opens blank, includes catalogue and saved recipes before OFF, and has no submit button',
     (tester) async {
