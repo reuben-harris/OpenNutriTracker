@@ -22,7 +22,9 @@ class _Products extends Fake implements ProductsRepository {}
 
 class _Cache extends Fake implements RemoteSearchCacheDataSource {
   @override
-  Future<void> touch(String code) async {}
+  int get generation => 0;
+  @override
+  String get language => 'en';
 }
 
 class DiaryWorkflowHarness extends OverviewDiaryHarness {

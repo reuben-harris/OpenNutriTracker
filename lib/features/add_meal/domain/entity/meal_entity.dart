@@ -240,6 +240,7 @@ class MealEntity extends Equatable {
   factory MealEntity.fromOFFProduct(
     OFFProductDTO offProduct, {
     bool detailed = false,
+    SupportedLanguage? language,
   }) {
     // Unit precedence: OFF's normalised serving unit, then the unit parsed
     // from the serving_size text ("30 g"), then the package quantity string.
@@ -254,7 +255,7 @@ class MealEntity extends Equatable {
     return MealEntity(
       code: offProduct.code,
       name: offProduct.getLocaleName(
-        SupportedLanguage.fromCode(AppLocale.localeName),
+        language ?? SupportedLanguage.fromCode(AppLocale.localeName),
       ),
       brands: offProduct.brands,
       thumbnailImageUrl: offProduct.image_front_thumb_url,

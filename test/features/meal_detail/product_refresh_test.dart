@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -68,7 +69,10 @@ void main() {
     bloc.add(RefreshMealEvent(refreshMeal()));
     await tester.pump();
     expect(fixture.requests, hasLength(1));
-    expect(fixture.cached.nutriments.energyKcal100, 100);
+    expect(
+      (await tester.runAsync(() => fixture.cached))!.nutriments.energyKcal100,
+      100,
+    );
     // Editing while the request is in flight must be preserved too.
     quantity(tester).text = '2,5';
     await tester.pump();
@@ -91,13 +95,15 @@ void main() {
         )
         .product;
     expect(displayed.nutriments.energyKcal100, 200);
-    expect(fixture.cached.nutriments.energyKcal100, 200);
-    expect(fixture.meals.length, 2);
     expect(
-      fixture.cache
-          .getDetailedByBarcode('other-product')!
-          .nutriments
-          .energyKcal100,
+      (await tester.runAsync(() => fixture.cached))!.nutriments.energyKcal100,
+      200,
+    );
+    expect(await tester.runAsync(() => fixture.cache.count), 2);
+    expect(
+      (await tester.runAsync(
+        () => fixture.cache.getDetailedByBarcode('other-product'),
+      ))!.nutriments.energyKcal100,
       100,
     );
     expect(fixture.requests.single.url.path, contains(refreshBarcode));
@@ -108,8 +114,11 @@ void main() {
     await pumpUntil(tester, () => !bloc.state.isRefreshing);
     expect(bloc.state.mealRevision, 2);
     expect(bloc.state.totalKcal, 225);
-    expect(fixture.cached.nutriments.energyKcal100, 300);
-    final scanned = await fixture.scanAgain();
+    expect(
+      (await tester.runAsync(() => fixture.cached))!.nutriments.energyKcal100,
+      300,
+    );
+    final scanned = (await tester.runAsync(fixture.scanAgain))!;
     expect(scanned.nutriments.energyKcal100, 300);
     expect(fixture.requests, hasLength(2));
   });
@@ -135,16 +144,19 @@ void main() {
       'retry succeeds', (tester) async {
     fixture.respond = (_) async => http.Response('{}', 404);
     await mount(tester);
-    final cachedBefore = fixture.cached.toJson();
-    final timestampsBefore = fixture.timestamps.toMap();
+    final cachedBefore = jsonEncode(
+      (await tester.runAsync(() => fixture.cached))!.toJson(),
+    );
     await tester.tap(refreshButton);
     await tester.pump();
     await pumpUntil(tester, () => !fixture.bloc!.state.isRefreshing);
     expect(find.text('Error while fetching product data'), findsOneWidget);
     expect(fixture.bloc!.state.totalKcal, 30);
     expect(quantity(tester).text, '1');
-    expect(fixture.cached.toJson(), cachedBefore);
-    expect(fixture.timestamps.toMap(), timestampsBefore);
+    expect(
+      jsonEncode((await tester.runAsync(() => fixture.cached))!.toJson()),
+      cachedBefore,
+    );
     expect(tester.widget<IconButton>(refreshButton).onPressed, isNotNull);
     fixture.respond = (_) async => ProductRefreshFixture.success();
     await tester.tap(refreshButton);

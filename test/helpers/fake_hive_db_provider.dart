@@ -24,7 +24,6 @@ class FakeHiveDBProvider extends HiveDBProvider {
   final Box<UserDBO>? _userBox;
   final Box<TrackedDayDBO>? _trackedDayBox;
   final Box<MealDBO>? _customMealBox;
-  final Box<MealDBO>? _cachedOffMealBox;
   final Box<RecipeDBO>? _recipeBox;
   final Box<CustomActivityTemplateDBO>? _customActivityTemplateBox;
   final Box<WeightLogDBO>? _weightLogBox;
@@ -49,25 +48,23 @@ class FakeHiveDBProvider extends HiveDBProvider {
     Box<UserDBO>? userBox,
     Box<TrackedDayDBO>? trackedDayBox,
     Box<MealDBO>? customMealBox,
-    Box<MealDBO>? cachedOffMealBox,
     Box<RecipeDBO>? recipeBox,
     Box<CustomActivityTemplateDBO>? customActivityTemplateBox,
     Box<WeightLogDBO>? weightLogBox,
     Box<WaterIntakeDBO>? waterIntakeBox,
     Box<FastingSessionDBO>? fastingBox,
-  })  : _configBox = configBox,
-        _appConfigBox = appConfigBox ?? configBox,
-        _intakeBox = intakeBox,
-        _userActivityBox = userActivityBox,
-        _userBox = userBox,
-        _trackedDayBox = trackedDayBox,
-        _customMealBox = customMealBox,
-        _cachedOffMealBox = cachedOffMealBox,
-        _recipeBox = recipeBox,
-        _customActivityTemplateBox = customActivityTemplateBox,
-        _weightLogBox = weightLogBox,
-        _waterIntakeBox = waterIntakeBox,
-        _fastingBox = fastingBox;
+  }) : _configBox = configBox,
+       _appConfigBox = appConfigBox ?? configBox,
+       _intakeBox = intakeBox,
+       _userActivityBox = userActivityBox,
+       _userBox = userBox,
+       _trackedDayBox = trackedDayBox,
+       _customMealBox = customMealBox,
+       _recipeBox = recipeBox,
+       _customActivityTemplateBox = customActivityTemplateBox,
+       _weightLogBox = weightLogBox,
+       _waterIntakeBox = waterIntakeBox,
+       _fastingBox = fastingBox;
 
   T _require<T>(T? box) {
     if (box == null) {
@@ -90,8 +87,6 @@ class FakeHiveDBProvider extends HiveDBProvider {
   Box<TrackedDayDBO> get trackedDayBox => _require(_trackedDayBox);
   @override
   Box<MealDBO> get customMealBox => _require(_customMealBox);
-  @override
-  Box<MealDBO> get cachedOffMealBox => _require(_cachedOffMealBox);
   @override
   Box<RecipeDBO> get recipeBox => _require(_recipeBox);
   @override

@@ -44,11 +44,6 @@ class HiveDBProvider extends ChangeNotifier {
   static const trackedDayBoxName = 'TrackedDayBox';
   static const customMealBoxName = 'CustomMealBox';
   static const recipeBoxName = 'RecipeBox';
-  static const cachedOffMealBoxName = 'CachedOffMealBox';
-  // Sidecar to cachedOffMealBox: maps meal `code` -> millisSinceEpoch of
-  // last "touch" (creation or user re-select). Used by the TTL sweep so
-  // unused cache entries age out after 90 days.
-  static const cachedOffMealTimestampsBoxName = 'CachedOffMealTimestampsBox';
   // #70 follow-up: saved Custom activity templates (name + typical kcal).
   static const customActivityTemplateBoxName = 'CustomActivityTemplateBox';
   static const weightLogBoxName = 'WeightLogBox';
@@ -86,8 +81,6 @@ class HiveDBProvider extends ChangeNotifier {
   ];
 
   // Global boxes — opened once, never closed on a profile switch.
-  late final Box<MealDBO> cachedOffMealBox;
-  late final Box<int> cachedOffMealTimestampsBox;
   late final Box<ProfileDBO> profileBox;
   // Backed by a getter so a scoped provider (cross-profile writes) can point
   // it at the real shared box without going through initHiveDB.
@@ -170,10 +163,6 @@ class HiveDBProvider extends ChangeNotifier {
     }
 
     profileBox = await _openEncryptedBox(profileBoxName);
-    cachedOffMealBox = await _openEncryptedBox(cachedOffMealBoxName);
-    cachedOffMealTimestampsBox = await _openEncryptedBox(
-      cachedOffMealTimestampsBoxName,
-    );
     _appConfigBox = await _openEncryptedBox(appConfigBoxName);
     customMealBox = await _openEncryptedBox(customMealBoxName);
     recipeBox = await _openEncryptedBox(recipeBoxName);
