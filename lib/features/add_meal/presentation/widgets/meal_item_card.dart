@@ -5,10 +5,8 @@ import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_b
 import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
 import 'package:collection/collection.dart';
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_card.dart';
 import 'package:opennutritracker/core/presentation/widgets/meal_value_unit_text.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
@@ -17,7 +15,6 @@ import 'package:opennutritracker/core/utils/off_const.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
-import 'package:opennutritracker/features/add_meal/util/food_emoji_resolver.dart';
 import 'package:opennutritracker/features/meal_detail/meal_detail_screen.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
@@ -52,128 +49,57 @@ class _MealItemCardState extends State<MealItemCard> {
     final palette = isDark ? AppPalette.dark : AppPalette.light;
     final accent = Theme.of(context).colorScheme.primary;
     final isRecipe = mealEntity.source == MealSourceEntity.recipe;
-    // Colored emoji is reserved for FDC base-food items where the head
-    // noun reliably identifies the food ("Milk, fluid, nonfat..." → milk).
-    // OFF products are branded, so a head-noun match would often be
-    // misleading; they keep the outline icon as a placeholder.
-    final emoji =
-        (mealEntity.thumbnailImageUrl == null &&
-            mealEntity.source == MealSourceEntity.fdc)
-        ? resolveFoodEmoji(mealEntity.name)
-        : null;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: Dimens.spacing8),
-      child: AppCard(
-        onTap: () => _onItemPressed(context),
-        padding: const EdgeInsets.all(Dimens.spacing12),
-        child: Row(
-          children: [
-            _buildThumbnail(context, palette, accent, isRecipe, emoji),
-            const SizedBox(width: Dimens.spacing16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AutoSizeText.rich(
-                    TextSpan(
-                      text: mealEntity.name ?? "?",
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: palette.textStrong,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: ' ${mealEntity.brands ?? ""}',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: palette.textMuted),
-                        ),
-                      ],
+    return FoodCard(
+      meal: mealEntity,
+      onTap: () => _onItemPressed(context),
+      content: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AutoSizeText.rich(
+                  TextSpan(
+                    text: mealEntity.name ?? "?",
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: palette.textStrong,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    children: [
+                      TextSpan(
+                        text: ' ${mealEntity.brands ?? ""}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: palette.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: Dimens.spacing4),
-                  _buildSubtitle(context, palette, accent, isRecipe),
-                ],
-              ),
-            ),
-            const SizedBox(width: Dimens.spacing8),
-            Semantics(
-              identifier: 'meal-item-add',
-              child: IconButton(
-                style: IconButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                  backgroundColor: accent,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: Dimens.borderRadiusM,
-                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                icon: const Icon(Icons.add_rounded, size: 24),
-                onPressed: () => _onItemPressed(context),
-              ),
+                const SizedBox(height: Dimens.spacing4),
+                _buildSubtitle(context, palette, accent, isRecipe),
+              ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: Dimens.spacing8),
+          Semantics(
+            identifier: 'meal-item-add',
+            child: IconButton(
+              style: IconButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                backgroundColor: accent,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: Dimens.borderRadiusM,
+                ),
+              ),
+              icon: const Icon(Icons.add_rounded, size: 24),
+              onPressed: () => _onItemPressed(context),
+            ),
+          ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildThumbnail(
-    BuildContext context,
-    AppPalette palette,
-    Color accent,
-    bool isRecipe,
-    String? emoji,
-  ) {
-    final radius = BorderRadius.circular(Dimens.radiusM);
-    final background = isRecipe
-        ? accent.withValues(alpha: 0.16)
-        : palette.surfaceMuted;
-    if (mealEntity.thumbnailImageUrl != null) {
-      return Container(
-        width: Dimens.mealThumb,
-        height: Dimens.mealThumb,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(borderRadius: radius, color: background),
-        child: CachedNetworkImage(
-          cacheManager: locator<CacheManager>(),
-          fit: BoxFit.cover,
-          width: Dimens.mealThumb,
-          height: Dimens.mealThumb,
-          imageUrl: mealEntity.thumbnailImageUrl ?? "",
-          placeholder: (context, url) => Center(
-            child: SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: palette.textMuted,
-              ),
-            ),
-          ),
-          errorWidget: (context, url, error) => Icon(
-            Icons.restaurant_rounded,
-            size: 26,
-            color: palette.textMuted,
-          ),
-        ),
-      );
-    }
-    return Container(
-      width: Dimens.mealThumb,
-      height: Dimens.mealThumb,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(borderRadius: radius, color: background),
-      child: emoji != null
-          ? ExcludeSemantics(
-              child: Text(emoji, style: const TextStyle(fontSize: 30)),
-            )
-          : Icon(
-              isRecipe ? Icons.menu_book_rounded : Icons.restaurant_rounded,
-              size: 26,
-              color: isRecipe ? accent : palette.textMuted,
-            ),
     );
   }
 
@@ -202,13 +128,11 @@ class _MealItemCardState extends State<MealItemCard> {
         : null;
 
     if (quantity != null) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          chip,
-          const SizedBox(width: Dimens.spacing8),
-          Flexible(child: quantity),
-        ],
+      return Wrap(
+        spacing: Dimens.spacing8,
+        runSpacing: Dimens.spacing4,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [chip, quantity],
       );
     }
     return chip;
@@ -239,6 +163,8 @@ class _MealItemCardState extends State<MealItemCard> {
       ),
       child: Text(
         label,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: foreground,
           fontWeight: FontWeight.w700,

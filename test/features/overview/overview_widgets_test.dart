@@ -421,7 +421,6 @@ void main() {
             IntakeCard(
               key: const ValueKey('portion'),
               intake: intake,
-              firstListElement: true,
               usesImperialUnits: false,
             ),
             scale: scale,
