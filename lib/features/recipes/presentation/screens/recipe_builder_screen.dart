@@ -17,7 +17,10 @@ import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/features/recipes/presentation/bloc/recipe_builder_bloc.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/food_search_view.dart';
 import 'package:opennutritracker/features/recipes/presentation/widgets/ingredient_list_item.dart';
-import 'package:opennutritracker/features/recipes/presentation/widgets/ingredient_quantity_dialog.dart';
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
+import 'package:opennutritracker/core/food_amount/food_amount_sheet.dart';
+import 'package:opennutritracker/core/search/food_search_engine.dart';
+import 'package:opennutritracker/features/add_meal/presentation/bloc/food_search_controller.dart';
 import 'package:opennutritracker/features/recipes/presentation/widgets/recipe_nutrition_summary.dart';
 import 'package:opennutritracker/features/scanner/scanner_screen.dart';
 import 'package:opennutritracker/generated/l10n.dart';
@@ -343,66 +346,46 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
   Future<void> _onAddIngredient(BuildContext context) async {
     final config = await locator<GetConfigUsecase>().getConfig();
     if (!context.mounted) return;
-    final selectedMeal = await Navigator.of(context).push<MealEntity>(
-      MaterialPageRoute(
-        builder: (searchContext) => Scaffold(
-          appBar: AppBar(
-            title: Text(S.of(context).recipeAddIngredientLabel),
-          ),
-          body: FoodSearchView(
-            itemBuilder: (context, meal) => MealItemCard(mealEntity: meal,
-              usesImperialUnits: config.usesImperialFoodUnits,
-              onSelected: (meal) => Navigator.of(searchContext).pop(meal)),
-            onBarcodePressed: (barcode) async {
-              // Push the scanner in pick-mode — it pops a MealEntity back to
-              // us instead of routing into the meal-detail logging flow. We
-              // then thread the scanned meal through the same code path the
-              // tap-to-pick handler uses, so the quantity dialog runs
-              // identically whether the user typed or scanned.
-              final scannedMeal = await Navigator.of(searchContext)
-                  .pushNamed(
-                    NavigationOptions.scannerRoute,
-                    arguments: ScannerScreenArguments.pick(initialBarcode: barcode),
-                  );
-              if (scannedMeal is MealEntity && searchContext.mounted) {
-                Navigator.of(searchContext).pop(scannedMeal);
-              }
-            },
-          ),
-        ),
-      ),
-    );
-    if (selectedMeal == null || !context.mounted) return;
-    final selection = await showIngredientQuantityDialog(
-      context,
-      meal: selectedMeal,
-    );
-    if (selection == null) return;
-    _bloc.add(
-      AddIngredientEvent(
-        meal: selectedMeal,
-        amount: selection.amount,
-        unit: selection.unit,
-      ),
-    );
+    final search = FoodSearchController(locator<FoodSearchEngine>());
+    try {
+      while (true) {
+        if (!context.mounted) return;
+        final selected = await Navigator.of(context).push<MealEntity>(MaterialPageRoute(
+          builder: (searchContext) => Scaffold(appBar: AppBar(title: Text(S.of(context).recipeAddIngredientLabel)),
+            body: FoodSearchView(controller: search,
+              itemBuilder: (_, meal) => MealItemCard(mealEntity: meal, usesImperialUnits: config.usesImperialFoodUnits,
+                onSelected: (food) => Navigator.of(searchContext).pop(food)),
+              onBarcodePressed: (barcode) async {
+                final scanned = await Navigator.of(searchContext).pushNamed(NavigationOptions.scannerRoute,
+                  arguments: ScannerScreenArguments.pick(initialBarcode: barcode));
+                if (scanned is MealEntity && searchContext.mounted) Navigator.of(searchContext).pop(scanned);
+              },
+            ))));
+        if (selected == null || !context.mounted) return;
+        final saved = await showFoodAmountSheet(context, meal: selected, onConfirm: (food, selection) async {
+          _bloc.add(AddIngredientEvent(meal: food,
+            amount: selection.option.isNamed ? selection.baseAmount : selection.amount,
+            unit: selection.option.isNamed ? selection.option.baseUnit : selection.option.unit));
+          return true;
+        });
+        if (saved) return;
+      }
+    } finally { await search.close(); }
   }
 
   Future<void> _onEditIngredient(BuildContext context, int index) async {
     final ingredient = _bloc.state.ingredients[index];
-    final selection = await showIngredientQuantityDialog(
-      context,
-      meal: ingredient.snapshotMeal,
-      initialAmount: ingredient.amount,
-      initialUnit: ingredient.unit,
-    );
-    if (selection == null) return;
-    _bloc.add(
-      UpdateIngredientEvent(
-        index: index,
-        amount: selection.amount,
-        unit: selection.unit,
-      ),
-    );
+    final options = foodAmountOptions(ingredient.snapshotMeal);
+    final option = options.where((o) => o.unit == ingredient.unit || o.unit == ingredient.unit.replaceAll('fl.oz', 'fl oz')).firstOrNull;
+    await showFoodAmountSheet(context, meal: ingredient.snapshotMeal, editing: true, hydrate: false,
+      initial: option == null ? FoodAmountSelection(ingredient.convertedAmountG, options.firstWhere((o) => o.factor == 1))
+        : FoodAmountSelection(ingredient.amount, option),
+      onConfirm: (_, selection) async {
+        _bloc.add(UpdateIngredientEvent(index: index,
+          amount: selection.option.isNamed ? selection.baseAmount : selection.amount,
+          unit: selection.option.isNamed ? selection.option.baseUnit : selection.option.unit));
+        return true;
+      });
   }
 
   Future<void> _onPickImage(

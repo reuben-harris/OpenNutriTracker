@@ -16,7 +16,28 @@ class FoodSearchController extends Cubit<FoodSearchSnapshot> {
   }
   final FoodSearchEngine engine;
   final query = ValueNotifier<String>('');
-  final scroll = ScrollController();
+  String get _scrollKey =>
+      '${state.request.filter.name}:${state.request.query}';
+  final _offsets = <String, double>{};
+  final _positionKeys = <ScrollPosition, String>{};
+  late final ScrollController scroll = ScrollController(
+    keepScrollOffset: false,
+    onAttach: (position) {
+      final key = _scrollKey;
+      _positionKeys[position] = key;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (scroll.positions.contains(position) && _scrollKey == key) {
+          position.jumpTo(
+            (_offsets[key] ?? 0).clamp(0, position.maxScrollExtent),
+          );
+        }
+      });
+    },
+    onDetach: (position) {
+      final key = _positionKeys.remove(position);
+      if (key != null) _offsets[key] = position.pixels;
+    },
+  );
   late final StreamSubscription<void> _cacheSubscription;
   FoodSearchSession? _session;
   StreamSubscription<FoodSearchSnapshot>? _subscription;
@@ -72,6 +93,7 @@ class FoodSearchController extends Cubit<FoodSearchSnapshot> {
   void retry() => _session?.retry();
   void loadMore() => _session?.loadMore();
   void resetContext() {
+    _offsets.clear();
     _recent = null;
     search(state.request.query, state.request.filter);
   }

@@ -1415,5 +1415,7 @@
   "diaryRefreshUnavailable": "The source is unavailable. The recorded entry was kept.",
   "quickAddSaveChanges": "Save changes",
   "quickAddReuseFailed": "Could not add this entry. Try again.",
-  "quickAddWeightLabel": "Weight / volume (optional)"
+  "quickAddWeightLabel": "Weight / volume (optional)",
+  "logThisFoodLabel": "Log this food",
+  "foodAmountInvalidLabel": "Enter a valid amount greater than 0."
 }

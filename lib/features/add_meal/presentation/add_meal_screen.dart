@@ -1,3 +1,6 @@
+import 'package:opennutritracker/core/food_amount/log_food_amount.dart';
+import 'package:opennutritracker/core/search/food_search_engine.dart';
+import 'package:opennutritracker/features/add_meal/presentation/bloc/food_search_controller.dart';
 import 'package:opennutritracker/core/search/food_search_ranker.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/food_search_view.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +30,8 @@ class _AddMealScreenState extends State<AddMealScreen> {
   late DateTime _day;
 
   late AddMealBloc _addMealBloc;
+  FoodSearchController? _search;
+  bool _handedOff = false;
 
   @override
   void initState() {
@@ -40,12 +45,14 @@ class _AddMealScreenState extends State<AddMealScreen> {
         ModalRoute.of(context)?.settings.arguments as AddMealScreenArguments;
     _mealType = args.mealType;
     _day = args.day;
+    _search ??= args.search ?? FoodSearchController(locator<FoodSearchEngine>());
     super.didChangeDependencies();
   }
 
   @override
   void dispose() {
     _addMealBloc.close();
+    if (!_handedOff) _search?.close();
     super.dispose();
   }
 
@@ -101,13 +108,28 @@ class _AddMealScreenState extends State<AddMealScreen> {
       body: BlocBuilder<AddMealBloc, AddMealState>(bloc: _addMealBloc, builder: (context, state) {
         final imperial = state is AddMealLoadedState && state.usesImperialUnits;
         return FoodSearchView(
+          controller: _search,
           itemBuilder: (context, meal) => MealItemCard(key: ValueKey(foodIdentity(meal)),
-            day: _day, mealEntity: meal, addMealType: _mealType, usesImperialUnits: imperial),
+            mealEntity: meal, usesImperialUnits: imperial, onSelected: _selectFood),
           onBarcodePressed: (barcode) => _onBarcodeIconPressed(barcode),
           onCreateCustomFood: () => _onCustomAddButtonPressed(imperial),
         );
       }),
     );
+  }
+
+  Future<void> _selectFood(MealEntity meal) async {
+    final navigator = Navigator.of(context);
+    final search = _search!;
+    final args = AddMealScreenArguments(_mealType, _day, search: search);
+    _handedOff = true;
+    navigator.pop();
+    final saved = await logFoodAmount(navigator.context, meal: meal, day: _day, type: _mealType.getIntakeType());
+    if (!saved && navigator.mounted) {
+      navigator.pushNamed(NavigationOptions.addMealRoute, arguments: args);
+    } else {
+      await search.close();
+    }
   }
 
   void _onBarcodeIconPressed([String? barcode]) {
@@ -179,6 +201,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
 class AddMealScreenArguments {
   final AddMealType mealType;
   final DateTime day;
+  final FoodSearchController? search;
 
-  AddMealScreenArguments(this.mealType, this.day);
+  AddMealScreenArguments(this.mealType, this.day, {this.search});
 }

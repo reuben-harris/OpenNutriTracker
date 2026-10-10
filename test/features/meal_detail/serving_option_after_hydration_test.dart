@@ -18,21 +18,17 @@ import 'package:opennutritracker/core/domain/usecase/get_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_kcal_goal_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_macro_goal_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_tracked_day_usecase.dart';
-import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
-import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/off/off_product_dto.dart';
 import 'package:opennutritracker/features/add_meal/data/repository/products_repository.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
-import 'package:opennutritracker/features/meal_detail/meal_detail_screen.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
-import 'package:opennutritracker/features/meal_detail/presentation/widgets/meal_detail_bottom_sheet.dart';
+import 'package:opennutritracker/core/food_amount/food_amount_sheet.dart';
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/generated/l10n.dart';
-import 'package:provider/provider.dart';
 
-import '../../helpers/test_l10n.dart';
 
 // #1216: "Seabrook sea salted crisps" opened from the search list shows
 // "N/A" in the unit dropdown, and when the user picks the 31.8 g serving
@@ -142,13 +138,11 @@ MealEntity _full(Map<String, dynamic> product) =>
 
 void main() {
   final getIt = GetIt.instance;
-  MealDetailBloc? bloc;
   late Completer<MealEntity> hydration;
 
   setUp(() {
-    bloc = null;
     getIt.registerLazySingleton<MealDetailBloc>(
-      () => bloc = MealDetailBloc(
+      () => MealDetailBloc(
         _FakeAddIntakeUsecase(),
         _FakeAddTrackedDayUsecase(),
         _FakeGetKcalGoalUsecase(),
@@ -170,167 +164,50 @@ void main() {
     await getIt.reset();
   });
 
-  Future<void> pumpMealDetail(WidgetTester tester, MealEntity meal) async {
-    // Created here, inside the test body, not in setUp: a Completer made
-    // outside the FakeAsync zone completes on the real event loop, which
-    // `tester.pump` never runs, so hydration would land only after the
-    // test had already failed.
+  Future<void> pumpSheet(WidgetTester tester, MealEntity meal) async {
     hydration = Completer<MealEntity>();
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-
-    Route<void> routeFor(RouteSettings settings) => MaterialPageRoute<void>(
-      settings: settings,
-      builder: (_) => const MealDetailScreen(),
-    );
-
-    await tester.pumpWidget(
-      ChangeNotifierProvider<EnergyUnitProvider>(
-        create: (_) => EnergyUnitProvider(),
-        child: MaterialApp(
-          localizationsDelegates: const [S.delegate],
-          supportedLocales: S.supportedLocales,
-          initialRoute: NavigationOptions.mealDetailRoute,
-          onGenerateInitialRoutes: (_) => [
-            routeFor(
-              RouteSettings(
-                name: NavigationOptions.mealDetailRoute,
-                arguments: MealDetailScreenArguments(
-                  meal,
-                  IntakeTypeEntity.snack,
-                  DateTime(2026, 9, 17),
-                  false,
-                ),
-              ),
-            ),
-          ],
-          onGenerateRoute: routeFor,
-        ),
-      ),
-    );
-    // Not pumpAndSettle: the indeterminate LinearProgressIndicator shown
-    // while hydration is in flight never settles. A few frames are enough
-    // for the initial selection and the daily totals to land.
+    await tester.pumpWidget(MaterialApp(localizationsDelegates: S.localizationsDelegates,
+      supportedLocales: S.supportedLocales, home: Scaffold(body: FoodAmountSheet(meal: meal,
+        onConfirm: (_, __) async => false))));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 100));
   }
-
-  TextEditingController quantityField(WidgetTester tester) =>
-      tester.widget<TextFormField>(find.byType(TextFormField)).controller!;
-
-  MealEntity sheetProduct(WidgetTester tester) => tester
-      .widget<MealDetailBottomSheet>(find.byType(MealDetailBottomSheet))
-      .product;
-
-  Future<void> pickUnit(WidgetTester tester, String label) async {
+  TextEditingController quantity(WidgetTester tester) => tester.widget<TextField>(find.byType(TextField)).controller!;
+  testWidgets('hydration reveals and selects the scalable serving', (tester) async {
+    await pumpSheet(tester, _thin(_seabrookCrispsSearchHit));
+    expect(quantity(tester).text, '100');
+    hydration.complete(_full(_seabrookCrispsProduct));
+    await tester.pumpAndSettle();
+    expect(quantity(tester).text, '1');
+    expect(find.text('31.8g'), findsOneWidget);
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();
-    // The open menu lists the entry once; a selected button shows it too,
-    // and the menu route sits above the screen in the overlay.
-    await tester.tap(find.text(label).last);
+    await tester.tap(find.text('g').last);
     await tester.pumpAndSettle();
-  }
+    expect(find.text('g'), findsOneWidget);
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('31.8g').last);
+    await tester.pumpAndSettle();
+    expect(find.text('31.8g'), findsOneWidget);
+  });
+  testWidgets('late hydration preserves typed amount and chosen conversion', (tester) async {
+    await pumpSheet(tester, _thin(_seabrookCrispsSearchHit));
+    await tester.enterText(find.byType(TextField), '53');
+    hydration.complete(_full(_seabrookCrispsProduct));
+    await tester.pumpAndSettle();
+    expect(quantity(tester).text, '53');
+    final dropdown = tester.widget<DropdownButtonFormField<String>>(find.byType(DropdownButtonFormField<String>));
+    expect(dropdown.initialValue, const FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1).identity);
+  });
+  testWidgets('package size without a serving keeps a gram default', (tester) async {
+    await pumpSheet(tester, _thin(_seabrookMultipackSearchHit));
+    hydration.complete(_full(_seabrookMultipackProduct));
+    await tester.pumpAndSettle();
+    expect(quantity(tester).text, '100');
+    expect(find.text('g'), findsOneWidget);
+  });
 
-  String naLabel() =>
-      '${l10nEn.notAvailableLabel} (${l10nEn.gramMilliliterUnit})';
-
-  testWidgets(
-    'Seabrook crisps: the 31.8 g serving is selected once hydration lands',
-    (tester) async {
-      final thin = _thin(_seabrookCrispsSearchHit);
-      expect(thin.detailed, isFalse);
-      expect(thin.mealUnit, isNull);
-      expect(thin.scalableServingQuantity, isNull);
-
-      await pumpMealDetail(tester, thin);
-
-      // Before hydration the thin record has no unit at all, which is the
-      // "N/A" the reporter saw.
-      expect(bloc!.state.selectedUnit, UnitDropdownItem.gml.toString());
-      expect(find.text(naLabel()), findsOneWidget);
-      expect(find.text('31.8g'), findsNothing);
-
-      hydration.complete(_full(_seabrookCrispsProduct));
-      await tester.pumpAndSettle();
-
-      // The hydrated record carries a scalable 31.8 g serving, so the
-      // default the reporter expected is "1 serving". Before the fix the
-      // re-pick ended on "N/A" beside a quantity of 1: the sheet's
-      // controller listener echoed the quantity write back with the unit
-      // it had last rendered, and that echo was the last event on the
-      // wire.
-      expect(bloc!.state.selectedUnit, UnitDropdownItem.serving.toString());
-      expect(quantityField(tester).text, '1');
-      expect(bloc!.state.totalQuantityConverted, '31.8');
-      // 514 kcal/100 g x 31.8 g; OFF's own energy-kcal_serving is 163.
-      expect(bloc!.state.totalKcal, closeTo(163, 1));
-      expect(find.text('31.8g'), findsOneWidget);
-      expect(find.text(naLabel()), findsNothing);
-    },
-  );
-
-  testWidgets(
-    'Seabrook crisps: picking the 31.8 g entry after hydration keeps it',
-    (tester) async {
-      await pumpMealDetail(tester, _thin(_seabrookCrispsSearchHit));
-      hydration.complete(_full(_seabrookCrispsProduct));
-      await tester.pumpAndSettle();
-      expect(sheetProduct(tester).detailed, isTrue);
-
-      // Opening the menu pushes a route over the screen, which re-runs its
-      // didChangeDependencies. That alone used to hand the thin search hit
-      // back to the sheet — no serving entry, nothing to scale by.
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
-      await tester.pumpAndSettle();
-      expect(sheetProduct(tester).detailed, isTrue);
-      expect(sheetProduct(tester).scalableServingQuantity, 31.8);
-      await tester.tap(find.text(naLabel()).last);
-      await tester.pumpAndSettle();
-
-      // The explicit N/A pick above stands in for the state the stale echo
-      // used to leave behind (first test): "N/A" showing, quantity 1. The
-      // `detailed` check right after the menu opened is what turns red
-      // without the read-once guard; the pick below then walks the fixed
-      // path end to end — the serving entry stays selected and scales the
-      // amount, instead of vanishing from the button and logging 1 g.
-      expect(bloc!.state.selectedUnit, UnitDropdownItem.gml.toString());
-      expect(find.text(naLabel()), findsOneWidget);
-      await pickUnit(tester, '31.8g');
-
-      expect(bloc!.state.selectedUnit, UnitDropdownItem.serving.toString());
-      expect(bloc!.state.totalQuantityConverted, '31.8');
-      expect(sheetProduct(tester).detailed, isTrue);
-      // The closed button still reads "31.8g".
-      expect(find.text('31.8g'), findsOneWidget);
-      expect(find.text(naLabel()), findsNothing);
-    },
-  );
-
-  testWidgets(
-    'Seabrook multipack: a package quantity but no serving stays on grams',
-    (tester) async {
-      final thin = _thin(_seabrookMultipackSearchHit);
-      expect(thin.mealUnit, 'g');
-      expect(thin.scalableServingQuantity, isNull);
-
-      await pumpMealDetail(tester, thin);
-      expect(bloc!.state.selectedUnit, UnitDropdownItem.g.toString());
-      expect(quantityField(tester).text, '100');
-
-      hydration.complete(_full(_seabrookMultipackProduct));
-      await tester.pumpAndSettle();
-
-      // Nothing to scale by ("6 x 25g" is a package, not a serving), so
-      // the record keeps its 100 g default and offers no serving entry.
-      expect(bloc!.state.selectedUnit, UnitDropdownItem.g.toString());
-      expect(quantityField(tester).text, '100');
-      expect(bloc!.state.totalQuantityConverted, '100.0');
-      expect(find.text(l10nEn.gramUnit), findsOneWidget);
-      expect(find.textContaining(l10nEn.servingLabel), findsNothing);
-    },
-  );
 }
 
 class _FakeGetConfigUsecase implements GetConfigUsecase {

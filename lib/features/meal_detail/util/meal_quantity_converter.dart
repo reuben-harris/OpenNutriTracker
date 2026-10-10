@@ -1,4 +1,5 @@
 import 'package:opennutritracker/core/utils/calc/unit_calc.dart';
+import 'package:opennutritracker/core/utils/food_amount_unit.dart';
 import 'package:opennutritracker/features/add_meal/util/portion_unit.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
@@ -11,10 +12,8 @@ import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_det
 /// it is multiplied out or stored on an `IntakeEntity` — `IntakeEntity.totalKcal`
 /// is simply `amount * energyPerUnit` and does no conversion of its own.
 ///
-/// Extracted so the meal-detail screen and the bulk-add screen cannot drift:
-/// the bottom sheet passes `MealDetailState.totalQuantityConverted` to
-/// `addIntake`, and anything else calling `addIntake` has to arrive at the
-/// same number the same way. Logging the raw amount instead silently
+/// Shared by nutrition calculations and bulk entry. Callers of `addIntake`
+/// must pass the converted base amount. Logging the raw amount silently
 /// under-counts — 4 oz of steak would be stored as 4 g.
 double convertQuantityToBaseUnit(
   double quantity,
@@ -54,7 +53,10 @@ double convertQuantityToBaseUnit(
   if (unit == UnitDropdownItem.flOz.toString()) {
     return UnitCalc.flOzToMl(quantity);
   }
-  return quantity;
+  final standard = FoodAmountUnit.values
+      .where((u) => u.label == unit)
+      .firstOrNull;
+  return standard?.toBase(quantity) ?? quantity;
 }
 
 /// Energy for [quantity] of [meal] entered in [unit], or null when the meal
