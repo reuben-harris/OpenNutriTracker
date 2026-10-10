@@ -16,7 +16,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(localizationsDelegates: S.localizationsDelegates,
       supportedLocales: S.supportedLocales, home: Scaffold(body: FoodAmountSheet(
         meal: meal, rawUnits: raw, imperial: imperial, hydrate: false,
-        onConfirm: confirm ?? (_, __) async => true))));
+        onConfirm: confirm ?? (_, _) async => true))));
     await tester.pumpAndSettle();
   }
   testWidgets('autofocus selects the complete default amount', (tester) async {
@@ -37,7 +37,7 @@ void main() {
   }
   testWidgets('invalid amount stays open; errors permit correction and retry', (tester) async {
     var calls = 0;
-    await mount(tester, confirm: (_, __) async { calls++; throw StateError('save'); });
+    await mount(tester, confirm: (_, _) async { calls++; throw StateError('save'); });
     await tester.enterText(find.byType(TextField), '0');
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
@@ -56,7 +56,7 @@ void main() {
   testWidgets('pending save disables repeated confirmation and dismissal', (tester) async {
     final pending = Completer<bool>();
     var calls = 0;
-    await mount(tester, confirm: (_, __) { calls++; return pending.future; });
+    await mount(tester, confirm: (_, _) { calls++; return pending.future; });
     await tester.tap(find.text('Add'));
     await tester.pump();
     expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNull);

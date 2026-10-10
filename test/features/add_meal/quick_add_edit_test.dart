@@ -209,11 +209,26 @@ void main() {
       expect(cleared.totalKcal, closeTo(intake.totalKcal, 1e-12));
     },
   );
-  testWidgets('Recent Quick Add selects the food through its owner', (tester) async {
+  testWidgets('Recent Quick Add selects the food through its owner', (
+    tester,
+  ) async {
     MealEntity? selected;
-    await tester.pumpWidget(MaterialApp(localizationsDelegates: const [S.delegate],
-      supportedLocales: S.supportedLocales, home: Scaffold(body: MealItemCard(
-        mealEntity: quick(), usesImperialUnits: false, onSelected: (meal) => selected = meal))));
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => EnergyUnitProvider(),
+        child: MaterialApp(
+          localizationsDelegates: const [S.delegate],
+          supportedLocales: S.supportedLocales,
+          home: Scaffold(
+            body: MealItemCard(
+              mealEntity: quick(),
+              onInfo: () {},
+              onSelected: (meal) => selected = meal,
+            ),
+          ),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Quick food'));
     expect(selected, quick());

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_information.dart';
 import 'package:opennutritracker/core/food_amount/log_food_amount.dart';
 import 'package:opennutritracker/core/search/food_search_engine.dart';
 import 'package:opennutritracker/features/add_meal/presentation/bloc/food_search_controller.dart';
@@ -110,7 +111,10 @@ class _AddMealScreenState extends State<AddMealScreen> {
         return FoodSearchView(
           controller: _search,
           itemBuilder: (context, meal) => MealItemCard(key: ValueKey(foodIdentity(meal)),
-            mealEntity: meal, usesImperialUnits: imperial, onSelected: _selectFood),
+            mealEntity: meal, onSelected: _selectFood, onInfo: () async {
+              final selected = await showFoodInformation(context, meal: meal, day: _day, type: _mealType.getIntakeType(), imperial: imperial);
+              if (selected != null && mounted) _selectFood(selected);
+            }),
           onBarcodePressed: (barcode) => _onBarcodeIconPressed(barcode),
           onCreateCustomFood: () => _onCustomAddButtonPressed(imperial),
         );

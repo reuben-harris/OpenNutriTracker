@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/presentation/widgets/swipe_reveal_scope.dart';
 import 'package:opennutritracker/core/search/food_search_engine.dart';
 import 'package:opennutritracker/core/search/food_search_ranker.dart';
 import 'package:opennutritracker/core/utils/hive_db_provider.dart';
@@ -22,8 +23,13 @@ class FoodSearchView extends StatefulWidget {
   final Widget Function(BuildContext, MealEntity) itemBuilder;
   final void Function(String?)? onBarcodePressed;
   final VoidCallback? onCreateCustomFood;
-  const FoodSearchView({super.key, this.controller, required this.itemBuilder,
-    this.onBarcodePressed, this.onCreateCustomFood});
+  const FoodSearchView({
+    super.key,
+    this.controller,
+    required this.itemBuilder,
+    this.onBarcodePressed,
+    this.onCreateCustomFood,
+  });
   @override
   State<FoodSearchView> createState() => _FoodSearchViewState();
 }
@@ -36,11 +42,13 @@ class _FoodSearchViewState extends State<FoodSearchView> {
   @override
   void initState() {
     super.initState();
-    _search = widget.controller ?? FoodSearchController(locator<FoodSearchEngine>());
+    _search =
+        widget.controller ?? FoodSearchController(locator<FoodSearchEngine>());
     if (locator.isRegistered<HiveDBProvider>()) {
       _profiles = locator<HiveDBProvider>()..addListener(_onContextChanged);
     }
   }
+
   void _onContextChanged() => _search.resetContext();
   @override
   void dispose() {
@@ -48,23 +56,47 @@ class _FoodSearchViewState extends State<FoodSearchView> {
     if (widget.controller == null) _search.close();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
-    final palette = Theme.of(context).brightness == Brightness.dark ? AppPalette.dark : AppPalette.light;
-    return BlocBuilder<FoodSearchController, FoodSearchSnapshot>(bloc: _search, builder: (context, state) => SafeArea(top: false, child: Column(children: [
-      const SizedBox(height: Dimens.spacing8),
-      Padding(padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing16), child: MealSearchBar(
-        searchStringListener: _searchStringListener,
-        onSearchSubmit: _onSearchSubmit, onSearchChanged: _onSearchChanged,
-        onBarcodePressed: widget.onBarcodePressed == null ? null : () => widget.onBarcodePressed!(null),
-        showSubmitButton: false, showClearButton: true,
-      )),
-      const SizedBox(height: Dimens.spacing12),
-      Padding(padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing16), child: _buildSourceChips(context, palette)),
-      const SizedBox(height: Dimens.spacing12),
-      Expanded(child: _buildResults(context, palette)),
-    ])));
+    final palette = Theme.of(context).brightness == Brightness.dark
+        ? AppPalette.dark
+        : AppPalette.light;
+    return BlocBuilder<FoodSearchController, FoodSearchSnapshot>(
+      bloc: _search,
+      builder: (context, state) => SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            const SizedBox(height: Dimens.spacing8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing16),
+              child: MealSearchBar(
+                searchStringListener: _searchStringListener,
+                onSearchSubmit: _onSearchSubmit,
+                onSearchChanged: _onSearchChanged,
+                onBarcodePressed: widget.onBarcodePressed == null
+                    ? null
+                    : () => widget.onBarcodePressed!(null),
+                showSubmitButton: false,
+                showClearButton: true,
+              ),
+            ),
+            const SizedBox(height: Dimens.spacing12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing16),
+              child: _buildSourceChips(context, palette),
+            ),
+            const SizedBox(height: Dimens.spacing12),
+            Expanded(
+              child: SwipeRevealScope(child: _buildResults(context, palette)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
+
   void _onSearchSubmit(String inputText) {
     FocusManager.instance.primaryFocus?.unfocus();
     final trimmed = inputText.trim();
@@ -158,7 +190,8 @@ class _FoodSearchViewState extends State<FoodSearchView> {
                           title: S.of(context).noMealsRecentlyAddedLabel,
                         )
                       : NoResultsWidget(
-                          onScanBarcode: () => widget.onBarcodePressed?.call(null),
+                          onScanBarcode: () =>
+                              widget.onBarcodePressed?.call(null),
                           onCreateCustomFood: widget.onCreateCustomFood,
                         ))
                 : Semantics(
@@ -177,7 +210,8 @@ class _FoodSearchViewState extends State<FoodSearchView> {
                         );
                         return index < 0 ? null : index;
                       },
-                      itemBuilder: (context, index) => widget.itemBuilder(context, state.meals[index]),
+                      itemBuilder: (context, index) =>
+                          widget.itemBuilder(context, state.meals[index]),
                       controller: _search.scroll,
                     ),
                   ),
@@ -222,5 +256,4 @@ class _FoodSearchViewState extends State<FoodSearchView> {
       );
     },
   );
-
 }
