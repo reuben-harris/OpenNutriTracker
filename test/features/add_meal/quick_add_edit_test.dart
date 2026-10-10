@@ -1,7 +1,5 @@
 import 'package:opennutritracker/core/utils/food_amount_unit.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/meal_item_card.dart';
-import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
-import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -67,26 +65,6 @@ MealEntity quick({double? kcal = 123.456789, double? carbs}) => MealEntity(
     fiber100: null,
   ),
 );
-
-class _MealDetail extends Fake implements MealDetailBloc {
-  int calls = 0;
-  MealEntity? meal;
-  String? amount;
-  @override
-  Future<void> addIntake(
-    BuildContext context,
-    String unit,
-    String amountText,
-    IntakeTypeEntity type,
-    MealEntity source,
-    DateTime day, {
-    IntakeEntity? copiedFrom,
-  }) async {
-    calls++;
-    meal = source;
-    amount = amountText;
-  }
-}
 
 void main() {
   late Directory dir;
@@ -231,38 +209,14 @@ void main() {
       expect(cleared.totalKcal, closeTo(intake.totalKcal, 1e-12));
     },
   );
-  testWidgets('Recent Quick Add logs immediately using the saved definition', (
-    tester,
-  ) async {
-    final detail = _MealDetail();
-    locator.registerSingleton<MealDetailBloc>(detail);
-    await tester.runAsync(
-      () => CustomMealDataSource(
-        db,
-      ).saveCustomMeal(MealDBO.fromMealEntity(quick(kcal: 250))),
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: const [S.delegate],
-        supportedLocales: S.supportedLocales,
-        routes: {'main': (_) => const Scaffold()},
-        home: Scaffold(
-          body: MealItemCard(
-            day: DateTime(2026, 10, 4),
-            mealEntity: quick(),
-            addMealType: AddMealType.breakfastType,
-            usesImperialUnits: false,
-          ),
-        ),
-      ),
-    );
+  testWidgets('Recent Quick Add selects the food through its owner', (tester) async {
+    MealEntity? selected;
+    await tester.pumpWidget(MaterialApp(localizationsDelegates: const [S.delegate],
+      supportedLocales: S.supportedLocales, home: Scaffold(body: MealItemCard(
+        mealEntity: quick(), usesImperialUnits: false, onSelected: (meal) => selected = meal))));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.add_rounded));
-    await tester.pump();
-    expect(detail.calls, 1);
-    expect(detail.meal!.nutriments.energyKcal100, 250);
-    expect(detail.amount, '100');
-    expect(find.byType(QuickAddBottomSheet), findsNothing);
+    await tester.tap(find.text('Quick food'));
+    expect(selected, quick());
   });
   for (final kj in [false, true]) {
     testWidgets(

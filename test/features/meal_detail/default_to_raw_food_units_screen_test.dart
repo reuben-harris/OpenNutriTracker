@@ -23,7 +23,6 @@ import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/add_meal/data/repository/products_repository.dart';
 import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_portion_entity.dart';
-import 'package:opennutritracker/features/add_meal/util/portion_unit.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
@@ -59,49 +58,6 @@ MealEntity _solidWithServing() => MealEntity(
   servingSize: '30 g',
   nutriments: _nutriments,
   source: MealSourceEntity.custom,
-);
-
-MealEntity _liquidWithServing() => MealEntity(
-  code: 'raw-units-test-liquid',
-  name: 'Liquid product',
-  url: null,
-  mealQuantity: '100',
-  mealUnit: 'ml',
-  servingQuantity: 250,
-  servingUnit: 'ml',
-  servingSize: '250 ml',
-  nutriments: _nutriments,
-  source: MealSourceEntity.custom,
-);
-
-// Thin OFF search result: `source: off, detailed: false`, no serving fields.
-// Opening this triggers `HydrateMealEvent`, which the bloc resolves through
-// the products repository into the corresponding [_liquidHydratedOff] below.
-MealEntity _liquidThinOff() => MealEntity(
-  code: 'thin-off-liquid',
-  name: 'Thin OFF liquid',
-  url: null,
-  mealQuantity: '100',
-  mealUnit: 'ml',
-  servingQuantity: null,
-  servingUnit: null,
-  servingSize: null,
-  nutriments: _nutriments,
-  source: MealSourceEntity.off,
-);
-
-MealEntity _liquidHydratedOff() => MealEntity(
-  code: 'thin-off-liquid',
-  name: 'Thin OFF liquid',
-  url: null,
-  mealQuantity: '100',
-  mealUnit: 'ml',
-  servingQuantity: 250,
-  servingUnit: 'ml',
-  servingSize: '250 ml',
-  nutriments: _nutriments,
-  source: MealSourceEntity.off,
-  detailed: true,
 );
 
 double _maxScrollOffset(WidgetTester tester) {
@@ -200,120 +156,16 @@ void main() {
   }
 
   testWidgets(
-    'catalogue starts at 100 g with imperial preferences and logs an optional portion in grams',
+    'information uses a fixed nutrition reference and offers logging',
     (tester) async {
-      imperialFoodUnits = true;
-      await pumpMealDetail(tester, catalogue.meal);
-      expect(catalogue.ids, ['usda:123']);
+      await pumpMealDetail(tester, _solidWithServing());
       expect(bloc!.state.selectedUnit, 'g');
       expect(bloc!.state.totalQuantityConverted, '100.0');
-      expect(bloc!.state.totalKcal, 100);
-
-      final dropdown = tester.widget<DropdownButtonFormField<String>>(
-        find.byType(DropdownButtonFormField<String>),
-      );
-      final field = tester.widget<TextFormField>(
-        find.byType(TextFormField).first,
-      );
-      field.controller!.text = '2';
-      dropdown.onChanged!(portionUnit(0));
-      await tester.pumpAndSettle();
-      expect(bloc!.state.totalQuantityConverted, '280.0');
-      expect(bloc!.state.totalKcal, 280);
-
-      final refresh = find.descendant(
-        of: find.byWidgetPredicate(
-          (w) =>
-              w is Semantics &&
-              w.properties.identifier == 'meal-detail-refresh',
-        ),
-        matching: find.byType(IconButton),
-      );
-      await tester.tap(refresh);
-      await tester.pumpAndSettle();
-      expect(catalogue.ids, ['usda:123', 'usda:123']);
-      expect(bloc!.state.totalQuantityConverted, '280.0');
-
-      tester
-          .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger))
-          .removeCurrentSnackBar();
-      await tester.pumpAndSettle();
-      final add = find.descendant(
-        of: find.byWidgetPredicate(
-          (w) => w is Semantics && w.properties.identifier == 'meal-detail-add',
-        ),
-        matching: find.byType(FilledButton),
-      );
-      await tester.tap(add);
-      await tester.pumpAndSettle();
-      expect(logged.single.meal.code, 'usda:123');
-      expect(logged.single.unit, 'g');
-      expect(logged.single.amount, 280);
-      expect(logged.single.totalKcal, 280);
-      expect(tester.takeException(), isNull);
+      expect(find.byType(TextFormField), findsNothing);
+      expect(find.text('Log this food'), findsOneWidget);
+      expect(_maxScrollOffset(tester), 0);
     },
   );
-
-  testWidgets(
-    'off (default): scalable serving still selects the serving unit',
-    (tester) async {
-      defaultToRawFoodUnits = false;
-      await pumpMealDetail(tester, _solidWithServing());
-
-      expect(bloc!.state.selectedUnit, 'serving');
-      expect(bloc!.state.totalQuantityConverted, '30.0');
-      // The initial-selection writes to `quantityTextController` used to
-      // scroll the calorie field into view, collapsing the app bar the
-      // moment the screen opened. Guard should keep the view at the top.
-      expect(_maxScrollOffset(tester), 0.0);
-    },
-  );
-
-  testWidgets('on: solid with a scalable serving lands on grams with 100 g', (
-    tester,
-  ) async {
-    defaultToRawFoodUnits = true;
-    await pumpMealDetail(tester, _solidWithServing());
-    expect(bloc!.state.selectedUnit, 'g');
-    expect(bloc!.state.totalQuantityConverted, '100.0');
-    expect(_maxScrollOffset(tester), 0.0);
-  });
-
-  testWidgets('on: liquid with a scalable serving lands on ml with 100 ml', (
-    tester,
-  ) async {
-    defaultToRawFoodUnits = true;
-    await pumpMealDetail(tester, _liquidWithServing());
-
-    expect(bloc!.state.selectedUnit, 'ml');
-    expect(bloc!.state.totalQuantityConverted, '100.0');
-    expect(_maxScrollOffset(tester), 0.0);
-  });
-
-  testWidgets(
-    'off: thin OFF liquid hydrates to a serving-carrying full product '
-    'and lands on serving',
-    (tester) async {
-      defaultToRawFoodUnits = false;
-      hydratedFor = _liquidHydratedOff();
-      await pumpMealDetail(tester, _liquidThinOff());
-
-      expect(bloc!.state.selectedUnit, 'serving');
-      expect(bloc!.state.totalQuantityConverted, '250.0');
-      expect(_maxScrollOffset(tester), 0.0);
-    },
-  );
-
-  testWidgets('on: thin OFF liquid hydrates but the raw-units preference still '
-      'wins, landing on ml/100', (tester) async {
-    defaultToRawFoodUnits = true;
-    hydratedFor = _liquidHydratedOff();
-    await pumpMealDetail(tester, _liquidThinOff());
-
-    expect(bloc!.state.selectedUnit, 'ml');
-    expect(bloc!.state.totalQuantityConverted, '100.0');
-    expect(_maxScrollOffset(tester), 0.0);
-  });
 }
 
 class _FakeGetConfigUsecase implements GetConfigUsecase {

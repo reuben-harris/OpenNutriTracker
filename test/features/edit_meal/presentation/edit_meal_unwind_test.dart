@@ -45,7 +45,7 @@ import '../../../helpers/test_l10n.dart';
 ///
 /// From there this test drives the real screens: the real
 /// [MealDetailScreen]'s edit pencil, the real [EditMealScreen]'s save, and
-/// the real `MealDetailBottomSheet`'s Add. With
+/// the real shared amount sheet's Add. With
 /// `ModalRoute.withName(addMealRoute)` the save removes every route beneath
 /// the new meal detail — `main` included — and Add's `popUntil(mainRoute)`
 /// then finds no match either and empties the navigator: a black screen,
@@ -194,7 +194,23 @@ void main() {
         reason: 'main must survive the Edit Meal unwind',
       );
 
+      await tester.tap(find.text('Log this food'));
+      await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, l10nEn.addLabel));
+      await tester.pumpAndSettle();
+      // Logging closes its owned bloc before the caller unwinds the route.
+      // Allow that stream cleanup to complete outside the fake frame clock.
+      for (
+        var i = 0;
+        i < 100 &&
+            find.text('${NavigationOptions.mainRoute}-stub').evaluate().isEmpty;
+        i++
+      ) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump();
+      }
       await tester.pumpAndSettle();
 
       // The intake is written whatever the navigator does — that is why the

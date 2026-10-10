@@ -6,7 +6,6 @@ import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_thumbnail.dart';
 import 'package:opennutritracker/core/presentation/widgets/intake_card.dart';
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
-import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/meal_item_card.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
@@ -55,16 +54,14 @@ void main() {
                         ),
                         MealItemCard(
                           key: const ValueKey('search'),
-                          day: day,
                           mealEntity: meal,
-                          addMealType: AddMealType.breakfastType,
+                          onSelected: (_) {},
                           usesImperialUnits: false,
                         ),
                         MealItemCard(
                           key: const ValueKey('next'),
-                          day: day,
                           mealEntity: meal,
-                          addMealType: AddMealType.breakfastType,
+                          onSelected: (_) {},
                           usesImperialUnits: false,
                         ),
                       ],

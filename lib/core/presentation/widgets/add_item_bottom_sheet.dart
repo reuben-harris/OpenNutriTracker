@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/log_food_amount.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
@@ -257,9 +258,12 @@ class AddItemBottomSheet extends StatelessWidget {
             ),
             for (final intake in recent)
               MealItemCard(
-                day: day,
                 mealEntity: intake.meal,
-                addMealType: AddMealExtension.fromIntakeTypeEntity(intake.type),
+                onSelected: (meal) {
+                  final navigator = Navigator.of(context);
+                  navigator.pop();
+                  logFoodAmount(navigator.context, meal: meal, day: day, type: intake.type);
+                },
                 usesImperialUnits: usesImperialUnits,
               ),
             const Divider(indent: 16, endIndent: 16),

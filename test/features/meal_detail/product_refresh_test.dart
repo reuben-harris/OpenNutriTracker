@@ -7,7 +7,6 @@ import 'package:http/http.dart' as http;
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/off/off_product_dto.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
-import 'package:opennutritracker/features/meal_detail/presentation/widgets/meal_detail_bottom_sheet.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/widgets/meal_detail_nutriments_table.dart';
 
 import '../../helpers/product_refresh_fixture.dart';
@@ -45,12 +44,8 @@ void main() {
     await fixture.mount(tester, meal ?? refreshMeal());
   }
 
-  TextEditingController quantity(WidgetTester tester) => tester
-      .widget<MealDetailBottomSheet>(find.byType(MealDetailBottomSheet))
-      .quantityTextController;
-
   refreshTest('refresh bypasses cache, updates same-name nutrition and totals, '
-      'keeps the current serving selection and replaces only its cache entry', (
+      'uses a consistent 100 g reference and replaces only its cache entry', (
     tester,
   ) async {
     final response = Completer<http.Response>();
@@ -60,7 +55,7 @@ void main() {
     fixture.respond = (_) => response.future;
     await mount(tester);
     final bloc = fixture.bloc!;
-    expect(bloc.state.totalKcal, 30);
+    expect(bloc.state.totalKcal, 100);
     await tester.tap(refreshButton);
     await tester.pump();
     expect(bloc.state.isRefreshing, isTrue);
@@ -74,14 +69,12 @@ void main() {
       100,
     );
     // Editing while the request is in flight must be preserved too.
-    quantity(tester).text = '2,5';
     await tester.pump();
     response.complete(ProductRefreshFixture.success(serving: 40));
     await pumpUntil(tester, () => !bloc.state.isRefreshing);
     await tester.pumpAndSettle();
     expect(bloc.state.refreshStatus, ProductRefreshStatus.success);
-    expect(bloc.state.selectedUnit, 'serving');
-    expect(quantity(tester).text, '2,5');
+    expect(bloc.state.selectedUnit, 'g');
     expect(bloc.state.totalQuantityConverted, '100.0');
     expect(bloc.state.totalKcal, 200);
     expect(bloc.state.totalCarbs, 20);
@@ -113,7 +106,7 @@ void main() {
     await tester.pump();
     await pumpUntil(tester, () => !bloc.state.isRefreshing);
     expect(bloc.state.mealRevision, 2);
-    expect(bloc.state.totalKcal, 225);
+    expect(bloc.state.totalKcal, 300);
     expect(
       (await tester.runAsync(() => fixture.cached))!.nutriments.energyKcal100,
       300,
@@ -121,23 +114,6 @@ void main() {
     final scanned = (await tester.runAsync(fixture.scanAgain))!;
     expect(scanned.nutriments.energyKcal100, 300);
     expect(fixture.requests, hasLength(2));
-  });
-
-  refreshTest('removed serving falls back to the previous base quantity', (
-    tester,
-  ) async {
-    fixture.respond = (_) async => ProductRefreshFixture.success(serving: null);
-    await mount(tester);
-    quantity(tester).text = '2';
-    await tester.pumpAndSettle();
-    await tester.tap(refreshButton);
-    await tester.pump();
-    await pumpUntil(tester, () => !fixture.bloc!.state.isRefreshing);
-    await tester.pumpAndSettle();
-    expect(fixture.bloc!.state.selectedUnit, 'g/ml');
-    expect(quantity(tester).text, '60.0');
-    expect(fixture.bloc!.state.totalKcal, 120);
-    expect(tester.takeException(), isNull);
   });
 
   refreshTest('not-found failure keeps product, selection, totals and cache; '
@@ -151,8 +127,7 @@ void main() {
     await tester.pump();
     await pumpUntil(tester, () => !fixture.bloc!.state.isRefreshing);
     expect(find.text('Error while fetching product data'), findsOneWidget);
-    expect(fixture.bloc!.state.totalKcal, 30);
-    expect(quantity(tester).text, '1');
+    expect(fixture.bloc!.state.totalKcal, 100);
     expect(
       jsonEncode((await tester.runAsync(() => fixture.cached))!.toJson()),
       cachedBefore,
@@ -162,7 +137,7 @@ void main() {
     await tester.tap(refreshButton);
     await tester.pump();
     await pumpUntil(tester, () => !fixture.bloc!.state.isRefreshing);
-    expect(fixture.bloc!.state.totalKcal, 60);
+    expect(fixture.bloc!.state.totalKcal, 200);
   });
 
   refreshTest('custom products have no refresh action', (tester) async {
@@ -184,33 +159,5 @@ void main() {
     fixture.bloc!.add(RefreshMealEvent(meal));
     await tester.pump();
     expect(fixture.requests, isEmpty);
-  });
-
-  refreshTest('raw ounces survive refresh and a removed weight unit '
-      'falls back to the equivalent base quantity', (tester) async {
-    fixture.respond = (_) async => ProductRefreshFixture.success();
-    await mount(tester);
-    final bloc = fixture.bloc!;
-    final sheet = tester.widget<MealDetailBottomSheet>(
-      find.byType(MealDetailBottomSheet),
-    );
-    quantity(tester).text = '2';
-    sheet.onQuantityOrUnitChanged('2', 'oz');
-    await tester.pumpAndSettle();
-    await tester.tap(refreshButton);
-    await tester.pump();
-    await pumpUntil(tester, () => !bloc.state.isRefreshing);
-    expect(bloc.state.selectedUnit, 'oz');
-    expect(quantity(tester).text, '2');
-    expect(bloc.state.totalKcal, closeTo(113.398, 0.001));
-    fixture.respond = (_) async =>
-        ProductRefreshFixture.success(quantity: '300 ml', serving: null);
-    await tester.tap(refreshButton);
-    await tester.pump();
-    await pumpUntil(tester, () => !bloc.state.isRefreshing);
-    expect(bloc.state.selectedUnit, 'g/ml');
-    expect(double.parse(quantity(tester).text), closeTo(56.699, 0.001));
-    expect(bloc.state.totalKcal, closeTo(113.398, 0.001));
-    expect(tester.takeException(), isNull);
   });
 }

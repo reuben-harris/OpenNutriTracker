@@ -1,49 +1,19 @@
-import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
-import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
-import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
-import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
-import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
-import 'package:collection/collection.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_card.dart';
 import 'package:opennutritracker/core/presentation/widgets/meal_value_unit_text.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
-import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/utils/off_const.dart';
-import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
-import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
-import 'package:opennutritracker/features/meal_detail/meal_detail_screen.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
-class MealItemCard extends StatefulWidget {
-  final DateTime? day;
-  final ValueChanged<MealEntity>? onSelected;
-  final AddMealType? addMealType;
+class MealItemCard extends StatelessWidget {
   final MealEntity mealEntity;
   final bool usesImperialUnits;
-
-  const MealItemCard({
-    super.key,
-    this.day,
-    this.onSelected,
-    required this.mealEntity,
-    this.addMealType,
-    required this.usesImperialUnits,
-  });
-
-  @override
-  State<MealItemCard> createState() => _MealItemCardState();
-}
-
-class _MealItemCardState extends State<MealItemCard> {
-  bool _adding = false;
-  DateTime get day => widget.day!;
-  AddMealType get addMealType => widget.addMealType!;
-  MealEntity get mealEntity => widget.mealEntity;
-  bool get usesImperialUnits => widget.usesImperialUnits;
+  final ValueChanged<MealEntity> onSelected;
+  const MealItemCard({super.key, required this.mealEntity,
+    required this.usesImperialUnits, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +23,7 @@ class _MealItemCardState extends State<MealItemCard> {
     final isRecipe = mealEntity.source == MealSourceEntity.recipe;
     return FoodCard(
       meal: mealEntity,
-      onTap: () => _onItemPressed(context),
+      onTap: () => onSelected(mealEntity),
       content: Row(
         children: [
           Expanded(
@@ -97,7 +67,7 @@ class _MealItemCardState extends State<MealItemCard> {
                 ),
               ),
               icon: const Icon(Icons.add_rounded, size: 24),
-              onPressed: () => _onItemPressed(context),
+              onPressed: () => onSelected(mealEntity),
             ),
           ),
         ],
@@ -175,56 +145,4 @@ class _MealItemCardState extends State<MealItemCard> {
     );
   }
 
-  Future<void> _onItemPressed(BuildContext context) async {
-    if (widget.onSelected != null) {
-      widget.onSelected!(mealEntity);
-      return;
-    }
-    if (_adding) return;
-    if (mealEntity.isQuickAdd) {
-      setState(() => _adding = true);
-      final meal =
-          locator<CustomMealDataSource>()
-              .getAllCustomMeals()
-              .where((m) => m.code == mealEntity.code)
-              .map(MealEntity.fromMealDBO)
-              .firstOrNull ??
-          mealEntity;
-      try {
-        await locator<MealDetailBloc>().addIntake(
-          context,
-          meal.hasQuickAddWeight ? meal.mealUnit! : 'g',
-          meal.hasQuickAddWeight ? meal.mealQuantity! : '100',
-          addMealType.getIntakeType(),
-          meal,
-          day,
-        );
-        locator<HomeBloc>().add(const LoadItemsEvent());
-        locator<DiaryBloc>().add(const LoadDiaryYearEvent());
-        locator<CalendarDayBloc>().add(RefreshCalendarDayEvent());
-        if (!context.mounted) return;
-        Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-          NavigationOptions.mainRoute,
-          (route) => false,
-        );
-      } catch (_) {
-        if (mounted) {
-          setState(() => _adding = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(S.of(context).quickAddReuseFailed)),
-          );
-        }
-      }
-      return;
-    }
-    Navigator.of(context).pushNamed(
-      NavigationOptions.mealDetailRoute,
-      arguments: MealDetailScreenArguments(
-        mealEntity,
-        addMealType.getIntakeType(),
-        day,
-        usesImperialUnits,
-      ),
-    );
-  }
 }
