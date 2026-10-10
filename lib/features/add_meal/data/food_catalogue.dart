@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/search/food_search_ranker.dart';
 import 'dart:io';
 import 'dart:isolate';
 
@@ -14,17 +15,7 @@ import 'package:opennutritracker/features/add_meal/domain/entity/meal_portion_en
 
 /// Quotes FTS tokens as literals; only the last word is a prefix.
 /// Punctuation (including FTS operators) is treated as a word separator.
-String? catalogueMatch(String query) {
-  final words = RegExp(
-    r'[\p{L}\p{N}]+',
-    unicode: true,
-  ).allMatches(query).map((m) => m.group(0)!).toList();
-  if (words.isEmpty) return null;
-  return [
-    for (var i = 0; i < words.length; i++)
-      '"${words[i].replaceAll('"', '""')}"${i == words.length - 1 ? '*' : ''}',
-  ].join(' AND ');
-}
+String? catalogueMatch(String query) => foodSearchMatch(query);
 
 abstract class FoodCatalogue {
   Future<List<MealEntity>> search(String query);
@@ -44,7 +35,13 @@ class SQLiteFoodCatalogue implements FoodCatalogue {
     final match = catalogueMatch(query);
     if (match == null) return const [];
     final path = await _installer.install();
-    return Isolate.run(() => searchCatalogueFile(path, match));
+    return Isolate.run(
+      () => searchCatalogueFile(
+        path,
+        match,
+        exactName: normalizeFoodSearchText(query),
+      ),
+    );
   }
 
   @override
@@ -129,14 +126,24 @@ class CatalogueInstaller {
   }
 }
 
-List<MealEntity> searchCatalogueFile(String path, String match) {
+List<MealEntity> searchCatalogueFile(
+  String path,
+  String match, {
+  String exactName = '',
+}) {
   final db = sqlite3.open(path, mode: OpenMode.readOnly);
   try {
+    db.createFunction(
+      functionName: 'primary_name',
+      argumentCount: const AllowedArgumentCount(1),
+      function: (args) =>
+          normalizeFoodSearchText((args.single as String).split(',').first),
+    );
     final rows = db.select(
       "SELECT fdc_id, description FROM food_search "
       "WHERE food_search MATCH ? AND locale = 'en' "
-      'ORDER BY rank, CAST(fdc_id AS INTEGER) LIMIT 25',
-      [match],
+      'ORDER BY CASE WHEN primary_name(description) = ? THEN 0 ELSE 1 END, rank, CAST(fdc_id AS INTEGER) LIMIT 25',
+      [match, exactName],
     );
     return [for (final row in rows) catalogueMeal(db, row)];
   } finally {

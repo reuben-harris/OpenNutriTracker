@@ -212,15 +212,12 @@ class OffMicronutrientRepair {
 /// row costs one in-memory scan and no write.
 Future<void> ensureOffMicronutrientsRepaired(HiveDBProvider db) async {
   final intakes = await OffMicronutrientRepair.repairIntakeBox(db.intakeBox);
-  final cached = await OffMicronutrientRepair.repairMealBox(
-    db.cachedOffMealBox,
-  );
   final custom = await OffMicronutrientRepair.repairMealBox(db.customMealBox);
   final recipes = await OffMicronutrientRepair.repairRecipeBox(db.recipeBox);
-  if (intakes + cached + custom + recipes > 0) {
+  if (intakes + custom + recipes > 0) {
     _log.info(
       'Converted Open Food Facts micronutrients into app units on '
-      '$intakes intakes, $cached cached products, $custom saved meals and '
+      '$intakes intakes, $custom saved meals and '
       '$recipes recipes (#1152)',
     );
   }

@@ -313,7 +313,9 @@ class _FakeProductsRepository implements ProductsRepository {
 
 class _FakeRemoteSearchCacheDataSource implements RemoteSearchCacheDataSource {
   @override
-  Future<void> touch(String barcode) async {}
+  int get generation => 0;
+  @override
+  String get language => 'en';
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>

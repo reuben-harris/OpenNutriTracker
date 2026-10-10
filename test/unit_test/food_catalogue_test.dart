@@ -92,6 +92,27 @@ void main() {
     expect((await catalogue.search('apple')).first.code, 'usda:10');
   });
 
+  test(
+    'exact primary title is selected before the 25-candidate limit',
+    () async {
+      final path = await installer.install();
+      final db = sqlite3.open(path);
+      for (var id = 10; id < 50; id++) {
+        db.execute("INSERT INTO food_name VALUES (?, 'en', 'Orange chicken')", [
+          id,
+        ]);
+        db.execute(
+          "INSERT INTO food_search VALUES (?, 'en', 'Orange chicken')",
+          [id],
+        );
+      }
+      db.execute("INSERT INTO food_name VALUES (999, 'en', 'Orange, raw')");
+      db.execute("INSERT INTO food_search VALUES (999, 'en', 'Orange, raw')");
+      db.close();
+      expect((await catalogue.search('ORANGE')).first.code, 'usda:999');
+    },
+  );
+
   test('empty and punctuation clear without installing or querying', () async {
     expect(await catalogue.search(''), isEmpty);
     expect(await catalogue.search('" -*?!'), isEmpty);

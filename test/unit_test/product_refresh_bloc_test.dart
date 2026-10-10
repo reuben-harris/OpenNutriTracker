@@ -25,7 +25,7 @@ void main() {
     test(
       'late hydration (failure=$failOldHydration) cannot overwrite refresh',
       () async {
-        await fixture.meals.clear();
+        await fixture.cache.clear();
         final older = Completer<http.Response>();
         final started = Completer<void>();
         fixture.respond = (_) {
@@ -49,7 +49,7 @@ void main() {
         );
         await Future<void>.delayed(const Duration(milliseconds: 100));
         expect(bloc.state.hydratedMeal!.nutriments.energyKcal100, 300);
-        expect(fixture.cached.nutriments.energyKcal100, 300);
+        expect((await fixture.cached).nutriments.energyKcal100, 300);
         expect(bloc.state.isHydrating, isFalse);
         expect(bloc.state.mealRevision, 1);
         expect(fixture.requests, hasLength(2));
@@ -71,13 +71,13 @@ void main() {
   }.entries) {
     test('${entry.key} leaves the cache intact', () async {
       fixture.respond = (_) async => entry.value;
-      final original = fixture.cached.toJson();
+      final original = jsonEncode((await fixture.cached).toJson());
       final failed = bloc.stream.firstWhere(
         (s) => s.refreshStatus == ProductRefreshStatus.failure,
       );
       bloc.add(RefreshMealEvent(refreshMeal()));
       await failed;
-      expect(fixture.cached.toJson(), original);
+      expect(jsonEncode((await fixture.cached).toJson()), original);
       expect(bloc.state.hydratedMeal, isNull);
     });
   }
@@ -96,7 +96,7 @@ void main() {
       final closing = bloc.close();
       response.complete(ProductRefreshFixture.success());
       await closing;
-      expect(fixture.cached.nutriments.energyKcal100, 100);
+      expect((await fixture.cached).nutriments.energyKcal100, 100);
     },
   );
 }

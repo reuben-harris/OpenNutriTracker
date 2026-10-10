@@ -13,6 +13,7 @@ class MealSearchBar extends StatefulWidget {
   // Nullable so callers that don't surface a barcode flow (e.g. the recipe
   // ingredient picker) can omit the suffix icon entirely.
   final Function()? onBarcodePressed;
+  final bool showSubmitButton;
 
   const MealSearchBar({
     super.key,
@@ -20,6 +21,7 @@ class MealSearchBar extends StatefulWidget {
     required this.onSearchSubmit,
     required this.onBarcodePressed,
     this.onSearchChanged,
+    this.showSubmitButton = true,
   });
 
   @override
@@ -65,21 +67,33 @@ class _MealSearchBarState extends State<MealSearchBar> {
               onSubmitted: widget.onSearchSubmit,
               decoration: InputDecoration(
                 hintText: S.of(context).searchLabel,
-                hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(color: palette.textMuted),
-                prefixIcon: Icon(Icons.search_rounded, size: 24, color: palette.textMuted),
+                hintStyle: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: palette.textMuted),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  size: 24,
+                  color: palette.textMuted,
+                ),
                 suffixIcon: widget.onBarcodePressed != null
                     ? Semantics(
                         identifier: 'meal-search-barcode',
                         child: IconButton(
-                          icon: Icon(CustomIcons.barcode_scan, size: 22, color: palette.textMuted),
+                          icon: Icon(
+                            CustomIcons.barcode_scan,
+                            size: 22,
+                            color: palette.textMuted,
+                          ),
                           onPressed: widget.onBarcodePressed,
                         ),
                       )
                     : null,
                 filled: true,
                 fillColor: palette.surfaceMuted,
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: Dimens.spacing16, horizontal: Dimens.spacing16),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: Dimens.spacing16,
+                  horizontal: Dimens.spacing16,
+                ),
                 border: border,
                 enabledBorder: border,
                 focusedBorder: OutlineInputBorder(
@@ -90,23 +104,27 @@ class _MealSearchBarState extends State<MealSearchBar> {
             ),
           ),
         ),
-        const SizedBox(width: Dimens.spacing12),
-        Semantics(
-          identifier: 'meal-search-submit',
-          child: IconButton(
-            onPressed: () {
-              FocusManager.instance.primaryFocus?.unfocus(); // Hide Keyboard
-              widget.onSearchSubmit(_searchTextController.text);
-            },
-            icon: const Icon(Icons.search_rounded, size: 24),
-            style: IconButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-              backgroundColor: accent,
-              padding: const EdgeInsets.all(Dimens.spacing12),
-              shape: const RoundedRectangleBorder(borderRadius: Dimens.borderRadiusM),
+        if (widget.showSubmitButton)
+          const SizedBox(width: Dimens.spacing12),
+        if (widget.showSubmitButton)
+          Semantics(
+            identifier: 'meal-search-submit',
+            child: IconButton(
+              onPressed: () {
+                FocusManager.instance.primaryFocus?.unfocus(); // Hide Keyboard
+                widget.onSearchSubmit(_searchTextController.text);
+              },
+              icon: const Icon(Icons.search_rounded, size: 24),
+              style: IconButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                backgroundColor: accent,
+                padding: const EdgeInsets.all(Dimens.spacing12),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: Dimens.borderRadiusM,
+                ),
+              ),
             ),
           ),
-        ),
       ],
     );
   }

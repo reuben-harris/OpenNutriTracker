@@ -33,7 +33,12 @@ class _FakeGetTrackedDayUsecase extends Fake implements GetTrackedDayUsecase {}
 class _FakeProductsRepository extends Fake implements ProductsRepository {}
 
 class _FakeRemoteSearchCacheDataSource extends Fake
-    implements RemoteSearchCacheDataSource {}
+    implements RemoteSearchCacheDataSource {
+  @override
+  int get generation => 0;
+  @override
+  String get language => 'en';
+}
 
 MealDetailBloc _buildBloc() => MealDetailBloc(
   _FakeAddIntakeUsecase(),
@@ -114,10 +119,14 @@ void main() {
       'double-serving',
       '100g',
     ]) {
-      expect(find.byWidgetPredicate((w) {
-        if (w is! Semantics) return false;
-        return w.properties.identifier == 'meal-detail-chip-$id';
-      }), findsOneWidget, reason: 'chip identifier meal-detail-chip-$id');
+      expect(
+        find.byWidgetPredicate((w) {
+          if (w is! Semantics) return false;
+          return w.properties.identifier == 'meal-detail-chip-$id';
+        }),
+        findsOneWidget,
+        reason: 'chip identifier meal-detail-chip-$id',
+      );
     }
   });
 
@@ -140,7 +149,9 @@ void main() {
       );
 
       final chip = find.byWidgetPredicate(
-        (w) => w is Semantics && w.properties.identifier == 'meal-detail-chip-100g',
+        (w) =>
+            w is Semantics &&
+            w.properties.identifier == 'meal-detail-chip-100g',
       );
       await tester.tap(chip);
       await tester.pumpAndSettle();
