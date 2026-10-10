@@ -63,6 +63,15 @@ class IntakeDataSource {
     if (fields.containsKey('recipeSnapshot')) {
       intakeObject.$2.recipeSnapshot = fields['recipeSnapshot'];
     }
+    // Amount updates must include a complete input snapshot or clear the old
+    // one, so other editors cannot leave a stale serving beside a new weight.
+    if (fields.containsKey('amount') || fields.containsKey('enteredAmount')) {
+      intakeObject.$2.enteredAmount = fields['enteredAmount'];
+      intakeObject.$2.enteredUnit = fields['enteredUnit'];
+      intakeObject.$2.enteredBaseUnit = fields['enteredBaseUnit'];
+      intakeObject.$2.enteredUnitFactor = fields['enteredUnitFactor'];
+      intakeObject.$2.enteredUnitLabel = fields['enteredUnitLabel'];
+    }
     await _intakeBox.putAt(intakeObject.$1, intakeObject.$2);
     await _reconcileDay(box, intakeObject.$2.dateTime);
     return box.getAt(intakeObject.$1);
@@ -208,6 +217,11 @@ class IntakeDataSource {
         dateTime: dbo.dateTime,
         recipeSnapshot: dbo.recipeSnapshot,
         conversionParentId: dbo.conversionParentId,
+        enteredAmount: dbo.enteredAmount,
+        enteredUnit: dbo.enteredUnit,
+        enteredBaseUnit: dbo.enteredBaseUnit,
+        enteredUnitFactor: dbo.enteredUnitFactor,
+        enteredUnitLabel: dbo.enteredUnitLabel,
       );
       await _intakeBox.put(entry.key, updated);
       rewrites.add((dbo, updated));

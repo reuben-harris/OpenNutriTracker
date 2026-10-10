@@ -25,13 +25,18 @@ class IntakeDBOAdapter extends TypeAdapter<IntakeDBO> {
       dateTime: fields[5] as DateTime,
       recipeSnapshot: fields[6] as RecipeDBO?,
       conversionParentId: fields[7] as String?,
+      enteredAmount: (fields[8] as num?)?.toDouble(),
+      enteredUnit: fields[9] as String?,
+      enteredBaseUnit: fields[10] as String?,
+      enteredUnitFactor: (fields[11] as num?)?.toDouble(),
+      enteredUnitLabel: fields[12] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, IntakeDBO obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -47,7 +52,17 @@ class IntakeDBOAdapter extends TypeAdapter<IntakeDBO> {
       ..writeByte(6)
       ..write(obj.recipeSnapshot)
       ..writeByte(7)
-      ..write(obj.conversionParentId);
+      ..write(obj.conversionParentId)
+      ..writeByte(8)
+      ..write(obj.enteredAmount)
+      ..writeByte(9)
+      ..write(obj.enteredUnit)
+      ..writeByte(10)
+      ..write(obj.enteredBaseUnit)
+      ..writeByte(11)
+      ..write(obj.enteredUnitFactor)
+      ..writeByte(12)
+      ..write(obj.enteredUnitLabel);
   }
 
   @override
@@ -76,6 +91,11 @@ IntakeDBO _$IntakeDBOFromJson(Map<String, dynamic> json) => IntakeDBO(
       ? null
       : RecipeDBO.fromJson(json['recipeSnapshot'] as Map<String, dynamic>),
   conversionParentId: json['conversionParentId'] as String?,
+  enteredAmount: (json['enteredAmount'] as num?)?.toDouble(),
+  enteredUnit: json['enteredUnit'] as String?,
+  enteredBaseUnit: json['enteredBaseUnit'] as String?,
+  enteredUnitFactor: (json['enteredUnitFactor'] as num?)?.toDouble(),
+  enteredUnitLabel: json['enteredUnitLabel'] as String?,
 );
 
 Map<String, dynamic> _$IntakeDBOToJson(IntakeDBO instance) => <String, dynamic>{
@@ -87,6 +107,11 @@ Map<String, dynamic> _$IntakeDBOToJson(IntakeDBO instance) => <String, dynamic>{
   'dateTime': instance.dateTime.toIso8601String(),
   'recipeSnapshot': instance.recipeSnapshot,
   'conversionParentId': instance.conversionParentId,
+  'enteredAmount': instance.enteredAmount,
+  'enteredUnit': instance.enteredUnit,
+  'enteredBaseUnit': instance.enteredBaseUnit,
+  'enteredUnitFactor': instance.enteredUnitFactor,
+  'enteredUnitLabel': instance.enteredUnitLabel,
 };
 
 const _$IntakeTypeDBOEnumMap = {

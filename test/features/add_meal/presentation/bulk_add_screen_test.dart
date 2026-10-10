@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -67,6 +68,7 @@ class _FakeMealDetailBloc extends Fake implements MealDetailBloc {
     MealEntity meal,
     DateTime day, {
     IntakeEntity? copiedFrom,
+    FoodAmountSelection? selection,
   }) async {
     if (failOnSecondWrite && writes.length == 1) {
       throw StateError('write failed');

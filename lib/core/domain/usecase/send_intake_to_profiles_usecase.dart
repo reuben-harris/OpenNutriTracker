@@ -110,6 +110,11 @@ class SendIntakeToProfilesUsecase {
           meal: intake.meal,
           dateTime: intake.dateTime,
           recipeSnapshot: intake.recipeSnapshot,
+          enteredAmount: intake.enteredAmount,
+          enteredUnit: intake.enteredUnit,
+          enteredBaseUnit: intake.enteredBaseUnit,
+          enteredUnitFactor: intake.enteredUnitFactor,
+          enteredUnitLabel: intake.enteredUnitLabel,
         );
         await intakeRepository.addIntake(copy);
 

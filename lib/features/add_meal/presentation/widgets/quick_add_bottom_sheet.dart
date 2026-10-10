@@ -74,8 +74,16 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
         (meal.hasQuickAddWeight ? double.parse(meal.mealQuantity!) : 100);
     final factor = amount / 100;
     if (meal.hasQuickAddWeight) {
-      _weightUnit = FoodAmountUnit.fromLabel(meal.servingUnit ?? meal.mealUnit);
-      _weightController.text = _weightUnit.fromBase(amount).toString();
+      final entered = widget.editingIntake?.enteredSelection;
+      final enteredUnit = FoodAmountUnit.values
+          .where((unit) => unit.label == entered?.option.unit)
+          .firstOrNull;
+      _weightUnit =
+          enteredUnit ??
+          FoodAmountUnit.fromLabel(meal.servingUnit ?? meal.mealUnit);
+      _weightController.text = enteredUnit != null
+          ? entered!.amount.toString()
+          : _weightUnit.fromBase(amount).toString();
     }
     _initialWeightText = _weightController.text;
     _initialWeightUnit = _weightUnit;
@@ -198,6 +206,11 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
               'meal': MealDBO.fromMealEntity(intake.meal),
               'amount': intake.amount,
               'unit': intake.unit,
+              'enteredAmount': intake.enteredAmount,
+              'enteredUnit': intake.enteredUnit,
+              'enteredBaseUnit': intake.enteredBaseUnit,
+              'enteredUnitFactor': intake.enteredUnitFactor,
+              'enteredUnitLabel': intake.enteredUnitLabel,
             });
         if (updated == null) return;
       } else {
@@ -308,6 +321,10 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
       id: IdGenerator.getUniqueID(),
       unit: enteredWeight == null ? 'g' : _weightUnit.baseUnit,
       amount: amount,
+      enteredAmount: enteredWeight,
+      enteredUnit: enteredWeight == null ? null : _weightUnit.label,
+      enteredBaseUnit: enteredWeight == null ? null : _weightUnit.baseUnit,
+      enteredUnitFactor: enteredWeight == null ? null : _weightUnit.factor,
       type: widget.intakeType,
       meal: meal,
       dateTime: widget.day,

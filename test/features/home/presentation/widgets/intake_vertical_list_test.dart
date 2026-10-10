@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/add_tracked_day_usecase.dart';
@@ -34,6 +35,7 @@ class _FakeMealDetailBloc extends Fake implements MealDetailBloc {
     MealEntity meal,
     DateTime day, {
     IntakeEntity? copiedFrom,
+    FoodAmountSelection? selection,
   }) async {
     await onLog?.call();
   }
