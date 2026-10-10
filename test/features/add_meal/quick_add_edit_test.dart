@@ -120,6 +120,55 @@ void main() {
     ),
   );
   Finder field(int index) => find.byType(TextField).at(index);
+  testWidgets(
+    'editing uses the logged amount and unit rather than the food default',
+    (tester) async {
+      final meal = MealEntity(
+        code: 'quick',
+        name: 'Quick food',
+        url: null,
+        mealQuantity: '2000',
+        mealUnit: 'g',
+        servingQuantity: null,
+        servingUnit: 'kg',
+        servingSize: '',
+        source: MealSourceEntity.custom,
+        isQuickAdd: true,
+        nutriments: quick().nutriments,
+      );
+      final intake = IntakeEntity(
+        id: 'occurrence',
+        unit: 'g',
+        amount: 53,
+        type: IntakeTypeEntity.lunch,
+        dateTime: DateTime(2025, 1, 1),
+        meal: meal,
+        enteredAmount: 53,
+        enteredUnit: 'g',
+        enteredBaseUnit: 'g',
+        enteredUnitFactor: 1,
+      );
+      await tester.runAsync(() => repo.addIntake(intake));
+      await mount(tester, edit: intake);
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(field(5)).controller!.text, '53.0');
+      final unit = tester.widget<DropdownButton<FoodAmountUnit>>(
+        find.byType(DropdownButton<FoodAmountUnit>),
+      );
+      expect(unit.value, FoodAmountUnit.g);
+      await tester.ensureVisible(find.text('Save changes'));
+      await tester.runAsync(() async {
+        await tester.tap(find.text('Save changes'));
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      });
+      await tester.pumpAndSettle();
+      final saved = (await repo.getIntakeById(intake.id))!;
+      expect(saved.amount, 53);
+      expect(saved.enteredAmount, 53);
+      expect(saved.enteredUnit, 'g');
+      expect(saved.totalKcal, intake.totalKcal);
+    },
+  );
   for (final nutrients in [
     quick(kcal: null),
     quick(kcal: 0, carbs: 0),

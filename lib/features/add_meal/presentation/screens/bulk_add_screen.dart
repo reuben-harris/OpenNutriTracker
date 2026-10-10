@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -1572,6 +1573,11 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
           _args.intakeTypeEntity,
           write.row.meal!,
           _args.day,
+          selection: selectionForFoodUnit(
+            double.parse(write.row.amountText.trim().replaceAll(',', '.')),
+            write.row.effectiveUnit,
+            write.row.meal!,
+          ),
         );
       }
     } catch (e, stackTrace) {

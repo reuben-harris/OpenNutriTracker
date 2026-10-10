@@ -81,6 +81,11 @@ class CsvDataExporter {
     'recipe_snapshot_json',
     'conversion_parent_id',
     'meal_is_quick_add',
+    'entered_amount',
+    'entered_unit',
+    'entered_base_unit',
+    'entered_unit_factor',
+    'entered_unit_label',
   ];
 
   static const userActivityColumns = <String>[
@@ -172,6 +177,11 @@ class CsvDataExporter {
         ),
         _cell(intake.conversionParentId),
         _cell(MealEntity.fromMealDBO(meal).isQuickAdd.toString()),
+        _num(intake.enteredAmount),
+        _cell(intake.enteredUnit),
+        _cell(intake.enteredBaseUnit),
+        _num(intake.enteredUnitFactor),
+        _cell(intake.enteredUnitLabel),
       ];
       buf.writeln(cells.join(','));
     }
@@ -316,6 +326,13 @@ class CsvDataExporter {
                       as Map<String, dynamic>,
                 ),
           conversionParentId: _nullable(row['conversion_parent_id']),
+          enteredAmount: CsvRowParser.parseDoubleOrNull(row['entered_amount']),
+          enteredUnit: _nullable(row['entered_unit']),
+          enteredBaseUnit: _nullable(row['entered_base_unit']),
+          enteredUnitFactor: CsvRowParser.parseDoubleOrNull(
+            row['entered_unit_factor'],
+          ),
+          enteredUnitLabel: _nullable(row['entered_unit_label']),
         ),
       );
     }

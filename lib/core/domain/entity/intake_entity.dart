@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:equatable/equatable.dart';
 import 'package:opennutritracker/core/data/dbo/intake_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
@@ -21,6 +22,12 @@ class IntakeEntity extends Equatable {
   /// original still exists, these rows are pending and must not be counted.
   final String? conversionParentId;
 
+  final double? enteredAmount;
+  final String? enteredUnit;
+  final String? enteredBaseUnit;
+  final double? enteredUnitFactor;
+  final String? enteredUnitLabel;
+
   const IntakeEntity({
     required this.id,
     required this.unit,
@@ -30,6 +37,11 @@ class IntakeEntity extends Equatable {
     required this.dateTime,
     this.recipeSnapshot,
     this.conversionParentId,
+    this.enteredAmount,
+    this.enteredUnit,
+    this.enteredBaseUnit,
+    this.enteredUnitFactor,
+    this.enteredUnitLabel,
   });
 
   factory IntakeEntity.fromIntakeDBO(IntakeDBO intakeDBO) {
@@ -44,7 +56,31 @@ class IntakeEntity extends Equatable {
           ? null
           : RecipeEntity.fromDBO(intakeDBO.recipeSnapshot!),
       conversionParentId: intakeDBO.conversionParentId,
+      enteredAmount: intakeDBO.enteredAmount,
+      enteredUnit: intakeDBO.enteredUnit,
+      enteredBaseUnit: intakeDBO.enteredBaseUnit,
+      enteredUnitFactor: intakeDBO.enteredUnitFactor,
+      enteredUnitLabel: intakeDBO.enteredUnitLabel,
     );
+  }
+
+  FoodAmountSelection? get enteredSelection {
+    final value = enteredAmount;
+    if (value == null ||
+        !value.isFinite ||
+        value <= 0 ||
+        enteredUnit == null ||
+        enteredBaseUnit == null ||
+        enteredUnitFactor == null) {
+      return null;
+    }
+    final option = FoodAmountOption(
+      unit: enteredUnit!,
+      baseUnit: enteredBaseUnit!,
+      factor: enteredUnitFactor!,
+      label: enteredUnitLabel,
+    );
+    return option.isValid ? FoodAmountSelection(value, option) : null;
   }
 
   bool get isIncomplete =>
@@ -74,5 +110,10 @@ class IntakeEntity extends Equatable {
     meal,
     recipeSnapshot,
     conversionParentId,
+    enteredAmount,
+    enteredUnit,
+    enteredBaseUnit,
+    enteredUnitFactor,
+    enteredUnitLabel,
   ];
 }

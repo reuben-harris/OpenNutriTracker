@@ -31,6 +31,21 @@ class IntakeDBO extends HiveObject {
   @HiveField(7)
   String? conversionParentId;
 
+  @HiveField(8)
+  double? enteredAmount;
+
+  @HiveField(9)
+  String? enteredUnit;
+
+  @HiveField(10)
+  String? enteredBaseUnit;
+
+  @HiveField(11)
+  double? enteredUnitFactor;
+
+  @HiveField(12)
+  String? enteredUnitLabel;
+
   IntakeDBO({
     required this.id,
     required this.unit,
@@ -40,6 +55,11 @@ class IntakeDBO extends HiveObject {
     required this.dateTime,
     this.recipeSnapshot,
     this.conversionParentId,
+    this.enteredAmount,
+    this.enteredUnit,
+    this.enteredBaseUnit,
+    this.enteredUnitFactor,
+    this.enteredUnitLabel,
   });
 
   factory IntakeDBO.fromIntakeEntity(IntakeEntity entity) {
@@ -52,6 +72,11 @@ class IntakeDBO extends HiveObject {
       dateTime: entity.dateTime,
       recipeSnapshot: entity.recipeSnapshot?.toDBO(),
       conversionParentId: entity.conversionParentId,
+      enteredAmount: entity.enteredAmount,
+      enteredUnit: entity.enteredUnit,
+      enteredBaseUnit: entity.enteredBaseUnit,
+      enteredUnitFactor: entity.enteredUnitFactor,
+      enteredUnitLabel: entity.enteredUnitLabel,
     );
   }
 

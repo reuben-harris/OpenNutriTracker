@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'dart:async';
 
@@ -263,6 +264,7 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
     MealEntity meal,
     DateTime day, {
     IntakeEntity? copiedFrom,
+    FoodAmountSelection? selection,
   }) async {
     final quantity = double.parse(amountText.replaceAll(',', '.'));
 
@@ -270,6 +272,13 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
       id: IdGenerator.getUniqueID(),
       unit: unit,
       amount: quantity,
+      enteredAmount: selection?.amount ?? copiedFrom?.enteredAmount,
+      enteredUnit: selection?.option.unit ?? copiedFrom?.enteredUnit,
+      enteredBaseUnit:
+          selection?.option.baseUnit ?? copiedFrom?.enteredBaseUnit,
+      enteredUnitFactor:
+          selection?.option.factor ?? copiedFrom?.enteredUnitFactor,
+      enteredUnitLabel: selection?.option.label ?? copiedFrom?.enteredUnitLabel,
       type: type,
       meal: meal,
       dateTime: day,

@@ -94,6 +94,11 @@ class OffMicronutrientRepair {
           ? null
           : repairRecipe(intake.recipeSnapshot!),
       conversionParentId: intake.conversionParentId,
+      enteredAmount: intake.enteredAmount,
+      enteredUnit: intake.enteredUnit,
+      enteredBaseUnit: intake.enteredBaseUnit,
+      enteredUnitFactor: intake.enteredUnitFactor,
+      enteredUnitLabel: intake.enteredUnitLabel,
     );
   }
 

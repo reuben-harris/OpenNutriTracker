@@ -9,6 +9,7 @@ import 'package:opennutritracker/core/data/dbo/meal_nutriments_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/recipe_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/recipe_ingredient_dbo.dart';
 import 'package:opennutritracker/core/utils/csv_data_exporter.dart';
+import 'package:opennutritracker/core/utils/csv_row_parser.dart';
 import 'package:opennutritracker/core/utils/off_micronutrient_repair.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
@@ -658,14 +659,24 @@ void main() {
       final csv = CsvDataExporter.intakesToCsv([
         _intake('old', _meal(source: MealSourceDBO.off)),
       ]);
-      // Drop columns that the old exporter did not have.
+      final columnIndices = legacyColumns
+          .map(CsvDataExporter.intakeColumns.indexOf)
+          .toList();
+      // Remove the selected columns wherever they appear, preserving CSV quoting.
       final legacyCsv = csv
           .split('\n')
-          .map(
-            (line) => line.isEmpty
-                ? line
-                : line.split(',').take(legacyColumns.length).join(','),
-          )
+          .map((line) {
+            if (line.isEmpty) return line;
+            final cells = CsvRowParser.splitRow(line);
+            return columnIndices
+                .map((i) {
+                  final cell = cells[i];
+                  return cell.contains(RegExp('[,\\r\\n"]'))
+                      ? '"${cell.replaceAll('"', '""')}"'
+                      : cell;
+                })
+                .join(',');
+          })
           .join('\n');
       expect(legacyCsv.split('\n').first, legacyColumns.join(','));
 
