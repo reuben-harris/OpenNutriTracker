@@ -88,6 +88,7 @@ class _SilentNotificationService extends NotificationService {
 class _TestHiveDBProvider extends HiveDBProvider {
   final Box<ConfigDBO> config;
   final Box<IntakeDBO> intake;
+  final Box<Map> amountMemory;
   final Box<UserActivityDBO> activity;
   final Box<UserDBO> user;
   final Box<TrackedDayDBO> trackedDay;
@@ -99,6 +100,7 @@ class _TestHiveDBProvider extends HiveDBProvider {
   _TestHiveDBProvider({
     required this.config,
     required this.intake,
+    required this.amountMemory,
     required this.activity,
     required this.user,
     required this.trackedDay,
@@ -112,6 +114,8 @@ class _TestHiveDBProvider extends HiveDBProvider {
   Box<ConfigDBO> get configBox => config;
   @override
   Box<IntakeDBO> get intakeBox => intake;
+  @override
+  Box<Map> get foodAmountMemoryBox => amountMemory;
   @override
   Box<UserActivityDBO> get userActivityBox => activity;
   @override
@@ -149,6 +153,7 @@ void main() {
     provider = _TestHiveDBProvider(
       config: configBox,
       intake: await Hive.openBox<IntakeDBO>('wipe_intake_$tag'),
+      amountMemory: await Hive.openBox<Map>('wipe_amount_memory_$tag'),
       activity: await Hive.openBox<UserActivityDBO>('wipe_activity_$tag'),
       user: await Hive.openBox<UserDBO>('wipe_user_$tag'),
       trackedDay: await Hive.openBox<TrackedDayDBO>('wipe_tracked_$tag'),
@@ -170,6 +175,12 @@ void main() {
 
   tearDown(() async {
     await Hive.deleteFromDisk();
+  });
+
+  test('clears the active profile amount preferences', () async {
+    await provider.amountMemory.put('food', {'amount': 53});
+    await sut.deleteAll();
+    expect(provider.amountMemory.isEmpty, true);
   });
 
   test('takes the AI credentials with it', () async {

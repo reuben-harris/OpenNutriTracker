@@ -93,6 +93,9 @@ void main() {
         appConfigBox: appConfigBox,
         configBox: configBox,
         intakeBox: await Hive.openBox<IntakeDBO>('delete_all_intake'),
+        foodAmountMemoryBox: await Hive.openBox<Map>(
+          'delete_all_amount_memory',
+        ),
         userActivityBox: await Hive.openBox<UserActivityDBO>('delete_all_act'),
         userBox: userBox = await Hive.openBox<UserDBO>('delete_all_user'),
         trackedDayBox: await Hive.openBox<TrackedDayDBO>('delete_all_days'),
@@ -151,7 +154,8 @@ void main() {
       expect(
         notifications.cancels,
         1,
-        reason: 'nothing told the OS to drop the alarm, so it still fires at '
+        reason:
+            'nothing told the OS to drop the alarm, so it still fires at '
             '08:00 for a profile that no longer exists',
       );
       expect(configBox.isEmpty, isTrue, reason: 'the wipe must still happen');
@@ -167,7 +171,8 @@ void main() {
       expect(
         notifications.userDataStillOnFileWhenCancelled,
         isTrue,
-        reason: 'the alarm was cancelled after the data it belonged to was '
+        reason:
+            'the alarm was cancelled after the data it belonged to was '
             'already gone',
       );
     });
@@ -184,7 +189,8 @@ void main() {
       expect(
         afterWipe.notificationsEnabled,
         isFalse,
-        reason: 'a cold start would read this and reschedule the reminder the '
+        reason:
+            'a cold start would read this and reschedule the reminder the '
             'user just deleted everything to be rid of',
       );
     });

@@ -20,6 +20,7 @@ class FakeHiveDBProvider extends HiveDBProvider {
   final Box<ConfigDBO>? _configBox;
   final Box<ConfigDBO>? _appConfigBox;
   final Box<IntakeDBO>? _intakeBox;
+  final Box<Map>? _foodAmountMemoryBox;
   final Box<UserActivityDBO>? _userActivityBox;
   final Box<UserDBO>? _userBox;
   final Box<TrackedDayDBO>? _trackedDayBox;
@@ -44,6 +45,7 @@ class FakeHiveDBProvider extends HiveDBProvider {
     Box<ConfigDBO>? configBox,
     Box<ConfigDBO>? appConfigBox,
     Box<IntakeDBO>? intakeBox,
+    Box<Map>? foodAmountMemoryBox,
     Box<UserActivityDBO>? userActivityBox,
     Box<UserDBO>? userBox,
     Box<TrackedDayDBO>? trackedDayBox,
@@ -56,6 +58,7 @@ class FakeHiveDBProvider extends HiveDBProvider {
   }) : _configBox = configBox,
        _appConfigBox = appConfigBox ?? configBox,
        _intakeBox = intakeBox,
+       _foodAmountMemoryBox = foodAmountMemoryBox,
        _userActivityBox = userActivityBox,
        _userBox = userBox,
        _trackedDayBox = trackedDayBox,
@@ -77,6 +80,8 @@ class FakeHiveDBProvider extends HiveDBProvider {
   Box<ConfigDBO> get configBox => _require(_configBox);
   @override
   Box<ConfigDBO> get appConfigBox => _require(_appConfigBox);
+  @override
+  Box<Map> get foodAmountMemoryBox => _require(_foodAmountMemoryBox);
   @override
   Box<IntakeDBO> get intakeBox => _require(_intakeBox);
   @override

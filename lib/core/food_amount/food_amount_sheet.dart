@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/food_amount/food_amount_memory.dart';
+import 'package:opennutritracker/core/utils/hive_db_provider.dart';
 import 'dart:async';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
@@ -13,20 +15,33 @@ Future<bool> showFoodAmountSheet(BuildContext context, {required MealEntity meal
   required Future<bool> Function(MealEntity, FoodAmountSelection) onConfirm,
   FoodAmountSelection? initial, bool editing = false, bool hydrate = true}) async {
   final config = await locator<GetConfigUsecase>().getConfig();
+  FoodAmountMemory? memory;
+  HiveDBProvider? profiles;
+  String? profile;
+  if (locator.isRegistered<HiveDBProvider>()) {
+    profiles = locator<HiveDBProvider>();
+    profile = profiles.activeProfileId;
+    try { memory = FoodAmountMemory(profiles.foodAmountMemoryBox); } catch (_) { /* Convenience defaults cannot block amount entry. */ }
+  }
   if (!context.mounted) return false;
   return await showModalBottomSheet<bool>(context: context, isScrollControlled: true,
-    showDragHandle: true, enableDrag: false, isDismissible: false, builder: (_) => FoodAmountSheet(meal: meal, onConfirm: onConfirm,
+    showDragHandle: true, enableDrag: false, isDismissible: false, builder: (_) => FoodAmountSheet(meal: meal, onConfirm: (food, selection) async {
+      if (profiles != null && profiles.activeProfileId != profile) throw StateError('Profile changed');
+      return onConfirm(food, selection);
+    }, remembered: memory?.read(meal), onRemember: memory?.remember,
       initial: initial, editing: editing, hydrate: hydrate,
       imperial: config.usesImperialFoodUnits, rawUnits: config.defaultToRawFoodUnits)) ?? false;
 }
 
 class FoodAmountSheet extends StatefulWidget {
   const FoodAmountSheet({super.key, required this.meal, required this.onConfirm,
-    this.initial, this.editing = false, this.hydrate = true,
+    this.initial, this.remembered, this.onRemember, this.editing = false, this.hydrate = true,
     this.imperial = false, this.rawUnits = false});
   final MealEntity meal;
   final Future<bool> Function(MealEntity, FoodAmountSelection) onConfirm;
   final FoodAmountSelection? initial;
+  final FoodAmountSelection? remembered;
+  final Future<void> Function(MealEntity, FoodAmountSelection)? onRemember;
   final bool editing, hydrate, imperial, rawUnits;
   @override
   State<FoodAmountSheet> createState() => _FoodAmountSheetState();
@@ -45,7 +60,7 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
   void initState() {
     super.initState();
     _meal = widget.meal;
-    final initial = widget.initial ?? _default();
+    final initial = widget.initial ?? supportedRememberedAmount(_meal, widget.remembered) ?? _default();
     _option = initial.option;
     _amount = TextEditingController(text: formatFoodAmount(initial.amount));
     _selectAll();
@@ -58,7 +73,7 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
           _meal = full;
           // Hydration can reveal a default serving, but cannot replace input.
           if (!_changed && widget.initial == null) {
-            final initial = _default();
+            final initial = supportedRememberedAmount(_meal, widget.remembered) ?? _default();
             _option = initial.option;
             _amount.text = formatFoodAmount(initial.amount);
             _selectAll();
@@ -89,7 +104,11 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
     try {
       final saved = await widget.onConfirm(_meal, FoodAmountSelection(value, _option));
       if (!mounted) return;
-      if (saved) { Navigator.of(context).pop(true); return; }
+      if (saved) {
+        try { await widget.onRemember?.call(_meal, FoodAmountSelection(value, _option)); } catch (_) { /* Saving the food already succeeded. */ }
+        if (mounted) Navigator.of(context).pop(true);
+        return;
+      }
     } catch (_) {
       if (mounted) setState(() => _error = S.of(context).quickAddReuseFailed);
     }
