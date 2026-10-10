@@ -1,4 +1,5 @@
 import 'package:opennutritracker/core/utils/food_cache_maintenance.dart';
+import 'package:opennutritracker/core/utils/food_image_loader.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
 import 'package:opennutritracker/core/search/food_search_engine.dart';
@@ -219,6 +220,9 @@ Future<void> initLocator() async {
   // Cache manager
   locator.registerLazySingleton<CacheManager>(
     () => OntImageCacheManager.instance,
+  );
+  locator.registerLazySingleton<FoodImageLoader>(
+    () => FoodImageLoader(cacheManager: locator<CacheManager>()),
   );
 
   locator.registerLazySingleton<FoodCacheMaintenance>(
