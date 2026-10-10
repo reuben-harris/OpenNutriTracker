@@ -6,7 +6,7 @@ import 'package:opennutritracker/core/presentation/widgets/delete_dialog.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/diary_drag_targets.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/diary_transfer_style.dart';
-import 'package:opennutritracker/features/home/presentation/widgets/recipe_swipe_scope.dart';
+import 'package:opennutritracker/core/presentation/widgets/swipe_reveal_scope.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
@@ -126,7 +126,7 @@ class _DiaryPageState extends State<DiaryPage> {
       bloc: locator<SelectedDayCubit>(),
       listenWhen: (previous, next) => previous.day != next.day,
       listener: (_, _) {
-        RecipeSwipeScope.maybeOf(context)?.close();
+        SwipeRevealScope.maybeOf(context)?.close();
         if (_dragging) _onIntakeDrag(null);
       },
       child: BlocBuilder<DiaryClipboardCubit, List<IntakeEntity>>(

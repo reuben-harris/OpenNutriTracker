@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 
-/// Keeps one Info or Refresh action open across all meal sections on a screen.
-class RecipeSwipeScope extends StatefulWidget {
+/// Coordinates one open row across all sections on a screen.
+class SwipeRevealScope extends StatefulWidget {
   final Widget child;
   final bool active;
 
-  const RecipeSwipeScope({super.key, required this.child, this.active = true});
+  const SwipeRevealScope({super.key, required this.child, this.active = true});
 
-  static RecipeSwipeController? maybeOf(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<_RecipeSwipeScope>()
+  static SwipeRevealController? maybeOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<_SwipeRevealScope>()
       ?.controller;
 
   @override
-  State<RecipeSwipeScope> createState() => _RecipeSwipeScopeState();
+  State<SwipeRevealScope> createState() => _SwipeRevealScopeState();
 }
 
-class _RecipeSwipeScopeState extends State<RecipeSwipeScope> {
-  final _controller = RecipeSwipeController();
+class _SwipeRevealScopeState extends State<SwipeRevealScope> {
+  final _controller = SwipeRevealController();
 
   @override
-  void didUpdateWidget(RecipeSwipeScope oldWidget) {
+  void didUpdateWidget(SwipeRevealScope oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!widget.active) _controller.close();
   }
@@ -31,7 +31,7 @@ class _RecipeSwipeScopeState extends State<RecipeSwipeScope> {
   }
 
   @override
-  Widget build(BuildContext context) => _RecipeSwipeScope(
+  Widget build(BuildContext context) => _SwipeRevealScope(
     controller: _controller,
     child: NotificationListener<ScrollStartNotification>(
       onNotification: (notification) {
@@ -43,7 +43,7 @@ class _RecipeSwipeScopeState extends State<RecipeSwipeScope> {
   );
 }
 
-class RecipeSwipeController {
+class SwipeRevealController {
   VoidCallback? _close;
 
   void open(VoidCallback close) {
@@ -63,12 +63,12 @@ class RecipeSwipeController {
   }
 }
 
-class _RecipeSwipeScope extends InheritedWidget {
-  final RecipeSwipeController controller;
+class _SwipeRevealScope extends InheritedWidget {
+  final SwipeRevealController controller;
 
-  const _RecipeSwipeScope({required this.controller, required super.child});
+  const _SwipeRevealScope({required this.controller, required super.child});
 
   @override
-  bool updateShouldNotify(_RecipeSwipeScope oldWidget) =>
+  bool updateShouldNotify(_SwipeRevealScope oldWidget) =>
       controller != oldWidget.controller;
 }

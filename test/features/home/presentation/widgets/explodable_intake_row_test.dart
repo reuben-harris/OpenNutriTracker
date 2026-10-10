@@ -21,7 +21,7 @@ import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments
 import 'package:opennutritracker/features/home/presentation/widgets/explodable_intake_row.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
-import 'package:opennutritracker/features/home/presentation/widgets/recipe_swipe_scope.dart';
+import 'package:opennutritracker/core/presentation/widgets/swipe_reveal_scope.dart';
 
 IntakeEntity recipeIntake({
   bool old = false,
@@ -101,7 +101,7 @@ Widget _app(
     home: MediaQuery(
       data: MediaQueryData(disableAnimations: reducedMotion),
       child: Scaffold(
-        body: RecipeSwipeScope(
+        body: SwipeRevealScope(
           active: active,
           child: GestureDetector(
             onHorizontalDragEnd: (_) => onDaySwipe(),
@@ -116,7 +116,6 @@ Widget _app(
                         intake: entry,
                         usesImperialUnits: false,
                         onItemTapped: (_, _, _) => onTap?.call(),
-                        onLeftSwipe: onDaySwipe,
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -242,7 +241,7 @@ void main() {
     expect(find.text('Save changes'), findsOneWidget);
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
-    await tester.tap(_card());
+    await tester.tapAt(tester.getCenter(_card()));
     await tester.pumpAndSettle();
     expect(
       tester
@@ -325,11 +324,11 @@ void main() {
     var taps = 0;
     await tester.pumpWidget(_app(recipeIntake(), () {}, onTap: () => taps++));
     await _open(tester);
-    await tester.tap(_card());
+    await tester.tapAt(tester.getCenter(_card()));
     await tester.pumpAndSettle();
     expect(taps, 0);
     expect(tester.getTopLeft(_card()).dx, 0);
-    await tester.tap(_card());
+    await tester.tapAt(tester.getCenter(_card()));
     expect(taps, 1);
   });
 
@@ -387,7 +386,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    await tester.tap(_card());
+    await tester.tapAt(tester.getCenter(_card()));
     await tester.pumpAndSettle();
     expect(
       find.semantics.byPredicate(
@@ -461,12 +460,12 @@ void main() {
     (tester) async {
       await tester.pumpWidget(_app(recipeIntake(), () {}, reducedMotion: true));
       await _open(tester);
-      await tester.tap(_card());
+      await tester.tapAt(tester.getCenter(_card()));
       await tester.pump();
       expect(tester.getTopLeft(_card()).dx, 0);
       await tester.pumpWidget(_app(recipeIntake(), () {}));
       await _open(tester);
-      await tester.tap(_card());
+      await tester.tapAt(tester.getCenter(_card()));
       await tester.pump(const Duration(milliseconds: 20));
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
@@ -500,7 +499,7 @@ void main() {
       expect(tester.getTopLeft(_card('$recipe')).dx, 104);
       expect(days, 0);
       expect(taps, 0);
-      await tester.tap(_card('$recipe'));
+      await tester.tapAt(tester.getCenter(_card('$recipe')));
       await tester.pumpAndSettle();
       expect(tester.getTopLeft(_card('$recipe')).dx, 0);
     }
@@ -621,7 +620,7 @@ void main() {
       await _open(tester, 'second');
       expect(tester.getTopLeft(_card()).dx, 0);
       expect(tester.getTopLeft(_card('second')).dx, -104);
-      await tester.tap(_card());
+      await tester.tapAt(tester.getCenter(_card()));
       expect(taps, 1);
     },
   );
