@@ -29,7 +29,7 @@ import 'package:opennutritracker/features/diary/presentation/widgets/meal_sectio
 import 'package:opennutritracker/features/home/domain/entity/shared_meal_payload.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/features/home/presentation/widgets/explodable_intake_row.dart';
-import 'package:opennutritracker/features/home/presentation/widgets/recipe_swipe_scope.dart';
+import 'package:opennutritracker/core/presentation/widgets/swipe_reveal_scope.dart';
 import 'package:opennutritracker/features/home/presentation/screens/import_meal_scanner_screen.dart';
 import 'package:opennutritracker/core/domain/usecase/update_intake_usecase.dart';
 import 'package:opennutritracker/generated/l10n.dart';
@@ -242,7 +242,7 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                       child: LongPressDraggable<IntakeEntity>(
                         data: entry,
                         onDragStarted: () {
-                          RecipeSwipeScope.maybeOf(context)?.close();
+                          SwipeRevealScope.maybeOf(context)?.close();
                           widget.onItemDragCallback?.call(entry);
                         },
                         onDragUpdate: widget.onItemDragUpdate,
@@ -276,8 +276,6 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                           key: ValueKey(entry.id),
                           intake: entry,
                           onItemTapped: widget.onItemTappedCallback,
-                          onLeftSwipe: () =>
-                              locator<SelectedDayCubit>().step(1),
                           usesImperialUnits: widget.usesImperialUnits,
                         ),
                       ),
@@ -366,7 +364,7 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
     BuildContext context,
     DiaryMealAction action,
   ) async {
-    RecipeSwipeScope.maybeOf(context)?.close();
+    SwipeRevealScope.maybeOf(context)?.close();
     final source = snapshotDiaryEntries(widget.intakeList);
     final day = widget.day;
     final group = widget.addMealType;

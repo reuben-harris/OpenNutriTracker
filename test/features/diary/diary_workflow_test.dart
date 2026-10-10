@@ -24,7 +24,7 @@ import 'package:opennutritracker/features/diary/presentation/bloc/diary_copy_cub
 import 'package:opennutritracker/features/diary/presentation/widgets/diary_sort_type.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/features/home/presentation/widgets/intake_vertical_list.dart';
-import 'package:opennutritracker/features/home/presentation/widgets/recipe_swipe_scope.dart';
+import 'package:opennutritracker/core/presentation/widgets/swipe_reveal_scope.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import '../../fixture/diary_entry_fixtures.dart';
 import '../../helpers/diary_workflow_harness.dart';
@@ -123,7 +123,7 @@ void main() {
             child: child!,
           ),
           home: Scaffold(
-            body: const RecipeSwipeScope(child: DiaryPage()),
+            body: const SwipeRevealScope(child: DiaryPage()),
             bottomNavigationBar: const SizedBox(
               height: 78,
               child: Center(child: Text('Navigation')),
