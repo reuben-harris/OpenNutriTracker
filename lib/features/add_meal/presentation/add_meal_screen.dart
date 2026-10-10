@@ -134,6 +134,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                 onSearchChanged: _onSearchChanged,
                 onBarcodePressed: _onBarcodeIconPressed,
                 showSubmitButton: false,
+                showClearButton: true,
               ),
               const SizedBox(height: Dimens.spacing12),
               _buildSourceChips(context, palette),
