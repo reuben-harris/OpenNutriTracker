@@ -19,16 +19,18 @@ import 'package:opennutritracker/features/meal_detail/meal_detail_screen.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
 class MealItemCard extends StatefulWidget {
-  final DateTime day;
-  final AddMealType addMealType;
+  final DateTime? day;
+  final ValueChanged<MealEntity>? onSelected;
+  final AddMealType? addMealType;
   final MealEntity mealEntity;
   final bool usesImperialUnits;
 
   const MealItemCard({
     super.key,
-    required this.day,
+    this.day,
+    this.onSelected,
     required this.mealEntity,
-    required this.addMealType,
+    this.addMealType,
     required this.usesImperialUnits,
   });
 
@@ -38,8 +40,8 @@ class MealItemCard extends StatefulWidget {
 
 class _MealItemCardState extends State<MealItemCard> {
   bool _adding = false;
-  DateTime get day => widget.day;
-  AddMealType get addMealType => widget.addMealType;
+  DateTime get day => widget.day!;
+  AddMealType get addMealType => widget.addMealType!;
   MealEntity get mealEntity => widget.mealEntity;
   bool get usesImperialUnits => widget.usesImperialUnits;
 
@@ -174,6 +176,10 @@ class _MealItemCardState extends State<MealItemCard> {
   }
 
   Future<void> _onItemPressed(BuildContext context) async {
+    if (widget.onSelected != null) {
+      widget.onSelected!(mealEntity);
+      return;
+    }
     if (_adding) return;
     if (mealEntity.isQuickAdd) {
       setState(() => _adding = true);

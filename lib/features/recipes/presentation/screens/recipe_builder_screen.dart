@@ -12,8 +12,10 @@ import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/core/utils/user_image_storage.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
+import 'package:opennutritracker/features/add_meal/presentation/widgets/meal_item_card.dart';
+import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/features/recipes/presentation/bloc/recipe_builder_bloc.dart';
-import 'package:opennutritracker/features/recipes/presentation/widgets/food_search_tab_view.dart';
+import 'package:opennutritracker/features/add_meal/presentation/widgets/food_search_view.dart';
 import 'package:opennutritracker/features/recipes/presentation/widgets/ingredient_list_item.dart';
 import 'package:opennutritracker/features/recipes/presentation/widgets/ingredient_quantity_dialog.dart';
 import 'package:opennutritracker/features/recipes/presentation/widgets/recipe_nutrition_summary.dart';
@@ -339,15 +341,19 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
   }
 
   Future<void> _onAddIngredient(BuildContext context) async {
+    final config = await locator<GetConfigUsecase>().getConfig();
+    if (!context.mounted) return;
     final selectedMeal = await Navigator.of(context).push<MealEntity>(
       MaterialPageRoute(
         builder: (searchContext) => Scaffold(
           appBar: AppBar(
             title: Text(S.of(context).recipeAddIngredientLabel),
           ),
-          body: FoodSearchTabView(
-            onMealSelected: (meal) => Navigator.of(searchContext).pop(meal),
-            onBarcodePressed: () async {
+          body: FoodSearchView(
+            itemBuilder: (context, meal) => MealItemCard(mealEntity: meal,
+              usesImperialUnits: config.usesImperialFoodUnits,
+              onSelected: (meal) => Navigator.of(searchContext).pop(meal)),
+            onBarcodePressed: (barcode) async {
               // Push the scanner in pick-mode — it pops a MealEntity back to
               // us instead of routing into the meal-detail logging flow. We
               // then thread the scanned meal through the same code path the
@@ -356,7 +362,7 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
               final scannedMeal = await Navigator.of(searchContext)
                   .pushNamed(
                     NavigationOptions.scannerRoute,
-                    arguments: ScannerScreenArguments.pick(),
+                    arguments: ScannerScreenArguments.pick(initialBarcode: barcode),
                   );
               if (scannedMeal is MealEntity && searchContext.mounted) {
                 Navigator.of(searchContext).pop(scannedMeal);
