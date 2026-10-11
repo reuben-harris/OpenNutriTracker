@@ -1,3 +1,6 @@
+import 'package:opennutritracker/core/domain/entity/user_entity.dart';
+import 'package:opennutritracker/core/domain/usecase/get_user_usecase.dart';
+import 'package:opennutritracker/core/utils/calc/daily_nutrient_references.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'dart:async';
@@ -37,6 +40,7 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
   final RemoteSearchCacheDataSource _remoteSearchCacheDataSource;
   final RecipeRepository? _recipeRepository;
   final FoodCatalogue? _catalogue;
+  final GetUserUsecase? _getUserUsecase;
 
   int _mealRequest = 0;
   Future<void>? _hydrationCacheWrite;
@@ -51,8 +55,10 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
     this._remoteSearchCacheDataSource, {
     RecipeRepository? recipeRepository,
     FoodCatalogue? catalogue,
+    GetUserUsecase? getUserUsecase,
   }) : _recipeRepository = recipeRepository,
        _catalogue = catalogue,
+       _getUserUsecase = getUserUsecase,
        super(
          MealDetailInitial(
            totalQuantityConverted: '100',
@@ -79,11 +85,9 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
         );
 
         // Shared with the bulk-add screen so the two paths cannot drift.
-        final convertedQuantity = convertQuantityToBaseUnit(
-          quantity,
-          selectedUnit,
-          event.meal,
-        );
+        final convertedQuantity =
+            event.selection?.baseAmount ??
+            convertQuantityToBaseUnit(quantity, selectedUnit, event.meal);
 
         emit(
           state.copyWith(
@@ -104,17 +108,46 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
     on<LoadDailyTotalsEvent>((event, emit) async {
       try {
         final tracked = await _getTrackedDayUsecase.getTrackedDay(event.day);
-        if (tracked != null) {
-          emit(
-            state.copyWith(
-              dayKcalConsumed: tracked.caloriesTracked,
-              dayKcalGoal: tracked.calorieGoal,
-            ),
+        final goal =
+            tracked?.calorieGoal ??
+            await _getKcalGoalUsecase.getKcalGoal(day: event.day);
+        final carbs =
+            tracked?.carbsGoal ?? await _getMacroGoalUsecase.getCarbsGoal(goal);
+        final fat =
+            tracked?.fatGoal ?? await _getMacroGoalUsecase.getFatsGoal(goal);
+        final protein =
+            tracked?.proteinGoal ??
+            await _getMacroGoalUsecase.getProteinsGoal(goal);
+        UserEntity? user;
+        try {
+          user = await _getUserUsecase?.getUserData();
+        } catch (error, stack) {
+          log.warning(
+            'User data unavailable for nutrient references',
+            error,
+            stack,
           );
-        } else {
-          final goal = await _getKcalGoalUsecase.getKcalGoal(day: event.day);
-          emit(state.copyWith(dayKcalConsumed: 0, dayKcalGoal: goal));
         }
+        final references = DailyNutrientReferences.resolve(
+          trackedDay: tracked,
+          user: user,
+        );
+        emit(
+          state.copyWith(
+            dayKcalConsumed: tracked?.caloriesTracked ?? 0,
+            dayKcalGoal: goal,
+            dayCarbsGoal: carbs,
+            dayFatGoal: fat,
+            dayProteinGoal: protein,
+            dayNutrientGoals: {
+              'energy': goal,
+              'carbohydrates': carbs,
+              'fat': fat,
+              'protein': protein,
+              ...references,
+            },
+          ),
+        );
       } catch (e) {
         log.severe('Error loading daily totals: $e');
         Sentry.captureException(e);

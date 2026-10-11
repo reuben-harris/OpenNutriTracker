@@ -36,7 +36,7 @@ void main() {
         localizationsDelegates: S.localizationsDelegates,
         supportedLocales: S.supportedLocales,
         home: Scaffold(
-          body: FoodAmountSheet(
+          body: FoodAmountEditor(
             meal: meal,
             arithmetic: arithmetic,
             hydrate: false,
@@ -146,12 +146,12 @@ void main() {
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
     expect(calls, 0);
-    expect(find.byType(FoodAmountSheet), findsOneWidget);
+    expect(find.byType(FoodAmountEditor), findsOneWidget);
     await tester.enterText(find.byType(TextField), '53');
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
     expect(calls, 1);
-    expect(find.byType(FoodAmountSheet), findsOneWidget);
+    expect(find.byType(FoodAmountEditor), findsOneWidget);
     expect(find.text('Could not add this entry. Try again.'), findsOneWidget);
     await tester.tap(find.text('Add'));
     await tester.pumpAndSettle();
@@ -254,7 +254,7 @@ void main() {
       await tester.tap(find.text('Add'));
       await tester.pumpAndSettle();
       expect(calls, 0);
-      expect(find.byType(FoodAmountSheet), findsOneWidget);
+      expect(find.byType(FoodAmountEditor), findsOneWidget);
     }
   });
   testWidgets('only a successful save remembers the evaluated numeric amount', (

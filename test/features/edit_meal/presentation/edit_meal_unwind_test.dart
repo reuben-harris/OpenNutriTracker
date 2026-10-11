@@ -44,8 +44,7 @@ import '../../../helpers/test_l10n.dart';
 /// Add Meal route.
 ///
 /// From there this test drives the real screens: the real
-/// [MealDetailScreen]'s edit pencil, the real [EditMealScreen]'s save, and
-/// the real shared amount sheet's Add. With
+/// [MealDetailScreen]'s edit pencil, [EditMealScreen]'s save, and the food detail footer's Add. With
 /// `ModalRoute.withName(addMealRoute)` the save removes every route beneath
 /// the new meal detail — `main` included — and Add's `popUntil(mainRoute)`
 /// then finds no match either and empties the navigator: a black screen,
@@ -173,9 +172,7 @@ void main() {
       final navigator = await pumpRecipeLogStack(tester);
       expect(find.text(recipe.name), findsWidgets);
 
-      // The meal-detail edit pencil. It passes no `editOnly`, so Edit Meal
-      // opens on the create-and-log save path rather than the `pop()` one the
-      // recipe/custom-meal list entry points get.
+      // Recipe editing retains the create-and-log path through Edit Meal.
       await tester.tap(find.byIcon(Icons.edit_rounded));
       await tester.pumpAndSettle();
       expect(find.text(l10nEn.editMealLabel), findsOneWidget);
@@ -194,7 +191,7 @@ void main() {
         reason: 'main must survive the Edit Meal unwind',
       );
 
-      await tester.tap(find.text('Log this food'));
+      await tester.tap(find.bySemanticsIdentifier('meal-detail-log-food'));
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, l10nEn.addLabel));
       await tester.pumpAndSettle();

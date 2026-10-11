@@ -30,7 +30,7 @@
 import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
-import 'package:opennutritracker/features/diary/presentation/widgets/daily_nutrient_panel.dart';
+import 'package:opennutritracker/core/utils/calc/nutrient_totals.dart';
 
 /// A single reference-intake row returned from [getReferenceFor]. The value
 /// is already in the unit the panel uses for that nutrient — grams for
@@ -77,12 +77,12 @@ _DriRoute _routeFor(UserEntity user) {
     UserGenderEntity.female => _DriRoute.female,
     UserGenderEntity.male => _DriRoute.male,
     UserGenderEntity.nonBinary => switch (user.caloriesProfile) {
-        CaloriesProfileEntity.estrogenTypical => _DriRoute.female,
-        CaloriesProfileEntity.testosteroneTypical => _DriRoute.male,
-        // averaged is the project's documented default and null falls back
-        // to the same place; see [CaloriesProfileEntity.averaged].
-        CaloriesProfileEntity.averaged || null => _DriRoute.averaged,
-      },
+      CaloriesProfileEntity.estrogenTypical => _DriRoute.female,
+      CaloriesProfileEntity.testosteroneTypical => _DriRoute.male,
+      // averaged is the project's documented default and null falls back
+      // to the same place; see [CaloriesProfileEntity.averaged].
+      CaloriesProfileEntity.averaged || null => _DriRoute.averaged,
+    },
   };
 }
 

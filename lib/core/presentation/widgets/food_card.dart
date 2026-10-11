@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_card_geometry.dart';
-import 'package:opennutritracker/core/presentation/widgets/food_thumbnail.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_image.dart';
+import 'package:opennutritracker/generated/l10n.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 
 class FoodCard extends StatelessWidget {
@@ -39,7 +40,17 @@ class FoodCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              FoodThumbnail(meal: meal, isRefreshing: isRefreshing),
+              FoodImage(
+                meal: meal,
+                isRefreshing: isRefreshing,
+                width: FoodCardGeometry.thumbnailSize,
+                height: FoodCardGeometry.thumbnailSize,
+                borderRadius: BorderRadius.circular(
+                  FoodCardGeometry.thumbnailRadius,
+                ),
+                refreshIdentifier: 'diary-intake-refresh-progress',
+                refreshLabel: S.of(context).diaryRefreshLabel,
+              ),
               const SizedBox(width: FoodCardGeometry.gap),
               Expanded(child: content),
             ],

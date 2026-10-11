@@ -4,7 +4,7 @@ import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
-import 'package:opennutritracker/features/diary/presentation/widgets/daily_nutrient_panel.dart';
+import 'package:opennutritracker/core/utils/calc/daily_nutrient_references.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:opennutritracker/features/settings/presentation/bloc/settings_bloc.dart';
@@ -180,32 +180,38 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
   }
 
   void _syncControllers() {
-    _fibreController.text =
-        (_fibre ?? DailyNutrientPanel.defaultFibreRefG).round().toString();
+    _fibreController.text = (_fibre ?? DailyNutrientReferences.defaultFibreRefG)
+        .round()
+        .toString();
     _satFatController.text =
-        (_satFat ?? DailyNutrientPanel.defaultSaturatedFatRefG)
+        (_satFat ?? DailyNutrientReferences.defaultSaturatedFatRefG)
             .round()
             .toString();
     _sugarsController.text =
-        (_sugars ?? DailyNutrientPanel.defaultSugarRefG).round().toString();
+        (_sugars ?? DailyNutrientReferences.defaultSugarRefG)
+            .round()
+            .toString();
     _sodiumController.text =
-        (_sodium ?? DailyNutrientPanel.defaultSodiumRefMg).round().toString();
+        (_sodium ?? DailyNutrientReferences.defaultSodiumRefMg)
+            .round()
+            .toString();
     _calciumController.text =
-        (_calcium ?? DailyNutrientPanel.defaultCalciumRefMg)
+        (_calcium ?? DailyNutrientReferences.defaultCalciumRefMg)
             .round()
             .toString();
-    _ironController.text =
-        _formatGoal(_iron ?? _ironDefaultForGender());
+    _ironController.text = _formatGoal(_iron ?? _ironDefaultForGender());
     _potassiumController.text =
-        (_potassium ?? DailyNutrientPanel.defaultPotassiumRefMg)
+        (_potassium ?? DailyNutrientReferences.defaultPotassiumRefMg)
             .round()
             .toString();
-    _magnesiumController.text =
-        _formatGoal(_magnesium ?? _magnesiumDefaultForGender());
-    _vitaminDController.text =
-        _formatGoal(_vitaminD ?? DailyNutrientPanel.defaultVitaminDRefUg);
+    _magnesiumController.text = _formatGoal(
+      _magnesium ?? _magnesiumDefaultForGender(),
+    );
+    _vitaminDController.text = _formatGoal(
+      _vitaminD ?? DailyNutrientReferences.defaultVitaminDRefUg,
+    );
     _vitaminB12Controller.text = _formatGoal(
-      _vitaminB12 ?? DailyNutrientPanel.defaultVitaminB12RefUg,
+      _vitaminB12 ?? DailyNutrientReferences.defaultVitaminB12RefUg,
     );
   }
 
@@ -298,7 +304,7 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
                 _NutrientRow(
                   label: s.settingsFibreGoalLabel,
                   description: s.settingsFibreGoalDescription,
-                  value: _fibre ?? DailyNutrientPanel.defaultFibreRefG,
+                  value: _fibre ?? DailyNutrientReferences.defaultFibreRefG,
                   min: _fibreMin,
                   max: _fibreMax,
                   divisions: _fibreDivisions,
@@ -306,39 +312,52 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
                   identifier: 'nutrient-fibre-slider',
                   onSliderChanged: (v) => setState(() => _fibre = v),
                   onTextSubmitted: () => _applyText(
-                      _fibreController, _fibreMin, _fibreMax, (v) => _fibre = v),
+                    _fibreController,
+                    _fibreMin,
+                    _fibreMax,
+                    (v) => _fibre = v,
+                  ),
                 ),
                 _NutrientRow(
                   label: s.settingsSaturatedFatGoalLabel,
                   description: s.settingsSaturatedFatGoalDescription,
                   value:
-                      _satFat ?? DailyNutrientPanel.defaultSaturatedFatRefG,
+                      _satFat ??
+                      DailyNutrientReferences.defaultSaturatedFatRefG,
                   min: _satFatMin,
                   max: _satFatMax,
                   divisions: _satFatDivisions,
                   controller: _satFatController,
                   identifier: 'nutrient-sat-fat-slider',
                   onSliderChanged: (v) => setState(() => _satFat = v),
-                  onTextSubmitted: () => _applyText(_satFatController,
-                      _satFatMin, _satFatMax, (v) => _satFat = v),
+                  onTextSubmitted: () => _applyText(
+                    _satFatController,
+                    _satFatMin,
+                    _satFatMax,
+                    (v) => _satFat = v,
+                  ),
                 ),
                 _NutrientRow(
                   label: s.settingsSugarsGoalLabel,
                   description: s.settingsSugarsGoalDescription,
-                  value: _sugars ?? DailyNutrientPanel.defaultSugarRefG,
+                  value: _sugars ?? DailyNutrientReferences.defaultSugarRefG,
                   min: _sugarsMin,
                   max: _sugarsMax,
                   divisions: _sugarsDivisions,
                   controller: _sugarsController,
                   identifier: 'nutrient-sugars-slider',
                   onSliderChanged: (v) => setState(() => _sugars = v),
-                  onTextSubmitted: () => _applyText(_sugarsController,
-                      _sugarsMin, _sugarsMax, (v) => _sugars = v),
+                  onTextSubmitted: () => _applyText(
+                    _sugarsController,
+                    _sugarsMin,
+                    _sugarsMax,
+                    (v) => _sugars = v,
+                  ),
                 ),
                 _NutrientRow(
                   label: s.settingsSodiumGoalLabel,
                   description: s.settingsSodiumGoalDescription,
-                  value: _sodium ?? DailyNutrientPanel.defaultSodiumRefMg,
+                  value: _sodium ?? DailyNutrientReferences.defaultSodiumRefMg,
                   min: _sodiumMin,
                   max: _sodiumMax,
                   divisions: _sodiumDivisions,
@@ -346,13 +365,18 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
                   unit: 'mg',
                   identifier: 'nutrient-sodium-slider',
                   onSliderChanged: (v) => setState(() => _sodium = v),
-                  onTextSubmitted: () => _applyText(_sodiumController,
-                      _sodiumMin, _sodiumMax, (v) => _sodium = v),
+                  onTextSubmitted: () => _applyText(
+                    _sodiumController,
+                    _sodiumMin,
+                    _sodiumMax,
+                    (v) => _sodium = v,
+                  ),
                 ),
                 _NutrientRow(
                   label: s.settingsCalciumGoalLabel,
                   description: s.settingsCalciumGoalDescription,
-                  value: _calcium ?? DailyNutrientPanel.defaultCalciumRefMg,
+                  value:
+                      _calcium ?? DailyNutrientReferences.defaultCalciumRefMg,
                   min: _calciumMin,
                   max: _calciumMax,
                   divisions: _calciumDivisions,
@@ -360,8 +384,12 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
                   unit: 'mg',
                   identifier: 'nutrient-calcium-slider',
                   onSliderChanged: (v) => setState(() => _calcium = v),
-                  onTextSubmitted: () => _applyText(_calciumController,
-                      _calciumMin, _calciumMax, (v) => _calcium = v),
+                  onTextSubmitted: () => _applyText(
+                    _calciumController,
+                    _calciumMin,
+                    _calciumMax,
+                    (v) => _calcium = v,
+                  ),
                 ),
                 _NutrientRow(
                   label: s.settingsIronGoalLabel,
@@ -387,7 +415,8 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
                   label: s.settingsPotassiumGoalLabel,
                   description: s.settingsPotassiumGoalDescription,
                   value:
-                      _potassium ?? DailyNutrientPanel.defaultPotassiumRefMg,
+                      _potassium ??
+                      DailyNutrientReferences.defaultPotassiumRefMg,
                   min: _potassiumMin,
                   max: _potassiumMax,
                   divisions: _potassiumDivisions,
@@ -395,8 +424,12 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
                   unit: 'mg',
                   identifier: 'nutrient-potassium-slider',
                   onSliderChanged: (v) => setState(() => _potassium = v),
-                  onTextSubmitted: () => _applyText(_potassiumController,
-                      _potassiumMin, _potassiumMax, (v) => _potassium = v),
+                  onTextSubmitted: () => _applyText(
+                    _potassiumController,
+                    _potassiumMin,
+                    _potassiumMax,
+                    (v) => _potassium = v,
+                  ),
                 ),
                 _NutrientRow(
                   label: s.settingsMagnesiumGoalLabel,
@@ -409,13 +442,18 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
                   unit: 'mg',
                   identifier: 'nutrient-magnesium-slider',
                   onSliderChanged: (v) => setState(() => _magnesium = v),
-                  onTextSubmitted: () => _applyText(_magnesiumController,
-                      _magnesiumMin, _magnesiumMax, (v) => _magnesium = v),
+                  onTextSubmitted: () => _applyText(
+                    _magnesiumController,
+                    _magnesiumMin,
+                    _magnesiumMax,
+                    (v) => _magnesium = v,
+                  ),
                 ),
                 _NutrientRow(
                   label: s.settingsVitaminDGoalLabel,
                   description: s.settingsVitaminDGoalDescription,
-                  value: _vitaminD ?? DailyNutrientPanel.defaultVitaminDRefUg,
+                  value:
+                      _vitaminD ?? DailyNutrientReferences.defaultVitaminDRefUg,
                   min: _vitaminDMin,
                   max: _vitaminDMax,
                   divisions: _vitaminDDivisions,
@@ -436,7 +474,8 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
                   label: s.settingsVitaminB12GoalLabel,
                   description: s.settingsVitaminB12GoalDescription,
                   value:
-                      _vitaminB12 ?? DailyNutrientPanel.defaultVitaminB12RefUg,
+                      _vitaminB12 ??
+                      DailyNutrientReferences.defaultVitaminB12RefUg,
                   min: _vitaminB12Min,
                   max: _vitaminB12Max,
                   divisions: _vitaminB12Divisions,
@@ -473,8 +512,9 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
     if (parsed == null) return;
     final clamped = parsed.clamp(min, max).toDouble();
     setState(() => setter(clamped));
-    controller.text =
-        decimalStep ? clamped.toStringAsFixed(1) : clamped.round().toString();
+    controller.text = decimalStep
+        ? clamped.toStringAsFixed(1)
+        : clamped.round().toString();
   }
 }
 
@@ -555,11 +595,10 @@ class _NutrientRow extends StatelessWidget {
               child: Text(
                 description,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withValues(alpha: 0.7),
-                    ),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
               ),
             ),
           Semantics(

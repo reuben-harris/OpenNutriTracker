@@ -44,8 +44,7 @@ class RecipeEntity extends Equatable {
       id: dbo.id,
       name: dbo.name,
       description: dbo.description,
-      ingredients:
-          dbo.ingredients.map(RecipeIngredientEntity.fromDBO).toList(),
+      ingredients: dbo.ingredients.map(RecipeIngredientEntity.fromDBO).toList(),
       totalWeightG: dbo.totalWeightG,
       aggregatedNutrimentsPer100: MealNutrimentsEntity.fromMealNutrimentsDBO(
         dbo.aggregatedNutrimentsPer100,
@@ -65,8 +64,7 @@ class RecipeEntity extends Equatable {
       description: description,
       ingredients: ingredients.map((i) => i.toDBO()).toList(),
       totalWeightG: totalWeightG,
-      aggregatedNutrimentsPer100:
-          MealNutrimentsDBO.fromProductNutrimentsEntity(
+      aggregatedNutrimentsPer100: MealNutrimentsDBO.fromProductNutrimentsEntity(
         aggregatedNutrimentsPer100,
       ),
       createdAt: createdAt,
@@ -88,7 +86,11 @@ class RecipeEntity extends Equatable {
       code: id,
       name: name,
       brands: null,
-      thumbnailImageUrl: null,
+      localImagePath: imagePath,
+      thumbnailImageUrl: ingredients
+          .map((i) => i.snapshotMeal.thumbnailImageUrl)
+          .where((url) => url != null && url.trim().isNotEmpty)
+          .firstOrNull,
       mainImageUrl: null,
       url: null,
       mealQuantity: totalWeightG.toString(),
@@ -127,8 +129,9 @@ class RecipeEntity extends Equatable {
           aggregatedNutrimentsPer100 ?? this.aggregatedNutrimentsPer100,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      servingsCount:
-          clearServingsCount ? null : (servingsCount ?? this.servingsCount),
+      servingsCount: clearServingsCount
+          ? null
+          : (servingsCount ?? this.servingsCount),
       tags: tags ?? this.tags,
       imagePath: clearImagePath ? null : (imagePath ?? this.imagePath),
     );
@@ -136,16 +139,16 @@ class RecipeEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        description,
-        ingredients,
-        totalWeightG,
-        aggregatedNutrimentsPer100,
-        createdAt,
-        updatedAt,
-        servingsCount,
-        tags,
-        imagePath,
-      ];
+    id,
+    name,
+    description,
+    ingredients,
+    totalWeightG,
+    aggregatedNutrimentsPer100,
+    createdAt,
+    updatedAt,
+    servingsCount,
+    tags,
+    imagePath,
+  ];
 }

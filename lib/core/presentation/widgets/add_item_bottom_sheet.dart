@@ -274,7 +274,7 @@ class AddItemBottomSheet extends StatelessWidget {
                 },
                 onInfo: () async {
                   final navigator = Navigator.of(context);
-                  final selected = await showFoodInformation(
+                  final saved = await showFoodInformation(
                     context,
                     meal: intake.meal,
                     day: day,
@@ -282,15 +282,7 @@ class AddItemBottomSheet extends StatelessWidget {
                     imperial: usesImperialUnits,
                   );
                   if (!navigator.mounted) return;
-                  if (selected != null) {
-                    navigator.pop();
-                    logFoodAmount(
-                      navigator.context,
-                      meal: selected,
-                      day: day,
-                      type: intake.type,
-                    );
-                  }
+                  if (saved) navigator.pop();
                 },
               ),
             const Divider(indent: 16, endIndent: 16),

@@ -3,34 +3,54 @@ import 'dart:io';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import 'package:opennutritracker/core/presentation/widgets/food_card_geometry.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/utils/food_image_loader.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
-class FoodThumbnail extends StatefulWidget {
+class FoodImage extends StatefulWidget {
   final MealEntity meal;
   final bool isRefreshing;
   final FoodImageLoader? imageLoader;
+  final double? width, height;
+  final BoxFit fit;
+  final BorderRadius borderRadius;
+  final IconData fallbackIcon;
+  final FoodImageMode mode;
+  final String? refreshIdentifier, refreshLabel;
+  final VoidCallback? onTap;
+  final String? tapLabel;
+  final String tapIdentifier;
 
-  const FoodThumbnail({
+  const FoodImage({
     super.key,
     required this.meal,
     this.isRefreshing = false,
     this.imageLoader,
+    this.width,
+    this.height,
+    this.fit = BoxFit.cover,
+    this.borderRadius = BorderRadius.zero,
+    this.fallbackIcon = Icons.restaurant_rounded,
+    this.mode = FoodImageMode.preview,
+    this.refreshIdentifier,
+    this.refreshLabel,
+    this.onTap,
+    this.tapLabel,
+    this.tapIdentifier = 'food-image-enlarge',
   });
 
   @override
-  State<FoodThumbnail> createState() => _FoodThumbnailState();
+  State<FoodImage> createState() => _FoodImageState();
 }
 
-class _FoodThumbnailState extends State<FoodThumbnail> {
+class _FoodImageState extends State<FoodImage> {
   StreamSubscription<FoodImageLoad>? _subscription;
   Timer? _feedbackTimer;
   File? _file;
   bool _showProgress = false;
+  bool _photoReady = false;
   int _generation = 0;
 
   @override
@@ -40,15 +60,17 @@ class _FoodThumbnailState extends State<FoodThumbnail> {
   }
 
   @override
-  void didUpdateWidget(FoodThumbnail oldWidget) {
+  void didUpdateWidget(FoodImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.meal.localImagePath != widget.meal.localImagePath ||
         oldWidget.meal.thumbnailImageUrl != widget.meal.thumbnailImageUrl ||
         oldWidget.meal.mainImageUrl != widget.meal.mainImageUrl ||
-        oldWidget.imageLoader != widget.imageLoader) {
+        oldWidget.imageLoader != widget.imageLoader ||
+        oldWidget.mode != widget.mode) {
       _load(
         preserveImage:
-            widget.isRefreshing && oldWidget.meal.code == widget.meal.code,
+            (widget.isRefreshing || oldWidget.isRefreshing) &&
+            oldWidget.meal.code == widget.meal.code,
       );
     }
   }
@@ -58,7 +80,10 @@ class _FoodThumbnailState extends State<FoodThumbnail> {
     _subscription?.cancel();
     _feedbackTimer?.cancel();
     _feedbackTimer = null;
-    if (!preserveImage) _file = null;
+    if (!preserveImage) {
+      _file = null;
+      _photoReady = false;
+    }
     _showProgress = false;
     final meal = widget.meal;
     if ([
@@ -67,10 +92,11 @@ class _FoodThumbnailState extends State<FoodThumbnail> {
       meal.mainImageUrl,
     ].every((value) => value == null || value.trim().isEmpty)) {
       _file = null;
+      _photoReady = false;
       return;
     }
     _subscription = (widget.imageLoader ?? locator<FoodImageLoader>())
-        .load(meal)
+        .load(meal, mode: widget.mode)
         .listen(
           (result) {
             if (!mounted || generation != _generation) return;
@@ -98,6 +124,7 @@ class _FoodThumbnailState extends State<FoodThumbnail> {
     _feedbackTimer?.cancel();
     _feedbackTimer = null;
     setState(() {
+      if (_file != file) _photoReady = false;
       _file = file;
       _showProgress = false;
     });
@@ -117,17 +144,26 @@ class _FoodThumbnailState extends State<FoodThumbnail> {
         ? AppPalette.dark
         : AppPalette.light;
     final loading = widget.isRefreshing || _showProgress;
-    final content = _file == null
+    final photo = _file;
+    final content = photo == null
         ? _fallback(palette)
         : Image.file(
-            _file!,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => _fallback(palette),
+            photo,
+            fit: widget.fit,
+            frameBuilder: (_, child, frame, synchronous) {
+              if (frame != null || synchronous) _markPhotoReady(true, photo);
+              return child;
+            },
+            errorBuilder: (_, _, _) {
+              _markPhotoReady(false, photo);
+              return _fallback(palette);
+            },
           );
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(FoodCardGeometry.thumbnailRadius),
-      child: SizedBox.square(
-        dimension: FoodCardGeometry.thumbnailSize,
+    final rendered = ClipRRect(
+      borderRadius: widget.borderRadius,
+      child: SizedBox(
+        width: widget.width,
+        height: widget.height,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -144,10 +180,12 @@ class _FoodThumbnailState extends State<FoodThumbnail> {
                 child: Center(
                   child: Semantics(
                     identifier: widget.isRefreshing
-                        ? 'diary-intake-refresh-progress'
+                        ? widget.refreshIdentifier ??
+                              'food-image-refresh-progress'
                         : 'food-image-loading-progress',
                     label: widget.isRefreshing
-                        ? S.of(context).diaryRefreshLabel
+                        ? widget.refreshLabel ??
+                              S.of(context).foodImageLoadingLabel
                         : S.of(context).foodImageLoadingLabel,
                     excludeSemantics: true,
                     child: const SizedBox.square(
@@ -161,10 +199,29 @@ class _FoodThumbnailState extends State<FoodThumbnail> {
         ),
       ),
     );
+    if (widget.onTap == null || !_photoReady || loading) return rendered;
+    return Semantics(
+      identifier: widget.tapIdentifier,
+      label: widget.tapLabel,
+      child: GestureDetector(onTap: widget.onTap, child: rendered),
+    );
+  }
+
+  void _markPhotoReady(bool ready, File photo) {
+    if (widget.onTap == null || _photoReady == ready) return;
+    final generation = _generation;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          generation == _generation &&
+          _file == photo &&
+          _photoReady != ready) {
+        setState(() => _photoReady = ready);
+      }
+    });
   }
 
   Widget _fallback(AppPalette palette) => ColoredBox(
     color: palette.surfaceMuted,
-    child: Icon(Icons.restaurant_rounded, color: palette.textMuted, size: 24),
+    child: Icon(widget.fallbackIcon, color: palette.textMuted, size: 24),
   );
 }

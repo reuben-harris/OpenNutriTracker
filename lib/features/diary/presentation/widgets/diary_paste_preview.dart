@@ -2,7 +2,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
-import 'package:opennutritracker/core/presentation/widgets/food_thumbnail.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_image.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_card_geometry.dart';
 import 'package:opennutritracker/core/presentation/widgets/meal_value_unit_text.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
@@ -72,7 +72,14 @@ class DiaryPastePreview extends StatelessWidget {
                         else
                           Opacity(
                             opacity: 0.45,
-                            child: FoodThumbnail(meal: first.meal),
+                            child: FoodImage(
+                              meal: first.meal,
+                              width: FoodCardGeometry.thumbnailSize,
+                              height: FoodCardGeometry.thumbnailSize,
+                              borderRadius: BorderRadius.circular(
+                                FoodCardGeometry.thumbnailRadius,
+                              ),
+                            ),
                           ),
                         const SizedBox(width: 12),
                         Expanded(

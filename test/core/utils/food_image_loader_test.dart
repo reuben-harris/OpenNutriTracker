@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
+import 'package:opennutritracker/core/domain/entity/recipe_ingredient_entity.dart';
 import 'dart:io';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
@@ -238,4 +240,129 @@ void main() {
     expect(result.last.file, isNull);
     expect(result.last.isDownloading, isFalse);
   });
+  test(
+    'full size prefers local then cached main without reading thumbnail',
+    () async {
+      final meal = imageMeal(
+        local: 'local',
+        thumbnail: 'thumb-url',
+        main: 'main-url',
+      );
+      expect(
+        (await loader.load(meal, mode: FoodImageMode.fullSize).toList())
+            .single
+            .file!
+            .path,
+        local.path,
+      );
+      expect(cache.reads, isEmpty);
+      await local.delete();
+      expect(
+        (await loader.load(meal, mode: FoodImageMode.fullSize).toList())
+            .single
+            .file!
+            .path,
+        main.path,
+      );
+      expect(cache.reads, ['main-url']);
+      expect(cache.downloads, isEmpty);
+    },
+  );
+  test(
+    'full size downloads main directly even with a cached preview',
+    () async {
+      cache.cached.remove('main-url');
+      cache.downloaded = FileInfo(
+        await files.createFile('main'),
+        FileSource.Online,
+        DateTime(2100),
+        'main-url',
+      );
+      final result = await loader
+          .load(
+            imageMeal(thumbnail: 'thumb-url', main: 'main-url'),
+            mode: FoodImageMode.fullSize,
+          )
+          .toList();
+      expect(result.first.isDownloading, true);
+      expect(result.last.file!.path, main.path);
+      expect(cache.reads, ['main-url']);
+      expect(cache.downloads, ['main-url']);
+    },
+  );
+  test(
+    'full size falls back to cached preview after a main download failure',
+    () async {
+      cache.cached.remove('main-url');
+      final result = await loader
+          .load(
+            imageMeal(thumbnail: 'thumb-url', main: 'main-url'),
+            mode: FoodImageMode.fullSize,
+          )
+          .toList();
+      expect(result.first.isDownloading, true);
+      expect(result.last.file!.path, thumbnail.path);
+      expect(cache.downloads, ['main-url']);
+    },
+  );
+  test(
+    'full size uses preview when main is absent and never retries a failed main',
+    () async {
+      expect(
+        (await loader
+                .load(
+                  imageMeal(thumbnail: 'thumb-url'),
+                  mode: FoodImageMode.fullSize,
+                )
+                .toList())
+            .single
+            .file!
+            .path,
+        thumbnail.path,
+      );
+      cache.cached.clear();
+      final result = await loader
+          .load(imageMeal(main: 'main-url'), mode: FoodImageMode.fullSize)
+          .toList();
+      expect(result.last.file, isNull);
+      expect(cache.downloads, ['main-url']);
+    },
+  );
+  test(
+    'recipe meal carries its attached photo and ingredient preview fallback',
+    () async {
+      final recipe = RecipeEntity(
+        id: 'recipe',
+        name: 'Recipe',
+        description: null,
+        ingredients: [
+          RecipeIngredientEntity(
+            snapshotMeal: imageMeal(thumbnail: 'thumb-url'),
+            amount: 100,
+            unit: 'g',
+            convertedAmountG: 100,
+          ),
+        ],
+        totalWeightG: 100,
+        aggregatedNutrimentsPer100: MealNutrimentsEntity.empty(),
+        createdAt: DateTime(2026),
+        updatedAt: DateTime(2026),
+        servingsCount: null,
+        imagePath: 'local',
+      );
+      final meal = recipe.toMealEntity();
+      expect(meal.localImagePath, 'local');
+      expect(meal.thumbnailImageUrl, 'thumb-url');
+      expect((await loader.load(meal).toList()).single.file!.path, local.path);
+      expect(
+        (await loader
+                .load(recipe.copyWith(clearImagePath: true).toMealEntity())
+                .toList())
+            .single
+            .file!
+            .path,
+        thumbnail.path,
+      );
+    },
+  );
 }

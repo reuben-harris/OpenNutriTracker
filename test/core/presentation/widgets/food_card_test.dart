@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
-import 'package:opennutritracker/core/presentation/widgets/food_thumbnail.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_image.dart';
 import 'package:opennutritracker/core/presentation/widgets/intake_card.dart';
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/meal_item_card.dart';
@@ -100,7 +100,7 @@ void main() {
           );
           await tester.pumpAndSettle();
           final cards = find.byType(AppCard);
-          final thumbs = find.byType(FoodThumbnail);
+          final thumbs = find.byType(FoodImage);
           expect(cards, findsNWidgets(3));
           for (var i = 0; i < 3; i++) {
             final card = tester.getRect(cards.at(i));

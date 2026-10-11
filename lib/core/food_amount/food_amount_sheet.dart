@@ -41,7 +41,7 @@ Future<bool> showFoodAmountSheet(
         isScrollControlled: true,
         showDragHandle: false,
         enableDrag: false,
-        builder: (_) => FoodAmountSheet(
+        builder: (_) => FoodAmountEditor(
           meal: meal,
           onConfirm: (food, selection) async {
             if (profiles != null && profiles.activeProfileId != profile) {
@@ -62,8 +62,8 @@ Future<bool> showFoodAmountSheet(
       false;
 }
 
-class FoodAmountSheet extends StatefulWidget {
-  const FoodAmountSheet({
+class FoodAmountEditor extends StatefulWidget {
+  const FoodAmountEditor({
     super.key,
     required this.meal,
     required this.onConfirm,
@@ -83,10 +83,10 @@ class FoodAmountSheet extends StatefulWidget {
   final bool Function()? isProfileCurrent;
   final bool editing, hydrate, arithmetic;
   @override
-  State<FoodAmountSheet> createState() => _FoodAmountSheetState();
+  State<FoodAmountEditor> createState() => _FoodAmountEditorState();
 }
 
-class _FoodAmountSheetState extends State<FoodAmountSheet> {
+class _FoodAmountEditorState extends State<FoodAmountEditor> {
   late MealEntity _meal;
   late FoodAmountOption _option;
   late TextEditingController _amount;
@@ -124,6 +124,7 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
   bool get _isCurrent => mounted && (widget.isProfileCurrent?.call() ?? true);
 
   Future<void> _restoreRememberedAmount() async {
+    final originalMeal = _meal;
     MealEntity? local;
     try {
       final code = _meal.code;
@@ -147,7 +148,7 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
     }
     if (!_isCurrent) return;
     setState(() {
-      _meal = local ?? _meal;
+      _meal = identical(originalMeal, _meal) ? local ?? _meal : _meal;
       _initialize(
         supportedRememberedAmount(_meal, widget.remembered) ?? _default(),
       );
@@ -185,6 +186,10 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
 
   Future<void> _confirm() async {
     if (_saving || _initializing) return;
+    if (!_isCurrent) {
+      setState(() => _error = S.of(context).quickAddReuseFailed);
+      return;
+    }
     double? value;
     try {
       value = evaluateFoodAmount(_amount.text, arithmetic: widget.arithmetic);
@@ -446,7 +451,7 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
                       ),
                     ),
                   ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 Semantics(
                   identifier: 'food-amount-cancel',
                   child: TextButton(

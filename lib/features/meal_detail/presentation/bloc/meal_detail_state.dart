@@ -13,6 +13,8 @@ abstract class MealDetailState extends Equatable {
 
   final double dayKcalConsumed;
   final double dayKcalGoal;
+  final double dayCarbsGoal, dayFatGoal, dayProteinGoal;
+  final Map<String, double> dayNutrientGoals;
 
   /// Latest full product from hydration or an explicit refresh; null until
   /// either succeeds. The screen uses it for nutrition and serving options.
@@ -38,6 +40,10 @@ abstract class MealDetailState extends Equatable {
     required this.selectedUnit,
     this.dayKcalConsumed = 0,
     this.dayKcalGoal = 0,
+    this.dayCarbsGoal = 0,
+    this.dayFatGoal = 0,
+    this.dayProteinGoal = 0,
+    this.dayNutrientGoals = const {},
     this.hydratedMeal,
     this.isHydrating = false,
     this.refreshStatus = ProductRefreshStatus.idle,
@@ -46,19 +52,23 @@ abstract class MealDetailState extends Equatable {
 
   @override
   List<Object?> get props => [
-        totalQuantityConverted,
-        totalKcal,
-        totalCarbs,
-        totalFat,
-        totalProtein,
-        selectedUnit,
-        dayKcalConsumed,
-        dayKcalGoal,
-        hydratedMeal,
-        isHydrating,
-        refreshStatus,
-        mealRevision,
-      ];
+    totalQuantityConverted,
+    totalKcal,
+    totalCarbs,
+    totalFat,
+    totalProtein,
+    selectedUnit,
+    dayKcalConsumed,
+    dayKcalGoal,
+    dayCarbsGoal,
+    dayFatGoal,
+    dayProteinGoal,
+    dayNutrientGoals,
+    hydratedMeal,
+    isHydrating,
+    refreshStatus,
+    mealRevision,
+  ];
 
   MealDetailInitial copyWith({
     String? totalQuantityConverted,
@@ -69,6 +79,10 @@ abstract class MealDetailState extends Equatable {
     String? selectedUnit,
     double? dayKcalConsumed,
     double? dayKcalGoal,
+    double? dayCarbsGoal,
+    double? dayFatGoal,
+    double? dayProteinGoal,
+    Map<String, double>? dayNutrientGoals,
     MealEntity? hydratedMeal,
     bool? isHydrating,
     ProductRefreshStatus? refreshStatus,
@@ -84,6 +98,10 @@ abstract class MealDetailState extends Equatable {
       selectedUnit: selectedUnit ?? this.selectedUnit,
       dayKcalConsumed: dayKcalConsumed ?? this.dayKcalConsumed,
       dayKcalGoal: dayKcalGoal ?? this.dayKcalGoal,
+      dayCarbsGoal: dayCarbsGoal ?? this.dayCarbsGoal,
+      dayFatGoal: dayFatGoal ?? this.dayFatGoal,
+      dayProteinGoal: dayProteinGoal ?? this.dayProteinGoal,
+      dayNutrientGoals: dayNutrientGoals ?? this.dayNutrientGoals,
       hydratedMeal: hydratedMeal ?? this.hydratedMeal,
       isHydrating: isHydrating ?? this.isHydrating,
       refreshStatus: refreshStatus ?? this.refreshStatus,
@@ -102,6 +120,10 @@ class MealDetailInitial extends MealDetailState {
     required super.selectedUnit,
     super.dayKcalConsumed,
     super.dayKcalGoal,
+    super.dayCarbsGoal,
+    super.dayFatGoal,
+    super.dayProteinGoal,
+    super.dayNutrientGoals,
     super.hydratedMeal,
     super.isHydrating,
     super.refreshStatus,

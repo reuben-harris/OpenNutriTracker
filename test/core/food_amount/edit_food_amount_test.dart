@@ -32,7 +32,7 @@ void main() {
           localizationsDelegates: S.localizationsDelegates,
           supportedLocales: S.supportedLocales,
           home: Scaffold(
-            body: FoodAmountSheet(
+            body: FoodAmountEditor(
               meal: entry.meal,
               initial: entry.quantity,
               editing: true,

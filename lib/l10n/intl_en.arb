@@ -1423,5 +1423,15 @@
   "unknownBrandLabel": "Unknown Brand",
   "foodSourceUnknownLabel": "Unknown",
   "settingsAmountArithmeticLabel": "Calculate food amounts",
-  "settingsAmountArithmeticSubtitle": "Use +, −, × and ÷ in food amount fields. For example, 10+20 becomes 30."
+  "settingsAmountArithmeticSubtitle": "Use +, −, × and ÷ in food amount fields. For example, 10+20 becomes 30.",
+  "oneServingLabel": "1 serving",
+  "oneServingWeightLabel": "1 serving ({weight})",
+  "@oneServingWeightLabel": {
+    "placeholders": {"weight": {"type": "String"}}
+  },
+  "servingWeightUnavailableLabel": "Serving weight unavailable.",
+  "nutritionTargetUnavailableLabel": "— means no daily target or percentage is available.",
+  "nutritionNoDataLabel": "No data",
+  "foodSourceLaunchFailedLabel": "Could not open the food information website.",
+  "foodImageEnlargeLabel": "Enlarge food photo"
 }
