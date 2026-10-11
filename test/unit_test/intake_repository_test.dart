@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:opennutritracker/core/data/data_source/intake_data_source.dart';
@@ -12,14 +15,20 @@ import '../helpers/fake_hive_db_provider.dart';
 
 void main() {
   group('IntakeRepository test', () {
-    setUp(() {
+    late Directory directory;
+
+    setUp(() async {
       TestWidgetsFlutterBinding.ensureInitialized();
-      Hive.init(".");
+      directory = await Directory.systemTemp.createTemp(
+        'intake_repository_test',
+      );
+      Hive.init(directory.path);
       registerHiveAdaptersOnce();
     });
 
-    tearDown(() {
-      Hive.deleteFromDisk();
+    tearDown(() async {
+      await Hive.close();
+      await directory.delete(recursive: true);
     });
 
     test(
@@ -31,8 +40,10 @@ void main() {
         );
         final original = IntakeEntity(
           id: 'original',
-          unit: 'g',
-          amount: 123.5,
+          quantity: FoodAmountSelection(
+            123.5,
+            FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+          ),
           type: IntakeTypeEntity.breakfast,
           meal: MealEntityFixtures.mealOne,
           dateTime: DateTime(2026, 9, 30, 8, 42),
@@ -69,8 +80,10 @@ void main() {
       await repo.addIntake(
         IntakeEntity(
           id: "1",
-          unit: "g",
-          amount: 1,
+          quantity: FoodAmountSelection(
+            1,
+            FoodAmountOption(unit: "g", baseUnit: "g", factor: 1),
+          ),
           type: IntakeTypeEntity.breakfast,
           meal: MealEntityFixtures.mealOne,
           dateTime: DateTime.utc(2024, 1, 1, 0, 0, 0),
@@ -79,8 +92,10 @@ void main() {
       await repo.addIntake(
         IntakeEntity(
           id: "2",
-          unit: "g",
-          amount: 1,
+          quantity: FoodAmountSelection(
+            1,
+            FoodAmountOption(unit: "g", baseUnit: "g", factor: 1),
+          ),
           type: IntakeTypeEntity.breakfast,
           meal: MealEntityFixtures.mealTwo,
           dateTime: DateTime.utc(2024, 1, 2, 0, 0, 0),
@@ -89,8 +104,10 @@ void main() {
       await repo.addIntake(
         IntakeEntity(
           id: "3",
-          unit: "g",
-          amount: 1,
+          quantity: FoodAmountSelection(
+            1,
+            FoodAmountOption(unit: "g", baseUnit: "g", factor: 1),
+          ),
           type: IntakeTypeEntity.breakfast,
           meal: MealEntityFixtures.mealThree,
           dateTime: DateTime.utc(2024, 1, 3, 0, 0, 0),

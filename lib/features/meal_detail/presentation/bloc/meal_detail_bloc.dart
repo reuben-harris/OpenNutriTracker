@@ -258,27 +258,15 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
   /// a batch logged concurrently under-counts the day.
   Future<void> addIntake(
     BuildContext context,
-    String unit,
-    String amountText,
+    FoodAmountSelection? quantity,
     IntakeTypeEntity type,
     MealEntity meal,
     DateTime day, {
     IntakeEntity? copiedFrom,
-    FoodAmountSelection? selection,
   }) async {
-    final quantity = double.parse(amountText.replaceAll(',', '.'));
-
     final intakeEntity = IntakeEntity(
       id: IdGenerator.getUniqueID(),
-      unit: unit,
-      amount: quantity,
-      enteredAmount: selection?.amount ?? copiedFrom?.enteredAmount,
-      enteredUnit: selection?.option.unit ?? copiedFrom?.enteredUnit,
-      enteredBaseUnit:
-          selection?.option.baseUnit ?? copiedFrom?.enteredBaseUnit,
-      enteredUnitFactor:
-          selection?.option.factor ?? copiedFrom?.enteredUnitFactor,
-      enteredUnitLabel: selection?.option.label ?? copiedFrom?.enteredUnitLabel,
+      quantity: quantity,
       type: type,
       meal: meal,
       dateTime: day,

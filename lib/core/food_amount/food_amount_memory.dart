@@ -4,7 +4,14 @@ import 'package:logging/logging.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 
-/// Convenience defaults only; entries remain the source of truth for edits.
+/// A convenience default, without a historical conversion snapshot.
+class FoodAmountPreference {
+  const FoodAmountPreference(this.amount, this.unit, this.baseUnit);
+  final double amount;
+  final String unit;
+  final String baseUnit;
+}
+
 class FoodAmountMemory {
   FoodAmountMemory(this.box);
   final Box<Map> box;
@@ -12,31 +19,25 @@ class FoodAmountMemory {
   String? _key(MealEntity meal) => meal.code?.trim().isNotEmpty == true
       ? jsonEncode([meal.source.name, meal.code])
       : null;
-  FoodAmountSelection? read(MealEntity meal) {
+
+  FoodAmountPreference? read(MealEntity meal) {
     try {
       final key = _key(meal);
       if (key == null || !box.isOpen) return null;
       final data = box.get(key);
       if (data == null) return null;
       final amount = (data['amount'] as num?)?.toDouble();
-      final factor = (data['factor'] as num?)?.toDouble();
       final unit = data['unit'] as String?;
       final base = data['base'] as String?;
       if (amount == null ||
           !amount.isFinite ||
           amount <= 0 ||
-          factor == null ||
           unit == null ||
-          base == null) {
+          unit.isEmpty ||
+          (base != 'g' && base != 'ml')) {
         return null;
       }
-      final option = FoodAmountOption(
-        unit: unit,
-        baseUnit: base,
-        factor: factor,
-        label: data['label'] as String?,
-      );
-      return option.isValid ? FoodAmountSelection(amount, option) : null;
+      return FoodAmountPreference(amount, unit, base!);
     } catch (error, stack) {
       _log.warning('Could not read amount preference', error, stack);
       return null;
@@ -51,8 +52,6 @@ class FoodAmountMemory {
         'amount': selection.amount,
         'unit': selection.option.unit,
         'base': selection.option.baseUnit,
-        'factor': selection.option.factor,
-        'label': selection.option.label,
       });
     } catch (error, stack) {
       _log.warning('Could not save amount preference', error, stack);
@@ -62,11 +61,13 @@ class FoodAmountMemory {
 
 FoodAmountSelection? supportedRememberedAmount(
   MealEntity meal,
-  FoodAmountSelection? remembered,
+  FoodAmountPreference? remembered,
 ) {
   if (remembered == null) return null;
-  final option = foodAmountOptions(
+  final option = currentFoodAmountOption(
     meal,
-  ).where((o) => o.identity == remembered.option.identity).firstOrNull;
+    remembered.unit,
+    remembered.baseUnit,
+  );
   return option == null ? null : FoodAmountSelection(remembered.amount, option);
 }

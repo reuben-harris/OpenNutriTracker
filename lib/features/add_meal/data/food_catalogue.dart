@@ -159,7 +159,7 @@ MealEntity catalogueMeal(Database db, Row row) {
   );
   final portions = <MealPortionEntity>[];
   for (final portion in db.select(
-    'SELECT p.amount, p.portion_description, p.modifier, p.gram_weight, m.name AS unit_name '
+    'SELECT p.dataset, p.id, p.amount, p.portion_description, p.modifier, p.gram_weight, m.name AS unit_name '
     'FROM food_portion p LEFT JOIN measure_unit m '
     'ON m.dataset = p.dataset AND m.id = p.measure_unit_id '
     'WHERE p.fdc_id = ? ORDER BY p.seq_num, p.id',
@@ -182,6 +182,7 @@ MealEntity catalogueMeal(Database db, Row row) {
         : '${_number(count)} ${measure == null || measure.isEmpty ? 'portion' : measure}';
     portions.add(
       MealPortionEntity(
+        id: '${portion['dataset']}:${portion['id']}',
         label: label,
         englishLabel: label,
         gramWeight: weight,

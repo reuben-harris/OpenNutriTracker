@@ -97,15 +97,29 @@ class DiaryPastePreview extends StatelessWidget {
                                           .titleSmall
                                           ?.copyWith(color: palette.textMuted),
                                     ),
-                                    MealValueUnitText(
-                                      value: first.amount,
-                                      meal: first.meal,
-                                      usesImperialUnits: usesImperialUnits,
-                                      textStyle: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(color: palette.textMuted),
-                                    ),
+                                    if (first.quantity == null)
+                                      Text(
+                                        '—',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: palette.textMuted,
+                                            ),
+                                      )
+                                    else
+                                      MealValueUnitText(
+                                        value: first.baseAmount!,
+                                        meal: first.meal,
+                                        sourceUnit: first.baseUnit,
+                                        usesImperialUnits: usesImperialUnits,
+                                        textStyle: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: palette.textMuted,
+                                            ),
+                                      ),
                                   ],
                                 ),
                         ),

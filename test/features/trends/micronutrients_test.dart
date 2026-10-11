@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -22,8 +23,10 @@ import '../overview/overview_widgets_test.dart' show app, id;
 IntakeEntity intake(String id, DateTime time, {double amount = 100}) =>
     IntakeEntity(
       id: id,
-      amount: amount,
-      unit: 'g',
+      quantity: FoodAmountSelection(
+        amount,
+        FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+      ),
       type: IntakeTypeEntity.lunch,
       dateTime: time,
       meal: MealEntity(

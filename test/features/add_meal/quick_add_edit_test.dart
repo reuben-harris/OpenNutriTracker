@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/utils/food_amount_unit.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/meal_item_card.dart';
 import 'dart:io';
@@ -138,15 +139,13 @@ void main() {
       );
       final intake = IntakeEntity(
         id: 'occurrence',
-        unit: 'g',
-        amount: 53,
+        quantity: FoodAmountSelection(
+          53,
+          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
         type: IntakeTypeEntity.lunch,
         dateTime: DateTime(2025, 1, 1),
         meal: meal,
-        enteredAmount: 53,
-        enteredUnit: 'g',
-        enteredBaseUnit: 'g',
-        enteredUnitFactor: 1,
       );
       await tester.runAsync(() => repo.addIntake(intake));
       await mount(tester, edit: intake);
@@ -163,9 +162,9 @@ void main() {
       });
       await tester.pumpAndSettle();
       final saved = (await repo.getIntakeById(intake.id))!;
-      expect(saved.amount, 53);
-      expect(saved.enteredAmount, 53);
-      expect(saved.enteredUnit, 'g');
+      expect(saved.baseAmount, 53);
+      expect(saved.quantity!.amount, 53);
+      expect(saved.quantity!.option.unit, 'g');
       expect(saved.totalKcal, intake.totalKcal);
     },
   );
@@ -213,8 +212,7 @@ void main() {
     (tester) async {
       final intake = IntakeEntity(
         id: 'occurrence',
-        unit: 'g',
-        amount: 100,
+        quantity: null,
         type: IntakeTypeEntity.lunch,
         dateTime: DateTime(2025, 1, 1),
         meal: quick(),
@@ -236,7 +234,7 @@ void main() {
       });
       await tester.pumpAndSettle();
       final weighted = (await repo.getIntakeById('occurrence'))!;
-      expect(weighted.amount, 2000);
+      expect(weighted.baseAmount, 2000);
       expect(weighted.meal.mealUnit, 'g');
       expect(weighted.meal.servingUnit, 'kg');
       expect(weighted.totalKcal, closeTo(intake.totalKcal, 1e-12));
@@ -254,7 +252,8 @@ void main() {
       await tester.pumpAndSettle();
       final cleared = (await repo.getIntakeById('occurrence'))!;
       expect(cleared.meal.hasQuickAddWeight, false);
-      expect(cleared.amount, 100);
+      expect(cleared.quantity, isNull);
+      expect(cleared.baseAmount, isNull);
       expect(cleared.totalKcal, closeTo(intake.totalKcal, 1e-12));
     },
   );
@@ -288,8 +287,7 @@ void main() {
       (tester) async {
         final intake = IntakeEntity(
           id: 'occurrence',
-          unit: 'g',
-          amount: 100,
+          quantity: null,
           type: IntakeTypeEntity.lunch,
           dateTime: DateTime(2025, 1, 1, 12),
           meal: quick(),
@@ -299,8 +297,7 @@ void main() {
           await repo.addIntake(
             IntakeEntity(
               id: 'other',
-              unit: 'g',
-              amount: 100,
+              quantity: null,
               type: intake.type,
               dateTime: intake.dateTime,
               meal: intake.meal,
@@ -327,7 +324,7 @@ void main() {
         expect(updated.id, intake.id);
         expect(updated.dateTime, intake.dateTime);
         expect(updated.type, intake.type);
-        expect(updated.amount, intake.amount);
+        expect(updated.baseAmount, intake.baseAmount);
         expect(updated.meal.nutriments.energyKcal100, 123.456789);
         expect(updated.meal.nutriments.carbohydrates100, 0);
         expect(updated.meal.nutriments.fat100, isNull);

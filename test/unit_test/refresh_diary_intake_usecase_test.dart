@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/utils/extensions.dart';
 import 'dart:async';
 import 'dart:io';
@@ -23,6 +24,7 @@ import 'package:opennutritracker/core/domain/usecase/refresh_diary_intake_usecas
 import 'package:opennutritracker/features/add_meal/data/repository/products_repository.dart';
 import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_portion_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import '../helpers/fake_hive_db_provider.dart';
 import '../helpers/hive_test_setup.dart';
@@ -33,15 +35,19 @@ MealEntity food({
   double? carbs = 10,
   bool quick = false,
   String code = 'food',
+  double? serving,
+  String basis = 'gml',
+  List<MealPortionEntity> portions = const [],
 }) => MealEntity(
   code: code,
   name: 'Food',
   url: null,
   mealQuantity: '100',
-  mealUnit: 'gml',
-  servingQuantity: null,
-  servingUnit: 'gml',
-  servingSize: '',
+  mealUnit: basis,
+  servingQuantity: serving,
+  servingUnit: basis,
+  servingSize: serving == null ? '' : '$serving $basis',
+  portions: portions,
   source: source,
   isQuickAdd: quick,
   nutriments: MealNutrimentsEntity(
@@ -137,15 +143,296 @@ void main() {
     await Hive.close();
     await dir.delete(recursive: true);
   });
-  Future<void> log(MealEntity meal, {String id = 'entry'}) => repo.addIntake(
+  Future<void> log(
+    MealEntity meal, {
+    String id = 'entry',
+    FoodAmountSelection? quantity = const FoodAmountSelection(
+      150,
+      FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+    ),
+  }) => repo.addIntake(
     IntakeEntity(
       id: id,
-      unit: 'g',
-      amount: 150,
+      quantity: quantity,
       type: IntakeTypeEntity.lunch,
       dateTime: moment,
       meal: meal,
     ),
+  );
+  for (final source in [MealSourceEntity.off, MealSourceEntity.custom]) {
+    test(
+      '$source refresh replaces serving conversion and logical day totals',
+      () async {
+        const quantity = FoodAmountSelection(
+          2,
+          FoodAmountOption(
+            unit: 'serving',
+            baseUnit: 'g',
+            factor: 30,
+            label: '30 g',
+          ),
+        );
+        await log(
+          food(source: source, serving: 30, basis: 'g'),
+          quantity: quantity,
+        );
+        await log(
+          food(source: source, serving: 30, basis: 'g'),
+          id: 'other',
+          quantity: quantity,
+        );
+        final day = DateTime(2026, 10, 2);
+        await days.put(
+          day.toParsedDay(),
+          TrackedDayDBO(day: day, calorieGoal: 2000, caloriesTracked: 120),
+        );
+        final fresh = food(source: source, serving: 35, basis: 'g', kcal: 200);
+        if (source == MealSourceEntity.off) {
+          products.result = fresh;
+        } else {
+          await custom.add(MealDBO.fromMealEntity(fresh));
+        }
+        final updated = (await refresh.refresh('entry'))!;
+        expect(updated.quantity!.amount, 2);
+        expect(updated.quantity!.option.unit, 'serving');
+        expect(updated.quantity!.option.factor, 35);
+        expect(updated.quantity!.option.label, '35.0 g');
+        expect(updated.baseAmount, 70);
+        expect(updated.totalKcal, 140);
+        expect((await repo.getIntakeById('other'))!.quantity, quantity);
+        expect(days.values.single.caloriesTracked, 200);
+        expect(days.values.single.carbsTracked, 13);
+      },
+    );
+  }
+  for (final serving in [null, 0.0, double.infinity]) {
+    test(
+      'an unavailable serving leaves food, conversion and totals unchanged: $serving',
+      () async {
+        await log(
+          food(serving: 30, basis: 'g'),
+          quantity: const FoodAmountSelection(
+            2,
+            FoodAmountOption(unit: 'serving', baseUnit: 'g', factor: 30),
+          ),
+        );
+        final original = (await repo.getIntakeById('entry'))!;
+        final day = DateTime(2026, 10, 2);
+        await days.put(
+          day.toParsedDay(),
+          TrackedDayDBO(day: day, calorieGoal: 2000, caloriesTracked: 60),
+        );
+        await custom.add(
+          MealDBO.fromMealEntity(food(serving: serving, basis: 'g', kcal: 200)),
+        );
+        await expectLater(
+          refresh.refresh('entry'),
+          throwsA(isA<DiaryConversionUnavailable>()),
+        );
+        expect(await repo.getIntakeById('entry'), original);
+        expect(days.values.single.caloriesTracked, 60);
+      },
+    );
+  }
+  test(
+    'catalogue portion IDs survive weight, label and ordering changes',
+    () async {
+      await log(
+        food(source: MealSourceEntity.fdc, code: 'usda:1', basis: 'g'),
+        quantity: const FoodAmountSelection(
+          2,
+          FoodAmountOption(
+            unit: 'portion:foundation:1',
+            baseUnit: 'g',
+            factor: 30,
+            label: 'old cup',
+          ),
+        ),
+      );
+      catalogue.pending = Completer<MealEntity?>();
+      final run = refresh.refresh('entry');
+      catalogue.pending!.complete(
+        food(
+          source: MealSourceEntity.fdc,
+          code: 'usda:1',
+          basis: 'g',
+          portions: const [
+            MealPortionEntity(
+              id: 'foundation:2',
+              label: 'slice',
+              gramWeight: 20,
+              localized: false,
+            ),
+            MealPortionEntity(
+              id: 'foundation:1',
+              label: 'new cup',
+              gramWeight: 35,
+              localized: false,
+            ),
+          ],
+        ),
+      );
+      final updated = (await run)!;
+      expect(updated.quantity!.amount, 2);
+      expect(updated.quantity!.option.unit, 'portion:foundation:1');
+      expect(updated.quantity!.option.label, 'new cup');
+      expect(updated.baseAmount, 70);
+    },
+  );
+  test(
+    'a removed portion is not replaced by another portion with the same label',
+    () async {
+      await log(
+        food(source: MealSourceEntity.fdc, code: 'usda:1', basis: 'g'),
+        quantity: const FoodAmountSelection(
+          2,
+          FoodAmountOption(
+            unit: 'portion:foundation:1',
+            baseUnit: 'g',
+            factor: 30,
+            label: 'cup',
+          ),
+        ),
+      );
+      final original = await repo.getIntakeById('entry');
+      catalogue.pending = Completer<MealEntity?>();
+      final run = refresh.refresh('entry');
+      catalogue.pending!.complete(
+        food(
+          source: MealSourceEntity.fdc,
+          code: 'usda:1',
+          basis: 'g',
+          kcal: 200,
+          portions: const [
+            MealPortionEntity(
+              id: 'foundation:99',
+              label: 'cup',
+              gramWeight: 30,
+              localized: false,
+            ),
+          ],
+        ),
+      );
+      await expectLater(run, throwsA(isA<DiaryConversionUnavailable>()));
+      expect(await repo.getIntakeById('entry'), original);
+    },
+  );
+  for (final (unit, basis, factor) in const [
+    ('g', 'g', 1.0),
+    ('kg', 'g', 1000.0),
+    ('oz', 'g', 28.3495),
+    ('ml', 'ml', 1.0),
+    ('l', 'ml', 1000.0),
+    ('fl oz', 'ml', 29.5735),
+  ]) {
+    test('refresh preserves the entered fixed unit $unit', () async {
+      final quantity = FoodAmountSelection(
+        2,
+        FoodAmountOption(unit: unit, baseUnit: basis, factor: factor),
+      );
+      await log(
+        food(source: MealSourceEntity.off, basis: basis),
+        quantity: quantity,
+      );
+      products.result = food(
+        source: MealSourceEntity.off,
+        basis: basis,
+        kcal: 200,
+      );
+      final updated = (await refresh.refresh('entry'))!;
+      expect(updated.quantity, quantity);
+      expect(updated.baseAmount, 2 * factor);
+      expect(updated.totalKcal, closeTo(4 * factor, 1e-9));
+    });
+  }
+  test(
+    'refresh does not infer density when the source changes nutrition basis',
+    () async {
+      await log(food(basis: 'g'));
+      final original = await repo.getIntakeById('entry');
+      await custom.add(MealDBO.fromMealEntity(food(basis: 'ml', kcal: 200)));
+      await expectLater(
+        refresh.refresh('entry'),
+        throwsA(isA<DiaryConversionUnavailable>()),
+      );
+      expect(await repo.getIntakeById('entry'), original);
+    },
+  );
+  test(
+    'refresh resolves the latest selected unit after an intervening edit',
+    () async {
+      await log(
+        food(source: MealSourceEntity.off, serving: 30, basis: 'g'),
+        quantity: const FoodAmountSelection(
+          2,
+          FoodAmountOption(unit: 'serving', baseUnit: 'g', factor: 30),
+        ),
+      );
+      products.response = Completer<MealEntity>();
+      final run = refresh.refresh('entry');
+      await Future<void>.delayed(Duration.zero);
+      const edited = FoodAmountSelection(
+        53,
+        FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+      );
+      await repo.updateIntake('entry', {'quantity': edited});
+      products.response!.complete(
+        food(source: MealSourceEntity.off, serving: 35, basis: 'g', kcal: 200),
+      );
+      final updated = (await run)!;
+      expect(updated.quantity, edited);
+      expect(updated.totalKcal, 106);
+    },
+  );
+  test(
+    'recipe serving refresh updates its conversion and expansion snapshot',
+    () async {
+      RecipeEntity recipe(double weight, double kcal) => RecipeEntity(
+        id: 'recipe',
+        name: 'Recipe',
+        description: null,
+        ingredients: [
+          RecipeIngredientEntity(
+            snapshotMeal: food(),
+            amount: weight,
+            unit: 'g',
+            convertedAmountG: weight,
+          ),
+        ],
+        totalWeightG: weight,
+        aggregatedNutrimentsPer100: food(kcal: kcal).nutriments,
+        createdAt: moment,
+        updatedAt: moment,
+        servingsCount: 4,
+      );
+      final original = recipe(120, 100);
+      final fresh = recipe(140, 200);
+      await repo.addIntake(
+        IntakeEntity(
+          id: 'entry',
+          quantity: const FoodAmountSelection(
+            2,
+            FoodAmountOption(unit: 'serving', baseUnit: 'g', factor: 30),
+          ),
+          type: IntakeTypeEntity.lunch,
+          meal: original.toMealEntity(),
+          dateTime: moment,
+          recipeSnapshot: original,
+        ),
+      );
+      await recipes.add(fresh.toDBO());
+      final updated = (await refresh.refresh('entry'))!;
+      expect(updated.quantity!.amount, 2);
+      expect(updated.quantity!.option.factor, 35);
+      expect(updated.baseAmount, 70);
+      expect(updated.recipeSnapshot, fresh);
+      expect(
+        ExplodeRecipeIntakeUsecase.prepareIngredients(
+          updated,
+        ).single.baseAmount,
+        70,
+      );
+    },
   );
   for (final quick in [false, true]) {
     test(
@@ -157,7 +444,7 @@ void main() {
           MealDBO.fromMealEntity(food(kcal: null, carbs: 0, quick: quick)),
         );
         final updated = (await refresh.refresh('entry'))!;
-        expect(updated.amount, 150);
+        expect(updated.baseAmount, 150);
         expect(updated.dateTime, moment);
         expect(updated.type, IntakeTypeEntity.lunch);
         expect(updated.meal.nutriments.energyKcal100, isNull);
@@ -180,7 +467,12 @@ void main() {
       final a = refresh.refresh('entry');
       final b = refresh.refresh('entry');
       await Future<void>.delayed(Duration.zero);
-      await repo.updateIntake('entry', {'amount': 200.0});
+      await repo.updateIntake('entry', {
+        'quantity': const FoodAmountSelection(
+          200,
+          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+      });
       catalogue.pending!.complete(
         food(
           source: MealSourceEntity.fdc,
@@ -190,7 +482,7 @@ void main() {
         ),
       );
       expect((await a)!.totalKcal, 500);
-      expect((await b)!.amount, 200);
+      expect((await b)!.baseAmount, 200);
       expect(catalogue.ids, ['usda:1']);
       expect(products.calls, 0);
       expect(await cache.count, 0);
@@ -207,12 +499,17 @@ void main() {
         final a = refresh.refresh('entry');
         final b = refresh.refresh('entry');
         await Future<void>.delayed(Duration.zero);
-        await repo.updateIntake('entry', {'amount': 200.0});
+        await repo.updateIntake('entry', {
+          'quantity': const FoodAmountSelection(
+            200,
+            FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+          ),
+        });
         products.response!.complete(
           food(source: source, kcal: 250, carbs: null),
         );
         expect((await a)!.totalKcal, 500);
-        expect((await b)!.amount, 200);
+        expect((await b)!.baseAmount, 200);
         expect(products.calls, 1);
         expect(
           (await cache.getAll()).single.nutriments.carbohydrates100,
@@ -305,13 +602,13 @@ void main() {
       await recipes.add(recipe.toDBO());
       await log(recipe.toMealEntity());
       final updated = (await refresh.refresh('entry'))!;
-      expect(updated.amount, 150);
+      expect(updated.baseAmount, 150);
       expect(updated.recipeSnapshot, recipe);
       expect(updated.isIncomplete, isTrue);
       final ingredients = ExplodeRecipeIntakeUsecase.prepareIngredients(
         updated,
       );
-      expect(ingredients.single.amount, 60);
+      expect(ingredients.single.baseAmount, 60);
       expect(ingredients.single.meal.nutriments.energyKcal100, isNull);
     },
   );

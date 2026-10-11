@@ -107,8 +107,10 @@ const _legacyOffIntakeJson =
     '''
 {
   "id": "old-off",
-  "unit": "g",
-  "amount": 30.0,
+  "quantityAmount": 30.0,
+  "quantityUnit": "g",
+  "quantityBaseUnit": "g",
+  "quantityUnitFactor": 1.0,
   "type": "breakfast",
   "dateTime": "2026-08-20T08:15:00.000",
   "meal": $_legacyOffMealJson
@@ -119,8 +121,10 @@ const _legacyOffIntakeJson =
 const _legacyCustomIntakeJson = '''
 {
   "id": "custom",
-  "unit": "g",
-  "amount": 100.0,
+  "quantityAmount": 100.0,
+  "quantityUnit": "g",
+  "quantityBaseUnit": "g",
+  "quantityUnitFactor": 1.0,
   "type": "lunch",
   "dateTime": "2026-08-20T12:00:00.000",
   "meal": {
@@ -295,7 +299,7 @@ void main() {
 
     final byId = {for (final i in intakeBox.values) i.id: i};
     final off = byId['old-off']!;
-    expect(off.amount, 30);
+    expect(off.baseAmount, 30);
     expect(off.meal.nutriments.sodium100, closeTo(120, 1e-9));
     expect(off.meal.nutriments.iron100, closeTo(2, 1e-9));
     expect(off.meal.nutriments.vitaminD100, closeTo(5, 1e-9));
@@ -361,8 +365,10 @@ void main() {
         'id': 'old-off',
         'date_time': '2026-08-20T08:15:00.000',
         'type': 'breakfast',
-        'amount': '30',
-        'unit': 'g',
+        'quantity_amount': '30',
+        'quantity_unit': 'g',
+        'quantity_base_unit': 'g',
+        'quantity_unit_factor': '1',
         'meal_code': '3017620422003',
         'meal_name': 'Nutella',
         'meal_source': 'off',

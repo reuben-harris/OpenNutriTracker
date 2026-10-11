@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
@@ -118,8 +119,10 @@ void main() {
       await h.weight.addEntry(WeightLogEntity(date: today, weightKg: 75));
       final intake = IntakeEntity(
         id: 'lunch',
-        unit: 'g',
-        amount: 100,
+        quantity: FoodAmountSelection(
+          100,
+          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
         type: IntakeTypeEntity.lunch,
         meal: MealEntityFixtures.mealOne,
         dateTime: past,

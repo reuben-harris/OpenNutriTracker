@@ -16,64 +16,77 @@ import '../search/food_search_engine_test.dart' show food;
 
 void main() {
   test(
-    'Hive, JSON and CSV retain entered quantity and conversion snapshot',
+    'Hive, JSON and CSV retain only the quantity and conversion snapshot',
     () async {
-      final dir = await Directory.systemTemp.createTemp('entered-amount');
+      final dir = await Directory.systemTemp.createTemp('quantity-snapshot');
       Hive.init(dir.path);
       registerHiveAdaptersOnce();
-      final box = await Hive.openBox<IntakeDBO>('intakes');
+      var box = await Hive.openBox<IntakeDBO>('intakes');
       final config = await Hive.openBox<ConfigDBO>('config');
       final days = await Hive.openBox<TrackedDayDBO>('days');
       try {
         final entry = IntakeEntity(
           id: 'entry',
-          amount: 106,
-          unit: 'g',
+          quantity: const FoodAmountSelection(
+            2,
+            FoodAmountOption(
+              unit: 'portion:foundation:1',
+              baseUnit: 'g',
+              factor: 53,
+              label: 'slice',
+            ),
+          ),
           type: IntakeTypeEntity.snack,
           meal: food('x', 'Food'),
           dateTime: DateTime(2026, 10, 1),
-          enteredAmount: 2,
-          enteredUnit: 'portion:slice:53',
-          enteredBaseUnit: 'g',
-          enteredUnitFactor: 53,
-          enteredUnitLabel: 'slice',
         );
         final dbo = IntakeDBO.fromIntakeEntity(entry);
         await box.add(dbo);
         await box.close();
-        final reopened = await Hive.openBox<IntakeDBO>('intakes');
-        final fromHive = IntakeEntity.fromIntakeDBO(reopened.values.single);
-        expect(fromHive.enteredSelection!.amount, 2);
-        expect(fromHive.enteredSelection!.option.factor, 53);
+        box = await Hive.openBox<IntakeDBO>('intakes');
+        final fromHive = IntakeEntity.fromIntakeDBO(box.values.single);
+        expect(fromHive.quantity, entry.quantity);
+        expect(fromHive.baseAmount, 106);
         final encoded = jsonDecode(jsonEncode(dbo)) as Map<String, dynamic>;
-        final json = IntakeDBO.fromJson(encoded);
-        expect(json.enteredUnitLabel, 'slice');
+        expect(encoded, isNot(contains('amount')));
+        expect(encoded, isNot(contains('unit')));
+        expect(encoded, isNot(contains('baseAmount')));
+        expect(IntakeDBO.fromJson(encoded).quantity, entry.quantity);
         final csv = CsvDataExporter.parseIntakesFromCsv(
           CsvDataExporter.intakesToCsv([dbo]),
         ).single;
-        expect(csv.enteredAmount, 2);
-        expect(csv.enteredUnit, 'portion:slice:53');
-        final legacy = Map<String, dynamic>.from(encoded)
-          ..removeWhere((key, _) => key.startsWith('entered'));
-        expect(IntakeDBO.fromJson(legacy).enteredAmount, isNull);
+        expect(csv.quantity, entry.quantity);
+        expect(csv.baseAmount, 106);
+        final missing = Map<String, dynamic>.from(encoded)
+          ..removeWhere((key, _) => key.startsWith('quantity'));
+        expect(() => IntakeDBO.fromJson(missing), throwsFormatException);
+        final partial = Map<String, dynamic>.from(encoded)
+          ..remove('quantityUnitFactor');
+        expect(() => IntakeDBO.fromJson(partial), throwsFormatException);
         final source = IntakeDataSource(
           FakeHiveDBProvider(
-            intakeBox: reopened,
+            intakeBox: box,
             configBox: config,
             trackedDayBox: days,
           ),
         );
-        await source.updateIntake(
-          'entry',
-          FoodAmountSelection(
-            53,
-            const FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
-          ).intakeFields,
+        const selected = FoodAmountSelection(
+          0.053,
+          FoodAmountOption(unit: 'kg', baseUnit: 'g', factor: 1000),
         );
-        expect(reopened.values.single.enteredAmount, 53);
-        await source.updateIntake('entry', {'amount': 42.0});
-        expect(reopened.values.single.enteredAmount, isNull);
-        expect(reopened.values.single.enteredUnitFactor, isNull);
+        await source.updateIntake('entry', {'quantity': selected});
+        expect(box.values.single.quantity, selected);
+        expect(box.values.single.baseAmount, 53);
+        await expectLater(
+          source.updateIntake('entry', {
+            'quantity': const FoodAmountSelection(
+              2,
+              FoodAmountOption(unit: 'serving', baseUnit: 'g', factor: 0),
+            ),
+          }),
+          throwsFormatException,
+        );
+        expect(box.values.single.quantity, selected);
       } finally {
         await Hive.close();
         await dir.delete(recursive: true);

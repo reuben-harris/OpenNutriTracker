@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:logging/logging.dart';
 import 'package:opennutritracker/core/data/data_source/config_data_source.dart';
@@ -30,12 +31,13 @@ class ExplodeRecipeIntakeUsecase {
     if (recipe.ingredients.isEmpty ||
         !recipe.totalWeightG.isFinite ||
         recipe.totalWeightG <= 0 ||
-        !intake.amount.isFinite ||
-        intake.amount <= 0) {
+        intake.baseAmount == null ||
+        !intake.baseAmount!.isFinite ||
+        intake.baseAmount! <= 0) {
       throw StateError('Recipe ingredient quantities cannot be scaled');
     }
 
-    final scale = intake.amount / recipe.totalWeightG;
+    final scale = intake.baseAmount! / recipe.totalWeightG;
     final children = <IntakeEntity>[];
     for (final ingredient in recipe.ingredients) {
       final amount = ingredient.convertedAmountG * scale;
@@ -51,12 +53,14 @@ class ExplodeRecipeIntakeUsecase {
       children.add(
         IntakeEntity(
           id: IdGenerator.getUniqueID(),
-          unit: isLiquid ? 'ml' : 'g',
-          amount: amount,
-          enteredAmount: amount,
-          enteredUnit: isLiquid ? 'ml' : 'g',
-          enteredBaseUnit: isLiquid ? 'ml' : 'g',
-          enteredUnitFactor: 1,
+          quantity: FoodAmountSelection(
+            amount,
+            FoodAmountOption(
+              unit: isLiquid ? 'ml' : 'g',
+              baseUnit: isLiquid ? 'ml' : 'g',
+              factor: 1,
+            ),
+          ),
           type: intake.type,
           meal: meal,
           dateTime: intake.dateTime,

@@ -18,6 +18,7 @@ MealEntity _meal() => MealEntity(
 );
 
 final _portion = MealPortionEntity(
+  id: 'test:0',
   label: '1 slice',
   gramWeight: 38,
   localized: false,

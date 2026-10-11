@@ -365,6 +365,7 @@ class _FakeCatalogue implements FoodCatalogue {
     detailed: true,
     portions: [
       MealPortionEntity(
+        id: 'test:0',
         label: '1 cup',
         englishLabel: '1 cup',
         gramWeight: 140,

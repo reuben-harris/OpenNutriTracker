@@ -56,8 +56,10 @@ MealDBO _okMeal() => _meal(kcal: 200, carbs: 20, fat: 10, protein: 5);
 IntakeDBO _intake(String id, MealDBO meal, DateTime at, {double amount = 50}) =>
     IntakeDBO(
       id: id,
-      unit: 'g',
-      amount: amount,
+      quantityAmount: amount,
+      quantityUnit: 'g',
+      quantityBaseUnit: 'g',
+      quantityUnitFactor: 1,
       type: IntakeTypeDBO.breakfast,
       meal: meal,
       dateTime: at,

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount_memory.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,7 +17,7 @@ void main() {
     bool arithmetic = false,
     Future<bool> Function(MealEntity, FoodAmountSelection)? confirm,
     FoodAmountSelection? initial,
-    FoodAmountSelection? remembered,
+    FoodAmountPreference? remembered,
     Future<void> Function(MealEntity, FoodAmountSelection)? remember,
   }) async {
     final meal = MealEntity(
@@ -65,13 +66,7 @@ void main() {
     expect(find.text('30 g'), findsOneWidget);
   });
   testWidgets('remembered grams override a serving default', (tester) async {
-    await mount(
-      tester,
-      remembered: const FoodAmountSelection(
-        53,
-        FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
-      ),
-    );
+    await mount(tester, remembered: const FoodAmountPreference(53, 'g', 'g'));
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
       '53',
@@ -99,10 +94,7 @@ void main() {
             label: '25 g',
           ),
         ),
-        remembered: const FoodAmountSelection(
-          53,
-          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
-        ),
+        remembered: const FoodAmountPreference(53, 'g', 'g'),
       );
       expect(
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
@@ -111,19 +103,14 @@ void main() {
       expect(find.text('25 g'), findsOneWidget);
     },
   );
-  testWidgets('unsupported remembered units fall back to the current default', (
-    tester,
-  ) async {
+  testWidgets('remembered servings use the current conversion', (tester) async {
     await mount(
       tester,
-      remembered: const FoodAmountSelection(
-        2,
-        FoodAmountOption(unit: 'serving', baseUnit: 'g', factor: 25),
-      ),
+      remembered: const FoodAmountPreference(2, 'serving', 'g'),
     );
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
-      '1',
+      '2',
     );
     expect(find.text('30 g'), findsOneWidget);
   });

@@ -1,4 +1,5 @@
 import 'package:opennutritracker/core/utils/food_amount_unit.dart';
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
 import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
 import 'package:opennutritracker/core/domain/usecase/update_intake_usecase.dart';
@@ -70,11 +71,11 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
     final meal = widget.editingIntake?.meal ?? widget.initialMeal;
     if (meal == null) return;
     final amount =
-        widget.editingIntake?.amount ??
+        widget.editingIntake?.baseAmount ??
         (meal.hasQuickAddWeight ? double.parse(meal.mealQuantity!) : 100);
     final factor = amount / 100;
     if (meal.hasQuickAddWeight) {
-      final entered = widget.editingIntake?.enteredSelection;
+      final entered = widget.editingIntake?.quantity;
       final enteredUnit = FoodAmountUnit.values
           .where((unit) => unit.label == entered?.option.unit)
           .firstOrNull;
@@ -201,17 +202,13 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
       if (!identical(profileBox, locator<HiveDBProvider>().intakeBox)) return;
       final editing = widget.editingIntake;
       if (editing != null) {
-        final updated = await locator<UpdateIntakeUsecase>()
-            .updateIntake(editing.id, {
-              'meal': MealDBO.fromMealEntity(intake.meal),
-              'amount': intake.amount,
-              'unit': intake.unit,
-              'enteredAmount': intake.enteredAmount,
-              'enteredUnit': intake.enteredUnit,
-              'enteredBaseUnit': intake.enteredBaseUnit,
-              'enteredUnitFactor': intake.enteredUnitFactor,
-              'enteredUnitLabel': intake.enteredUnitLabel,
-            });
+        final updated = await locator<UpdateIntakeUsecase>().updateIntake(
+          editing.id,
+          {
+            'meal': MealDBO.fromMealEntity(intake.meal),
+            'quantity': intake.quantity,
+          },
+        );
         if (updated == null) return;
       } else {
         await locator<AddIntakeUsecase>().addIntake(intake);
@@ -257,22 +254,26 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
     required double? protein,
     required String title,
   }) {
-    // Nutrition fields are totals for this occurrence. An unknown weight
-    // uses the historical internal 100-unit basis, hidden from presentation.
+    // Nutrition fields are totals for this occurrence. Only weighted entries
+    // back-project those totals to per-100 nutrition.
     final old = widget.editingIntake?.meal ?? widget.initialMeal;
     final oldAmount =
-        widget.editingIntake?.amount ??
+        widget.editingIntake?.baseAmount ??
         (old?.hasQuickAddWeight == true
             ? double.parse(old!.mealQuantity!)
             : 100);
     final enteredWeight = _parsed(_weightController);
-    final amount = enteredWeight == null
-        ? 100.0
+    final quantity = enteredWeight == null
+        ? null
         : (_weightController.text == _initialWeightText &&
                   _weightUnit == _initialWeightUnit &&
-                  old?.hasQuickAddWeight == true
-              ? oldAmount
-              : _weightUnit.toBase(enteredWeight));
+                  widget.editingIntake?.quantity != null
+              ? widget.editingIntake!.quantity
+              : FoodAmountSelection(
+                  enteredWeight,
+                  FoodAmountOption.standard(_weightUnit),
+                ));
+    final amount = quantity?.baseAmount ?? 100.0;
     final factor = amount / 100;
     double? stored(TextEditingController c, double? value, double? original) {
       if (old != null && _initialText[c] == c.text) {
@@ -319,12 +320,7 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
     );
     return IntakeEntity(
       id: IdGenerator.getUniqueID(),
-      unit: enteredWeight == null ? 'g' : _weightUnit.baseUnit,
-      amount: amount,
-      enteredAmount: enteredWeight,
-      enteredUnit: enteredWeight == null ? null : _weightUnit.label,
-      enteredBaseUnit: enteredWeight == null ? null : _weightUnit.baseUnit,
-      enteredUnitFactor: enteredWeight == null ? null : _weightUnit.factor,
+      quantity: quantity,
       type: widget.intakeType,
       meal: meal,
       dateTime: widget.day,

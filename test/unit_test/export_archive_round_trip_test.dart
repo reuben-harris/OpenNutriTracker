@@ -175,8 +175,10 @@ void main() {
 
       final intake = IntakeDBO(
         id: 'intake-1',
-        unit: 'g',
-        amount: 150,
+        quantityAmount: 150,
+        quantityUnit: 'g',
+        quantityBaseUnit: 'g',
+        quantityUnitFactor: 1,
         type: IntakeTypeDBO.lunch,
         meal: _meal(id: 'one-off', localImagePath: slug),
         dateTime: DateTime(2026, 9, 4),
@@ -244,8 +246,10 @@ void main() {
 
     final intake = IntakeDBO(
       id: 'intake-1',
-      unit: 'g',
-      amount: 150,
+      quantityAmount: 150,
+      quantityUnit: 'g',
+      quantityBaseUnit: 'g',
+      quantityUnitFactor: 1,
       type: IntakeTypeDBO.lunch,
       meal: _meal(id: 'one-off', localImagePath: slug),
       dateTime: DateTime(2026, 9, 4),

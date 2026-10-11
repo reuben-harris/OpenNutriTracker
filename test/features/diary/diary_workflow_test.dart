@@ -395,8 +395,7 @@ void main() {
       final source = diaryEntry();
       final yesterday = IntakeEntity(
         id: 'yesterday',
-        unit: source.unit,
-        amount: source.amount,
+        quantity: source.quantity,
         type: source.type,
         meal: source.meal,
         dateTime: DateTime(2026, 12, 31, 9),

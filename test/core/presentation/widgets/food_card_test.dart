@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
@@ -60,9 +61,15 @@ void main() {
                           key: const ValueKey('diary'),
                           intake: IntakeEntity(
                             id: 'intake',
+                            quantity: FoodAmountSelection(
+                              100,
+                              FoodAmountOption(
+                                unit: 'g',
+                                baseUnit: 'g',
+                                factor: 1,
+                              ),
+                            ),
                             meal: meal,
-                            amount: 100,
-                            unit: 'g',
                             type: IntakeTypeEntity.breakfast,
                             dateTime: day,
                           ),

@@ -4,6 +4,8 @@ import 'package:opennutritracker/core/data/dbo/intake_type_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/recipe_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 
 part 'intake_dbo.g.dart';
 
@@ -12,76 +14,91 @@ part 'intake_dbo.g.dart';
 class IntakeDBO extends HiveObject {
   @HiveField(0)
   String id;
-  @HiveField(1)
-  String unit;
-  @HiveField(2)
-  double amount;
+  // Fields 1 and 2 (the duplicated base unit and amount) are retired.
   @HiveField(3)
   IntakeTypeDBO type;
-
   @HiveField(4)
   MealDBO meal;
-
   @HiveField(5)
   DateTime dateTime;
-
   @HiveField(6)
   RecipeDBO? recipeSnapshot;
-
   @HiveField(7)
   String? conversionParentId;
-
   @HiveField(8)
-  double? enteredAmount;
-
+  double? quantityAmount;
   @HiveField(9)
-  String? enteredUnit;
-
+  String? quantityUnit;
   @HiveField(10)
-  String? enteredBaseUnit;
-
+  String? quantityBaseUnit;
   @HiveField(11)
-  double? enteredUnitFactor;
-
+  double? quantityUnitFactor;
   @HiveField(12)
-  String? enteredUnitLabel;
+  String? quantityUnitLabel;
 
   IntakeDBO({
     required this.id,
-    required this.unit,
-    required this.amount,
     required this.type,
     required this.meal,
     required this.dateTime,
+    required this.quantityAmount,
+    required this.quantityUnit,
+    required this.quantityBaseUnit,
+    required this.quantityUnitFactor,
+    this.quantityUnitLabel,
     this.recipeSnapshot,
     this.conversionParentId,
-    this.enteredAmount,
-    this.enteredUnit,
-    this.enteredBaseUnit,
-    this.enteredUnitFactor,
-    this.enteredUnitLabel,
-  });
+  }) {
+    validateFoodQuantity(quantity, MealEntity.fromMealDBO(meal));
+  }
 
-  factory IntakeDBO.fromIntakeEntity(IntakeEntity entity) {
-    return IntakeDBO(
-      id: entity.id,
-      unit: entity.unit,
-      amount: entity.amount,
-      type: IntakeTypeDBO.fromIntakeTypeEntity(entity.type),
-      meal: MealDBO.fromMealEntity(entity.meal),
-      dateTime: entity.dateTime,
-      recipeSnapshot: entity.recipeSnapshot?.toDBO(),
-      conversionParentId: entity.conversionParentId,
-      enteredAmount: entity.enteredAmount,
-      enteredUnit: entity.enteredUnit,
-      enteredBaseUnit: entity.enteredBaseUnit,
-      enteredUnitFactor: entity.enteredUnitFactor,
-      enteredUnitLabel: entity.enteredUnitLabel,
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  FoodAmountSelection? get quantity {
+    if (quantityAmount == null &&
+        quantityUnit == null &&
+        quantityBaseUnit == null &&
+        quantityUnitFactor == null &&
+        quantityUnitLabel == null) {
+      return null;
+    }
+    if (quantityAmount == null ||
+        quantityUnit == null ||
+        quantityBaseUnit == null ||
+        quantityUnitFactor == null) {
+      throw const FormatException('Incomplete food quantity snapshot');
+    }
+    return FoodAmountSelection(
+      quantityAmount!,
+      FoodAmountOption(
+        unit: quantityUnit!,
+        baseUnit: quantityBaseUnit!,
+        factor: quantityUnitFactor!,
+        label: quantityUnitLabel,
+      ),
     );
   }
 
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  double? get baseAmount => quantity?.baseAmount;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  String? get baseUnit => quantity?.option.baseUnit;
+
+  factory IntakeDBO.fromIntakeEntity(IntakeEntity entity) => IntakeDBO(
+    id: entity.id,
+    type: IntakeTypeDBO.fromIntakeTypeEntity(entity.type),
+    meal: MealDBO.fromMealEntity(entity.meal),
+    dateTime: entity.dateTime,
+    recipeSnapshot: entity.recipeSnapshot?.toDBO(),
+    conversionParentId: entity.conversionParentId,
+    quantityAmount: entity.quantity?.amount,
+    quantityUnit: entity.quantity?.option.unit,
+    quantityBaseUnit: entity.quantity?.option.baseUnit,
+    quantityUnitFactor: entity.quantity?.option.factor,
+    quantityUnitLabel: entity.quantity?.option.label,
+  );
+
   factory IntakeDBO.fromJson(Map<String, dynamic> json) =>
       _$IntakeDBOFromJson(json);
-
   Map<String, dynamic> toJson() => _$IntakeDBOToJson(this);
 }

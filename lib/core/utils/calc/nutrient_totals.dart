@@ -40,7 +40,7 @@ class NutrientPanelTotals {
       return intakes.fold<double>(0, (running, intake) {
             final per100 = pick(intake.meal.nutriments);
             if (per100 == null) return running;
-            return running + intake.amount * per100 / 100.0;
+            return running + intake.nutritionScale * per100;
           }) /
           divisor;
     }

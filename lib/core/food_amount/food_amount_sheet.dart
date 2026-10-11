@@ -77,7 +77,7 @@ class FoodAmountSheet extends StatefulWidget {
   final MealEntity meal;
   final Future<bool> Function(MealEntity, FoodAmountSelection) onConfirm;
   final FoodAmountSelection? initial;
-  final FoodAmountSelection? remembered;
+  final FoodAmountPreference? remembered;
   final Future<void> Function(MealEntity, FoodAmountSelection)? onRemember;
   final bool editing, hydrate, imperial, rawUnits, arithmetic;
   @override

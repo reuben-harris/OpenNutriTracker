@@ -9,11 +9,7 @@ import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 
-// Issue #451 — Quick Add. The form stores values per 100 g on the
-// nutriments entity, with the intake carrying amount=100 g, so the totals
-// math in IntakeEntity returns the exact numbers the user typed. This
-// test pins that invariant so a future refactor of the nutriments model
-// can't silently break the Quick Add flow.
+// Unweighted Quick Add stores direct totals, without an artificial amount.
 
 IntakeEntity _buildIntake({
   required double? kcal,
@@ -34,7 +30,7 @@ IntakeEntity _buildIntake({
     code: 'quick-add-test',
     name: 'Quick add',
     url: null,
-    mealQuantity: '100',
+    mealQuantity: null,
     mealUnit: 'gml',
     servingQuantity: null,
     servingUnit: 'gml',
@@ -45,8 +41,7 @@ IntakeEntity _buildIntake({
   );
   return IntakeEntity(
     id: 'intake-test',
-    unit: 'g',
-    amount: 100,
+    quantity: null,
     type: IntakeTypeEntity.breakfast,
     meal: meal,
     dateTime: DateTime(2026, 5, 23),
@@ -58,6 +53,7 @@ void main() {
     final dbo = MealDBO.fromMealEntity(_buildIntake(kcal: 0).meal);
     final json = jsonDecode(jsonEncode(dbo.toJson())) as Map<String, dynamic>;
     json.remove('isQuickAdd');
+    json['mealQuantity'] = '100';
     final old = MealEntity.fromMealDBO(MealDBO.fromJson(json));
     expect(old.isQuickAdd, true);
     expect(old.nutriments.energyKcal100, 0);

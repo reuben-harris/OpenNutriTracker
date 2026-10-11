@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
@@ -64,8 +65,11 @@ void main() {
       // recipe's nutritional data and ID.
       final loggedIntake = IntakeEntity(
         id: 'intake-1',
-        unit: 'g',
-        amount: 200, // 200 g of cake
+        quantity: FoodAmountSelection(
+          200,
+          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+        // 200 g of cake
         type: IntakeTypeEntity.snack,
         meal: recipe.toMealEntity(),
         dateTime: DateTime.utc(2024, 5, 1),

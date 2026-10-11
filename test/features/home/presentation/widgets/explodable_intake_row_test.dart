@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/quick_add_bottom_sheet.dart';
 import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
@@ -72,8 +73,10 @@ IntakeEntity recipeIntake({
   );
   return IntakeEntity(
     id: id,
-    unit: 'g',
-    amount: 100,
+    quantity: FoodAmountSelection(
+      100,
+      FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+    ),
     type: IntakeTypeEntity.breakfast,
     meal: recipe ? snapshot.toMealEntity() : ingredient,
     dateTime: DateTime(2026, 9, 26, 8),
@@ -220,8 +223,7 @@ void main() {
     );
     final intake = IntakeEntity(
       id: base.id,
-      unit: base.unit,
-      amount: base.amount,
+      quantity: base.quantity,
       type: base.type,
       dateTime: base.dateTime,
       meal: meal,

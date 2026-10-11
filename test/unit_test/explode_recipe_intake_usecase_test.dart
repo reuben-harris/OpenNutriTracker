@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -98,8 +99,10 @@ RecipeEntity _recipe({double kcal100 = 190}) => RecipeEntity(
 IntakeEntity _logged({RecipeEntity? snapshot, double amount = 100}) =>
     IntakeEntity(
       id: 'intake-1',
-      unit: 'g',
-      amount: amount,
+      quantity: FoodAmountSelection(
+        amount,
+        FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+      ),
       type: IntakeTypeEntity.breakfast,
       meal: (snapshot ?? _recipe()).toMealEntity(),
       dateTime: DateTime(2026, 9, 26, 8, 30),
@@ -216,8 +219,8 @@ void main() {
   test('conversion scales saved ingredients by saved yield, not sum', () {
     final intake = _logged(snapshot: _recipe());
     final children = ExplodeRecipeIntakeUsecase.prepareIngredients(intake);
-    expect(children.map((i) => i.amount), [30, 60]);
-    expect(children.map((i) => i.unit), ['g', 'ml']);
+    expect(children.map((i) => i.baseAmount), [30, 60]);
+    expect(children.map((i) => i.baseUnit), ['g', 'ml']);
     expect(children.every((i) => i.type == IntakeTypeEntity.breakfast), isTrue);
     expect(
       children.every((i) => i.dateTime == DateTime(2026, 9, 26, 8, 30)),
@@ -287,7 +290,7 @@ void main() {
       expect(
         ExplodeRecipeIntakeUsecase.prepareIngredients(
           IntakeEntity.fromIntakeDBO(restored),
-        ).first.amount,
+        ).first.baseAmount,
         30,
       );
     }
@@ -320,8 +323,10 @@ void main() {
       final date = DateTime(2026, 9, 26, 8);
       await bloc.addIntake(
         _BuildContext(),
-        'g',
-        '100',
+        const FoodAmountSelection(
+          100,
+          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
         IntakeTypeEntity.breakfast,
         loggedMeal,
         date,
@@ -332,8 +337,10 @@ void main() {
       recipes.current = _recipe(kcal100: 999);
       await bloc.addIntake(
         _BuildContext(),
-        'g',
-        '100',
+        const FoodAmountSelection(
+          100,
+          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
         IntakeTypeEntity.lunch,
         loggedMeal,
         date,
@@ -453,7 +460,7 @@ void main() {
       expect(outcomes, [null, null]);
       expect(controlledIntakes.addCalls, 2);
       expect(intakes.values.map((i) => i.meal.name), ['Oats', 'Milk']);
-      expect(intakes.values.map((i) => i.amount), [30, 60]);
+      expect(intakes.values.map((i) => i.baseAmount), [30, 60]);
       expect(intakes.values.every((i) => i.conversionParentId == null), isTrue);
       final totals = days.get(day.toParsedDay())!;
       expect(totals.caloriesTracked, closeTo(168, 1e-9));
@@ -713,8 +720,7 @@ void main() {
       final original = _logged(snapshot: _recipe());
       final earlyIntake = IntakeEntity(
         id: original.id,
-        unit: original.unit,
-        amount: original.amount,
+        quantity: original.quantity,
         type: original.type,
         meal: original.meal,
         dateTime: DateTime(2026, 9, 26, 3, 30),

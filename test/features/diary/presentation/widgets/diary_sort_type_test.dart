@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
@@ -15,8 +16,10 @@ IntakeEntity _intake({
 }) {
   return IntakeEntity(
     id: id,
-    unit: 'g',
-    amount: amount,
+    quantity: FoodAmountSelection(
+      amount,
+      FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+    ),
     type: IntakeTypeEntity.breakfast,
     dateTime: DateTime(2026, 1, 1),
     meal: MealEntity(
@@ -104,11 +107,16 @@ void main() {
   test('apply returns a new list and never mutates the source', () {
     final original = List<IntakeEntity>.of(source);
     final sorted = DiarySortType.kcal.apply(source);
-    expect(identical(sorted, source), isFalse,
-        reason: 'apply must return a copy');
-    expect(source.map((i) => i.id).toList(),
-        original.map((i) => i.id).toList(),
-        reason: 'source list must be untouched');
+    expect(
+      identical(sorted, source),
+      isFalse,
+      reason: 'apply must return a copy',
+    );
+    expect(
+      source.map((i) => i.id).toList(),
+      original.map((i) => i.id).toList(),
+      reason: 'source list must be untouched',
+    );
   });
 
   test('apply handles an empty list without error', () {

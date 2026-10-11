@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/config_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
@@ -58,8 +59,10 @@ IntakeEntity _intake({
 }) {
   return IntakeEntity(
     id: 'i-${meal.code}-${amountGrams.toString()}',
-    unit: 'g',
-    amount: amountGrams,
+    quantity: FoodAmountSelection(
+      amountGrams,
+      FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+    ),
     type: IntakeTypeEntity.breakfast,
     meal: meal,
     dateTime: at ?? DateTime(2026, 1, 1),
@@ -197,8 +200,10 @@ void main() {
     });
 
     test('empty week window yields zeros, not NaN', () {
-      final totals = NutrientPanelTotals.fromIntakes(<IntakeEntity>[],
-          weekly: true);
+      final totals = NutrientPanelTotals.fromIntakes(
+        <IntakeEntity>[],
+        weekly: true,
+      );
       expect(totals.fiberG, 0.0);
       expect(totals.ironMg, 0.0);
       expect(totals.vitaminB12Mcg, 0.0);
@@ -208,12 +213,12 @@ void main() {
   group('ConfigEntity.isNutrientVisible', () {
     /// A minimal config — most fields don't matter for visibility behaviour.
     ConfigEntity withVisibility(Map<String, bool> v) => ConfigEntity(
-          false,
-          false,
-          false,
-          AppThemeEntity.system,
-          nutrientPanelVisibility: v,
-        );
+      false,
+      false,
+      false,
+      AppThemeEntity.system,
+      nutrientPanelVisibility: v,
+    );
 
     test('defaults to visible when the map is empty', () {
       final config = withVisibility(const {});
@@ -235,9 +240,7 @@ void main() {
     });
 
     test('honours explicit true overrides as a no-op', () {
-      final config = withVisibility(const {
-        NutrientPanelKeys.iron: true,
-      });
+      final config = withVisibility(const {NutrientPanelKeys.iron: true});
       expect(config.isNutrientVisible(NutrientPanelKeys.iron), isTrue);
     });
   });

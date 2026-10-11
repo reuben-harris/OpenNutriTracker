@@ -104,17 +104,11 @@ class SendIntakeToProfilesUsecase {
       for (final intake in intakes) {
         final copy = IntakeEntity(
           id: IdGenerator.getUniqueID(),
-          unit: intake.unit,
-          amount: intake.amount,
+          quantity: intake.quantity,
           type: intake.type,
           meal: intake.meal,
           dateTime: intake.dateTime,
           recipeSnapshot: intake.recipeSnapshot,
-          enteredAmount: intake.enteredAmount,
-          enteredUnit: intake.enteredUnit,
-          enteredBaseUnit: intake.enteredBaseUnit,
-          enteredUnitFactor: intake.enteredUnitFactor,
-          enteredUnitLabel: intake.enteredUnitLabel,
         );
         await intakeRepository.addIntake(copy);
 
