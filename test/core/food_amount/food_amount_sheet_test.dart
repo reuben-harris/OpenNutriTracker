@@ -12,9 +12,8 @@ import '../search/food_search_engine_test.dart' show food;
 void main() {
   Future<void> mount(
     WidgetTester tester, {
-    bool raw = false,
-    bool imperial = false,
     bool arithmetic = false,
+    bool liquid = false,
     Future<bool> Function(MealEntity, FoodAmountSelection)? confirm,
     FoodAmountSelection? initial,
     FoodAmountPreference? remembered,
@@ -25,10 +24,10 @@ void main() {
       name: 'Food',
       url: null,
       mealQuantity: null,
-      mealUnit: 'g',
+      mealUnit: liquid ? 'ml' : 'g',
       servingQuantity: 30,
-      servingUnit: 'g',
-      servingSize: '30 g',
+      servingUnit: liquid ? 'ml' : 'g',
+      servingSize: liquid ? '30 ml' : '30 g',
       nutriments: food('x', 'x').nutriments,
       source: MealSourceEntity.custom,
     );
@@ -40,8 +39,6 @@ void main() {
           body: FoodAmountSheet(
             meal: meal,
             arithmetic: arithmetic,
-            rawUnits: raw,
-            imperial: imperial,
             hydrate: false,
             initial: initial,
             remembered: remembered,
@@ -58,14 +55,23 @@ void main() {
     await mount(tester);
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.focusNode!.hasFocus, true);
-    expect(field.controller!.text, '1');
+    expect(field.controller!.text, '100');
     expect(
       field.controller!.selection,
-      const TextSelection(baseOffset: 0, extentOffset: 1),
+      const TextSelection(baseOffset: 0, extentOffset: 3),
     );
-    expect(find.text('30 g'), findsOneWidget);
+    expect(find.text('g'), findsOneWidget);
   });
-  testWidgets('remembered grams override a serving default', (tester) async {
+  testWidgets('volume-based foods start at 100 ml', (tester) async {
+    await mount(tester, liquid: true);
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.controller!.text, '100');
+    final dropdown = tester.widget<DropdownButtonFormField<String>>(
+      find.byType(DropdownButtonFormField<String>),
+    );
+    expect(dropdown.initialValue, 'ml:ml:1.0');
+  });
+  testWidgets('remembered grams override the base default', (tester) async {
     await mount(tester, remembered: const FoodAmountPreference(53, 'g', 'g'));
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
@@ -114,19 +120,17 @@ void main() {
     );
     expect(find.text('30 g'), findsOneWidget);
   });
-  for (final imperial in [false, true]) {
-    testWidgets('raw default respects imperial=$imperial', (tester) async {
-      await mount(tester, raw: true, imperial: imperial);
-      expect(
-        tester.widget<TextField>(find.byType(TextField)).controller!.text,
-        imperial ? '1' : '100',
-      );
-      final dropdown = tester.widget<DropdownButtonFormField<String>>(
-        find.byType(DropdownButtonFormField<String>),
-      );
-      expect(dropdown.initialValue, contains(imperial ? 'oz:g:' : 'g:g:'));
-    });
-  }
+  testWidgets('servings remain available for manual selection', (tester) async {
+    await mount(tester);
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('30 g').last);
+    await tester.pumpAndSettle();
+    final dropdown = tester.widget<DropdownButtonFormField<String>>(
+      find.byType(DropdownButtonFormField<String>),
+    );
+    expect(dropdown.initialValue, 'serving:g:30.0');
+  });
   testWidgets('invalid amount stays open; errors permit correction and retry', (
     tester,
   ) async {
@@ -231,7 +235,7 @@ void main() {
       await tester.enterText(find.byType(TextField), '10+20');
       expect(
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
-        '1',
+        '100',
       );
     },
   );
@@ -275,7 +279,7 @@ void main() {
     saved.complete(true);
     await tester.pumpAndSettle();
     expect(remembered!.amount, 30);
-    expect(remembered!.option.unit, 'serving');
+    expect(remembered!.option.unit, 'g');
   });
   testWidgets('cancellation does not remember an edited amount', (
     tester,

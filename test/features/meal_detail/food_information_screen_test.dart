@@ -33,10 +33,6 @@ import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_det
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
 
-// #1126: when the user has opted into raw units in Settings, the meal-detail
-// dropdown must skip the serving default even for a food with a scalable
-// serving. Off keeps the pre-existing behaviour — serving still wins.
-
 const _nutriments = MealNutrimentsEntity(
   energyKcal100: 100,
   carbohydrates100: 10,
@@ -68,7 +64,6 @@ double _maxScrollOffset(WidgetTester tester) {
 void main() {
   final getIt = GetIt.instance;
   MealDetailBloc? bloc;
-  late bool defaultToRawFoodUnits;
   MealEntity? hydratedFor;
   late bool imperialFoodUnits;
   late _FakeCatalogue catalogue;
@@ -76,12 +71,11 @@ void main() {
 
   setUp(() {
     bloc = null;
-    defaultToRawFoodUnits = false;
     hydratedFor = null;
     imperialFoodUnits = false;
     catalogue = _FakeCatalogue();
     logged = [];
-    getIt.registerLazySingleton<MealDetailBloc>(
+    getIt.registerFactory<MealDetailBloc>(
       () => bloc = MealDetailBloc(
         _FakeAddIntakeUsecase(logged),
         _FakeAddTrackedDayUsecase(),
@@ -94,10 +88,7 @@ void main() {
       ),
     );
     getIt.registerLazySingleton<GetConfigUsecase>(
-      () => _FakeGetConfigUsecase(
-        () => defaultToRawFoodUnits,
-        () => imperialFoodUnits,
-      ),
+      () => _FakeGetConfigUsecase(() => imperialFoodUnits),
     );
     getIt.registerLazySingleton<GetIntakeUsecase>(_FakeGetIntakeUsecase.new);
     getIt.registerLazySingleton<CacheManager>(_FakeCacheManager.new);
@@ -166,16 +157,31 @@ void main() {
       expect(_maxScrollOffset(tester), 0);
     },
   );
+  for (final imperial in [false, true]) {
+    testWidgets('logging starts in grams with imperial=$imperial', (
+      tester,
+    ) async {
+      imperialFoodUnits = imperial;
+      await pumpMealDetail(tester, _solidWithServing());
+      await tester.tap(find.text('Log this food'));
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.controller!.text, '100');
+      expect(field.focusNode!.hasFocus, true);
+      final dropdown = tester.widget<DropdownButtonFormField<String>>(
+        find.byType(DropdownButtonFormField<String>),
+      );
+      expect(dropdown.initialValue, 'g:g:1.0');
+      await tester.tap(find.bySemanticsIdentifier('food-amount-cancel'));
+      await tester.pumpAndSettle();
+      expect(logged, isEmpty);
+    });
+  }
 }
 
 class _FakeGetConfigUsecase implements GetConfigUsecase {
-  final bool Function() defaultToRawFoodUnitsProvider;
-
   final bool Function() imperialProvider;
-  _FakeGetConfigUsecase(
-    this.defaultToRawFoodUnitsProvider,
-    this.imperialProvider,
-  );
+  _FakeGetConfigUsecase(this.imperialProvider);
 
   @override
   Future<ConfigEntity> getConfig() async {
@@ -184,7 +190,6 @@ class _FakeGetConfigUsecase implements GetConfigUsecase {
       true,
       false,
       AppThemeEntity.system,
-      defaultToRawFoodUnits: defaultToRawFoodUnitsProvider(),
       usesImperialFoodUnits: imperialProvider(),
     );
   }

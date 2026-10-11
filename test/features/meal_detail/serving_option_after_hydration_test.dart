@@ -179,25 +179,25 @@ void main() {
 
   TextEditingController quantity(WidgetTester tester) =>
       tester.widget<TextField>(find.byType(TextField)).controller!;
-  testWidgets('hydration reveals and selects the scalable serving', (
+  testWidgets('hydration makes servings available without selecting them', (
     tester,
   ) async {
     await pumpSheet(tester, _thin(_seabrookCrispsSearchHit));
     expect(quantity(tester).text, '100');
     hydration.complete(_full(_seabrookCrispsProduct));
     await tester.pumpAndSettle();
-    expect(quantity(tester).text, '1');
-    expect(find.text('31.8g'), findsOneWidget);
-    await tester.tap(find.byType(DropdownButtonFormField<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('g').last);
-    await tester.pumpAndSettle();
+    expect(quantity(tester).text, '100');
     expect(find.text('g'), findsOneWidget);
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('31.8g').last);
     await tester.pumpAndSettle();
     expect(find.text('31.8g'), findsOneWidget);
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('g').last);
+    await tester.pumpAndSettle();
+    expect(find.text('g'), findsOneWidget);
   });
   testWidgets('late hydration preserves typed amount and chosen conversion', (
     tester,

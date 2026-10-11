@@ -37,7 +37,6 @@ void main() {
               initial: entry.quantity,
               editing: true,
               hydrate: false,
-              imperial: true,
               onConfirm: (_, quantity) async {
                 saved = quantity;
                 return false;

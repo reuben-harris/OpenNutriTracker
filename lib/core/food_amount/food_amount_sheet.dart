@@ -53,8 +53,6 @@ Future<bool> showFoodAmountSheet(
           editing: editing,
           hydrate: hydrate,
           arithmetic: config.amountArithmeticEnabled,
-          imperial: config.usesImperialFoodUnits,
-          rawUnits: config.defaultToRawFoodUnits,
         ),
       ) ??
       false;
@@ -71,15 +69,13 @@ class FoodAmountSheet extends StatefulWidget {
     this.editing = false,
     this.hydrate = true,
     this.arithmetic = false,
-    this.imperial = false,
-    this.rawUnits = false,
   });
   final MealEntity meal;
   final Future<bool> Function(MealEntity, FoodAmountSelection) onConfirm;
   final FoodAmountSelection? initial;
   final FoodAmountPreference? remembered;
   final Future<void> Function(MealEntity, FoodAmountSelection)? onRemember;
-  final bool editing, hydrate, imperial, rawUnits, arithmetic;
+  final bool editing, hydrate, arithmetic;
   @override
   State<FoodAmountSheet> createState() => _FoodAmountSheetState();
 }
@@ -126,11 +122,7 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
     }
   }
 
-  FoodAmountSelection _default() => defaultFoodAmount(
-    _meal,
-    imperial: widget.imperial,
-    rawUnits: widget.rawUnits,
-  );
+  FoodAmountSelection _default() => defaultFoodAmount(_meal);
   void _selectAll() => _amount.selection = TextSelection(
     baseOffset: 0,
     extentOffset: _amount.text.length,

@@ -130,38 +130,12 @@ List<FoodAmountOption> foodAmountOptions(MealEntity meal) {
   return result;
 }
 
-FoodAmountSelection defaultFoodAmount(
-  MealEntity meal, {
-  required bool imperial,
-  required bool rawUnits,
-}) {
-  final options = foodAmountOptions(meal);
-  if (meal.isQuickAdd && meal.hasQuickAddWeight) {
-    final base = double.tryParse(meal.mealQuantity ?? '');
-    final unit = meal.isLiquid ? 'ml' : 'g';
-    if (base != null && base.isFinite && base > 0) {
-      return FoodAmountSelection(
-        base,
-        options.firstWhere((o) => o.unit == unit),
-      );
-    }
-  }
-  if (!rawUnits && !meal.isCatalogueFood) {
-    final named = options.where((o) => o.isNamed).firstOrNull;
-    if (named != null) return FoodAmountSelection(1, named);
-  }
-  final unit = meal.isLiquid
-      ? (imperial ? 'fl oz' : 'ml')
-      : (imperial && !meal.isCatalogueFood ? 'oz' : 'g');
-  final option = options.firstWhere(
-    (o) => o.unit == unit,
-    orElse: () => options.first,
-  );
-  return FoodAmountSelection(
-    option.unit == 'oz' || option.unit == 'fl oz' ? 1 : 100,
-    option,
-  );
-}
+FoodAmountSelection defaultFoodAmount(MealEntity meal) => FoodAmountSelection(
+  100,
+  FoodAmountOption.standard(
+    meal.isLiquid ? FoodAmountUnit.ml : FoodAmountUnit.g,
+  ),
+);
 
 String formatFoodAmount(double value) {
   final text = value.toString();
