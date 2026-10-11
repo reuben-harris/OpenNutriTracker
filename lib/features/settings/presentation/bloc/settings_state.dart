@@ -49,6 +49,7 @@ class SettingsLoadedState extends SettingsState {
   /// even when the food has a scalable serving. False = pre-existing
   /// behaviour.
   final bool defaultToRawFoodUnits;
+  final bool amountArithmeticEnabled;
 
   const SettingsLoadedState(
     this.versionNumber,
@@ -75,6 +76,7 @@ class SettingsLoadedState extends SettingsState {
     this.healthImportEnabled = false,
     this.healthWorkoutKcalMultiplier,
     this.defaultToRawFoodUnits = false,
+    this.amountArithmeticEnabled = false,
   });
 
   @override
@@ -103,5 +105,6 @@ class SettingsLoadedState extends SettingsState {
     healthImportEnabled,
     healthWorkoutKcalMultiplier,
     defaultToRawFoodUnits,
+    amountArithmeticEnabled,
   ];
 }

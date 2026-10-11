@@ -124,6 +124,10 @@ class ConfigRepository {
     await _configDataSource.setConfigDefaultToRawFoodUnits(value);
   }
 
+  Future<void> setAmountArithmeticEnabled(bool value) async {
+    await _configDataSource.setAmountArithmeticEnabled(value);
+  }
+
   Future<void> setConfigMealKcalSharesPct(Map<String, int> shares) async {
     await _configDataSource.setConfigMealKcalSharesPct(shares);
   }

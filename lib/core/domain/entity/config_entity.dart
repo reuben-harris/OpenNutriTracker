@@ -167,6 +167,7 @@ class ConfigEntity extends Equatable {
   /// behaviour (prefer serving whenever one exists) — flipped only from
   /// Settings → Meal Detail.
   final bool defaultToRawFoodUnits;
+  final bool amountArithmeticEnabled;
 
   /// Which revision of the privacy policy the user has been shown a *notice*
   /// about. Zero for every install that predates the field, which is exactly
@@ -266,6 +267,7 @@ class ConfigEntity extends Equatable {
     this.legacyHealthDeletedExternalIds = const <String>{},
     this.policyNoticeRevisionSeen = 0,
     this.defaultToRawFoodUnits = false,
+    this.amountArithmeticEnabled = false,
   });
 
   /// The multiplier the importer actually applies. Falls back to crediting
@@ -379,6 +381,7 @@ class ConfigEntity extends Equatable {
         ? Set<String>.from(dbo.healthDeletedExternalIds!)
         : const <String>{},
     defaultToRawFoodUnits: dbo.defaultToRawFoodUnits ?? false,
+    amountArithmeticEnabled: dbo.amountArithmeticEnabled ?? false,
   );
 
   /// Returns the recommended kcal target for [mealKey] given a daily goal.
@@ -484,5 +487,6 @@ class ConfigEntity extends Equatable {
     legacyHealthDeletedExternalIds,
     policyNoticeRevisionSeen,
     defaultToRawFoodUnits,
+    amountArithmeticEnabled,
   ];
 }
