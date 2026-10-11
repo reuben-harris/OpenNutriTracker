@@ -6,6 +6,7 @@ abstract class MealDetailEvent extends Equatable {
 
 class UpdateKcalEvent extends MealDetailEvent {
   final MealEntity meal;
+  final FoodAmountSelection? selection;
   final double? totalCarbs;
   final double? totalFat;
   final double? totalProtein;
@@ -14,6 +15,7 @@ class UpdateKcalEvent extends MealDetailEvent {
 
   const UpdateKcalEvent({
     required this.meal,
+    this.selection,
     this.totalCarbs,
     this.totalFat,
     this.totalProtein,
@@ -23,13 +25,14 @@ class UpdateKcalEvent extends MealDetailEvent {
 
   @override
   List<Object?> get props => [
-        meal,
-        totalCarbs,
-        totalFat,
-        totalProtein,
-        totalQuantity,
-        selectedUnit,
-      ];
+    meal,
+    selection,
+    totalCarbs,
+    totalFat,
+    totalProtein,
+    totalQuantity,
+    selectedUnit,
+  ];
 }
 
 class LoadDailyTotalsEvent extends MealDetailEvent {

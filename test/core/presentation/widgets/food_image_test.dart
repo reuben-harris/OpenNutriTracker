@@ -4,8 +4,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opennutritracker/core/presentation/widgets/food_thumbnail.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_image.dart';
 import 'package:opennutritracker/core/utils/food_image_loader.dart';
+import 'package:opennutritracker/core/presentation/widgets/image_full_screen.dart';
+import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import '../../utils/food_image_loader_test.dart' show imageMeal;
@@ -13,6 +15,7 @@ import '../../utils/food_image_loader_test.dart' show imageMeal;
 class _Loader extends Fake implements FoodImageLoader {
   final streams = <String, StreamController<FoodImageLoad>>{};
   final cancelled = <String>[];
+  final modes = <FoodImageMode>[];
 
   StreamController<FoodImageLoad> forUrl(String url) => streams.putIfAbsent(
     url,
@@ -23,8 +26,13 @@ class _Loader extends Fake implements FoodImageLoader {
   );
 
   @override
-  Stream<FoodImageLoad> load(MealEntity meal) =>
-      forUrl(meal.thumbnailImageUrl!).stream;
+  Stream<FoodImageLoad> load(
+    MealEntity meal, {
+    FoodImageMode mode = FoodImageMode.preview,
+  }) {
+    modes.add(mode);
+    return forUrl(meal.thumbnailImageUrl!).stream;
+  }
 }
 
 void main() {
@@ -36,7 +44,7 @@ void main() {
     directory = await Directory.systemTemp.createTemp('food-thumbnail-');
     file = await File('${directory.path}/image.png').writeAsBytes(
       base64Decode(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=',
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=',
       ),
     );
   });
@@ -47,13 +55,31 @@ void main() {
     await directory.delete(recursive: true);
   });
 
-  Widget app({String? url = 'first', bool refreshing = false}) => MaterialApp(
+  Widget app({
+    String? url = 'first',
+    bool refreshing = false,
+    double width = 52,
+    double height = 52,
+    BoxFit fit = BoxFit.cover,
+    FoodImageMode mode = FoodImageMode.preview,
+    VoidCallback? onTap,
+    IconData fallbackIcon = Icons.restaurant_rounded,
+  }) => MaterialApp(
     localizationsDelegates: S.localizationsDelegates,
     supportedLocales: S.supportedLocales,
     home: Scaffold(
       body: Center(
-        child: FoodThumbnail(
+        child: FoodImage(
           meal: imageMeal(thumbnail: url),
+          width: width,
+          height: height,
+          fit: fit,
+          mode: mode,
+          onTap: onTap,
+          fallbackIcon: fallbackIcon,
+          borderRadius: BorderRadius.circular(8),
+          refreshIdentifier: 'diary-intake-refresh-progress',
+          refreshLabel: 'Refreshing nutrition',
           imageLoader: loader,
           isRefreshing: refreshing,
         ),
@@ -97,7 +123,7 @@ void main() {
       expect(getProgress(), findsOneWidget);
       expect(
         tester.getCenter(getProgress()),
-        tester.getCenter(find.byType(FoodThumbnail)),
+        tester.getCenter(find.byType(FoodImage)),
       );
       expect(find.semantics.byLabel('Loading image'), findsOneWidget);
       loader.forUrl('first').add(FoodImageLoad.complete(file));
@@ -250,4 +276,106 @@ void main() {
     expect(find.byIcon(Icons.restaurant_rounded), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('callers control dimensions, fit, fallback and loading mode', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      app(
+        width: 120,
+        height: 80,
+        fit: BoxFit.contain,
+        mode: FoodImageMode.fullSize,
+        fallbackIcon: Icons.menu_book_rounded,
+      ),
+    );
+    expect(tester.getSize(find.byType(FoodImage)), const Size(120, 80));
+    expect(find.byIcon(Icons.menu_book_rounded), findsOneWidget);
+    expect(loader.modes, [FoodImageMode.fullSize]);
+    loader.forUrl('first').add(FoodImageLoad.complete(file));
+    await tester.pump();
+    expect(tester.widget<Image>(find.byType(Image)).fit, BoxFit.contain);
+    expect(
+      tester.widget<ClipRRect>(find.byType(ClipRRect)).borderRadius,
+      BorderRadius.circular(8),
+    );
+  });
+  testWidgets('enlargement is available only after decoding a photo', (
+    tester,
+  ) async {
+    var taps = 0;
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(app(onTap: () => taps++));
+    expect(find.bySemanticsIdentifier('food-image-enlarge'), findsNothing);
+    loader.forUrl('first').add(FoodImageLoad.complete(file));
+    for (
+      var i = 0;
+      i < 30 &&
+          find.bySemanticsIdentifier('food-image-enlarge').evaluate().isEmpty;
+      i++
+    ) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump();
+    }
+    expect(find.bySemanticsIdentifier('food-image-enlarge'), findsOneWidget);
+    await tester.tap(find.bySemanticsIdentifier('food-image-enlarge'));
+    expect(taps, 1);
+    final invalid = await tester.runAsync(
+      () => File('${directory.path}/invalid-tap').writeAsString('invalid'),
+    );
+    loader.forUrl('first').add(FoodImageLoad.complete(invalid));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsIdentifier('food-image-enlarge'), findsNothing);
+    semantics.dispose();
+  });
+  testWidgets('refresh preserves a photo while resolving its replacement URL', (
+    tester,
+  ) async {
+    await tester.pumpWidget(app());
+    loader.forUrl('first').add(FoodImageLoad.complete(file));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(app(refreshing: true));
+    await tester.pumpWidget(app(url: 'second'));
+    expect(tester.widget<Image>(find.byType(Image)).image, FileImage(file));
+    loader.forUrl('second').add(const FoodImageLoad.downloading());
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(getProgress(), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
+    loader.forUrl('second').add(const FoodImageLoad.complete(null));
+    await tester.pump();
+    expect(getProgress(), findsNothing);
+    expect(find.byIcon(Icons.restaurant_rounded), findsOneWidget);
+  });
+  testWidgets(
+    'fullscreen uses the supplied meal directly in full-size contain mode with zoom',
+    (tester) async {
+      locator.registerSingleton<FoodImageLoader>(loader);
+      addTearDown(() => locator.unregister<FoodImageLoader>());
+      final meal = imageMeal(thumbnail: 'first', main: 'main');
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: S.localizationsDelegates,
+          supportedLocales: S.supportedLocales,
+          onGenerateRoute: (_) => null,
+          onGenerateInitialRoutes: (_) => [
+            MaterialPageRoute<void>(
+              settings: RouteSettings(
+                arguments: ImageFullScreenArguments(meal),
+              ),
+              builder: (_) => const ImageFullScreen(),
+            ),
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      final shared = tester.widget<FoodImage>(find.byType(FoodImage));
+      expect(shared.meal, same(meal));
+      expect(shared.mode, FoodImageMode.fullSize);
+      expect(shared.fit, BoxFit.contain);
+      expect(loader.modes, [FoodImageMode.fullSize]);
+      expect(find.byType(InteractiveViewer), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 }

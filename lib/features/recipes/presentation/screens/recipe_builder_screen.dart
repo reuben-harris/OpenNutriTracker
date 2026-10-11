@@ -371,15 +371,16 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
                 itemBuilder: (_, meal) => MealItemCard(
                   mealEntity: meal,
                   onInfo: () async {
-                    final selected = await showFoodInformation(
+                    final saved = await showFoodInformation(
                       searchContext,
                       meal: meal,
                       day: DateTime.now(),
                       type: IntakeTypeEntity.snack,
                       imperial: config.usesImperialFoodUnits,
+                      onConfirm: _addIngredientAmount,
                     );
-                    if (selected != null && searchContext.mounted) {
-                      Navigator.of(searchContext).pop(selected);
+                    if (saved && searchContext.mounted) {
+                      Navigator.of(searchContext).pop();
                     }
                   },
                   onSelected: (food) => Navigator.of(searchContext).pop(food),
@@ -403,26 +404,31 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
         final saved = await showFoodAmountSheet(
           context,
           meal: selected,
-          onConfirm: (food, selection) async {
-            _bloc.add(
-              AddIngredientEvent(
-                meal: food,
-                amount: selection.option.isNamed
-                    ? selection.baseAmount
-                    : selection.amount,
-                unit: selection.option.isNamed
-                    ? selection.option.baseUnit
-                    : selection.option.unit,
-              ),
-            );
-            return true;
-          },
+          onConfirm: _addIngredientAmount,
         );
         if (saved) return;
       }
     } finally {
       await search.close();
     }
+  }
+
+  Future<bool> _addIngredientAmount(
+    MealEntity food,
+    FoodAmountSelection selection,
+  ) async {
+    _bloc.add(
+      AddIngredientEvent(
+        meal: food,
+        amount: selection.option.isNamed
+            ? selection.baseAmount
+            : selection.amount,
+        unit: selection.option.isNamed
+            ? selection.option.baseUnit
+            : selection.option.unit,
+      ),
+    );
+    return true;
   }
 
   Future<void> _onEditIngredient(BuildContext context, int index) async {

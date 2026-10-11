@@ -1,7 +1,9 @@
+import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/generated/l10n.dart';
+import 'package:opennutritracker/core/utils/energy_display.dart';
 
 class DailyKcalOverview extends StatelessWidget {
   final double dayKcalConsumed;
@@ -17,7 +19,7 @@ class DailyKcalOverview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (dayKcalGoal <= 0) {
+    if (!dayKcalGoal.isFinite || dayKcalGoal <= 0) {
       return const SizedBox.shrink();
     }
 
@@ -31,15 +33,13 @@ class DailyKcalOverview extends StatelessWidget {
     final consumedFactor = (dayKcalConsumed / dayKcalGoal).clamp(0.0, 1.0);
     final projectedFactor = (projected / dayKcalGoal).clamp(0.0, 1.0);
 
-    final hasLiveSelection = currentSelectionKcal > 0;
-
-    return Container(
-      color: palette.surface,
+    return AppCard(
+      color: palette.surfaceMuted,
       padding: const EdgeInsets.fromLTRB(
         Dimens.spacing16,
-        Dimens.spacing8,
+        Dimens.spacing12,
         Dimens.spacing16,
-        Dimens.spacing8,
+        Dimens.spacing12,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -51,7 +51,7 @@ class DailyKcalOverview extends StatelessWidget {
               height: 8,
               child: Stack(
                 children: [
-                  Container(color: palette.surfaceMuted),
+                  Container(color: palette.border),
                   FractionallySizedBox(
                     alignment: Alignment.centerLeft,
                     widthFactor: projectedFactor,
@@ -68,26 +68,18 @@ class DailyKcalOverview extends StatelessWidget {
           ),
           const SizedBox(height: Dimens.spacing8),
           Text(
-            S.of(context).mealDetailDayTotalLabel(
-                  projected.toStringAsFixed(0),
-                  dayKcalGoal.toStringAsFixed(0),
+            S
+                .of(context)
+                .mealDetailDayTotalLabel(
+                  EnergyDisplay.formatWithUnit(context, projected),
+                  EnergyDisplay.formatWithUnit(context, dayKcalGoal),
                 ),
             style: textTheme.labelLarge?.copyWith(
-              color: accent,
+              color: palette.textStrong,
               fontWeight: FontWeight.w700,
             ),
             textAlign: TextAlign.center,
           ),
-          if (hasLiveSelection) ...[
-            const SizedBox(height: Dimens.spacing4),
-            Text(
-              S.of(context).mealDetailCurrentSelectionLabel(
-                    currentSelectionKcal.toStringAsFixed(0),
-                  ),
-              style: textTheme.labelSmall?.copyWith(color: palette.textMuted),
-              textAlign: TextAlign.center,
-            ),
-          ],
         ],
       ),
     );

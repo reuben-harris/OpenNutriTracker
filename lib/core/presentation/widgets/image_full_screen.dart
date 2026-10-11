@@ -1,45 +1,33 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:opennutritracker/core/utils/locator.dart';
-import 'package:opennutritracker/features/meal_detail/presentation/widgets/meal_placeholder.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_image.dart';
+import 'package:opennutritracker/core/utils/food_image_loader.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 
-class ImageFullScreen extends StatefulWidget {
+class ImageFullScreen extends StatelessWidget {
   static const fullScreenHeroTag = 'fullScreenTag';
-
   const ImageFullScreen({super.key});
 
   @override
-  State<ImageFullScreen> createState() => _ImageFullScreenState();
-}
-
-class _ImageFullScreenState extends State<ImageFullScreen> {
-  late String imageUrl;
-
-  @override
-  void didChangeDependencies() {
-    final args =
-        ModalRoute.of(context)?.settings.arguments as ImageFullScreenArguments;
-    imageUrl = args.imageUrl;
-    super.didChangeDependencies();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final args =
+        ModalRoute.of(context)!.settings.arguments as ImageFullScreenArguments;
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent),
-      body: InteractiveViewer(
-        child: Hero(
-          tag: ImageFullScreen.fullScreenHeroTag,
-          child: CachedNetworkImage(
-            width: double.infinity,
-            height: double.infinity,
-            cacheManager: locator<CacheManager>(),
-            imageUrl: imageUrl,
-            fit: BoxFit.cover,
-            placeholder: (context, string) => const MealPlaceholder(),
-            errorWidget: (context, url, error) => const MealPlaceholder(),
+      appBar: AppBar(backgroundColor: Colors.transparent),
+      body: SafeArea(
+        top: false,
+        child: Semantics(
+          identifier: 'food-image-fullscreen',
+          child: InteractiveViewer(
+            child: Hero(
+              tag: fullScreenHeroTag,
+              child: FoodImage(
+                meal: args.meal,
+                mode: FoodImageMode.fullSize,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.contain,
+              ),
+            ),
           ),
         ),
       ),
@@ -48,7 +36,6 @@ class _ImageFullScreenState extends State<ImageFullScreen> {
 }
 
 class ImageFullScreenArguments {
-  final String imageUrl;
-
-  ImageFullScreenArguments(this.imageUrl);
+  final MealEntity meal;
+  ImageFullScreenArguments(this.meal);
 }

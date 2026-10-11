@@ -118,14 +118,19 @@ class _AddMealScreenState extends State<AddMealScreen> {
               mealEntity: meal,
               onSelected: _selectFood,
               onInfo: () async {
-                final selected = await showFoodInformation(
+                final navigator = Navigator.of(context);
+                final saved = await showFoodInformation(
                   context,
                   meal: meal,
                   day: _day,
                   type: _mealType.getIntakeType(),
                   imperial: imperial,
                 );
-                if (selected != null && mounted) _selectFood(selected);
+                if (saved && mounted) {
+                  _handedOff = true;
+                  navigator.pop();
+                  await _search!.close();
+                }
               },
             ),
             onBarcodePressed: (barcode) => _onBarcodeIconPressed(barcode),

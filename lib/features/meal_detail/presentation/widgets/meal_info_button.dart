@@ -6,76 +6,66 @@ import 'package:opennutritracker/generated/l10n.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MealInfoButton extends StatelessWidget {
-  final String? url;
-  final MealSourceEntity source;
-
-  const MealInfoButton({super.key, required this.url, required this.source});
+  final MealEntity meal;
+  final VoidCallback onRecipe, onCustom;
+  const MealInfoButton({
+    super.key,
+    required this.meal,
+    required this.onRecipe,
+    required this.onCustom,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
-    return TextButton.icon(
-      onPressed: () => _launchUrl(_getInfoUrl()),
-      icon: Icon(Icons.open_in_new_rounded, size: 20, color: accent),
-      label: Text(
-        _getInfoLabelText(context),
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: accent,
-          fontWeight: FontWeight.w700,
+    final s = S.of(context);
+    final label = switch (meal.source) {
+      MealSourceEntity.unknown => s.additionalInfoLabelUnknown,
+      MealSourceEntity.custom => s.additionalInfoLabelCustom,
+      MealSourceEntity.off => s.additionalInfoLabelOFF,
+      MealSourceEntity.fdc => s.additionalInfoLabelFDC,
+      MealSourceEntity.recipe => s.additionalInfoLabelRecipe,
+    };
+    if (meal.source == MealSourceEntity.unknown) return Text(label);
+    return Semantics(
+      identifier: 'meal-detail-information',
+      child: TextButton.icon(
+        onPressed: switch (meal.source) {
+          MealSourceEntity.recipe => onRecipe,
+          MealSourceEntity.custom => onCustom,
+          _ => () => _launch(context),
+        },
+        icon: Icon(
+          meal.source == MealSourceEntity.custom
+              ? Icons.edit_rounded
+              : Icons.open_in_new_rounded,
         ),
-        textAlign: TextAlign.center,
+        label: Text(label, textAlign: TextAlign.center),
       ),
     );
   }
 
-  String _getInfoUrl() {
-    String siteUrl;
-    switch (source) {
-      case MealSourceEntity.unknown:
-        siteUrl = "";
-        break;
-      case MealSourceEntity.custom:
-        siteUrl = "";
-        break;
-      case MealSourceEntity.off:
-        siteUrl = url ?? OFFConst.offWebsiteUrl;
-        break;
-      case MealSourceEntity.fdc:
-        siteUrl = url ?? FDCConst.fdcWebsiteUrl;
-        break;
-      case MealSourceEntity.recipe:
-        siteUrl = "";
-        break;
+  Future<void> _launch(BuildContext context) async {
+    final supplied = Uri.tryParse(meal.url?.trim() ?? '');
+    final valid =
+        supplied != null &&
+        (supplied.scheme == 'http' || supplied.scheme == 'https') &&
+        supplied.host.isNotEmpty;
+    final uri = valid
+        ? supplied
+        : Uri.parse(
+            meal.source == MealSourceEntity.off
+                ? OFFConst.offWebsiteUrl
+                : FDCConst.fdcWebsiteUrl,
+          );
+    try {
+      if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
+    } catch (_) {
+      /* Display the same localized failure for platform errors. */
     }
-    return siteUrl;
-  }
-
-  String _getInfoLabelText(BuildContext context) {
-    String infoLabel;
-    switch (source) {
-      case MealSourceEntity.unknown:
-        infoLabel = S.of(context).additionalInfoLabelUnknown;
-        break;
-      case MealSourceEntity.custom:
-        infoLabel = S.of(context).additionalInfoLabelCustom;
-        break;
-      case MealSourceEntity.off:
-        infoLabel = S.of(context).additionalInfoLabelOFF;
-        break;
-      case MealSourceEntity.fdc:
-        infoLabel = S.of(context).additionalInfoLabelFDC;
-        break;
-      case MealSourceEntity.recipe:
-        infoLabel = S.of(context).additionalInfoLabelRecipe;
-        break;
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(S.of(context).foodSourceLaunchFailedLabel)),
+      );
     }
-    return infoLabel;
-  }
-
-  Future<void> _launchUrl(String siteUrl) async {
-    if (!await launchUrl(
-      Uri.parse(siteUrl),
-      mode: LaunchMode.externalApplication,
-    )) {}
   }
 }

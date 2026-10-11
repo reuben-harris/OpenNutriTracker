@@ -1010,7 +1010,7 @@ class _EditMealScreenState extends State<EditMealScreen> {
 
       if (!mounted) return;
       if (_editOnly) {
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(newMealEntity);
       } else {
         Navigator.of(context).pushNamedAndRemoveUntil(
           NavigationOptions.mealDetailRoute,

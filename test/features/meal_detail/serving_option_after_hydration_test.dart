@@ -196,7 +196,7 @@ void main() {
         localizationsDelegates: S.localizationsDelegates,
         supportedLocales: S.supportedLocales,
         home: Scaffold(
-          body: FoodAmountSheet(
+          body: FoodAmountEditor(
             meal: meal,
             remembered: remembered,
             initial: initial,

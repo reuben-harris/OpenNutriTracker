@@ -4,6 +4,8 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:opennutritracker/core/utils/user_image_storage.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 
+enum FoodImageMode { preview, fullSize }
+
 class FoodImageLoad {
   final File? file;
   final bool isDownloading;
@@ -22,7 +24,16 @@ class FoodImageLoader {
     this.resolveLocalPath = UserImageStorage.absolutePath,
   });
 
-  Stream<FoodImageLoad> load(MealEntity meal) async* {
+  Stream<FoodImageLoad> load(
+    MealEntity meal, {
+    FoodImageMode mode = FoodImageMode.preview,
+  }) => _load(meal, mode: mode);
+
+  Stream<FoodImageLoad> _load(
+    MealEntity meal, {
+    required FoodImageMode mode,
+    String? failedDownload,
+  }) async* {
     final localPath = _nonEmpty(meal.localImagePath);
     if (localPath != null) {
       try {
@@ -38,7 +49,7 @@ class FoodImageLoader {
 
     final thumbnail = _nonEmpty(meal.thumbnailImageUrl);
     final main = _nonEmpty(meal.mainImageUrl);
-    final urls = {?thumbnail, ?main};
+    final urls = mode == FoodImageMode.fullSize ? {?main} : {?thumbnail, ?main};
     for (final url in urls) {
       try {
         final cached = await cacheManager.getFileFromCache(url);
@@ -51,8 +62,10 @@ class FoodImageLoader {
       }
     }
 
-    final downloadUrl = thumbnail ?? main;
-    if (downloadUrl != null) {
+    final downloadUrl = mode == FoodImageMode.fullSize
+        ? main
+        : thumbnail ?? main;
+    if (downloadUrl != null && downloadUrl != failedDownload) {
       yield const FoodImageLoad.downloading();
       try {
         final downloaded = await cacheManager.downloadFile(downloadUrl);
@@ -63,6 +76,10 @@ class FoodImageLoader {
       } catch (_) {
         // Image failures are presented as the shared food fallback.
       }
+    }
+    if (mode == FoodImageMode.fullSize) {
+      yield* _load(meal, mode: FoodImageMode.preview, failedDownload: main);
+      return;
     }
     yield const FoodImageLoad.complete(null);
   }

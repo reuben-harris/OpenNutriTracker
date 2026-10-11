@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/core/food_amount/food_information.dart';
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/meal_item_card.dart';
@@ -12,13 +13,15 @@ import '../search/food_search_engine_test.dart' show food;
 void main() {
   for (final logFood in [true, false]) {
     testWidgets(
-      'swiped Info opens the app route and returns ${logFood ? 'the selected food' : 'null on back'}',
+      'swiped Info opens the app route and returns ${logFood ? 'true after adding' : 'false on back'}',
       (tester) async {
         final meal = food('123', 'Apple');
         final full = food('123', 'Apple, full record', detailed: true);
         final day = DateTime(2026, 10, 11);
         MealDetailScreenArguments? arguments;
-        MealEntity? selected;
+        bool? saved;
+        MealEntity? confirmed;
+        FoodAmountSelection? confirmedAmount;
         var returned = false;
         var logged = 0;
         final navigator = GlobalKey<NavigatorState>();
@@ -36,7 +39,13 @@ void main() {
                 return Scaffold(
                   body: Text(arguments!.mealEntity.name!),
                   bottomNavigationBar: FilledButton(
-                    onPressed: () => arguments!.onSelected!(full),
+                    onPressed: () async {
+                      final result = await arguments!.onConfirm!(
+                        full,
+                        defaultFoodAmount(full),
+                      );
+                      if (context.mounted) Navigator.of(context).pop(result);
+                    },
                     child: const Text('Log this food'),
                   ),
                 );
@@ -48,12 +57,17 @@ void main() {
                   mealEntity: meal,
                   onSelected: (_) => logged++,
                   onInfo: () async {
-                    selected = await showFoodInformation(
+                    saved = await showFoodInformation(
                       context,
                       meal: meal,
                       day: day,
                       type: IntakeTypeEntity.lunch,
                       imperial: true,
+                      onConfirm: (food, amount) async {
+                        confirmed = food;
+                        confirmedAmount = amount;
+                        return true;
+                      },
                     );
                     returned = true;
                   },
@@ -79,7 +93,10 @@ void main() {
         }
         await tester.pumpAndSettle();
         expect(returned, true);
-        expect(selected, logFood ? same(full) : isNull);
+        expect(saved, logFood);
+        expect(confirmed, logFood ? same(full) : isNull);
+        expect(confirmedAmount?.baseAmount, logFood ? 100 : null);
+        expect(arguments!.returnAfterAdding, true);
         expect(logged, 0);
       },
     );
