@@ -156,6 +156,8 @@ class _ExplodableIntakeRowState extends State<ExplodableIntakeRow> {
             content: Text(
               error is DiarySourceUnavailable
                   ? S.of(context).diaryRefreshUnavailable
+                  : error is DiaryConversionUnavailable
+                  ? S.of(context).diaryRefreshUnitUnavailable
                   : S.of(context).diaryRefreshFailed,
             ),
           ),

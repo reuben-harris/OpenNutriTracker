@@ -85,8 +85,6 @@ class OffMicronutrientRepair {
     if (identical(meal, intake.meal)) return intake;
     return IntakeDBO(
       id: intake.id,
-      unit: intake.unit,
-      amount: intake.amount,
       type: intake.type,
       meal: meal,
       dateTime: intake.dateTime,
@@ -94,11 +92,11 @@ class OffMicronutrientRepair {
           ? null
           : repairRecipe(intake.recipeSnapshot!),
       conversionParentId: intake.conversionParentId,
-      enteredAmount: intake.enteredAmount,
-      enteredUnit: intake.enteredUnit,
-      enteredBaseUnit: intake.enteredBaseUnit,
-      enteredUnitFactor: intake.enteredUnitFactor,
-      enteredUnitLabel: intake.enteredUnitLabel,
+      quantityAmount: intake.quantityAmount,
+      quantityUnit: intake.quantityUnit,
+      quantityBaseUnit: intake.quantityBaseUnit,
+      quantityUnitFactor: intake.quantityUnitFactor,
+      quantityUnitLabel: intake.quantityUnitLabel,
     );
   }
 

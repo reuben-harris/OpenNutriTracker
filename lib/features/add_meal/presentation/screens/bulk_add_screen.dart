@@ -1565,19 +1565,14 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
       for (final write in writes) {
         await mealDetailBloc.addIntake(
           context,
-          // The suffix is a display device; the stored vocabulary stays
-          // the closed set the export format and QR payload were written
-          // against. #864 decision 3.
-          storedUnit(write.row.effectiveUnit),
-          write.amount.toString(),
-          _args.intakeTypeEntity,
-          write.row.meal!,
-          _args.day,
-          selection: selectionForFoodUnit(
+          selectionForFoodUnit(
             double.parse(write.row.amountText.trim().replaceAll(',', '.')),
             write.row.effectiveUnit,
             write.row.meal!,
           ),
+          _args.intakeTypeEntity,
+          write.row.meal!,
+          _args.day,
         );
       }
     } catch (e, stackTrace) {

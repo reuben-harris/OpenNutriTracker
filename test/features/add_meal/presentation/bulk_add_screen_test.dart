@@ -38,19 +38,15 @@ import 'package:opennutritracker/generated/l10n.dart';
 
 import '../../../helpers/test_l10n.dart';
 
-/// One recorded `addIntake` call: what the screen actually asked to be
-/// written. The row UI can be right on screen and still hand the wrong
-/// number to the write, which is exactly what happened when the raw amount
-/// was passed instead of the converted one (4 oz stored as 4 g).
+/// Records the entered quantity and conversion supplied by the screen.
 class _Write {
-  final String unit;
-  final String amount;
+  final FoodAmountSelection quantity;
   final String? mealName;
 
-  const _Write(this.unit, this.amount, this.mealName);
+  const _Write(this.quantity, this.mealName);
 
   @override
-  String toString() => '$mealName $amount $unit';
+  String toString() => '$mealName ${quantity.amount} ${quantity.option.unit}';
 }
 
 class _FakeMealDetailBloc extends Fake implements MealDetailBloc {
@@ -62,18 +58,16 @@ class _FakeMealDetailBloc extends Fake implements MealDetailBloc {
   @override
   Future<void> addIntake(
     BuildContext context,
-    String unit,
-    String amountText,
+    FoodAmountSelection? quantity,
     IntakeTypeEntity intakeTypeEntity,
     MealEntity meal,
     DateTime day, {
     IntakeEntity? copiedFrom,
-    FoodAmountSelection? selection,
   }) async {
     if (failOnSecondWrite && writes.length == 1) {
       throw StateError('write failed');
     }
-    writes.add(_Write(unit, amountText, meal.name));
+    writes.add(_Write(quantity!, meal.name));
   }
 }
 
@@ -859,11 +853,9 @@ void main() {
     );
   });
 
-  testWidgets('a chosen portion is written as a plain serving', (tester) async {
-    // #864 decision 3. The dropdown offers "serving#1" so the row can name
-    // the slice, but `IntakeDBO.unit` is part of the export format
-    // and rides in a positional QR array other builds parse, so what gets
-    // written has to stay inside the closed set.
+  testWidgets('a chosen portion retains its stable identity and quantity', (
+    tester,
+  ) async {
     await _register({
       'bread': [
         _meal(
@@ -871,11 +863,13 @@ void main() {
           servingQuantity: 244,
           portions: const [
             MealPortionEntity(
+              id: 'test:0',
               label: '1 cup',
               gramWeight: 244,
               localized: false,
             ),
             MealPortionEntity(
+              id: 'test:1',
               label: '1 slice',
               gramWeight: 38,
               localized: false,
@@ -898,13 +892,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final write = _mealDetailBloc.writes.single;
+    expect(write.quantity.option.unit, 'portion:test:1');
+    expect(write.quantity.amount, 3);
+    expect(write.quantity.option.factor, 38);
     expect(
-      write.unit,
-      'serving',
-      reason: 'the portion suffix must never be written down',
-    );
-    expect(
-      double.parse(write.amount),
+      write.quantity.baseAmount,
       114,
       reason: '3 slices at 38 g, not 3 cups at 244 g',
     );
@@ -1526,10 +1518,8 @@ void main() {
     expect(_homeBloc.refreshed, isTrue);
   });
 
-  testWidgets('converts the amount before writing it', (tester) async {
-    // The row shows "4 oz"; the intake must be stored in grams, because
-    // IntakeEntity.totalKcal multiplies by a per-gram value and does no
-    // conversion of its own. Writing "4" here is a ~28x under-count.
+  testWidgets('retains ounces and their gram conversion', (tester) async {
+    // Preserve the entered ounces while deriving grams for nutrition.
     await _register({
       'steak': [_meal('Steak', mealUnit: 'g')],
     });
@@ -1540,8 +1530,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final write = _mealDetailBloc.writes.single;
-    expect(write.unit, 'oz');
-    expect(double.parse(write.amount), closeTo(113.4, 0.1));
+    expect(write.quantity.option.unit, 'oz');
+    expect(write.quantity.amount, 4);
+    expect(write.quantity.baseAmount, closeTo(113.4, 0.1));
   });
 
   testWidgets('converts a serving into its base quantity', (tester) async {
@@ -1555,8 +1546,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final write = _mealDetailBloc.writes.single;
-    expect(write.unit, 'serving');
-    expect(double.parse(write.amount), 100); // 2 servings x 50 g
+    expect(write.quantity.option.unit, 'serving');
+    expect(write.quantity.amount, 2);
+    expect(write.quantity.baseAmount, 100); // 2 servings x 50 g
   });
 
   testWidgets('an invalid amount blocks the whole batch', (tester) async {

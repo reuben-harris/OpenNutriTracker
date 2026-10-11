@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
@@ -53,8 +54,10 @@ IntakeEntity diaryEntry({
       : null;
   return IntakeEntity(
     id: id,
-    unit: 'g',
-    amount: amount,
+    quantity: FoodAmountSelection(
+      amount,
+      FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+    ),
     type: IntakeTypeEntity.breakfast,
     meal: saved?.toMealEntity() ?? food,
     dateTime: DateTime(2026, 9, 29, 8, 42),

@@ -11,8 +11,11 @@ import 'package:opennutritracker/core/utils/hive_db_provider.dart';
 import 'package:opennutritracker/features/add_meal/data/repository/products_repository.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/scanner/data/product_not_found_exception.dart';
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 
 class DiarySourceUnavailable implements Exception {}
+
+class DiaryConversionUnavailable implements Exception {}
 
 /// Refreshes one occurrence by identity, never by a similar search result.
 class RefreshDiaryIntakeUsecase {
@@ -105,6 +108,18 @@ class RefreshDiaryIntakeUsecase {
     }
     if (latest.meal.code != code || latest.meal.source != source.source) {
       return null;
+    }
+    final quantity = latest.quantity;
+    if (quantity != null) {
+      final option = currentFoodAmountOption(
+        meal,
+        quantity.option.unit,
+        quantity.option.baseUnit,
+      );
+      if (option == null) throw DiaryConversionUnavailable();
+      final refreshed = FoodAmountSelection(quantity.amount, option);
+      if (!refreshed.isValid) throw DiaryConversionUnavailable();
+      fields['quantity'] = refreshed;
     }
     final dbo = MealDBO.fromMealEntity(meal);
     fields['meal'] = dbo;

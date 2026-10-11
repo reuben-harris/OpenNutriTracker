@@ -32,8 +32,6 @@ class CsvDataExporter {
     'id',
     'date_time',
     'type',
-    'amount',
-    'unit',
     'meal_code',
     'meal_name',
     'meal_brands',
@@ -76,16 +74,16 @@ class CsvDataExporter {
     // here was written before #775 and holds its micronutrients in raw
     // grams, which the importer scales into app units (#1152).
     'meal_data_version',
-    // Optional on legacy entries. JSON in one quoted cell keeps the full
+    // JSON in one quoted cell keeps the full
     // ingredient snapshot, including micronutrients and precise amounts.
     'recipe_snapshot_json',
     'conversion_parent_id',
     'meal_is_quick_add',
-    'entered_amount',
-    'entered_unit',
-    'entered_base_unit',
-    'entered_unit_factor',
-    'entered_unit_label',
+    'quantity_amount',
+    'quantity_unit',
+    'quantity_base_unit',
+    'quantity_unit_factor',
+    'quantity_unit_label',
   ];
 
   static const userActivityColumns = <String>[
@@ -131,8 +129,6 @@ class CsvDataExporter {
         _cell(intake.id),
         _cell(intake.dateTime.toIso8601String()),
         _cell(intake.type.name),
-        _num(intake.amount),
-        _cell(intake.unit),
         _cell(meal.code),
         _cell(meal.name),
         _cell(meal.brands),
@@ -177,11 +173,11 @@ class CsvDataExporter {
         ),
         _cell(intake.conversionParentId),
         _cell(MealEntity.fromMealDBO(meal).isQuickAdd.toString()),
-        _num(intake.enteredAmount),
-        _cell(intake.enteredUnit),
-        _cell(intake.enteredBaseUnit),
-        _num(intake.enteredUnitFactor),
-        _cell(intake.enteredUnitLabel),
+        _num(intake.quantityAmount),
+        _cell(intake.quantityUnit),
+        _cell(intake.quantityBaseUnit),
+        _num(intake.quantityUnitFactor),
+        _cell(intake.quantityUnitLabel),
       ];
       buf.writeln(cells.join(','));
     }
@@ -314,8 +310,6 @@ class CsvDataExporter {
       out.add(
         IntakeDBO(
           id: row['id'] ?? '',
-          unit: row['unit'] ?? '',
-          amount: CsvRowParser.parseDoubleOrNull(row['amount']) ?? 0,
           type: _parseIntakeType(row['type']),
           meal: meal,
           dateTime: DateTime.parse(row['date_time'] ?? ''),
@@ -326,13 +320,15 @@ class CsvDataExporter {
                       as Map<String, dynamic>,
                 ),
           conversionParentId: _nullable(row['conversion_parent_id']),
-          enteredAmount: CsvRowParser.parseDoubleOrNull(row['entered_amount']),
-          enteredUnit: _nullable(row['entered_unit']),
-          enteredBaseUnit: _nullable(row['entered_base_unit']),
-          enteredUnitFactor: CsvRowParser.parseDoubleOrNull(
-            row['entered_unit_factor'],
+          quantityAmount: CsvRowParser.parseDoubleOrNull(
+            row['quantity_amount'],
           ),
-          enteredUnitLabel: _nullable(row['entered_unit_label']),
+          quantityUnit: _nullable(row['quantity_unit']),
+          quantityBaseUnit: _nullable(row['quantity_base_unit']),
+          quantityUnitFactor: CsvRowParser.parseDoubleOrNull(
+            row['quantity_unit_factor'],
+          ),
+          quantityUnitLabel: _nullable(row['quantity_unit_label']),
         ),
       );
     }

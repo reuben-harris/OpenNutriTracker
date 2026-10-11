@@ -31,32 +31,29 @@ MealDBO _customMeal({
   required String code,
   required String name,
   double kcal = 100,
-}) =>
-    MealDBO(
-      code: code,
-      name: name,
-      brands: null,
-      thumbnailImageUrl: null,
-      mainImageUrl: null,
-      url: null,
-      mealQuantity: '100',
-      mealUnit: 'g',
-      servingQuantity: null,
-      servingUnit: 'g',
-      servingSize: null,
-      nutriments: _nutriments(kcal: kcal),
-      source: MealSourceDBO.custom,
-    );
+}) => MealDBO(
+  code: code,
+  name: name,
+  brands: null,
+  thumbnailImageUrl: null,
+  mainImageUrl: null,
+  url: null,
+  mealQuantity: '100',
+  mealUnit: 'g',
+  servingQuantity: null,
+  servingUnit: 'g',
+  servingSize: null,
+  nutriments: _nutriments(kcal: kcal),
+  source: MealSourceDBO.custom,
+);
 
-IntakeDBO _intake({
-  required String id,
-  required MealDBO meal,
-  DateTime? at,
-}) =>
+IntakeDBO _intake({required String id, required MealDBO meal, DateTime? at}) =>
     IntakeDBO(
       id: id,
-      unit: 'g',
-      amount: 100,
+      quantityAmount: 100,
+      quantityUnit: 'g',
+      quantityBaseUnit: 'g',
+      quantityUnitFactor: 1,
       type: IntakeTypeDBO.lunch,
       meal: meal,
       dateTime: at ?? DateTime.utc(2025, 1, 1),
@@ -79,12 +76,16 @@ void main() {
       final stamp = DateTime.now().microsecondsSinceEpoch;
       customBox = await Hive.openBox<MealDBO>('merge_custom_meals_$stamp');
       intakeBox = await Hive.openBox<IntakeDBO>('merge_intake_$stamp');
-      trackedDayBox =
-          await Hive.openBox<TrackedDayDBO>('merge_tracked_$stamp');
-      final customDs = CustomMealDataSource(FakeHiveDBProvider(customMealBox: customBox));
-      final intakeRepo = IntakeRepository(IntakeDataSource(FakeHiveDBProvider(intakeBox: intakeBox)));
-      final trackedRepo =
-          TrackedDayRepository(TrackedDayDataSource(FakeHiveDBProvider(trackedDayBox: trackedDayBox)));
+      trackedDayBox = await Hive.openBox<TrackedDayDBO>('merge_tracked_$stamp');
+      final customDs = CustomMealDataSource(
+        FakeHiveDBProvider(customMealBox: customBox),
+      );
+      final intakeRepo = IntakeRepository(
+        IntakeDataSource(FakeHiveDBProvider(intakeBox: intakeBox)),
+      );
+      final trackedRepo = TrackedDayRepository(
+        TrackedDayDataSource(FakeHiveDBProvider(trackedDayBox: trackedDayBox)),
+      );
       usecase = MergeCustomMealsUseCase(
         customDs,
         intakeRepo,
@@ -118,8 +119,7 @@ void main() {
       expect(remainingCustom, equals({'W'}));
 
       // Every intake now snapshots the winner.
-      final rewrittenCodes =
-          intakeBox.values.map((i) => i.meal.code).toList();
+      final rewrittenCodes = intakeBox.values.map((i) => i.meal.code).toList();
       expect(rewrittenCodes, equals(['W', 'W', 'W']));
       // And keeps its original id so existing references stay valid.
       final rewrittenIds = intakeBox.values.map((i) => i.id).toSet();

@@ -29,13 +29,11 @@ class _FakeMealDetailBloc extends Fake implements MealDetailBloc {
   @override
   Future<void> addIntake(
     BuildContext context,
-    String unit,
-    String amountText,
+    FoodAmountSelection? quantity,
     IntakeTypeEntity type,
     MealEntity meal,
     DateTime day, {
     IntakeEntity? copiedFrom,
-    FoodAmountSelection? selection,
   }) async {
     await onLog?.call();
   }
@@ -79,8 +77,10 @@ IntakeEntity _buildIntake({
 }) {
   return IntakeEntity(
     id: 'test-intake',
-    unit: 'g',
-    amount: amount,
+    quantity: FoodAmountSelection(
+      amount,
+      FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+    ),
     type: IntakeTypeEntity.breakfast,
     dateTime: DateTime(2026, 1, 1),
     meal: MealEntity(
@@ -408,8 +408,7 @@ void main() {
       first,
       IntakeEntity(
         id: 'second',
-        unit: first.unit,
-        amount: first.amount,
+        quantity: first.quantity,
         type: first.type,
         meal: first.meal,
         dateTime: first.dateTime,

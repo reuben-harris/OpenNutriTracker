@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/data/data_source/config_data_source.dart';
 import 'package:opennutritracker/core/data/data_source/tracked_day_data_source.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
@@ -57,23 +58,27 @@ class IntakeDataSource {
       return null;
     }
     final box = _intakeBox;
-    intakeObject.$2.amount = fields['amount'] ?? intakeObject.$2.amount;
-    intakeObject.$2.unit = fields['unit'] ?? intakeObject.$2.unit;
-    if (fields.containsKey('meal')) intakeObject.$2.meal = fields['meal'];
-    if (fields.containsKey('recipeSnapshot')) {
-      intakeObject.$2.recipeSnapshot = fields['recipeSnapshot'];
-    }
-    // Amount updates must include a complete input snapshot or clear the old
-    // one, so other editors cannot leave a stale serving beside a new weight.
-    if (fields.containsKey('amount') || fields.containsKey('enteredAmount')) {
-      intakeObject.$2.enteredAmount = fields['enteredAmount'];
-      intakeObject.$2.enteredUnit = fields['enteredUnit'];
-      intakeObject.$2.enteredBaseUnit = fields['enteredBaseUnit'];
-      intakeObject.$2.enteredUnitFactor = fields['enteredUnitFactor'];
-      intakeObject.$2.enteredUnitLabel = fields['enteredUnitLabel'];
-    }
-    await _intakeBox.putAt(intakeObject.$1, intakeObject.$2);
-    await _reconcileDay(box, intakeObject.$2.dateTime);
+    final current = intakeObject.$2;
+    final quantity = fields.containsKey('quantity')
+        ? fields['quantity'] as FoodAmountSelection?
+        : current.quantity;
+    final updated = IntakeDBO(
+      id: current.id,
+      type: current.type,
+      meal: fields['meal'] ?? current.meal,
+      dateTime: current.dateTime,
+      recipeSnapshot: fields.containsKey('recipeSnapshot')
+          ? fields['recipeSnapshot']
+          : current.recipeSnapshot,
+      conversionParentId: current.conversionParentId,
+      quantityAmount: quantity?.amount,
+      quantityUnit: quantity?.option.unit,
+      quantityBaseUnit: quantity?.option.baseUnit,
+      quantityUnitFactor: quantity?.option.factor,
+      quantityUnitLabel: quantity?.option.label,
+    );
+    await box.putAt(intakeObject.$1, updated);
+    await _reconcileDay(box, updated.dateTime);
     return box.getAt(intakeObject.$1);
   }
 
@@ -210,18 +215,16 @@ class IntakeDataSource {
       if (key != fromMealKey) continue;
       final updated = IntakeDBO(
         id: dbo.id,
-        unit: dbo.unit,
-        amount: dbo.amount,
         type: dbo.type,
         meal: toMeal,
         dateTime: dbo.dateTime,
         recipeSnapshot: dbo.recipeSnapshot,
         conversionParentId: dbo.conversionParentId,
-        enteredAmount: dbo.enteredAmount,
-        enteredUnit: dbo.enteredUnit,
-        enteredBaseUnit: dbo.enteredBaseUnit,
-        enteredUnitFactor: dbo.enteredUnitFactor,
-        enteredUnitLabel: dbo.enteredUnitLabel,
+        quantityAmount: dbo.quantityAmount,
+        quantityUnit: dbo.quantityUnit,
+        quantityBaseUnit: dbo.quantityBaseUnit,
+        quantityUnitFactor: dbo.quantityUnitFactor,
+        quantityUnitLabel: dbo.quantityUnitLabel,
       );
       await _intakeBox.put(entry.key, updated);
       rewrites.add((dbo, updated));

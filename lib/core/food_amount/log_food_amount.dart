@@ -72,15 +72,7 @@ Future<bool> logFoodAmount(
         if (profiles != null && profiles.activeProfileId != profile) {
           throw StateError('Profile changed');
         }
-        await logger.addIntake(
-          context,
-          selection.option.baseUnit,
-          selection.baseAmount.toString(),
-          type,
-          food,
-          day,
-          selection: selection,
-        );
+        await logger.addIntake(context, selection, type, food, day);
         refreshFoodDiary();
         return true;
       },

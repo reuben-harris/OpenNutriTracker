@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:opennutritracker/core/data/data_source/intake_data_source.dart';
@@ -53,15 +54,17 @@ void main() {
       final repo = IntakeRepository(dataSource);
 
       Future<void> addLunch(String id, DateTime when) => repo.addIntake(
-            IntakeEntity(
-              id: id,
-              unit: 'g',
-              amount: 1,
-              type: IntakeTypeEntity.lunch,
-              meal: MealEntityFixtures.mealOne,
-              dateTime: when,
-            ),
-          );
+        IntakeEntity(
+          id: id,
+          quantity: FoodAmountSelection(
+            1,
+            FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+          ),
+          type: IntakeTypeEntity.lunch,
+          meal: MealEntityFixtures.mealOne,
+          dateTime: when,
+        ),
+      );
 
       await addLunch('19th-evening', DateTime(2026, 7, 19, 20, 0));
       await addLunch('20th-midday', DateTime(2026, 7, 20, 12, 0));
@@ -83,15 +86,12 @@ void main() {
     }
 
     test('selecting the 20th lists the 20th, not the 19th', () async {
-      expect(
-        await idsFor(selectedDay, offsetHours: sixAmOffset),
-        {
-          '20th-midday',
-          '20th-diary-added',
-          '20th-imported',
-          '21st-small-hours',
-        },
-      );
+      expect(await idsFor(selectedDay, offsetHours: sixAmOffset), {
+        '20th-midday',
+        '20th-diary-added',
+        '20th-imported',
+        '21st-small-hours',
+      });
     });
 
     test('the small hours of the 21st still belong to the 20th', () async {
@@ -111,10 +111,11 @@ void main() {
     });
 
     test('no offset falls back to plain calendar days', () async {
-      expect(
-        await idsFor(selectedDay),
-        {'20th-midday', '20th-diary-added', '20th-imported'},
-      );
+      expect(await idsFor(selectedDay), {
+        '20th-midday',
+        '20th-diary-added',
+        '20th-imported',
+      });
     });
   });
 
@@ -145,8 +146,9 @@ void main() {
       );
       intakeUsecase = GetIntakeUsecase(repo);
 
-      final activityBox =
-          await Hive.openBox<UserActivityDBO>('activity_today_test');
+      final activityBox = await Hive.openBox<UserActivityDBO>(
+        'activity_today_test',
+      );
       activityUsecase = GetUserActivityUsecase(
         UserActivityRepository(
           UserActivityDataSource(
@@ -157,15 +159,17 @@ void main() {
     });
 
     Future<void> addLunchAt(String id, DateTime when) => repo.addIntake(
-          IntakeEntity(
-            id: id,
-            unit: 'g',
-            amount: 1,
-            type: IntakeTypeEntity.lunch,
-            meal: MealEntityFixtures.mealOne,
-            dateTime: when,
-          ),
-        );
+      IntakeEntity(
+        id: id,
+        quantity: FoodAmountSelection(
+          1,
+          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+        type: IntakeTypeEntity.lunch,
+        meal: MealEntityFixtures.mealOne,
+        dateTime: when,
+      ),
+    );
 
     test('at 02:00 on a 06:00 boundary, "today" is still the 19th', () async {
       await addLunchAt('19th-evening', DateTime(2026, 7, 19, 20, 0));
@@ -176,14 +180,13 @@ void main() {
       final today = await intakeUsecase.getTodayLunchIntake(
         dayStartOffsetHours: offsetHours,
       );
-      expect(
-        today.map((e) => e.id).toSet(),
-        {'19th-evening', '20th-small-hours'},
-      );
+      expect(today.map((e) => e.id).toSet(), {
+        '19th-evening',
+        '20th-small-hours',
+      });
     });
 
-    test('with no offset configured, "today" is the wall-clock day',
-        () async {
+    test('with no offset configured, "today" is the wall-clock day', () async {
       await addLunchAt('19th-evening', DateTime(2026, 7, 19, 20, 0));
       await addLunchAt('20th-small-hours', DateTime(2026, 7, 20, 1, 0));
 
@@ -198,8 +201,10 @@ void main() {
         await repo.addIntake(
           IntakeEntity(
             id: 'small-hours-${type.name}',
-            unit: 'g',
-            amount: 1,
+            quantity: FoodAmountSelection(
+              1,
+              FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+            ),
             type: type,
             meal: MealEntityFixtures.mealOne,
             dateTime: DateTime(2026, 7, 20, 1, 0),
@@ -208,8 +213,10 @@ void main() {
         await repo.addIntake(
           IntakeEntity(
             id: 'after-boundary-${type.name}',
-            unit: 'g',
-            amount: 1,
+            quantity: FoodAmountSelection(
+              1,
+              FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+            ),
             type: type,
             meal: MealEntityFixtures.mealOne,
             dateTime: DateTime(2026, 7, 20, 9, 0),
@@ -225,11 +232,9 @@ void main() {
       };
       for (final entry in reads.entries) {
         final result = await entry.value(dayStartOffsetHours: offsetHours);
-        expect(
-          result.map((e) => e.id),
-          ['small-hours-${entry.key.name}'],
-          reason: '${entry.key.name} disagreed about "today"',
-        );
+        expect(result.map((e) => e.id), [
+          'small-hours-${entry.key.name}',
+        ], reason: '${entry.key.name} disagreed about "today"');
       }
     });
 
@@ -244,9 +249,19 @@ void main() {
       );
       await Hive.box<UserActivityDBO>('activity_today_test').addAll([
         UserActivityDBO(
-            'small-hours', 30, 100, DateTime(2026, 7, 20, 1, 0), walking),
+          'small-hours',
+          30,
+          100,
+          DateTime(2026, 7, 20, 1, 0),
+          walking,
+        ),
         UserActivityDBO(
-            'after-boundary', 30, 100, DateTime(2026, 7, 20, 9, 0), walking),
+          'after-boundary',
+          30,
+          100,
+          DateTime(2026, 7, 20, 9, 0),
+          walking,
+        ),
       ]);
 
       final today = await activityUsecase.getTodayUserActivity(
@@ -258,8 +273,9 @@ void main() {
 
   test('activities follow the same rule', () async {
     final box = await Hive.openBox<UserActivityDBO>('activity_offset_test');
-    final dataSource =
-        UserActivityDataSource(FakeHiveDBProvider(userActivityBox: box));
+    final dataSource = UserActivityDataSource(
+      FakeHiveDBProvider(userActivityBox: box),
+    );
 
     final walking = PhysicalActivityDBO(
       '02020',
@@ -270,10 +286,20 @@ void main() {
       PhysicalActivityTypeDBO.sport,
     );
     await box.addAll([
-      UserActivityDBO('19th-evening', 30, 100,
-          DateTime(2026, 7, 19, 20, 0), walking),
-      UserActivityDBO('20th-midday', 30, 100,
-          DateTime(2026, 7, 20, 12, 0), walking),
+      UserActivityDBO(
+        '19th-evening',
+        30,
+        100,
+        DateTime(2026, 7, 19, 20, 0),
+        walking,
+      ),
+      UserActivityDBO(
+        '20th-midday',
+        30,
+        100,
+        DateTime(2026, 7, 20, 12, 0),
+        walking,
+      ),
     ]);
 
     final result = await dataSource.getAllUserActivitiesByDate(

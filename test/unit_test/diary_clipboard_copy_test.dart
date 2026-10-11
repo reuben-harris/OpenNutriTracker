@@ -40,8 +40,8 @@ void main() {
       entry.recipeSnapshot!.ingredients.clear();
       expect(clipboard.state.single.recipeSnapshot!.tags, ['Breakfast']);
       expect(clipboard.state.single.recipeSnapshot!.ingredients, hasLength(1));
-      expect(clipboard.state.single.amount, 125);
-      expect(clipboard.state.single.unit, 'g');
+      expect(clipboard.state.single.baseAmount, 125);
+      expect(clipboard.state.single.baseUnit, 'g');
       clipboard.copy([diaryEntry(id: 'replacement')]);
       expect(clipboard.state.single.id, 'replacement');
       clipboard.clear();
@@ -108,7 +108,10 @@ void main() {
       expect(entries.map((e) => e.id), isNot(contains('source')));
       expect(
         entries.every(
-          (e) => e.dateTime == destination && e.amount == 125 && e.unit == 'g',
+          (e) =>
+              e.dateTime == destination &&
+              e.baseAmount == 125 &&
+              e.baseUnit == 'g',
         ),
         isTrue,
       );

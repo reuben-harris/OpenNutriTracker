@@ -32,6 +32,7 @@ MealEntity meal(
   portions: [
     for (var i = 0; i < portions; i++)
       MealPortionEntity(
+        id: 'test:0',
         label: '1 portion $i',
         gramWeight: 100,
         localized: false,
@@ -245,10 +246,10 @@ void main() {
       ];
 
       expect(codes(rankForResolution(rows, 'rice')), ['a', 'b']);
-      expect(
-        codes(rankForResolution(rows.reversed.toList(), 'rice')),
-        ['b', 'a'],
-      );
+      expect(codes(rankForResolution(rows.reversed.toList(), 'rice')), [
+        'b',
+        'a',
+      ]);
     });
 
     test('the input order survives a pool too large for insertion sort', () {
@@ -290,10 +291,7 @@ void main() {
 
       // Both match on the brand alone, so they tie on score and reach the
       // name-length key with nothing to measure, and tie on portions too.
-      final ranked = rankForResolution(
-        [nameless('a'), nameless('b')],
-        'milk',
-      );
+      final ranked = rankForResolution([nameless('a'), nameless('b')], 'milk');
 
       expect([for (final m in ranked) m.code], ['a', 'b']);
     });
@@ -581,13 +579,13 @@ void main() {
         source: MealSourceEntity.fdc,
         portionsUnavailable: true,
       );
-      final bare = meal('Orange juice, 100%, NFS', source: MealSourceEntity.fdc);
+      final bare = meal(
+        'Orange juice, 100%, NFS',
+        source: MealSourceEntity.fdc,
+      );
 
       expect(scoreMealForResolution(unavailable, 'orange juice'), 1.0);
-      expect(
-        scoreMealForResolution(bare, 'orange juice'),
-        closeTo(0.85, 1e-9),
-      );
+      expect(scoreMealForResolution(bare, 'orange juice'), closeTo(0.85, 1e-9));
       // The soft match the review measured: "Egg" against three tokens is
       // 0.5, and 0.35 is a guess where 0.5 is not.
       final eggUnavailable = meal(
@@ -619,7 +617,10 @@ void main() {
         source: MealSourceEntity.fdc,
         portionsUnavailable: true,
       );
-      final bare = meal('Orange juice, 100%, NFS', source: MealSourceEntity.fdc);
+      final bare = meal(
+        'Orange juice, 100%, NFS',
+        source: MealSourceEntity.fdc,
+      );
 
       expect(scoreMealForResolution(off, 'orange juice'), closeTo(0.917, 1e-3));
       expect(

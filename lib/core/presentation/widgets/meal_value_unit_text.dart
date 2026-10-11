@@ -7,6 +7,7 @@ class MealValueUnitText extends StatelessWidget {
   final double value;
   final MealEntity meal;
   final String? displayUnit;
+  final String? sourceUnit;
   final bool usesImperialUnits;
   final TextStyle? textStyle;
   final String? prefix;
@@ -16,6 +17,7 @@ class MealValueUnitText extends StatelessWidget {
     required this.value,
     required this.meal,
     this.displayUnit,
+    this.sourceUnit,
     required this.usesImperialUnits,
     this.textStyle,
     this.prefix = '',
@@ -24,7 +26,7 @@ class MealValueUnitText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '$prefix${format(context, value, meal, usesImperialUnits: usesImperialUnits, displayUnit: displayUnit)}',
+      '$prefix${format(context, value, meal, usesImperialUnits: usesImperialUnits, displayUnit: displayUnit, sourceUnit: sourceUnit)}',
       style: textStyle,
       overflow: TextOverflow.ellipsis,
       maxLines: 1,
@@ -37,8 +39,10 @@ class MealValueUnitText extends StatelessWidget {
     MealEntity meal, {
     required bool usesImperialUnits,
     String? displayUnit,
+    String? sourceUnit,
   }) {
-    final mealUnit = meal.mealUnit ?? S.of(context).gramMilliliterUnit;
+    final mealUnit =
+        sourceUnit ?? meal.mealUnit ?? S.of(context).gramMilliliterUnit;
     final unit =
         displayUnit ?? _convertUnit(context, mealUnit, usesImperialUnits);
     return '${_formatValue(_convertValue(value, mealUnit, unit))} $unit';

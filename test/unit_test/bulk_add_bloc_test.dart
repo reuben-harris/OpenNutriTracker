@@ -1096,11 +1096,13 @@ void main() {
 
   group('the typed word picks the portion (#864)', () {
     const cup = MealPortionEntity(
+      id: 'test:0',
       label: '1 cup',
       gramWeight: 244,
       localized: false,
     );
     const slice = MealPortionEntity(
+      id: 'test:1',
       label: '1 slice',
       gramWeight: 38,
       localized: false,
@@ -1219,16 +1221,19 @@ void main() {
   group('a named portion the food cannot honour is marked (#1159)', () {
     // Almonds, as the backend serves them: one row, and "handful" is not it.
     const nut = MealPortionEntity(
+      id: 'test:2',
       label: '1 nut',
       gramWeight: 1.2,
       localized: false,
     );
     const cup = MealPortionEntity(
+      id: 'test:3',
       label: '1 cup',
       gramWeight: 244,
       localized: false,
     );
     const slice = MealPortionEntity(
+      id: 'test:4',
       label: '1 slice',
       gramWeight: 38,
       localized: false,
@@ -1403,11 +1408,13 @@ void main() {
               servingQuantity: 126,
               portions: const [
                 MealPortionEntity(
+                  id: 'test:5',
                   label: '1 small',
                   gramWeight: 101,
                   localized: false,
                 ),
                 MealPortionEntity(
+                  id: 'test:6',
                   label: '1 cup, sliced',
                   gramWeight: 150,
                   localized: false,

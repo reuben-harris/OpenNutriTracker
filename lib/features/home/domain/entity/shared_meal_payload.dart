@@ -35,8 +35,8 @@ class SharedMealOffRef {
   factory SharedMealOffRef.fromIntakeEntity(IntakeEntity intake) {
     return SharedMealOffRef(
       barcode: intake.meal.code!,
-      amount: intake.amount,
-      unit: intake.unit,
+      amount: (intake.baseAmount ?? 100),
+      unit: (intake.baseUnit ?? 'g'),
     );
   }
 
@@ -103,8 +103,8 @@ class SharedMealItem {
     return SharedMealItem(
       name: intake.meal.name,
       brands: intake.meal.brands,
-      unit: intake.unit,
-      amount: intake.amount,
+      unit: (intake.baseUnit ?? 'g'),
+      amount: (intake.baseAmount ?? 100),
       energyKcal100: intake.meal.nutriments.energyKcal100,
       carbohydrates100: intake.meal.nutriments.carbohydrates100,
       fat100: intake.meal.nutriments.fat100,
@@ -293,8 +293,8 @@ class SharedMealPayload {
           recipes.add(
             SharedMealRecipeItem(
               recipe: SharedRecipePayload.fromRecipe(recipe),
-              amount: intake.amount,
-              unit: intake.unit,
+              amount: (intake.baseAmount ?? 100),
+              unit: (intake.baseUnit ?? 'g'),
             ),
           );
           continue;

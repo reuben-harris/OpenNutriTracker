@@ -4,6 +4,7 @@ import 'package:opennutritracker/features/add_meal/util/portion_match.dart';
 
 MealPortionEntity _p(String label, {double grams = 1, String? en}) =>
     MealPortionEntity(
+      id: 'test:0',
       label: label,
       gramWeight: grams,
       localized: en != null,

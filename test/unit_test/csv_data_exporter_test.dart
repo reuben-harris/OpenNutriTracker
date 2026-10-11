@@ -121,8 +121,7 @@ void main() {
       );
 
       final csv = CsvDataExporter.userActivitiesToCsv([activity]);
-      final parsed =
-          CsvDataExporter.parseUserActivitiesFromCsv(csv).single;
+      final parsed = CsvDataExporter.parseUserActivitiesFromCsv(csv).single;
 
       expect(parsed.id, 'act-1');
       expect(parsed.duration, 45);
@@ -134,10 +133,7 @@ void main() {
       expect(parsed.physicalActivityDBO.specificActivity, 'Running, 8 km/h');
       expect(parsed.physicalActivityDBO.mets, 8.3);
       expect(parsed.physicalActivityDBO.tags, ['cardio', 'outdoor']);
-      expect(
-        parsed.physicalActivityDBO.type,
-        PhysicalActivityTypeDBO.running,
-      );
+      expect(parsed.physicalActivityDBO.type, PhysicalActivityTypeDBO.running);
     });
 
     test('an activity with no tags round-trips to an empty list', () {
@@ -157,8 +153,7 @@ void main() {
       );
 
       final csv = CsvDataExporter.userActivitiesToCsv([activity]);
-      final parsed =
-          CsvDataExporter.parseUserActivitiesFromCsv(csv).single;
+      final parsed = CsvDataExporter.parseUserActivitiesFromCsv(csv).single;
 
       expect(parsed.physicalActivityDBO.tags, isEmpty);
     });
@@ -180,8 +175,7 @@ void main() {
       );
 
       final csv = CsvDataExporter.userActivitiesToCsv([activity]);
-      final parsed =
-          CsvDataExporter.parseUserActivitiesFromCsv(csv).single;
+      final parsed = CsvDataExporter.parseUserActivitiesFromCsv(csv).single;
 
       expect(parsed.userKcal, isNull);
       expect(parsed.externalId, isNull);
@@ -210,8 +204,7 @@ void main() {
       );
 
       final csv = CsvDataExporter.userActivitiesToCsv([activity]);
-      final parsed =
-          CsvDataExporter.parseUserActivitiesFromCsv(csv).single;
+      final parsed = CsvDataExporter.parseUserActivitiesFromCsv(csv).single;
 
       expect(parsed.userKcal, 350);
       expect(parsed.externalId, 'health-connect-record-1');
@@ -227,8 +220,7 @@ void main() {
           'act-5,2026-05-13T07:00:00.000Z,20,100,02020,Walking,'
           'Walking leisure,3.5,,sport\n';
 
-      final parsed =
-          CsvDataExporter.parseUserActivitiesFromCsv(csv).single;
+      final parsed = CsvDataExporter.parseUserActivitiesFromCsv(csv).single;
 
       expect(parsed.id, 'act-5');
       expect(parsed.burnedKcal, 100);
@@ -298,8 +290,10 @@ IntakeDBO _intake({
 }) {
   return IntakeDBO(
     id: id,
-    unit: unit,
-    amount: amount,
+    quantityAmount: amount,
+    quantityUnit: unit,
+    quantityBaseUnit: unit,
+    quantityUnitFactor: 1,
     type: type,
     meal: meal ?? _meal(),
     dateTime: when ?? DateTime.utc(2026, 1, 1),
@@ -354,8 +348,8 @@ MealNutrimentsDBO _nutriments({
 
 void _expectIntakeEqual(IntakeDBO actual, IntakeDBO expected) {
   expect(actual.id, expected.id);
-  expect(actual.unit, expected.unit);
-  expect(actual.amount, expected.amount);
+  expect(actual.baseUnit, expected.baseUnit);
+  expect(actual.baseAmount, expected.baseAmount);
   expect(actual.type, expected.type);
   expect(actual.dateTime, expected.dateTime);
   expect(actual.meal.code, expected.meal.code);
@@ -367,11 +361,17 @@ void _expectIntakeEqual(IntakeDBO actual, IntakeDBO expected) {
   expect(actual.meal.servingQuantity, expected.meal.servingQuantity);
   expect(actual.meal.servingUnit, expected.meal.servingUnit);
   expect(actual.meal.servingSize, expected.meal.servingSize);
-  expect(actual.meal.nutriments.energyKcal100,
-      expected.meal.nutriments.energyKcal100);
-  expect(actual.meal.nutriments.carbohydrates100,
-      expected.meal.nutriments.carbohydrates100);
+  expect(
+    actual.meal.nutriments.energyKcal100,
+    expected.meal.nutriments.energyKcal100,
+  );
+  expect(
+    actual.meal.nutriments.carbohydrates100,
+    expected.meal.nutriments.carbohydrates100,
+  );
   expect(actual.meal.nutriments.fat100, expected.meal.nutriments.fat100);
-  expect(actual.meal.nutriments.proteins100,
-      expected.meal.nutriments.proteins100);
+  expect(
+    actual.meal.nutriments.proteins100,
+    expected.meal.nutriments.proteins100,
+  );
 }

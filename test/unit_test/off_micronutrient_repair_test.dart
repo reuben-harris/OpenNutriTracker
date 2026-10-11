@@ -138,8 +138,10 @@ MealDBO _mealWrittenAfter775({
 
 IntakeDBO _intake(String id, MealDBO meal, {double amount = 100}) => IntakeDBO(
   id: id,
-  unit: 'g',
-  amount: amount,
+  quantityAmount: amount,
+  quantityUnit: 'g',
+  quantityBaseUnit: 'g',
+  quantityUnitFactor: 1,
   type: IntakeTypeDBO.breakfast,
   meal: meal,
   dateTime: DateTime.utc(2026, 8, 20, 8, 15),
@@ -325,8 +327,8 @@ void main() {
       _expectAppUnits(byId['old-off']!.meal.nutriments);
       _expectAppUnits(byId['old-off-2']!.meal.nutriments);
       // The intake's own fields survive the rewrite.
-      expect(byId['old-off-2']!.amount, 42);
-      expect(byId['old-off-2']!.unit, 'g');
+      expect(byId['old-off-2']!.baseAmount, 42);
+      expect(byId['old-off-2']!.baseUnit, 'g');
       expect(byId['old-off-2']!.type, IntakeTypeDBO.breakfast);
       expect(byId['old-off-2']!.dateTime, DateTime.utc(2026, 8, 20, 8, 15));
       // Everything else is byte-for-byte what was seeded.

@@ -112,8 +112,10 @@ void main() {
 
 IntakeDBO _intake({required String? imagePath}) => IntakeDBO(
   id: 'intake-1',
-  unit: 'g',
-  amount: 100,
+  quantityAmount: 100,
+  quantityUnit: 'g',
+  quantityBaseUnit: 'g',
+  quantityUnitFactor: 1,
   type: IntakeTypeDBO.snack,
   meal: _meal(imagePath: imagePath),
   dateTime: DateTime.utc(2026, 1, 1),

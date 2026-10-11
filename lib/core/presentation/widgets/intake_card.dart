@@ -43,12 +43,13 @@ class IntakeCard extends StatelessWidget {
         subtitle: TextSpan(
           children: [
             TextSpan(
-              text: intake.meal.isQuickAdd && !intake.meal.hasQuickAddWeight
+              text: intake.quantity == null
                   ? '—'
                   : MealValueUnitText.format(
                       context,
-                      intake.amount,
+                      intake.baseAmount!,
                       intake.meal,
+                      sourceUnit: intake.baseUnit,
                       usesImperialUnits: usesImperialUnits,
                     ),
             ),

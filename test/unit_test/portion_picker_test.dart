@@ -25,31 +25,47 @@ MealEntity _meal({
   portions: portions,
 );
 
-const _cup = MealPortionEntity(label: '1 cup', gramWeight: 244, localized: false);
-const _slice = MealPortionEntity(label: '1 slice', gramWeight: 38, localized: false);
-const _ounce = MealPortionEntity(label: '1 oz', gramWeight: 28, localized: false);
+const _cup = MealPortionEntity(
+  id: 'test:0',
+  label: '1 cup',
+  gramWeight: 244,
+  localized: false,
+);
+const _slice = MealPortionEntity(
+  id: 'test:1',
+  label: '1 slice',
+  gramWeight: 38,
+  localized: false,
+);
+const _ounce = MealPortionEntity(
+  id: 'test:2',
+  label: '1 oz',
+  gramWeight: 28,
+  localized: false,
+);
 
 BulkAddRow _row(MealEntity meal, String unit, {String query = 'bread'}) =>
     BulkAddRow(
-  resolved: ResolvedMealItem(
-    parsed: ParsedMealItem(query: query),
-    candidates: [meal],
-    selectedIndex: 0,
-    confidence: 0.9,
-  ),
-  selectedIndex: 0,
-  amountText: '2',
-  unit: unit,
-);
+      resolved: ResolvedMealItem(
+        parsed: ParsedMealItem(query: query),
+        candidates: [meal],
+        selectedIndex: 0,
+        confidence: 0.9,
+      ),
+      selectedIndex: 0,
+      amountText: '2',
+      unit: unit,
+    );
 
 void main() {
   group('the unit dropdown offers every portion (#864)', () {
     test('one entry per portion, in the backend order', () {
       final row = _row(_meal(portions: [_cup, _slice, _ounce]), 'serving');
-      expect(
-        row.allowedUnits.where(isPortionUnit),
-        ['serving', 'serving#1', 'serving#2'],
-      );
+      expect(row.allowedUnits.where(isPortionUnit), [
+        'serving',
+        'serving#1',
+        'serving#2',
+      ]);
     });
 
     test('a food with no portion list keeps the single serving entry', () {

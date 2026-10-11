@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/data_source/remote_search_cache_data_source.dart';
 import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
@@ -628,8 +629,10 @@ MealEntity _meal({
 IntakeEntity _intake(String id, MealEntity meal) {
   return IntakeEntity(
     id: id,
-    unit: 'g',
-    amount: 100,
+    quantity: FoodAmountSelection(
+      100,
+      FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+    ),
     type: IntakeTypeEntity.breakfast,
     meal: meal,
     dateTime: DateTime.utc(2024, 1, 1),

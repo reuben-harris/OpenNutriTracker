@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:opennutritracker/core/data/data_source/user_activity_dbo.dart';
@@ -100,8 +101,10 @@ void main() {
 
   IntakeEntity buildIntake() => IntakeEntity(
     id: 'source-intake',
-    unit: 'g',
-    amount: 100,
+    quantity: FoodAmountSelection(
+      100,
+      FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+    ),
     type: IntakeTypeEntity.breakfast,
     dateTime: DateTime(2026, 1, 1, 8),
     meal: MealEntity(
@@ -140,7 +143,7 @@ void main() {
     expect(intakeBox.length, 1);
     final copied = intakeBox.values.first;
     expect(copied.meal.name, 'Test Meal');
-    expect(copied.amount, 100);
+    expect(copied.baseAmount, 100);
     // The copy must not reuse the source id.
     expect(copied.id, isNot('source-intake'));
   });

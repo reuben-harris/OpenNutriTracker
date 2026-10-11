@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
+import 'package:opennutritracker/core/utils/food_amount_unit.dart';
 
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
@@ -65,7 +67,13 @@ class JsonMealImporter {
   static const _kDate = 'date';
   static const _kServingSize = 'serving_size';
 
-  static const _requiredKeys = <String>[_kName, _kKcal, _kProtein, _kCarbs, _kFat];
+  static const _requiredKeys = <String>[
+    _kName,
+    _kKcal,
+    _kProtein,
+    _kCarbs,
+    _kFat,
+  ];
 
   /// Pretty-printed JSON the "Sample meals (json)" button hands to the user. Three
   /// entries that between them show every supported field, including the
@@ -115,10 +123,7 @@ class JsonMealImporter {
 
     final trimmed = jsonContent.trim();
     if (trimmed.isEmpty) {
-      return const JsonImportResult(
-        intakes: [],
-        errors: ['JSON is empty'],
-      );
+      return const JsonImportResult(intakes: [], errors: ['JSON is empty']);
     }
 
     dynamic decoded;
@@ -142,9 +147,7 @@ class JsonMealImporter {
         } else {
           return JsonImportResult(
             intakes: const [],
-            errors: [
-              'Could not parse: entry #${i + 1} is not an object',
-            ],
+            errors: ['Could not parse: entry #${i + 1} is not an object'],
           );
         }
       }
@@ -166,7 +169,9 @@ class JsonMealImporter {
 
       final missing = _requiredKeys.where((k) => entry[k] == null).toList();
       if (missing.isNotEmpty) {
-        errors.add('Entry $entryNum: missing required field(s): ${missing.join(', ')}');
+        errors.add(
+          'Entry $entryNum: missing required field(s): ${missing.join(', ')}',
+        );
         continue;
       }
 
@@ -180,12 +185,18 @@ class JsonMealImporter {
       final proteinTotal = _asDouble(entry[_kProtein]);
       final carbsTotal = _asDouble(entry[_kCarbs]);
       final fatTotal = _asDouble(entry[_kFat]);
-      if (kcalTotal == null || proteinTotal == null || carbsTotal == null || fatTotal == null) {
-        errors.add('Entry $entryNum: kcal / protein / carbs / fat must all be numbers');
+      if (kcalTotal == null ||
+          proteinTotal == null ||
+          carbsTotal == null ||
+          fatTotal == null) {
+        errors.add(
+          'Entry $entryNum: kcal / protein / carbs / fat must all be numbers',
+        );
         continue;
       }
 
-      final mealTypeRaw = (entry[_kMealType]?.toString().trim() ?? '').toLowerCase();
+      final mealTypeRaw = (entry[_kMealType]?.toString().trim() ?? '')
+          .toLowerCase();
       final IntakeTypeEntity mealType;
       if (mealTypeRaw.isEmpty) {
         mealType = IntakeTypeEntity.snack;
@@ -201,8 +212,10 @@ class JsonMealImporter {
         mealType = parsed;
       }
 
-      final amount = entry[_kAmount] == null ? 100.0 : _asDouble(entry[_kAmount]);
-      if (amount == null || amount <= 0) {
+      final amount = entry[_kAmount] == null
+          ? 100.0
+          : _asDouble(entry[_kAmount]);
+      if (amount == null || !amount.isFinite || amount <= 0) {
         errors.add('Entry $entryNum: amount must be a positive number');
         continue;
       }
@@ -210,6 +223,29 @@ class JsonMealImporter {
       final unit = (entry[_kUnit]?.toString().trim().isNotEmpty == true)
           ? entry[_kUnit].toString().trim()
           : 'g';
+      final amountUnit = FoodAmountUnit.values
+          .where(
+            (u) =>
+                u.label == unit ||
+                (u == FoodAmountUnit.flOz && unit == 'fl.oz'),
+          )
+          .firstOrNull;
+      if (amountUnit == null) {
+        errors.add(
+          'Entry $entryNum: unit must be a supported mass or volume unit',
+        );
+        continue;
+      }
+      final quantity = FoodAmountSelection(
+        amount,
+        FoodAmountOption.standard(amountUnit),
+      );
+      if (!quantity.isValid) {
+        errors.add(
+          'Entry $entryNum: amount conversion must be finite and positive',
+        );
+        continue;
+      }
 
       // Optional serving_size: independent of `amount`. `amount` is what
       // was logged this time; `serving_size` describes what a serving
@@ -219,11 +255,14 @@ class JsonMealImporter {
       double? servingQuantity;
       if (entry.containsKey(_kServingSize) && entry[_kServingSize] != null) {
         final parsed = _asDouble(entry[_kServingSize]);
-        if (parsed == null || parsed <= 0) {
+        if (parsed == null ||
+            !parsed.isFinite ||
+            parsed <= 0 ||
+            !amountUnit.toBase(parsed).isFinite) {
           errors.add('Entry $entryNum: serving_size must be a positive number');
           continue;
         }
-        servingQuantity = parsed;
+        servingQuantity = amountUnit.toBase(parsed);
       }
 
       DateTime date;
@@ -247,7 +286,7 @@ class JsonMealImporter {
       // Both the energyPerUnit / *PerUnit getters and the diary's daily
       // sums multiply per-unit values by the logged amount, so this
       // keeps the displayed kcal/macros faithful to what was pasted.
-      final factor = 100.0 / amount;
+      final factor = 100.0 / quantity.baseAmount;
       final nutriments = MealNutrimentsEntity(
         energyKcal100: kcalTotal * factor,
         carbohydrates100: carbsTotal * factor,
@@ -262,12 +301,12 @@ class JsonMealImporter {
         code: null,
         name: name,
         url: null,
-        mealQuantity: amount.toString(),
-        mealUnit: unit,
+        mealQuantity: quantity.baseAmount.toString(),
+        mealUnit: amountUnit.baseUnit,
         servingQuantity: servingQuantity,
-        servingUnit: unit,
+        servingUnit: amountUnit.baseUnit,
         servingSize: servingQuantity != null
-            ? '${_formatNumber(servingQuantity)} $unit'
+            ? '${_formatNumber(servingQuantity)} ${amountUnit.baseUnit}'
             : '$amount $unit',
         nutriments: nutriments,
         source: MealSourceEntity.custom,
@@ -276,8 +315,7 @@ class JsonMealImporter {
       intakes.add(
         IntakeEntity(
           id: IdGenerator.getUniqueID(),
-          unit: unit,
-          amount: amount,
+          quantity: quantity,
           type: mealType,
           meal: meal,
           dateTime: date,

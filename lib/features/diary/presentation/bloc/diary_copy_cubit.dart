@@ -84,8 +84,7 @@ class DiaryCopyCubit extends Cubit<bool> {
         wrote = true;
         await _logger.addIntake(
           context,
-          entry.unit,
-          entry.amount.toString(),
+          entry.quantity,
           type,
           entry.meal,
           day,

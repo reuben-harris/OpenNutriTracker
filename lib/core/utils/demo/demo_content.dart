@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:io';
 import 'dart:math';
 
@@ -558,63 +559,84 @@ List<IntakeEntity> buildDailyIntakes(
   );
 
   return [
-    IntakeEntity(
-      id: IdGenerator.getUniqueID(),
-      unit: 'g',
-      amount: carbAmountA,
-      type: IntakeTypeEntity.breakfast,
-      meal: carbMealA,
-      dateTime: jitteredTime(day, 8),
-    ),
-    IntakeEntity(
-      id: IdGenerator.getUniqueID(),
-      unit: 'g',
-      amount: proteinAmount,
-      type: IntakeTypeEntity.lunch,
-      meal: proteinMeal,
-      dateTime: jitteredTime(day, 13),
-    ),
-    IntakeEntity(
-      id: IdGenerator.getUniqueID(),
-      unit: 'g',
-      amount: veggieAmount,
-      type: IntakeTypeEntity.dinner,
-      meal: foods.broccoli,
-      dateTime: jitteredTime(day, 19),
-    ),
-    IntakeEntity(
-      id: IdGenerator.getUniqueID(),
-      unit: 'g',
-      amount: carbAmountB,
-      type: IntakeTypeEntity.dinner,
-      meal: carbMealB,
-      dateTime: jitteredTime(day, 19),
-    ),
-    IntakeEntity(
-      id: IdGenerator.getUniqueID(),
-      unit: 'g',
-      amount: oilAmount,
-      type: IntakeTypeEntity.dinner,
-      meal: foods.oliveOil,
-      dateTime: jitteredTime(day, 19),
-    ),
-    IntakeEntity(
-      id: IdGenerator.getUniqueID(),
-      unit: 'g',
-      amount: fruitAmount,
-      type: IntakeTypeEntity.snack,
-      meal: fruitMeal,
-      dateTime: jitteredTime(day, 16),
-    ),
-    IntakeEntity(
-      id: IdGenerator.getUniqueID(),
-      unit: 'g',
-      amount: almondAmount,
-      type: IntakeTypeEntity.snack,
-      meal: foods.almonds,
-      dateTime: jitteredTime(day, 16),
-    ),
-  ].where((intake) => intake.amount > 0).toList();
+    if (carbAmountA > 0)
+      IntakeEntity(
+        id: IdGenerator.getUniqueID(),
+        quantity: FoodAmountSelection(
+          carbAmountA,
+          const FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+        type: IntakeTypeEntity.breakfast,
+        meal: carbMealA,
+        dateTime: jitteredTime(day, 8),
+      ),
+    if (proteinAmount > 0)
+      IntakeEntity(
+        id: IdGenerator.getUniqueID(),
+        quantity: FoodAmountSelection(
+          proteinAmount,
+          const FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+        type: IntakeTypeEntity.lunch,
+        meal: proteinMeal,
+        dateTime: jitteredTime(day, 13),
+      ),
+    if (veggieAmount > 0)
+      IntakeEntity(
+        id: IdGenerator.getUniqueID(),
+        quantity: FoodAmountSelection(
+          veggieAmount,
+          const FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+        type: IntakeTypeEntity.dinner,
+        meal: foods.broccoli,
+        dateTime: jitteredTime(day, 19),
+      ),
+    if (carbAmountB > 0)
+      IntakeEntity(
+        id: IdGenerator.getUniqueID(),
+        quantity: FoodAmountSelection(
+          carbAmountB,
+          const FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+        type: IntakeTypeEntity.dinner,
+        meal: carbMealB,
+        dateTime: jitteredTime(day, 19),
+      ),
+    if (oilAmount > 0)
+      IntakeEntity(
+        id: IdGenerator.getUniqueID(),
+        quantity: FoodAmountSelection(
+          oilAmount,
+          const FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+        type: IntakeTypeEntity.dinner,
+        meal: foods.oliveOil,
+        dateTime: jitteredTime(day, 19),
+      ),
+    if (fruitAmount > 0)
+      IntakeEntity(
+        id: IdGenerator.getUniqueID(),
+        quantity: FoodAmountSelection(
+          fruitAmount,
+          const FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+        type: IntakeTypeEntity.snack,
+        meal: fruitMeal,
+        dateTime: jitteredTime(day, 16),
+      ),
+    if (almondAmount > 0)
+      IntakeEntity(
+        id: IdGenerator.getUniqueID(),
+        quantity: FoodAmountSelection(
+          almondAmount,
+          const FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+        type: IntakeTypeEntity.snack,
+        meal: foods.almonds,
+        dateTime: jitteredTime(day, 16),
+      ),
+  ];
 }
 
 const _runningVigorous = PhysicalActivityEntity(

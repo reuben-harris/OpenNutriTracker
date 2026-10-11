@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:async';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
@@ -409,8 +410,10 @@ void main() {
       );
       final intake = IntakeEntity(
         id: 'portion',
-        unit: 'g',
-        amount: 25,
+        quantity: FoodAmountSelection(
+          25,
+          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
         type: IntakeTypeEntity.lunch,
         meal: meal,
         dateTime: DateTime(2026, 9, 20),

@@ -21,6 +21,7 @@ void main() {
       await box.close();
       box = await Hive.openBox<Map>('profile-a');
       expect(FoodAmountMemory(box).read(meal)!.amount, 53);
+      expect(box.values.single, {'amount': 53.0, 'unit': 'g', 'base': 'g'});
       expect(
         FoodAmountMemory(
           box,
@@ -41,10 +42,35 @@ void main() {
     }
   });
   test('an unsupported remembered pair is discarded together', () {
-    final selection = FoodAmountSelection(
-      53,
-      const FoodAmountOption(unit: 'serving', baseUnit: 'g', factor: 30),
-    );
+    const selection = FoodAmountPreference(53, 'serving', 'g');
     expect(supportedRememberedAmount(food('x', 'Food'), selection), isNull);
+  });
+  test('remembered servings use the current food conversion', () {
+    final meal = MealEntity(
+      code: 'food',
+      name: 'Food',
+      url: null,
+      mealQuantity: null,
+      mealUnit: 'g',
+      servingQuantity: 35,
+      servingUnit: 'g',
+      servingSize: '35 g',
+      nutriments: food('x', 'Food').nutriments,
+      source: MealSourceEntity.custom,
+    );
+    final selected = supportedRememberedAmount(
+      meal,
+      const FoodAmountPreference(2, 'serving', 'g'),
+    )!;
+    expect(selected.amount, 2);
+    expect(selected.option.factor, 35);
+    expect(selected.baseAmount, 70);
+    expect(
+      supportedRememberedAmount(
+        meal,
+        const FoodAmountPreference(2, 'serving', 'ml'),
+      ),
+      isNull,
+    );
   });
 }
