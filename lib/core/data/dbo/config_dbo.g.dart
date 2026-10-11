@@ -51,7 +51,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
         healthDeletedExternalIds: (fields[36] as List?)?.cast<String>(),
         policyNoticeRevisionSeen: (fields[37] as num?)?.toInt(),
         healthDeletedWorkouts: (fields[38] as Map?)?.cast<String, DateTime>(),
-        defaultToRawFoodUnits: fields[39] as bool?,
         amountArithmeticEnabled: fields[42] as bool?,
         overviewMacrosAsPercent: fields[40] as bool?,
         overviewNutrientsAsPercent: fields[41] as bool?,
@@ -64,7 +63,7 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
   @override
   void write(BinaryWriter writer, ConfigDBO obj) {
     writer
-      ..writeByte(41)
+      ..writeByte(40)
       ..writeByte(0)
       ..write(obj.hasAcceptedDisclaimer)
       ..writeByte(1)
@@ -139,8 +138,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
       ..write(obj.policyNoticeRevisionSeen)
       ..writeByte(38)
       ..write(obj.healthDeletedWorkouts)
-      ..writeByte(39)
-      ..write(obj.defaultToRawFoodUnits)
       ..writeByte(40)
       ..write(obj.overviewMacrosAsPercent)
       ..writeByte(41)
@@ -217,7 +214,6 @@ ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
             (json['healthDeletedWorkouts'] as Map<String, dynamic>?)?.map(
               (k, e) => MapEntry(k, DateTime.parse(e as String)),
             ),
-        defaultToRawFoodUnits: json['defaultToRawFoodUnits'] as bool?,
         amountArithmeticEnabled: json['amountArithmeticEnabled'] as bool?,
         overviewMacrosAsPercent: json['overviewMacrosAsPercent'] as bool?,
         overviewNutrientsAsPercent: json['overviewNutrientsAsPercent'] as bool?,
@@ -266,7 +262,6 @@ Map<String, dynamic> _$ConfigDBOToJson(ConfigDBO instance) => <String, dynamic>{
     (k, e) => MapEntry(k, e.toIso8601String()),
   ),
   'policyNoticeRevisionSeen': instance.policyNoticeRevisionSeen,
-  'defaultToRawFoodUnits': instance.defaultToRawFoodUnits,
   'overviewMacrosAsPercent': instance.overviewMacrosAsPercent,
   'overviewNutrientsAsPercent': instance.overviewNutrientsAsPercent,
   'amountArithmeticEnabled': instance.amountArithmeticEnabled,

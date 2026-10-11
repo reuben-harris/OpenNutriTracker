@@ -74,7 +74,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
           isDemoData: userConfig.isDemoData,
           healthImportEnabled: userConfig.healthImportEnabled,
           healthWorkoutKcalMultiplier: userConfig.healthWorkoutKcalMultiplier,
-          defaultToRawFoodUnits: userConfig.defaultToRawFoodUnits,
           amountArithmeticEnabled: userConfig.amountArithmeticEnabled,
         ),
       );
@@ -153,10 +152,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   Future<void> setAmountArithmeticEnabled(bool value) async {
     await _addConfigUsecase.setAmountArithmeticEnabled(value);
     add(LoadSettingsEvent());
-  }
-
-  void setDefaultToRawFoodUnits(bool value) {
-    _addConfigUsecase.setConfigDefaultToRawFoodUnits(value);
   }
 
   void setUseMaterialYou(bool useMaterialYou) {

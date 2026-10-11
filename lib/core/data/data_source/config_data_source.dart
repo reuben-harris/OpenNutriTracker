@@ -245,10 +245,6 @@ class ConfigDataSource {
   Future<void> setOverviewNutrientsAsPercent(bool value) =>
       _update((c) => c.overviewNutrientsAsPercent = value);
 
-  Future<void> setConfigDefaultToRawFoodUnits(bool value) async {
-    await _update((c) => c.defaultToRawFoodUnits = value);
-  }
-
   Future<void> setAmountArithmeticEnabled(bool value) async {
     await _update((c) => c.amountArithmeticEnabled = value);
   }
