@@ -1,5 +1,6 @@
 import 'package:opennutritracker/core/food_amount/food_amount_expression.dart';
 import 'package:opennutritracker/core/food_amount/food_amount_memory.dart';
+import 'package:opennutritracker/core/data/data_source/remote_search_cache_data_source.dart';
 import 'package:opennutritracker/core/utils/hive_db_provider.dart';
 import 'dart:async';
 import 'package:auto_size_text/auto_size_text.dart';
@@ -9,6 +10,7 @@ import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
+import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
@@ -53,6 +55,8 @@ Future<bool> showFoodAmountSheet(
           editing: editing,
           hydrate: hydrate,
           arithmetic: config.amountArithmeticEnabled,
+          isProfileCurrent: () =>
+              profiles == null || profiles.activeProfileId == profile,
         ),
       ) ??
       false;
@@ -69,12 +73,14 @@ class FoodAmountSheet extends StatefulWidget {
     this.editing = false,
     this.hydrate = true,
     this.arithmetic = false,
+    this.isProfileCurrent,
   });
   final MealEntity meal;
   final Future<bool> Function(MealEntity, FoodAmountSelection) onConfirm;
   final FoodAmountSelection? initial;
   final FoodAmountPreference? remembered;
   final Future<void> Function(MealEntity, FoodAmountSelection)? onRemember;
+  final bool Function()? isProfileCurrent;
   final bool editing, hydrate, arithmetic;
   @override
   State<FoodAmountSheet> createState() => _FoodAmountSheetState();
@@ -87,35 +93,76 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
   final _focus = FocusNode();
   MealDetailBloc? _details;
   StreamSubscription<MealDetailState>? _subscription;
-  bool _changed = false, _saving = false;
+  bool _initializing = false, _saving = false;
   String? _error;
   @override
   void initState() {
     super.initState();
     _meal = widget.meal;
+    _amount = TextEditingController();
     final initial =
-        widget.initial ??
-        supportedRememberedAmount(_meal, widget.remembered) ??
-        _default();
-    _option = initial.option;
-    _amount = TextEditingController(text: formatFoodAmount(initial.amount));
+        widget.initial ?? supportedRememberedAmount(_meal, widget.remembered);
+    final rememberedUnit = widget.remembered?.unit;
+    if (initial == null &&
+        (rememberedUnit == 'serving' ||
+            rememberedUnit?.startsWith('portion:') == true)) {
+      _initializing = true;
+      unawaited(_restoreRememberedAmount());
+    } else {
+      _initialize(initial ?? _default());
+      _hydrate();
+    }
+  }
+
+  void _initialize(FoodAmountSelection selection) {
+    _option = selection.option;
+    _amount.text = formatFoodAmount(selection.amount);
     _selectAll();
+    _initializing = false;
+  }
+
+  bool get _isCurrent => mounted && (widget.isProfileCurrent?.call() ?? true);
+
+  Future<void> _restoreRememberedAmount() async {
+    MealEntity? local;
+    try {
+      final code = _meal.code;
+      if (_meal.isCatalogueFood &&
+          code != null &&
+          locator.isRegistered<FoodCatalogue>()) {
+        local = await locator<FoodCatalogue>().getById(code);
+      } else if (_meal.source == MealSourceEntity.off &&
+          code != null &&
+          locator.isRegistered<RemoteSearchCacheDataSource>()) {
+        final cache = locator<RemoteSearchCacheDataSource>();
+        final generation = cache.generation;
+        final language = cache.language;
+        final saved = await cache.getDetailedByBarcode(code);
+        if (generation == cache.generation && language == cache.language) {
+          local = saved == null ? null : MealEntity.fromMealDBO(saved);
+        }
+      }
+    } catch (_) {
+      /* A missing local conversion falls back without a network wait. */
+    }
+    if (!_isCurrent) return;
+    setState(() {
+      _meal = local ?? _meal;
+      _initialize(
+        supportedRememberedAmount(_meal, widget.remembered) ?? _default(),
+      );
+    });
+    _hydrate();
+  }
+
+  void _hydrate() {
     if (widget.hydrate && locator.isRegistered<MealDetailBloc>()) {
       _details = locator<MealDetailBloc>();
       _subscription = _details!.stream.listen((state) {
         final full = state.hydratedMeal;
-        if (!mounted || full == null || identical(full, _meal)) return;
+        if (!_isCurrent || full == null || identical(full, _meal)) return;
         setState(() {
           _meal = full;
-          // Hydration can reveal a default serving, but cannot replace input.
-          if (!_changed && !_saving && widget.initial == null) {
-            final initial =
-                supportedRememberedAmount(_meal, widget.remembered) ??
-                _default();
-            _option = initial.option;
-            _amount.text = formatFoodAmount(initial.amount);
-            _selectAll();
-          }
         });
       });
       _details!.add(HydrateMealEvent(_meal));
@@ -137,7 +184,7 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
   }
 
   Future<void> _confirm() async {
-    if (_saving) return;
+    if (_saving || _initializing) return;
     double? value;
     try {
       value = evaluateFoodAmount(_amount.text, arithmetic: widget.arithmetic);
@@ -192,7 +239,6 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
     final start = selection.isValid ? selection.start : text.length;
     final end = selection.isValid ? selection.end : text.length;
     setState(() {
-      _changed = true;
       _error = null;
       _amount.value = TextEditingValue(
         text: text.replaceRange(start, end, operator),
@@ -207,7 +253,6 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
       final value = evaluateFoodAmount(_amount.text, arithmetic: true);
       if (value <= 0) throw const FormatException('Non-positive amount');
       setState(() {
-        _changed = true;
         _amount.text = formatFoodAmount(value);
         _selectAll();
         _error = null;
@@ -219,12 +264,16 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final options = foodAmountOptions(_meal);
-    final at = options.indexWhere((o) => o.identity == _option.identity);
-    if (at < 0) {
-      options.insert(0, _option);
-    } else {
-      options[at] = _option;
+    final options = _initializing
+        ? <FoodAmountOption>[]
+        : foodAmountOptions(_meal);
+    if (!_initializing) {
+      final at = options.indexWhere((o) => o.identity == _option.identity);
+      if (at < 0) {
+        options.insert(0, _option);
+      } else {
+        options[at] = _option;
+      }
     }
     return PopScope(
       canPop: !_saving,
@@ -249,90 +298,107 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
+                if (_initializing)
+                  SizedBox(
+                    height: 72,
+                    child: Center(
                       child: Semantics(
-                        identifier: 'food-amount-input',
-                        child: TextField(
-                          controller: _amount,
-                          focusNode: _focus,
-                          autofocus: true,
-                          enabled: !_saving,
-                          keyboardType: TextInputType.numberWithOptions(
-                            decimal: true,
-                            signed: widget.arithmetic,
+                        identifier: 'food-amount-loading',
+                        child: SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            semanticsLabel: S
+                                .of(context)
+                                .foodAmountLoadingSavedLabel,
                           ),
-                          textInputAction: TextInputAction.done,
-                          inputFormatters: [
-                            TextInputFormatter.withFunction(
-                              (old, next) =>
-                                  (widget.arithmetic
-                                          ? RegExp(r'^[0-9.,\s+−\-×*/÷]*$')
-                                          : RegExp(r'^\d*(?:[.,]\d*)?$'))
-                                      .hasMatch(next.text)
-                                  ? next
-                                  : old,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Semantics(
+                          identifier: 'food-amount-input',
+                          child: TextField(
+                            controller: _amount,
+                            focusNode: _focus,
+                            autofocus: true,
+                            enabled: !_saving,
+                            keyboardType: TextInputType.numberWithOptions(
+                              decimal: true,
+                              signed: widget.arithmetic,
                             ),
-                          ],
-                          onChanged: (_) => setState(() {
-                            _changed = true;
-                            _error = null;
-                          }),
-                          onSubmitted: (_) => widget.arithmetic
-                              ? _normalizeExpression()
-                              : _confirm(),
-                          decoration: InputDecoration(
-                            labelText: S.of(context).quantityLabel,
-                            border: const OutlineInputBorder(),
+                            textInputAction: TextInputAction.done,
+                            inputFormatters: [
+                              TextInputFormatter.withFunction(
+                                (old, next) =>
+                                    (widget.arithmetic
+                                            ? RegExp(r'^[0-9.,\s+−\-×*/÷]*$')
+                                            : RegExp(r'^\d*(?:[.,]\d*)?$'))
+                                        .hasMatch(next.text)
+                                    ? next
+                                    : old,
+                              ),
+                            ],
+                            onChanged: (_) => setState(() {
+                              _error = null;
+                            }),
+                            onSubmitted: (_) => widget.arithmetic
+                                ? _normalizeExpression()
+                                : _confirm(),
+                            decoration: InputDecoration(
+                              labelText: S.of(context).quantityLabel,
+                              border: const OutlineInputBorder(),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: Semantics(
-                        identifier: 'food-amount-unit',
-                        child: DropdownButtonFormField<String>(
-                          key: ValueKey(_option.identity),
-                          initialValue: _option.identity,
-                          isExpanded: true,
-                          itemHeight: null,
-                          decoration: InputDecoration(
-                            labelText: S.of(context).unitLabel,
-                            border: const OutlineInputBorder(),
-                          ),
-                          items: options
-                              .map(
-                                (option) => DropdownMenuItem(
-                                  value: option.identity,
-                                  child: Text(
-                                    option.unit == 'serving' &&
-                                            option.label == null
-                                        ? S.of(context).servingLabel
-                                        : option.displayLabel,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: Semantics(
+                          identifier: 'food-amount-unit',
+                          child: DropdownButtonFormField<String>(
+                            key: ValueKey(_option.identity),
+                            initialValue: _option.identity,
+                            isExpanded: true,
+                            itemHeight: null,
+                            decoration: InputDecoration(
+                              labelText: S.of(context).unitLabel,
+                              border: const OutlineInputBorder(),
+                            ),
+                            items: options
+                                .map(
+                                  (option) => DropdownMenuItem(
+                                    value: option.identity,
+                                    child: Text(
+                                      option.unit == 'serving' &&
+                                              option.label == null
+                                          ? S.of(context).servingLabel
+                                          : option.displayLabel,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: _saving
-                              ? null
-                              : (id) => setState(() {
-                                  _changed = true;
-                                  _option = options.firstWhere(
-                                    (o) => o.identity == id,
-                                  );
-                                }),
+                                )
+                                .toList(),
+                            onChanged: _saving
+                                ? null
+                                : (id) => setState(() {
+                                    _option = options.firstWhere(
+                                      (o) => o.identity == id,
+                                    );
+                                  }),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                if (widget.arithmetic)
+                    ],
+                  ),
+                if (widget.arithmetic && !_initializing)
                   TextFieldTapRegion(
                     child: Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -362,7 +428,7 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
                       ),
                     ),
                   ),
-                if (widget.arithmetic && _preview() != null)
+                if (widget.arithmetic && !_initializing && _preview() != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Semantics(
@@ -395,7 +461,7 @@ class _FoodAmountSheetState extends State<FoodAmountSheet> {
                   child: SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: _saving ? null : _confirm,
+                      onPressed: _saving || _initializing ? null : _confirm,
                       child: _saving
                           ? const SizedBox.square(
                               dimension: 20,
