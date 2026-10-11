@@ -1417,6 +1417,7 @@
   "quickAddWeightLabel": "Weight / volume (optional)",
   "logThisFoodLabel": "Log this food",
   "foodAmountInvalidLabel": "Enter a valid amount greater than 0.",
+  "foodAmountLoadingSavedLabel": "Loading saved amount",
   "foodSourceCustomLabel": "Custom",
   "foodSourceFdcLabel": "FoodData Central",
   "unknownBrandLabel": "Unknown Brand",
