@@ -1421,5 +1421,7 @@
   "foodSourceCustomLabel": "Custom",
   "foodSourceFdcLabel": "FoodData Central",
   "unknownBrandLabel": "Unknown Brand",
-  "foodSourceUnknownLabel": "Unknown"
+  "foodSourceUnknownLabel": "Unknown",
+  "settingsAmountArithmeticLabel": "Calculate food amounts",
+  "settingsAmountArithmeticSubtitle": "Use +, −, × and ÷ in food amount fields. For example, 10+20 becomes 30."
 }

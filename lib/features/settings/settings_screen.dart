@@ -232,6 +232,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: () =>
                       _showEnergyUnitDialog(context, state.usesKilojoules),
                 ),
+                _SettingsSwitchTile(
+                  identifier: 'settings-amount-arithmetic',
+                  palette: palette,
+                  icon: Icons.calculate_outlined,
+                  title: S.of(context).settingsAmountArithmeticLabel,
+                  subtitle: S.of(context).settingsAmountArithmeticSubtitle,
+                  value: state.amountArithmeticEnabled,
+                  onChanged: (value) async {
+                    try {
+                      await _settingsBloc.setAmountArithmeticEnabled(value);
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              S.of(context).displayPreferenceSaveErrorLabel,
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
                 // #1126: opt out of the serving-first default so the
                 // meal-detail dropdown lands on the food unit (g, oz,
                 // ml, fl oz) straight away. Sits after Energy unit in

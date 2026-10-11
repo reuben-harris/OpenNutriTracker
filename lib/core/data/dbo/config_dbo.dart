@@ -178,6 +178,9 @@ class ConfigDBO extends HiveObject {
   @HiveField(41)
   bool? overviewNutrientsAsPercent;
 
+  @HiveField(42)
+  bool? amountArithmeticEnabled;
+
   ConfigDBO(
     this.hasAcceptedDisclaimer,
     this.hasAcceptedPolicy,
@@ -214,6 +217,7 @@ class ConfigDBO extends HiveObject {
     this.policyNoticeRevisionSeen,
     this.healthDeletedWorkouts,
     this.defaultToRawFoodUnits,
+    this.amountArithmeticEnabled,
     this.overviewMacrosAsPercent,
     this.overviewNutrientsAsPercent,
   });
@@ -226,6 +230,7 @@ class ConfigDBO extends HiveObject {
     entity.hasAcceptedPolicy,
     entity.hasAcceptedSendAnonymousData,
     AppThemeDBO.fromAppThemeEntity(entity.appTheme),
+    amountArithmeticEnabled: entity.amountArithmeticEnabled,
     overviewMacrosAsPercent: entity.overviewMacrosAsPercent,
     overviewNutrientsAsPercent: entity.overviewNutrientsAsPercent,
     usesImperialUnits: entity.usesImperialUnits,

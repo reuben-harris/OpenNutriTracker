@@ -102,6 +102,10 @@ class AddConfigUsecase {
     await _configRepository.setConfigDefaultToRawFoodUnits(value);
   }
 
+  Future<void> setAmountArithmeticEnabled(bool value) async {
+    await _configRepository.setAmountArithmeticEnabled(value);
+  }
+
   Future<void> setConfigMealKcalSharesPct(Map<String, int> shares) async {
     await _configRepository.setConfigMealKcalSharesPct(shares);
   }
