@@ -7,9 +7,9 @@ import 'package:opennutritracker/core/search/off_food_search_source.dart';
 import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 
-enum FoodSearchFilter { all, products, food, recent }
+enum FoodSearchFilter { all, products, food, recent, recipes }
 
-enum FoodSearchSource { catalogue, cache, saved, recent, online }
+enum FoodSearchSource { catalogue, cache, saved, recipes, recent, online }
 
 class FoodSearchRequest {
   const FoodSearchRequest(
@@ -43,6 +43,7 @@ class FoodSearchEngine {
     required this.catalogue,
     required this.cache,
     required this.savedMeals,
+    required this.savedRecipes,
     required this.recentMeals,
     required this.online,
     required this.contextIdentity,
@@ -51,6 +52,7 @@ class FoodSearchEngine {
   final FoodCatalogue catalogue;
   final RemoteSearchCacheDataSource cache;
   final Future<List<MealEntity>> Function() savedMeals;
+  final Future<List<MealEntity>> Function() savedRecipes;
 
   /// Newest-first, deduplicated history supplied by a consumer-independent adapter.
   final Future<List<MealEntity>> Function() recentMeals;
@@ -75,6 +77,8 @@ class FoodSearchSession {
     final nonblank = foodSearchMatch(request.query) != null;
     if (request.filter == FoodSearchFilter.recent) {
       _pending.add(FoodSearchSource.recent);
+    } else if (request.filter == FoodSearchFilter.recipes) {
+      _pending.add(FoodSearchSource.recipes);
     } else if (nonblank) {
       if (request.filter != FoodSearchFilter.products) {
         _pending.add(FoodSearchSource.catalogue);
@@ -83,6 +87,7 @@ class FoodSearchSession {
         _pending.add(FoodSearchSource.cache);
         if (request.filter == FoodSearchFilter.all) {
           _pending.add(FoodSearchSource.saved);
+          _pending.add(FoodSearchSource.recipes);
         }
         if (request.query.trim().length >= 2) {
           _pending.add(FoodSearchSource.online);
@@ -151,6 +156,7 @@ class FoodSearchSession {
           language: request.language,
         )).map(MealEntity.fromMealDBO).toList(),
         FoodSearchSource.saved => await _engine.savedMeals(),
+        FoodSearchSource.recipes => await _engine.savedRecipes(),
         FoodSearchSource.recent =>
           await (_recentSnapshot ?? _engine.recentMeals()),
         FoodSearchSource.online => throw StateError('Not a local source'),
@@ -190,12 +196,26 @@ class FoodSearchSession {
                 ),
               );
       }
-      final ranked = await rankFoodCandidates(
-        request.query,
-        byId.values.toList(),
-        remoteIdentities: _remote.keys.toSet(),
-        chronological: request.filter == FoodSearchFilter.recent,
-      );
+      final List<MealEntity> ranked;
+      if (request.filter == FoodSearchFilter.recipes &&
+          foodSearchMatch(request.query) == null) {
+        ranked = byId.values.toList()
+          ..sort((a, b) {
+            final byName = normalizeFoodSearchText(
+              a.name ?? '',
+            ).compareTo(normalizeFoodSearchText(b.name ?? ''));
+            return byName != 0
+                ? byName
+                : foodIdentity(a).compareTo(foodIdentity(b));
+          });
+      } else {
+        ranked = await rankFoodCandidates(
+          request.query,
+          byId.values.toList(),
+          remoteIdentities: _remote.keys.toSet(),
+          chronological: request.filter == FoodSearchFilter.recent,
+        );
+      }
       if (!_active || revision != _revision) return;
       if (_appendPages) {
         final remaining = {for (final meal in ranked) foodIdentity(meal): meal};
@@ -271,8 +291,8 @@ class FoodSearchSession {
   void submit() {
     if (!_active ||
         request.query.trim().length < 2 ||
-        request.filter == FoodSearchFilter.food ||
-        request.filter == FoodSearchFilter.recent) {
+        (request.filter != FoodSearchFilter.all &&
+            request.filter != FoodSearchFilter.products)) {
       return;
     }
     if (!_started) {

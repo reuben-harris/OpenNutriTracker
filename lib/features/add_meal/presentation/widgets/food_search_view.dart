@@ -137,6 +137,7 @@ class _FoodSearchViewState extends State<FoodSearchView> {
             chip(FoodSearchFilter.recent, S.of(context).recentlyAddedLabel),
             chip(FoodSearchFilter.products, S.of(context).searchProductsPage),
             chip(FoodSearchFilter.food, S.of(context).searchFoodPage),
+            chip(FoodSearchFilter.recipes, S.of(context).recipesLabel),
           ],
         ),
       ),
@@ -164,9 +165,12 @@ class _FoodSearchViewState extends State<FoodSearchView> {
   ) => BlocBuilder<FoodSearchController, FoodSearchSnapshot>(
     bloc: _search,
     builder: (context, state) {
+      final recipesOnly = state.request.filter == FoodSearchFilter.recipes;
+      final hasQuery = foodSearchMatch(state.request.query) != null;
       final idle =
           state.request.filter != FoodSearchFilter.recent &&
-          foodSearchMatch(state.request.query) == null;
+          !recipesOnly &&
+          !hasQuery;
       return Column(
         children: [
           _resultsHeader(context, palette),
@@ -189,15 +193,25 @@ class _FoodSearchViewState extends State<FoodSearchView> {
                           icon: Icons.history_rounded,
                           title: S.of(context).noMealsRecentlyAddedLabel,
                         )
+                      : recipesOnly && !hasQuery
+                      ? EmptyHint(
+                          icon: Icons.menu_book_rounded,
+                          title: S.of(context).recipesEmptyLabel,
+                        )
                       : NoResultsWidget(
-                          onScanBarcode: () =>
-                              widget.onBarcodePressed?.call(null),
-                          onCreateCustomFood: widget.onCreateCustomFood,
+                          onScanBarcode: recipesOnly
+                              ? null
+                              : () => widget.onBarcodePressed?.call(null),
+                          onCreateCustomFood: recipesOnly
+                              ? null
+                              : widget.onCreateCustomFood,
                         ))
                 : Semantics(
-                    identifier: state.request.filter == FoodSearchFilter.food
-                        ? 'diary-food-results'
-                        : 'diary-search-results',
+                    identifier: switch (state.request.filter) {
+                      FoodSearchFilter.food => 'diary-food-results',
+                      FoodSearchFilter.recipes => 'diary-recipes-results',
+                      _ => 'diary-search-results',
+                    },
                     label: S.of(context).searchResultsLabel,
                     child: ListView.builder(
                       key: ValueKey(
@@ -226,7 +240,9 @@ class _FoodSearchViewState extends State<FoodSearchView> {
                 children: [
                   Expanded(
                     child: Text(
-                      '${state.failures.containsKey(FoodSearchSource.online) ? OFFConst.offSourceName : S.of(context).searchResultsLabel}: ${S.of(context).errorFetchingProductData}',
+                      recipesOnly
+                          ? S.of(context).recipesLoadErrorLabel
+                          : '${state.failures.containsKey(FoodSearchSource.online) ? OFFConst.offSourceName : S.of(context).searchResultsLabel}: ${S.of(context).errorFetchingProductData}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
