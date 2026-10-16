@@ -166,9 +166,10 @@ const _legacyRecipeJson =
   "ingredients": [
     {
       "snapshotMeal": $_legacyOffMealJson,
-      "amount": 100.0,
-      "unit": "g",
-      "convertedAmountG": 100.0
+      "quantityAmount": 100.0,
+      "quantityUnit": "g",
+      "quantityBaseUnit": "g",
+      "quantityUnitFactor": 1.0
     }
   ],
   "totalWeightG": 100.0,

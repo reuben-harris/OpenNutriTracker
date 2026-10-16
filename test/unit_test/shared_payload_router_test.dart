@@ -63,9 +63,12 @@ RecipeEntity _recipe() {
     ingredients: [
       RecipeIngredientEntity(
         snapshotMeal: flour,
-        amount: 200,
-        unit: 'g',
-        convertedAmountG: 200,
+        quantity: FoodAmountSelection.fromSnapshot(
+          amount: 200,
+          unit: 'g',
+          baseUnit: 'g',
+          factor: (200) / (200),
+        ),
       ),
     ],
     totalWeightG: 200,

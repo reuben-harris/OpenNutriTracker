@@ -40,27 +40,16 @@ class ExplodeRecipeIntakeUsecase {
     final scale = intake.baseAmount! / recipe.totalWeightG;
     final children = <IntakeEntity>[];
     for (final ingredient in recipe.ingredients) {
-      final amount = ingredient.convertedAmountG * scale;
-      if (!amount.isFinite || amount <= 0) {
-        throw StateError('Recipe ingredient quantities cannot be scaled');
-      }
-      final sourceUnit = ingredient.unit;
+      final quantity = FoodAmountSelection(
+        ingredient.quantity.amount * scale,
+        ingredient.quantity.option,
+      );
+      quantity.validate();
       final meal = ingredient.snapshotMeal;
-      final isLiquid =
-          MealEntity.liquidUnits.contains(sourceUnit) ||
-          MealEntity.liquidUnits.contains(meal.mealUnit) ||
-          MealEntity.liquidUnits.contains(meal.servingUnit);
       children.add(
         IntakeEntity(
           id: IdGenerator.getUniqueID(),
-          quantity: FoodAmountSelection(
-            amount,
-            FoodAmountOption(
-              unit: isLiquid ? 'ml' : 'g',
-              baseUnit: isLiquid ? 'ml' : 'g',
-              factor: 1,
-            ),
-          ),
+          quantity: quantity,
           type: intake.type,
           meal: meal,
           dateTime: intake.dateTime,

@@ -20,7 +20,6 @@ import 'package:opennutritracker/features/add_meal/domain/usecase/read_meal_text
 import 'package:opennutritracker/features/add_meal/presentation/bloc/bulk_add_bloc.dart';
 import 'package:opennutritracker/features/add_meal/util/meal_photo_encoder.dart';
 import 'package:opennutritracker/features/add_meal/util/portion_label.dart';
-import 'package:opennutritracker/features/add_meal/util/portion_unit.dart';
 import 'package:opennutritracker/features/add_meal/util/meal_text_parser.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/own_server_wait_indicator.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/quick_add_bottom_sheet.dart';
@@ -28,7 +27,6 @@ import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_b
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
-import 'package:opennutritracker/features/meal_detail/util/meal_quantity_converter.dart';
 import 'package:opennutritracker/features/settings/settings_screen.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
@@ -1124,7 +1122,8 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
     );
 
     final unit = DropdownButton<String>(
-      value: row.effectiveUnit,
+      value: row.option?.unit,
+      hint: const Text('—'),
       items: _unitItems(context, row),
       // Only when it has a line to fill; on a shared line it takes the width
       // its longest unit needs, which is what `stacked` was measured against.
@@ -1203,10 +1202,10 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
   double _unitDropdownWidth(BuildContext context, BulkAddRow row) {
     final style = Theme.of(context).textTheme.titleMedium;
     var widest = 0.0;
-    for (final unit in row.allowedUnits) {
+    for (final option in row.options) {
       widest = math.max(
         widest,
-        _textWidth(context, _unitLabel(context, unit, row), style),
+        _textWidth(context, _unitLabel(context, option, row), style),
       );
     }
     return widest + _dropdownArrowWidth;
@@ -1218,61 +1217,57 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
   String _energyLabel(BuildContext context, BulkAddRow row) {
     final meal = row.meal;
     if (meal == null) return '';
-    final quantity = double.tryParse(row.amountText.replaceAll(',', '.'));
-    if (quantity == null || quantity <= 0) return '';
-    final kcal = kcalForQuantity(quantity, row.effectiveUnit, meal);
-    return kcal == null ? '' : EnergyDisplay.formatWithUnit(context, kcal);
+    final selection = row.selection;
+    final energy = meal.nutriments.energyPerUnit;
+    if (selection == null || energy == null) return '';
+    return EnergyDisplay.formatWithUnit(context, selection.baseAmount * energy);
   }
 
   List<DropdownMenuItem<String>> _unitItems(
     BuildContext context,
     BulkAddRow row,
   ) => [
-    for (final unit in row.allowedUnits)
+    for (final option in row.options)
       DropdownMenuItem(
-        value: unit,
+        value: option.unit,
         child: Text(
-          _unitLabel(context, unit, row),
+          _unitLabel(context, option, row),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
       ),
   ];
 
-  /// Takes the row because one of the six units is not a fixed word: the
-  /// food names its own portion, and "3 slice" says what "3 serving" only
-  /// implies. Display only — the value behind it stays `serving` (#864).
-  String _unitLabel(BuildContext context, String unit, BulkAddRow row) {
-    final portions = row.meal?.portions ?? const [];
-    if (isPortionUnit(unit) && portions.isNotEmpty) {
-      final index = effectivePortionIndex(unit);
-      if (index < portions.length) {
-        final portion = portions[index];
-        final label = householdPortionLabel(
-          portion.label,
-          languageCode: Localizations.localeOf(context).languageCode,
-          textIsLocalized: portion.localized,
-        );
-        if (label != null) return label;
-      }
+  String _unitLabel(
+    BuildContext context,
+    FoodAmountOption option,
+    BulkAddRow row,
+  ) {
+    final portion = row.meal?.portions
+        .where((p) => 'portion:${p.id}' == option.unit)
+        .firstOrNull;
+    if (portion != null) {
+      final label = householdPortionLabel(
+        portion.label,
+        languageCode: Localizations.localeOf(context).languageCode,
+        textIsLocalized: portion.localized,
+      );
+      return label ?? S.of(context).servingLabel;
     }
-    return _fixedUnitLabel(context, unit, row);
+    return switch (option.unit) {
+      'g' => S.of(context).gramUnit,
+      'ml' => S.of(context).milliliterUnit,
+      'oz' => S.of(context).ozUnit,
+      'fl oz' => S.of(context).flOzUnit,
+      'serving' =>
+        householdPortionLabel(
+              option.label,
+              languageCode: Localizations.localeOf(context).languageCode,
+            ) ??
+            S.of(context).servingLabel,
+      _ => option.displayLabel,
+    };
   }
-
-  String _fixedUnitLabel(BuildContext context, String unit, BulkAddRow row) =>
-      switch (UnitDropdownItem.g.fromString(storedUnit(unit))) {
-        UnitDropdownItem.g => S.of(context).gramUnit,
-        UnitDropdownItem.ml => S.of(context).milliliterUnit,
-        UnitDropdownItem.gml => S.of(context).gramMilliliterUnit,
-        UnitDropdownItem.oz => S.of(context).ozUnit,
-        UnitDropdownItem.flOz => S.of(context).flOzUnit,
-        UnitDropdownItem.serving =>
-          householdPortionLabel(
-                row.meal?.servingSize,
-                languageCode: Localizations.localeOf(context).languageCode,
-              ) ??
-              S.of(context).servingLabel,
-      };
 
   Widget _buildSubmitBar(BuildContext context, BulkAddLoadedState state) {
     final count = state.loggableCount;
@@ -1494,7 +1489,7 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
     // are marked on the rows themselves and a filtered iterable cannot say
     // which row it came from.
     final invalid = <int, BulkAddQuantityError>{};
-    final writes = <({BulkAddRow row, double amount})>[];
+    final writes = <({BulkAddRow row, FoodAmountSelection selection})>[];
     for (var index = 0; index < state.rows.length; index++) {
       final row = state.rows[index];
       if (!row.willBeLogged) continue;
@@ -1504,20 +1499,12 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
         invalid[index] = error;
         continue;
       }
-      // Cannot throw: `quantityError` returned null, which required this
-      // same text to parse.
-      final quantity = double.parse(row.amountText.trim().replaceAll(',', '.'));
-      // Store the value the intake is actually written with: nutriment
-      // values are per gram/millilitre, so oz / fl.oz / serving have to be
-      // converted first. Logging the raw amount stores 4 g for 4 oz.
-      writes.add((
-        row: row,
-        amount: convertQuantityToBaseUnit(
-          quantity,
-          row.effectiveUnit,
-          row.meal!,
-        ),
-      ));
+      final selection = row.selection;
+      if (selection == null) {
+        invalid[index] = BulkAddQuantityError.malformed;
+        continue;
+      }
+      writes.add((row: row, selection: selection));
     }
 
     if (invalid.isNotEmpty) {
@@ -1565,11 +1552,7 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
       for (final write in writes) {
         await mealDetailBloc.addIntake(
           context,
-          selectionForFoodUnit(
-            double.parse(write.row.amountText.trim().replaceAll(',', '.')),
-            write.row.effectiveUnit,
-            write.row.meal!,
-          ),
+          write.selection,
           _args.intakeTypeEntity,
           write.row.meal!,
           _args.day,

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_ingredient_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/compute_recipe_nutrition_usecase.dart';
@@ -103,9 +104,9 @@ class CsvRecipeImporter {
     }
 
     // Headers never carry decimal-comma payloads; parse strict.
-    final headerCells = CsvRowParser.splitRow(lines.first)
-        .map((c) => c.trim().toLowerCase())
-        .toList();
+    final headerCells = CsvRowParser.splitRow(
+      lines.first,
+    ).map((c) => c.trim().toLowerCase()).toList();
     final missingRequired = requiredColumns
         .where((req) => !headerCells.contains(req))
         .toList();
@@ -113,7 +114,7 @@ class CsvRecipeImporter {
       return CsvRecipeImportResult(
         recipes: const [],
         errors: [
-          'Header is missing required column(s): ${missingRequired.join(', ')}'
+          'Header is missing required column(s): ${missingRequired.join(', ')}',
         ],
       );
     }
@@ -132,9 +133,10 @@ class CsvRecipeImporter {
       }
       if (cells.length > headerCells.length) {
         errors.add(
-            'Row $rowNum: too many columns. If a value contains a comma '
-            '(for example a decimal like 1,5), wrap that cell in double '
-            'quotes: "1,5".');
+          'Row $rowNum: too many columns. If a value contains a comma '
+          '(for example a decimal like 1,5), wrap that cell in double '
+          'quotes: "1,5".',
+        );
         continue;
       }
       final row = <String, String>{};
@@ -147,37 +149,39 @@ class CsvRecipeImporter {
         errors.add('Row $rowNum: recipe_name is empty');
         continue;
       }
+      final group = groups.putIfAbsent(
+        recipeName,
+        () => _RecipeGroup(name: recipeName),
+      );
       final ingredientName = row[_kIngredientName] ?? '';
       if (ingredientName.isEmpty) {
         errors.add('Row $rowNum: ingredient_name is empty');
+        group.ingredientRejected = true;
         continue;
       }
       final amount = CsvRowParser.parseDoubleOrNull(row[_kIngredientAmount]);
-      if (amount == null || amount <= 0) {
+      if (amount == null || !amount.isFinite || amount <= 0) {
         errors.add('Row $rowNum: ingredient_amount is missing or not positive');
+        group.ingredientRejected = true;
         continue;
       }
       final unit = row[_kIngredientUnit] ?? '';
       if (unit.isEmpty) {
         errors.add('Row $rowNum: ingredient_unit is empty');
+        group.ingredientRejected = true;
         continue;
       }
       final kcal = CsvRowParser.parseDoubleOrNull(row[_kIngredientKcal]);
       if (kcal == null) {
         errors.add('Row $rowNum: ingredient_kcal_100 is not a number');
+        group.ingredientRejected = true;
         continue;
       }
 
-      final group = groups.putIfAbsent(
-        recipeName,
-        () => _RecipeGroup(name: recipeName),
-      );
-
       // Recipe-level fields: take the first non-empty value seen per group.
-      group.description ??=
-          row[_kRecipeDescription]?.isNotEmpty == true
-              ? row[_kRecipeDescription]
-              : null;
+      group.description ??= row[_kRecipeDescription]?.isNotEmpty == true
+          ? row[_kRecipeDescription]
+          : null;
       group.servingsCount ??= _parseIntOrNull(row[_kRecipeServings]);
       // Only the first non-empty `recipe_total_weight_g` per recipe wins,
       // matching the "first non-empty value wins" rule for every other
@@ -203,10 +207,9 @@ class CsvRecipeImporter {
       if (group.tags.isEmpty) {
         final tagsRaw = row[_kRecipeTags] ?? '';
         if (tagsRaw.isNotEmpty) {
-          group.tags.addAll(tagsRaw
-              .split(',')
-              .map((t) => t.trim())
-              .where((t) => t.isNotEmpty));
+          group.tags.addAll(
+            tagsRaw.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty),
+          );
         }
       }
 
@@ -218,27 +221,41 @@ class CsvRecipeImporter {
             : null,
         url: null,
         mealQuantity: '100',
-        mealUnit: 'g',
+        mealUnit: MealEntity.liquidUnits.contains(unit) ? 'ml' : 'g',
         servingQuantity: null,
-        servingUnit: 'g',
+        servingUnit: null,
         servingSize: null,
         nutriments: MealNutrimentsEntity(
           energyKcal100: kcal,
-          carbohydrates100: CsvRowParser.parseDoubleOrNull(row[_kIngredientCarbs]),
+          carbohydrates100: CsvRowParser.parseDoubleOrNull(
+            row[_kIngredientCarbs],
+          ),
           fat100: CsvRowParser.parseDoubleOrNull(row[_kIngredientFat]),
           proteins100: CsvRowParser.parseDoubleOrNull(row[_kIngredientProtein]),
           sugars100: CsvRowParser.parseDoubleOrNull(row[_kIngredientSugars]),
-          saturatedFat100: CsvRowParser.parseDoubleOrNull(row[_kIngredientSatFat]),
+          saturatedFat100: CsvRowParser.parseDoubleOrNull(
+            row[_kIngredientSatFat],
+          ),
           fiber100: CsvRowParser.parseDoubleOrNull(row[_kIngredientFiber]),
         ),
         source: MealSourceEntity.custom,
       );
 
-      group.ingredients.add(_PendingIngredient(
-        meal: ingredientMeal,
-        amount: amount,
-        unit: unit,
-      ));
+      final quantity = resolveFoodAmount(amount, unit, ingredientMeal);
+      if (quantity == null) {
+        errors.add(
+          'Row $rowNum ($recipeName / $ingredientName): '
+          'unit "$unit" cannot be converted to a usable amount',
+        );
+        group.ingredientRejected = true;
+        continue;
+      }
+      group.ingredients.add(
+        RecipeIngredientEntity(
+          snapshotMeal: ingredientMeal,
+          quantity: quantity,
+        ),
+      );
     }
 
     // Build RecipeEntity for each group. Nutrition is computed inline so
@@ -249,21 +266,8 @@ class CsvRecipeImporter {
     final recipes = <ImportedCsvRecipe>[];
     for (final group in groups.values) {
       if (group.ingredients.isEmpty) continue;
-      if (group.totalWeightRejected) continue;
-      final ingredients = group.ingredients.map((p) {
-        final convertedG = compute.convertAmountToGrams(
-              amount: p.amount,
-              unit: p.unit,
-              servingQuantityG: p.meal.servingQuantity,
-            ) ??
-            0;
-        return RecipeIngredientEntity(
-          snapshotMeal: p.meal,
-          amount: p.amount,
-          unit: p.unit,
-          convertedAmountG: convertedG,
-        );
-      }).toList();
+      if (group.totalWeightRejected || group.ingredientRejected) continue;
+      final ingredients = group.ingredients;
 
       final result = compute.compute(
         ingredients,
@@ -271,21 +275,23 @@ class CsvRecipeImporter {
       );
 
       final now = DateTime.now();
-      recipes.add(ImportedCsvRecipe(
-        recipe: RecipeEntity(
-          id: IdGenerator.getUniqueID(),
-          name: group.name,
-          description: group.description,
-          ingredients: ingredients,
-          totalWeightG: result.totalWeightG,
-          aggregatedNutrimentsPer100: result.perHundredG,
-          createdAt: now,
-          updatedAt: now,
-          servingsCount: group.servingsCount,
-          tags: List.unmodifiable(group.tags),
+      recipes.add(
+        ImportedCsvRecipe(
+          recipe: RecipeEntity(
+            id: IdGenerator.getUniqueID(),
+            name: group.name,
+            description: group.description,
+            ingredients: ingredients,
+            totalWeightG: result.totalWeightG,
+            aggregatedNutrimentsPer100: result.perHundredG,
+            createdAt: now,
+            updatedAt: now,
+            servingsCount: group.servingsCount,
+            tags: List.unmodifiable(group.tags),
+          ),
+          totalWeightOverridden: group.totalWeightOverride != null,
         ),
-        totalWeightOverridden: group.totalWeightOverride != null,
-      ));
+      );
     }
 
     return CsvRecipeImportResult(recipes: recipes, errors: errors);
@@ -320,6 +326,7 @@ class _RecipeGroup {
   String? description;
   int? servingsCount;
   double? totalWeightOverride;
+
   /// Sticky flag set the first time a row supplies a malformed
   /// `recipe_total_weight_g` for this recipe. Once set, later rows in the
   /// same group cannot supply a good value, and the group is dropped at
@@ -327,17 +334,6 @@ class _RecipeGroup {
   /// partial recipe from it.
   bool totalWeightRejected = false;
   final Set<String> tags = <String>{};
-  final List<_PendingIngredient> ingredients = [];
-}
-
-class _PendingIngredient {
-  final MealEntity meal;
-  final double amount;
-  final String unit;
-
-  _PendingIngredient({
-    required this.meal,
-    required this.amount,
-    required this.unit,
-  });
+  bool ingredientRejected = false;
+  final List<RecipeIngredientEntity> ingredients = [];
 }

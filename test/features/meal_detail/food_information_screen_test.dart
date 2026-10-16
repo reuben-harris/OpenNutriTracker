@@ -206,7 +206,6 @@ void main() {
     'information previews one weighted serving without amount fields',
     (tester) async {
       await pumpMealDetail(tester, _solidWithServing());
-      expect(bloc!.state.selectedUnit, 'serving');
       expect(bloc!.state.totalKcal, 30);
       expect(find.byType(TextField), findsNothing);
       expect(find.text('Log this food'), findsOneWidget);
@@ -324,10 +323,7 @@ void main() {
         expect(basis.segments.first.enabled, false);
         expect(basis.selected, {true});
         expect(find.text('1 serving'), findsOneWidget);
-        expect(
-          find.text('Serving weight unavailable.'),
-          findsOneWidget,
-        );
+        expect(find.text('Serving weight unavailable.'), findsOneWidget);
         expect(bloc!.state.totalKcal, 100);
         await openAmount(tester);
         expect(find.byType(TextField), findsOneWidget);

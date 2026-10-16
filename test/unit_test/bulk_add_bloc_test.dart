@@ -173,6 +173,31 @@ Future<BulkAddLoadedState> parse(
 }
 
 void main() {
+  test(
+    'a user-chosen serving is revalidated after changing candidates',
+    () async {
+      final bloc = blocWith({
+        'bread': [meal('Bread', servingQuantity: 38), meal('Other bread')],
+      });
+      await parse(bloc, '2 bread');
+      bloc.add(const ChangeRowUnitEvent(0, 'serving'));
+      await bloc.stream.first;
+      bloc.add(const ChangeRowCandidateEvent(0, 1));
+      final state = await bloc.stream.first as BulkAddLoadedState;
+      final row = state.rows.single;
+      expect(row.unitChosenByUser, isTrue);
+      expect(row.unit, 'serving');
+      expect(row.option, isNull);
+      expect(row.selection, isNull);
+      expect(row.amountNeedsCheck, isTrue);
+      expect(row.willBeLogged, isFalse);
+      bloc.add(const ChangeRowUnitEvent(0, 'g'));
+      final corrected = await bloc.stream.first as BulkAddLoadedState;
+      expect(corrected.rows.single.willBeLogged, isTrue);
+      expect(corrected.rows.single.selection!.baseAmount, 2);
+    },
+  );
+
   test('a parsed line becomes one row per item', () async {
     final bloc = blocWith({
       'toast': [meal('Toast')],
@@ -198,7 +223,7 @@ void main() {
       final state = await parse(bloc, 'black coffee');
 
       expect(state.rows.single.amountText, '100');
-      expect(state.rows.single.unit, 'g/ml');
+      expect(state.rows.single.unit, 'g');
     },
   );
 
@@ -312,7 +337,7 @@ void main() {
     bloc.add(const ChangeRowCandidateEvent(0, 1));
     final state = await bloc.stream.first as BulkAddLoadedState;
 
-    expect(state.rows.single.effectiveUnit, 'g/ml');
+    expect(state.rows.single.option, isNull);
   });
 
   group('a bare count (#622)', () {
@@ -345,7 +370,7 @@ void main() {
       expect(row.willBeLogged, isFalse);
     });
 
-    test('a harmless substitution still logs', () async {
+    test('unsupported volume cannot silently become mass', () async {
       // A record measured in grams offers no `ml`, so a typed `200ml`
       // becomes `200 g/ml` — same number, same base quantity, same energy.
       // The #973 guard (#975) held these back too, refusing an amount the
@@ -357,7 +382,7 @@ void main() {
       final state = await parse(bloc, '200ml milk');
 
       final row = state.rows.single;
-      expect(row.effectiveUnit, 'g/ml');
+      expect(row.option, isNull);
       expect(row.amountText, '200');
       expect(
         row.amountNeedsCheck,
@@ -365,11 +390,11 @@ void main() {
         reason: 'the swap is still worth pointing at',
       );
       expect(
-        row.amountWouldBeWrong,
-        isFalse,
+        row.amountNeedsCheck,
+        isTrue,
         reason: 'but it does not move the number',
       );
-      expect(state.loggableCount, 1);
+      expect(state.loggableCount, 0);
     });
 
     test('a substitution that moves the number is kept out', () async {
@@ -381,7 +406,7 @@ void main() {
 
       final state = await parse(bloc, '4oz steak');
 
-      expect(state.rows.single.amountWouldBeWrong, isTrue);
+      expect(state.rows.single.amountNeedsCheck, isTrue);
       expect(state.loggableCount, 0);
     });
 
@@ -509,7 +534,7 @@ void main() {
         unit: 'serving',
       );
 
-      expect(modelRow.effectiveUnit, isNot('serving'));
+      expect(modelRow.option?.unit, isNot('serving'));
       expect(modelRow.amountNeedsCheck, isTrue);
     });
 
@@ -535,7 +560,7 @@ void main() {
         unit: 'serving',
       );
 
-      expect(modelRow.effectiveUnit, 'serving');
+      expect(modelRow.option?.unit, 'serving');
       expect(modelRow.amountNeedsCheck, isFalse);
     });
 
@@ -550,14 +575,14 @@ void main() {
 
       final rows = (await parse(bloc, '2 eggs, yoghurt')).rows;
 
-      expect(rows[0].allowedUnits, isNot(contains('serving')));
-      expect(rows[1].allowedUnits, contains('serving'));
+      expect(rows[0].options.map((o) => o.unit), isNot(contains('serving')));
+      expect(rows[1].options.map((o) => o.unit), contains('serving'));
     });
 
     test('unparseable serving text is not read as a count', () async {
       // OFF derives `serving_quantity` by parsing the `serving_size` text;
       // strings like "1 egg" do not parse, so quantity stays null while
-      // hasServingValues is still true. convertQuantityToBaseUnit cannot
+      // hasServingValues is still true. The shared resolver cannot
       // scale such a record, so calling the unit `serving` would leave
       // "2 eggs" logging 2 g under a label that reads correct.
       final bloc = blocWith({
@@ -566,7 +591,7 @@ void main() {
 
       final row = (await parse(bloc, '2 eggs')).rows.single;
 
-      expect(row.unit, isNot('serving'));
+      expect(row.option, isNull);
       expect(row.amountNeedsCheck, isTrue);
     });
 
@@ -612,7 +637,7 @@ void main() {
           'eggs': [meal('Eggs plain'), meal('Eggs boxed', servingQuantity: 60)],
         });
         final before = (await parse(bloc, '2 eggs')).rows.single;
-        expect(before.unit, isNot('serving'));
+        expect(before.option, isNull);
 
         bloc.add(ChangeRowCandidateEvent(0, _indexOf(before, 'Eggs boxed')));
         final after =
@@ -638,7 +663,8 @@ void main() {
       final after = (await bloc.stream.first as BulkAddLoadedState).rows.single;
 
       expect(after.amountText, '150');
-      expect(after.unit, isNot('serving'));
+      expect(after.amountNeedsCheck, isTrue);
+      expect(after.willBeLogged, isFalse);
     });
 
     test('a chosen unit survives a candidate switch', () async {
@@ -1030,20 +1056,13 @@ void main() {
       expect(row.amountIsProvisional, isFalse);
     });
 
-    test('serving *text* alone is still the flat fallback', () {
-      // OFF's real shape: no numeric field, a weight only in the text.
-      // `scalableServingQuantity` reads the 30 out of it (#629) but
-      // `_initialAmount` does not — it gates on `servingQuantity` — so the
-      // row shows 100 and this must say so.
-      //
-      // The example matters. An earlier version used "1 egg", where
-      // `scalableServingQuantity` is *also* null, so the test passed against
-      // either gate and pinned nothing.
+    test('parseable serving text supplies a convertible default', () {
+      // A metric weight in the serving text supplies a valid conversion.
       final row = rowFor(meal('yoghurt', servingSize: '30 g'));
       expect(row.meal!.hasServingValues, isTrue);
       expect(row.meal!.scalableServingQuantity, 30);
       expect(row.meal!.servingQuantity, isNull);
-      expect(row.amountIsProvisional, isTrue);
+      expect(row.amountIsProvisional, isFalse);
     });
 
     test('a stated amount is never provisional', () {
@@ -1119,7 +1138,7 @@ void main() {
 
       final row = (await parse(bloc, '3 slices of bread')).rows.single;
 
-      expect(row.unit, 'serving#1');
+      expect(row.unit, 'portion:test:1');
       expect(row.amountText, '3');
     });
 
@@ -1168,7 +1187,7 @@ void main() {
 
       final row = (await parse(bloc, 'slices of bread')).rows.single;
 
-      expect(row.unit, isNot('serving#1'));
+      expect(row.unit, isNot('portion:test:1'));
       expect(row.amountText, '244');
     });
 
@@ -1187,7 +1206,7 @@ void main() {
 
       final row = (await parse(bloc, 'bread')).rows.single;
 
-      expect(row.unit, 'serving#1');
+      expect(row.unit, 'portion:test:1');
     });
 
     test('a key that matches nothing leaves the row alone', () async {
@@ -1280,7 +1299,7 @@ void main() {
 
       final row = (await parse(bloc, '3 slices of bread')).rows.single;
 
-      expect(row.unit, 'serving#1');
+      expect(row.unit, 'portion:test:4');
       expect(row.portionKeyMissed, isFalse);
       expect(row.amountNeedsCheck, isFalse);
     });
@@ -1306,7 +1325,7 @@ void main() {
 
       final row = (await parse(bloc, '3 slices of bread')).rows.single;
 
-      expect(row.unit, 'serving#1');
+      expect(row.unit, 'portion:test:4');
       expect(row.portionKeyMissed, isFalse);
       expect(row.amountNeedsCheck, isFalse);
     });

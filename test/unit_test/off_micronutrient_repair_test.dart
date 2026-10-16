@@ -148,7 +148,10 @@ IntakeDBO _intake(String id, MealDBO meal, {double amount = 100}) => IntakeDBO(
 );
 
 RecipeDBO _recipe(String id, List<RecipeIngredientDBO> ingredients) {
-  final total = ingredients.fold<double>(0, (s, i) => s + i.convertedAmountG);
+  final total = ingredients.fold<double>(
+    0,
+    (s, i) => s + i.quantity.baseAmount,
+  );
   return RecipeDBO(
     id: id,
     name: 'Recipe $id',
@@ -177,9 +180,10 @@ RecipeDBO _recipe(String id, List<RecipeIngredientDBO> ingredients) {
 RecipeIngredientDBO _ingredient(MealDBO meal, double grams) =>
     RecipeIngredientDBO(
       snapshotMeal: meal,
-      amount: grams,
-      unit: 'g',
-      convertedAmountG: grams,
+      quantityAmount: grams,
+      quantityUnit: 'g',
+      quantityBaseUnit: 'g',
+      quantityUnitFactor: (grams) / (grams),
     );
 
 /// The row as the JSON exporter writes it — a byte-for-byte fingerprint for
@@ -526,7 +530,7 @@ void main() {
       final byId = {for (final r in recipeBox.values) r.id: r};
       final mixed = byId['mixed']!;
       _expectAppUnits(mixed.ingredients.first.snapshotMeal.nutriments);
-      expect(mixed.ingredients.first.convertedAmountG, 100);
+      expect(mixed.ingredients.first.quantity.baseAmount, 100);
       expect(mixed.ingredients.last.snapshotMeal.nutriments.sodium100, 80);
       expect(mixed.ingredients.last.snapshotMeal.dataVersion, isNull);
       expect(mixed.aggregatedNutrimentsPer100.sodium100, closeTo(100, 1e-9));

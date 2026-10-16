@@ -61,6 +61,26 @@ void main() {
     );
   }
 
+  test(
+    'shared meal amount resolution rejects unknown units before writing',
+    () {
+      final meal = createMeal(
+        code: 'food',
+        name: 'Bread',
+        source: MealSourceEntity.custom,
+      );
+      expect(
+        () => resolveSharedMealAmount(2, 'serving', meal),
+        throwsA(isA<SharedMealAmountException>()),
+      );
+      expect(
+        () => resolveSharedMealAmount(2, 'unknown', meal),
+        throwsA(isA<SharedMealAmountException>()),
+      );
+      expect(resolveSharedMealAmount(50, 'g', meal)!.baseAmount, 50);
+    },
+  );
+
   group('SharedMealPayload', () {
     // QR v40, error correction M: 3917 alphanumeric characters capacity
     const qrMaxChars = 3917;

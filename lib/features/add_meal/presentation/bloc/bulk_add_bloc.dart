@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logging/logging.dart';
@@ -8,9 +9,6 @@ import 'package:opennutritracker/features/add_meal/domain/usecase/read_meal_text
 import 'package:opennutritracker/features/add_meal/domain/usecase/resolve_parsed_meals_usecase.dart';
 import 'package:opennutritracker/features/add_meal/util/meal_text_parser.dart';
 import 'package:opennutritracker/features/add_meal/util/portion_match.dart';
-import 'package:opennutritracker/features/add_meal/util/portion_unit.dart';
-import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
-import 'package:opennutritracker/features/meal_detail/util/meal_quantity_converter.dart';
 
 part 'bulk_add_event.dart';
 part 'bulk_add_state.dart';
@@ -76,6 +74,9 @@ class BulkAddRow extends Equatable {
   /// Set once the user types in the amount field.
   final bool amountEditedByUser;
 
+  /// Editing an unresolved count cannot implicitly turn it into a weight.
+  final bool requiresUnitChoice;
+
   /// True when the batch this row belongs to was read off a photograph.
   ///
   /// Copied from [BulkAddLoadedState.source] when the row is built, because
@@ -99,6 +100,7 @@ class BulkAddRow extends Equatable {
     this.skipped = false,
     this.unitChosenByUser = false,
     this.amountEditedByUser = false,
+    this.requiresUnitChoice = false,
     this.fromPhoto = false,
   });
 
@@ -114,66 +116,34 @@ class BulkAddRow extends Equatable {
   MealEntity? get meal =>
       isResolved ? resolved.candidates[selectedIndex] : null;
 
-  /// The row's amount cannot be trusted to mean what the user typed, for
-  /// any of three reasons.
-  ///
-  /// **No unit was stated** and the matched food has no scalable serving, so
-  /// there is nothing for the "2" in `2 eggs` to count (#622).
-  ///
-  /// **A unit was stated but this food cannot honour it**, so
-  /// [effectiveUnit] quietly substituted another. A model answers "three
-  /// slices of bread" as `3 serving`; against a record with no scalable
-  /// serving that becomes 3 g/ml, and looking only for a *missing* unit
-  /// would let it through unmarked.
-  ///
-  /// **A portion was named and this food cannot honour it** —
-  /// [portionKeyMissed]. The second case in different clothes: "a handful of
-  /// almonds" arrives as `quantity 1, portion "handful"`, nothing matches,
-  /// and the bare-count rule logs `1 nut` = 1.2 g as a settled row. The
-  /// user's word was discarded and a default took its place looking
-  /// settled. Text path only; a photo miss stays quiet (#1159).
-  ///
-  /// Any way the row is **held back from the batch** until the user
-  /// settles it, and marked so the eye lands on the one row needing a
-  /// decision rather than on a plausible-looking wrong number.
-  ///
-  /// Marking alone used to be the whole remedy, and it was not enough. A
-  /// device pass typed `zwei Eier und drei Scheiben Brot`, got two flagged
-  /// rows reading 2 g/ml and 3 g/ml, and **Save all** wrote both: 11 kcal
-  /// for a breakfast. The flag was doing its job and the batch ignored it.
-  /// Worse, the control the flag points at cannot always answer — a record
-  /// with no portion offers only `g`, `oz`, `g/ml`, so there is no unit on
-  /// the dropdown that means *one egg*. A warning pointing at a control that
-  /// cannot resolve it, over a button that logs it anyway, is not a warning.
-  /// #973.
-  ///
-  /// Derived rather than stored, so picking a different candidate
-  /// re-evaluates it against the food actually selected. A stored flag
-  /// survived the switch and could leave a wrong number unflagged.
-  ///
-  /// [MealEntity.hasServingValues] is deliberately *not* the gate: it is
-  /// also true for a record carrying only unparseable `servingSize` text
-  /// ("1 egg"), which `convertQuantityToBaseUnit` cannot scale. Only
-  /// `servingQuantity` makes a count convertible.
+  List<FoodAmountOption> get options {
+    if (meal == null) return [];
+    final result = foodAmountOptions(meal!);
+    final selected = option;
+    if (selected != null && !result.any((o) => o.unit == selected.unit)) {
+      result.add(selected);
+    }
+    return result;
+  }
+
+  FoodAmountOption? get option =>
+      meal == null ? null : resolveFoodAmountOption(meal!, unit);
+
+  FoodAmountSelection? get selection {
+    if (meal == null || amountNeedsCheck) return null;
+    final amount = double.tryParse(amountText.trim().replaceAll(',', '.'));
+    return amount == null ? null : resolveFoodAmount(amount, unit, meal!);
+  }
+
+  /// Candidate changes must revalidate even a unit explicitly chosen earlier.
   bool get amountNeedsCheck =>
-      !unitChosenByUser &&
-      // An unresolved row has no food to count, and already says so. A
-      // second complaint about its amount is noise on a row that cannot be
-      // logged anyway.
       isResolved &&
-      resolved.parsed.quantity != null &&
-      (resolved.parsed.unit == null
-          // Nothing stated, and nothing for the number to count — or a
-          // portion named that the food's own rows do not hold, so the
-          // count fell to the default row instead.
-          ? meal?.servingQuantity == null || portionKeyMissed
-          // A unit *was* stated but this food cannot honour it, so
-          // `effectiveUnit` quietly substituted another. Live probing found
-          // a model answering "three slices of bread" as `3 serving`; on a
-          // record with no scalable serving that becomes 3 g/ml with no
-          // warning, because the old condition only looked at a *missing*
-          // unit. A substituted one is just as wrong and less visible.
-          : effectiveUnit != unit);
+      (option == null ||
+          requiresUnitChoice ||
+          (!unitChosenByUser &&
+              resolved.parsed.quantity != null &&
+              ((resolved.parsed.unit == null && !option!.isNamed) ||
+                  portionKeyMissed)));
 
   /// True when the model named a portion, this food has portions to choose
   /// from, and neither that word nor the query words is one of them.
@@ -210,119 +180,15 @@ class BulkAddRow extends Equatable {
         matchPortionToQuery(resolved.parsed.query, food.portions) == null;
   }
 
-  /// True when the amount on this row is the app's flat fallback — neither
-  /// stated by the user nor carried by the food record.
-  ///
-  /// The gap [amountNeedsCheck] cannot see, and deliberately so: that getter
-  /// requires `resolved.parsed.quantity != null`, so it only ever speaks about
-  /// a number somebody supplied. When nobody supplies one the row falls to
-  /// 100 g (1 oz imperial) and says nothing at all — the case where the app
-  /// guesses hardest is the one case it stayed quiet about. #864.
-  ///
-  /// **Weaker than [amountNeedsCheck], and rendered more quietly.** That flag
-  /// means "this number probably does not mean what you think"; this one only
-  /// means "this number is not yours". 100 g is a defensible neutral — the
-  /// nutriments are published per 100 g, so it is the one figure here nobody
-  /// invented — and a warning that fires on every unquantified row would
-  /// become wallpaper, which is exactly what the model-failure notices were
-  /// shaped to avoid.
-  ///
-  /// Clears once the user types an amount: they have answered it.
-  ///
-  /// Gated on `servingQuantity`, and **not** on `scalableServingQuantity`.
-  /// `_initialAmount` falls back to the flat number exactly when the numeric
-  /// field is absent, so the wider getter would go quiet on rows the fallback
-  /// really did fire on: OFF often leaves `servingQuantity` empty while
-  /// `serving_size` carries "30 g" as text, and `scalableServingQuantity`
-  /// reads the 30 out of it (#629). The row still shows 100.
-  ///
-  /// `hasServingValues` is not consulted either — it is true whenever
-  /// `servingQuantity` is, so pairing them only looks like a stricter test.
+  /// An explicit neutral default is provisional until the user edits it.
   bool get amountIsProvisional =>
       !amountEditedByUser &&
       isResolved &&
       resolved.parsed.quantity == null &&
-      meal?.servingQuantity == null;
+      !options.any((o) => o.unit == 'serving');
 
-  List<String> get allowedUnits => [
-    if (meal?.portions.isNotEmpty ?? false)
-      for (var i = 0; i < meal!.portions.length; i++) portionUnit(i)
-    // Only when the serving can actually be scaled. `hasServingValues` is
-    // also true for a record carrying nothing but `servingSize` text, and
-    // `convertQuantityToBaseUnit` leaves those unscaled — so offering
-    // `serving` there is a no-op dressed as a fix. Worse, it is the option
-    // a user reaches for after reading `amountNeedsCheck`: picking it
-    // relabels the row, clears the warning and logs the same wrong number.
-    else if (meal?.servingQuantity != null)
-      UnitDropdownItem.serving.toString(),
-    if (meal?.isSolid ?? false) ...[
-      UnitDropdownItem.g.toString(),
-      UnitDropdownItem.oz.toString(),
-    ],
-    if (meal?.isLiquid ?? false) ...[
-      UnitDropdownItem.ml.toString(),
-      UnitDropdownItem.flOz.toString(),
-    ],
-    if (!(meal?.isSolid ?? false) && !(meal?.isLiquid ?? false)) ...[
-      UnitDropdownItem.g.toString(),
-      UnitDropdownItem.oz.toString(),
-      UnitDropdownItem.ml.toString(),
-      UnitDropdownItem.flOz.toString(),
-    ],
-    UnitDropdownItem.gml.toString(),
-  ];
-
-  String get effectiveUnit =>
-      allowedUnits.contains(unit) ? unit : UnitDropdownItem.gml.toString();
-
-  /// True when the row's number would reach the diary meaning something
-  /// other than what was asked for.
-  ///
-  /// **Narrower than [amountNeedsCheck], deliberately.** That flag fires on
-  /// every substituted unit, including substitutions that change nothing.
-  /// A record measured in grams offers no `ml`, so `200ml Milch` becomes
-  /// `200 g/ml` — same number, same base quantity, same energy, and a row
-  /// that was right all along. The guard added for #973 (#975) held those
-  /// back too, refusing an amount the user typed correctly and the app
-  /// understood correctly.
-  ///
-  /// Three ways a number does go wrong, and each is checked on its own terms
-  /// rather than inferred from the label:
-  ///
-  /// * **Nothing was stated** and the food cannot be counted, so the number
-  ///   is a count about to be read as a weight — `2 Eier` as two grams. Or
-  ///   a portion was named that the food's rows do not hold
-  ///   ([portionKeyMissed]), so the count landed on the default row instead
-  ///   of the one that was asked for.
-  /// * **A serving the food cannot scale.** `3 serving` against a record
-  ///   with no scalable serving converts to a bare `3`, and so does
-  ///   `3 g/ml` — numerically identical, both meaningless, so comparing the
-  ///   two conversions cannot see it. Caught by asking what the unit *is*.
-  /// * **The conversion moves the number**, `4oz` against a record that
-  ///   cannot honour ounces being the plain case.
-  bool get amountWouldBeWrong {
-    if (!amountNeedsCheck) return false;
-    // Nothing to compare against: the count has no unit and no serving to
-    // land on.
-    if (resolved.parsed.unit == null) return true;
-    // A serving the food cannot honour. Checked before the conversion, not
-    // by it — see above.
-    if (isPortionUnit(unit)) return true;
-    final quantity = resolved.parsed.quantity;
-    final food = meal;
-    if (quantity == null || food == null) return true;
-    return convertQuantityToBaseUnit(quantity, unit, food) !=
-        convertQuantityToBaseUnit(quantity, effectiveUnit, food);
-  }
-
-  /// Rows that will actually be written when the user confirms.
-  ///
-  /// [amountWouldBeWrong] excludes rather than merely annotates: an amount
-  /// that would land meaning something else is not written to the diary on
-  /// the user's behalf. Picking a unit clears it and the row rejoins the
-  /// batch, so the way out is one tap on the control the warning already
-  /// points at. #973.
-  bool get willBeLogged => isResolved && !skipped && !amountWouldBeWrong;
+  /// Invalid numeric text is reported on submit, rather than silently skipped.
+  bool get willBeLogged => isResolved && !skipped && !amountNeedsCheck;
 
   /// What is wrong with [amountText], or null when the row can be written.
   ///
@@ -355,6 +221,7 @@ class BulkAddRow extends Equatable {
     bool? skipped,
     bool? unitChosenByUser,
     bool? amountEditedByUser,
+    bool? requiresUnitChoice,
   }) => BulkAddRow(
     resolved: resolved,
     selectedIndex: selectedIndex ?? this.selectedIndex,
@@ -363,6 +230,7 @@ class BulkAddRow extends Equatable {
     skipped: skipped ?? this.skipped,
     unitChosenByUser: unitChosenByUser ?? this.unitChosenByUser,
     amountEditedByUser: amountEditedByUser ?? this.amountEditedByUser,
+    requiresUnitChoice: requiresUnitChoice ?? this.requiresUnitChoice,
     fromPhoto: fromPhoto,
   );
 
@@ -375,6 +243,7 @@ class BulkAddRow extends Equatable {
     skipped,
     unitChosenByUser,
     amountEditedByUser,
+    requiresUnitChoice,
     fromPhoto,
   ];
 }
@@ -579,10 +448,10 @@ class BulkAddBloc extends Bloc<BulkAddEvent, BulkAddState> {
     final parsedQuantity = parsed.quantity;
     if (parsedQuantity != null) return _amountText(parsedQuantity);
 
-    if (meal != null && meal.hasServingValues) {
-      final serving = meal.servingQuantity;
-      if (serving != null) return _amountText(serving);
-    }
+    final serving = meal == null
+        ? null
+        : resolveFoodAmountOption(meal, 'serving');
+    if (serving != null) return _amountText(serving.factor);
     return usesImperialUnits ? '1' : '100';
   }
 
@@ -591,53 +460,31 @@ class BulkAddBloc extends Bloc<BulkAddEvent, BulkAddState> {
     MealEntity? meal,
     bool usesImperialUnits,
   ) {
-    final parsedUnit = parsed.unit;
-    if (parsedUnit != null) return parsedUnit;
-
-    final fallback = usesImperialUnits
-        ? UnitDropdownItem.oz.toString()
-        : UnitDropdownItem.gml.toString();
-    if (meal == null) return fallback;
-
-    // The user named a portion, so their word decides which — "3 slices of
-    // bread" is slices, not the cup that happens to sort first. Above the
-    // bare-count rule below, because that rule cannot tell the two apart and
-    // would take the default.
-    //
-    // Only ever *narrows* the choice: no match leaves the preselection
-    // exactly as it was, which is decision 7 — nothing changes for anyone
-    // who did not name a portion.
+    if (meal == null) return parsed.unit ?? (usesImperialUnits ? 'oz' : 'g/ml');
+    final stated = parsed.unit;
+    if (stated != null && stated != 'serving') {
+      return resolveFoodAmountOption(meal, stated)?.unit ?? stated;
+    }
     if (parsed.quantity != null) {
-      // The model's own word first, then the user's. A photograph has no
-      // typed text to search, so `portion` is the only thing that can name a
-      // slice there; where both exist they usually agree, and the model saw
-      // the food. The key is English in every locale and goes against the
-      // English label; the user's words go against the localized one.
       final named =
           matchPortionToKey(parsed.portion, meal.portions) ??
           matchPortionToQuery(parsed.query, meal.portions);
-      if (named != null) return portionUnit(named);
+      if (named != null) return 'portion:${meal.portions[named].id}';
+      final options = foodAmountOptions(meal);
+      final serving = options.where((o) => o.unit == 'serving').firstOrNull;
+      if (serving != null) return serving.unit;
+      final portion = options
+          .where((o) => o.unit.startsWith('portion:'))
+          .firstOrNull;
+      if (portion != null) return portion.unit;
+      // A count is not a weight. Leave its request unresolved until corrected.
+      return 'serving';
     }
-
-    // A bare count means "N of them", and when the record's serving can be
-    // scaled that is precisely what a serving is — so `2 eggs` is two
-    // servings. Falling through to grams instead turned a count into a
-    // weight and logged two grams of egg (#622).
-    //
-    // Gate on `servingQuantity`, not `hasServingValues`: the latter is also
-    // true for a record with only unparseable `servingSize` text, which
-    // `convertQuantityToBaseUnit` leaves unscaled. Labelling those `serving`
-    // would rename the bug rather than fix it — the row would read
-    // "2 serving" and still log 2 g. Those fall through to the weight
-    // default below and are marked by `BulkAddRow.amountNeedsCheck`.
-    if (parsed.quantity != null && meal.servingQuantity != null) {
-      return UnitDropdownItem.serving.toString();
-    }
-
-    if (meal.hasServingValues) {
-      return meal.servingUnit ?? UnitDropdownItem.gml.toString();
-    }
-    return fallback;
+    final serving = resolveFoodAmountOption(meal, 'serving');
+    if (serving != null) return serving.baseUnit;
+    return usesImperialUnits
+        ? (meal.isLiquid ? 'fl oz' : 'oz')
+        : defaultFoodAmount(meal).option.unit;
   }
 
   /// Formats a quantity for the amount field, which accepts at most two
@@ -688,8 +535,11 @@ class BulkAddBloc extends Bloc<BulkAddEvent, BulkAddState> {
     _updateRow(
       event.rowIndex,
       emit,
-      (row) =>
-          row.copyWith(amountText: event.amountText, amountEditedByUser: true),
+      (row) => row.copyWith(
+        amountText: event.amountText,
+        amountEditedByUser: true,
+        requiresUnitChoice: row.requiresUnitChoice || row.amountNeedsCheck,
+      ),
     );
   }
 
@@ -699,7 +549,11 @@ class BulkAddBloc extends Bloc<BulkAddEvent, BulkAddState> {
       emit,
       // Picking a unit answers the question `amountNeedsCheck` was asking,
       // so the row stops asking it.
-      (row) => row.copyWith(unit: event.unit, unitChosenByUser: true),
+      (row) => row.copyWith(
+        unit: event.unit,
+        unitChosenByUser: true,
+        requiresUnitChoice: false,
+      ),
     );
   }
 

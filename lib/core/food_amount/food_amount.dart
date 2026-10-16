@@ -1,4 +1,3 @@
-import 'package:opennutritracker/features/add_meal/util/portion_unit.dart';
 import 'package:equatable/equatable.dart';
 import 'package:opennutritracker/core/utils/food_amount_unit.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
@@ -17,7 +16,10 @@ class FoodAmountOption extends Equatable {
   final String? label;
   bool get isNamed => unit == 'serving' || unit.startsWith('portion:');
   bool get isValid =>
-      (baseUnit == 'g' || baseUnit == 'ml') && factor.isFinite && factor > 0;
+      unit.trim().isNotEmpty &&
+      (baseUnit == 'g' || baseUnit == 'ml') &&
+      factor.isFinite &&
+      factor > 0;
   String get identity => '$unit:$baseUnit:$factor';
   String get displayLabel => label ?? unit;
   double toBase(double amount) => amount * factor;
@@ -44,6 +46,52 @@ class FoodAmountSelection extends Equatable {
       baseAmount.isFinite &&
       baseAmount > 0;
 
+  factory FoodAmountSelection.fromSnapshot({
+    required double amount,
+    required String unit,
+    required String baseUnit,
+    required double factor,
+    String? label,
+  }) {
+    final selection = FoodAmountSelection(
+      amount,
+      FoodAmountOption(
+        unit: unit,
+        baseUnit: baseUnit,
+        factor: factor,
+        label: label,
+      ),
+    );
+    selection.validate();
+    return selection;
+  }
+
+  void validate() {
+    if (!isValid) {
+      throw const FormatException('Invalid food quantity or conversion');
+    }
+  }
+
+  factory FoodAmountSelection.fromJson(Map<String, dynamic> json) =>
+      FoodAmountSelection.fromSnapshot(
+        amount: (json['amount'] as num).toDouble(),
+        unit: json['unit'] as String,
+        baseUnit: json['baseUnit'] as String,
+        factor: (json['factor'] as num).toDouble(),
+        label: json['label'] as String?,
+      );
+
+  Map<String, dynamic> toJson() {
+    validate();
+    return {
+      'amount': amount,
+      'unit': option.unit,
+      'baseUnit': option.baseUnit,
+      'factor': option.factor,
+      if (option.label != null) 'label': option.label,
+    };
+  }
+
   @override
   List<Object?> get props => [amount, option];
 }
@@ -53,32 +101,10 @@ void validateFoodQuantity(FoodAmountSelection? quantity, MealEntity meal) {
     if (meal.isQuickAdd && !meal.hasQuickAddWeight) return;
     throw const FormatException('A weighted intake requires a quantity');
   }
-  if (!quantity.isValid) {
-    throw const FormatException('Invalid food quantity or conversion');
-  }
+  quantity.validate();
 }
 
-/// Resolves a logical unit against current food data, without changing quantity.
-FoodAmountOption? currentFoodAmountOption(
-  MealEntity meal,
-  String unit,
-  String baseUnit,
-) {
-  final options = foodAmountOptions(meal);
-  final standard = FoodAmountUnit.values
-      .where((u) => u.label == unit)
-      .firstOrNull;
-  if (standard != null) {
-    return standard.baseUnit == baseUnit &&
-            options.any((o) => o.baseUnit == baseUnit)
-        ? FoodAmountOption.standard(standard)
-        : null;
-  }
-  return options
-      .where((o) => o.unit == unit && o.baseUnit == baseUnit)
-      .firstOrNull;
-}
-
+/// UI choices and named conversions available for this food.
 List<FoodAmountOption> foodAmountOptions(MealEntity meal) {
   final result = <FoodAmountOption>[];
   for (final portion in meal.portions) {
@@ -158,37 +184,45 @@ String formatFoodAmount(double value) {
   return negative ? '-$decimal' : decimal;
 }
 
-FoodAmountSelection selectionForFoodUnit(
+/// Resolves an explicit request. Failure never changes the requested unit.
+FoodAmountOption? resolveFoodAmountOption(
+  MealEntity meal,
+  String unit, {
+  String? baseUnit,
+}) {
+  final canonical = switch (unit.trim()) {
+    'fl.oz' => 'fl oz',
+    'gml' || 'g/ml' => meal.isLiquid ? 'ml' : 'g',
+    final unit => unit,
+  };
+  final options = foodAmountOptions(meal);
+  final direct = options
+      .where(
+        (o) =>
+            o.unit == canonical && (baseUnit == null || o.baseUnit == baseUnit),
+      )
+      .firstOrNull;
+  if (direct != null) return direct;
+  // Small metric units share the same availability rules as the displayed
+  // mass/volume choices; their factors come from the standard unit registry.
+  final standard = FoodAmountUnit.values
+      .where((u) => u.label == canonical)
+      .firstOrNull;
+  if (standard == null ||
+      (baseUnit != null && standard.baseUnit != baseUnit) ||
+      !options.any((o) => o.baseUnit == standard.baseUnit)) {
+    return null;
+  }
+  return FoodAmountOption.standard(standard);
+}
+
+FoodAmountSelection? resolveFoodAmount(
   double amount,
   String unit,
   MealEntity meal,
 ) {
-  final options = foodAmountOptions(meal);
-  final canonical = unit == 'fl.oz' ? 'fl oz' : unit;
-  final direct = currentFoodAmountOption(
-    meal,
-    canonical,
-    MealEntity.liquidUnits.contains(canonical) ? 'ml' : 'g',
-  );
-  if (direct != null) return FoodAmountSelection(amount, direct);
-  if (isPortionUnit(unit) && meal.portions.isNotEmpty) {
-    final index = effectivePortionIndex(unit);
-    if (index >= 0 && index < meal.portions.length) {
-      final portion = meal.portions[index];
-      return FoodAmountSelection(
-        amount,
-        options.firstWhere((o) => o.unit == 'portion:${portion.id}'),
-      );
-    }
-  }
-  final option = options.where((o) => o.unit == canonical).firstOrNull;
-  return FoodAmountSelection(
-    amount,
-    option ??
-        FoodAmountOption(
-          unit: meal.isLiquid ? 'ml' : 'g',
-          baseUnit: meal.isLiquid ? 'ml' : 'g',
-          factor: 1,
-        ),
-  );
+  final option = resolveFoodAmountOption(meal, unit);
+  if (option == null) return null;
+  final selection = FoodAmountSelection(amount, option);
+  return selection.isValid ? selection : null;
 }

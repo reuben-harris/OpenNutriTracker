@@ -42,6 +42,13 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await fixture.mount(tester, meal ?? refreshMeal());
+    // These refresh assertions use the explicit per-100 reference basis.
+    await tester.ensureVisible(find.text('Per 100g/ml'));
+    await tester.tap(find.text('Per 100g/ml'));
+    await tester.pumpAndSettle();
+    if (refreshButton.evaluate().isNotEmpty) {
+      await tester.ensureVisible(refreshButton);
+    }
   }
 
   refreshTest('refresh bypasses cache, updates same-name nutrition and totals, '
@@ -74,8 +81,6 @@ void main() {
     await pumpUntil(tester, () => !bloc.state.isRefreshing);
     await tester.pumpAndSettle();
     expect(bloc.state.refreshStatus, ProductRefreshStatus.success);
-    expect(bloc.state.selectedUnit, 'g');
-    expect(bloc.state.totalQuantityConverted, '100.0');
     expect(bloc.state.totalKcal, 200);
     expect(bloc.state.totalCarbs, 20);
     expect(bloc.state.totalFat, 10);

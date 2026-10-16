@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:convert';
 import 'dart:io' show gzip;
 
@@ -25,7 +26,7 @@ num? _compact(double? v) {
 double? _toDouble(dynamic v) => (v as num?)?.toDouble();
 
 /// Compact array form of one recipe ingredient. Field order:
-///   [name, brands, amount, unit, convertedG,
+///   [name, brands, quantitySnapshot,
 ///    kcal/100, carbs/100, fat/100, protein/100,
 ///    sugars/100, satFat/100, fiber/100, thumbUrl]
 ///
@@ -36,9 +37,7 @@ double? _toDouble(dynamic v) => (v as num?)?.toDouble();
 class SharedRecipeIngredient {
   final String? name;
   final String? brands;
-  final double amount;
-  final String unit;
-  final double convertedAmountG;
+  final FoodAmountSelection quantity;
   final double? energyKcal100;
   final double? carbohydrates100;
   final double? fat100;
@@ -51,9 +50,7 @@ class SharedRecipeIngredient {
   const SharedRecipeIngredient({
     required this.name,
     required this.brands,
-    required this.amount,
-    required this.unit,
-    required this.convertedAmountG,
+    required this.quantity,
     required this.energyKcal100,
     required this.carbohydrates100,
     required this.fat100,
@@ -69,9 +66,7 @@ class SharedRecipeIngredient {
     return SharedRecipeIngredient(
       name: i.snapshotMeal.name,
       brands: i.snapshotMeal.brands,
-      amount: i.amount,
-      unit: i.unit,
-      convertedAmountG: i.convertedAmountG,
+      quantity: i.quantity,
       energyKcal100: n.energyKcal100,
       carbohydrates100: n.carbohydrates100,
       fat100: n.fat100,
@@ -89,35 +84,33 @@ class SharedRecipeIngredient {
     return SharedRecipeIngredient(
       name: a[0] as String?,
       brands: a[1] as String?,
-      amount: (a[2] as num?)?.toDouble() ?? 0.0,
-      unit: (a[3] as String?) ?? 'g',
-      convertedAmountG: (a[4] as num?)?.toDouble() ?? 0.0,
-      energyKcal100: atNum(5)?.toDouble(),
-      carbohydrates100: atNum(6)?.toDouble(),
-      fat100: atNum(7)?.toDouble(),
-      proteins100: atNum(8)?.toDouble(),
-      sugars100: atNum(9)?.toDouble(),
-      saturatedFat100: atNum(10)?.toDouble(),
-      fiber100: atNum(11)?.toDouble(),
-      thumbnailImageUrl: atStr(12),
+      quantity: FoodAmountSelection.fromJson(
+        Map<String, dynamic>.from(a[2] as Map),
+      ),
+      energyKcal100: atNum(3)?.toDouble(),
+      carbohydrates100: atNum(4)?.toDouble(),
+      fat100: atNum(5)?.toDouble(),
+      proteins100: atNum(6)?.toDouble(),
+      sugars100: atNum(7)?.toDouble(),
+      saturatedFat100: atNum(8)?.toDouble(),
+      fiber100: atNum(9)?.toDouble(),
+      thumbnailImageUrl: atStr(10),
     );
   }
 
   List<dynamic> toArray() => [
-        name,
-        brands,
-        _compact(amount),
-        unit,
-        _compact(convertedAmountG),
-        _compact(energyKcal100),
-        _compact(carbohydrates100),
-        _compact(fat100),
-        _compact(proteins100),
-        _compact(sugars100),
-        _compact(saturatedFat100),
-        _compact(fiber100),
-        thumbnailImageUrl,
-      ];
+    name,
+    brands,
+    quantity.toJson(),
+    _compact(energyKcal100),
+    _compact(carbohydrates100),
+    _compact(fat100),
+    _compact(proteins100),
+    _compact(sugars100),
+    _compact(saturatedFat100),
+    _compact(fiber100),
+    thumbnailImageUrl,
+  ];
 
   RecipeIngredientEntity toIngredient() {
     return RecipeIngredientEntity(
@@ -144,9 +137,7 @@ class SharedRecipeIngredient {
         ),
         source: MealSourceEntity.custom,
       ),
-      amount: amount,
-      unit: unit,
-      convertedAmountG: convertedAmountG,
+      quantity: quantity,
     );
   }
 }
@@ -156,7 +147,7 @@ class SharedRecipeIngredient {
 ///    [aggregated kcal, c, f, p, sg, sf, fb],
 ///    [ingredients...]]
 class SharedRecipePayload {
-  static const int _currentVersion = 1;
+  static const int _currentVersion = 2;
 
   // Cap the post-decompression payload size to make zip-bomb-style QR
   // codes a clean parse failure rather than an OOM. 64 KiB comfortably
@@ -210,8 +201,9 @@ class SharedRecipePayload {
       sugars100: n.sugars100,
       saturatedFat100: n.saturatedFat100,
       fiber100: n.fiber100,
-      ingredients:
-          recipe.ingredients.map(SharedRecipeIngredient.fromIngredient).toList(),
+      ingredients: recipe.ingredients
+          .map(SharedRecipeIngredient.fromIngredient)
+          .toList(),
     );
   }
 
@@ -219,11 +211,13 @@ class SharedRecipePayload {
     try {
       String jsonString;
       try {
-        final decompressed =
-            gzip.decode(base64Url.decode(base64Url.normalize(input)));
+        final decompressed = gzip.decode(
+          base64Url.decode(base64Url.normalize(input)),
+        );
         if (decompressed.length > _kMaxDecompressedBytes) {
           throw SharedRecipeParseException(
-              'Payload too large to decode (>$_kMaxDecompressedBytes bytes)');
+            'Payload too large to decode (>$_kMaxDecompressedBytes bytes)',
+          );
         }
         jsonString = utf8.decode(decompressed);
       } on SharedRecipeParseException {

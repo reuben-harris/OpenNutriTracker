@@ -454,6 +454,8 @@
   "importCustomFoodDataLabel": "Import Custom Food Data",
   "importMealConfirmContent": "These items will be added to your {mealType}.",
   "importMealConfirmTitle": "Import {count} items?",
+  "importMealAmountErrorLabel": "The amount for {food} cannot be converted. Correct the amount and share again.",
+  "@importMealAmountErrorLabel": {"placeholders": {"food": {"type": "String"}}},
   "importMealErrorLabel": "Invalid QR code",
   "importMealLabel": "Import shared meal",
   "importMealSuccessLabel": "Meal imported",

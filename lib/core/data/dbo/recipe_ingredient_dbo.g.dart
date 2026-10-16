@@ -18,24 +18,30 @@ class RecipeIngredientDBOAdapter extends TypeAdapter<RecipeIngredientDBO> {
     };
     return RecipeIngredientDBO(
       snapshotMeal: fields[0] as MealDBO,
-      amount: (fields[1] as num).toDouble(),
-      unit: fields[2] as String,
-      convertedAmountG: (fields[3] as num).toDouble(),
+      quantityAmount: (fields[4] as num).toDouble(),
+      quantityUnit: fields[5] as String,
+      quantityBaseUnit: fields[6] as String,
+      quantityUnitFactor: (fields[7] as num).toDouble(),
+      quantityUnitLabel: fields[8] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, RecipeIngredientDBO obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.snapshotMeal)
-      ..writeByte(1)
-      ..write(obj.amount)
-      ..writeByte(2)
-      ..write(obj.unit)
-      ..writeByte(3)
-      ..write(obj.convertedAmountG);
+      ..writeByte(4)
+      ..write(obj.quantityAmount)
+      ..writeByte(5)
+      ..write(obj.quantityUnit)
+      ..writeByte(6)
+      ..write(obj.quantityBaseUnit)
+      ..writeByte(7)
+      ..write(obj.quantityUnitFactor)
+      ..writeByte(8)
+      ..write(obj.quantityUnitLabel);
   }
 
   @override
@@ -58,16 +64,20 @@ RecipeIngredientDBO _$RecipeIngredientDBOFromJson(Map<String, dynamic> json) =>
       snapshotMeal: MealDBO.fromJson(
         json['snapshotMeal'] as Map<String, dynamic>,
       ),
-      amount: (json['amount'] as num).toDouble(),
-      unit: json['unit'] as String,
-      convertedAmountG: (json['convertedAmountG'] as num).toDouble(),
+      quantityAmount: (json['quantityAmount'] as num).toDouble(),
+      quantityUnit: json['quantityUnit'] as String,
+      quantityBaseUnit: json['quantityBaseUnit'] as String,
+      quantityUnitFactor: (json['quantityUnitFactor'] as num).toDouble(),
+      quantityUnitLabel: json['quantityUnitLabel'] as String?,
     );
 
 Map<String, dynamic> _$RecipeIngredientDBOToJson(
   RecipeIngredientDBO instance,
 ) => <String, dynamic>{
   'snapshotMeal': instance.snapshotMeal,
-  'amount': instance.amount,
-  'unit': instance.unit,
-  'convertedAmountG': instance.convertedAmountG,
+  'quantityAmount': instance.quantityAmount,
+  'quantityUnit': instance.quantityUnit,
+  'quantityBaseUnit': instance.quantityBaseUnit,
+  'quantityUnitFactor': instance.quantityUnitFactor,
+  'quantityUnitLabel': instance.quantityUnitLabel,
 };

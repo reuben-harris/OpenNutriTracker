@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/utils/food_amount_unit.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:io';
 import 'dart:math';
@@ -691,9 +692,10 @@ Future<void> seedRecipes(DateTime now, DemoFoods foods) async {
   RecipeIngredientEntity ingredient(MealEntity meal, double amountG) =>
       RecipeIngredientEntity(
         snapshotMeal: meal,
-        amount: amountG,
-        unit: 'g',
-        convertedAmountG: amountG,
+        quantity: FoodAmountSelection(
+          amountG,
+          FoodAmountOption.standard(FoodAmountUnit.g),
+        ),
       );
 
   final recipes = [

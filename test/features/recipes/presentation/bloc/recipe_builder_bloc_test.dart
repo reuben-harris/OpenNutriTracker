@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
@@ -58,6 +59,45 @@ void main() {
 
   tearDown(() => bloc.close());
 
+  test(
+    'builder preserves portions through editing, saving and reopening',
+    () async {
+      const quantity = FoodAmountSelection(
+        2,
+        FoodAmountOption(
+          unit: 'portion:slice',
+          baseUnit: 'g',
+          factor: 38,
+          label: '1 slice',
+        ),
+      );
+      bloc.add(
+        AddIngredientEvent(meal: _meal('bread', kcal: 200), quantity: quantity),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(bloc.state.ingredients.single.quantity, quantity);
+      expect(bloc.state.totalWeightG, 76);
+      bloc.add(
+        UpdateIngredientEvent(
+          index: 0,
+          quantity: FoodAmountSelection(3, quantity.option),
+        ),
+      );
+      bloc.add(const UpdateNameEvent('Bread recipe'));
+      await Future<void>.delayed(Duration.zero);
+      expect(bloc.state.totalWeightG, 114);
+      bloc.add(const SaveRecipeEvent());
+      await Future<void>.delayed(Duration.zero);
+      final saved = repo.saved.single;
+      expect(saved.ingredients.single.quantity.amount, 3);
+      expect(saved.ingredients.single.quantity.option, quantity.option);
+      bloc.add(InitializeBuilderEvent(existing: saved));
+      await Future<void>.delayed(Duration.zero);
+      expect(bloc.state.ingredients.single.quantity.option, quantity.option);
+      expect(bloc.state.totalWeightG, 114);
+    },
+  );
+
   group('RecipeBuilderBloc', () {
     test('initial state has no id, empty name, empty ingredients', () {
       expect(bloc.state.id, isNull);
@@ -66,20 +106,25 @@ void main() {
       expect(bloc.state.isExistingRecipe, isFalse);
     });
 
-    test('AddIngredientEvent recomputes total weight + per-100g nutrition',
-        () async {
-      bloc.add(AddIngredientEvent(
-        meal: _meal('flour', kcal: 340),
-        amount: 100,
-        unit: 'g',
-      ));
-      await Future<void>.delayed(Duration.zero);
+    test(
+      'AddIngredientEvent recomputes total weight + per-100g nutrition',
+      () async {
+        bloc.add(
+          AddIngredientEvent(
+            meal: _meal('flour', kcal: 340),
+            quantity: resolveFoodAmount(100, 'g', _meal('flour', kcal: 340))!,
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
 
-      expect(bloc.state.ingredients, hasLength(1));
-      expect(bloc.state.totalWeightG, 100);
-      expect(
-          bloc.state.aggregatedNutrimentsPer100.energyKcal100, closeTo(340, 0.01));
-    });
+        expect(bloc.state.ingredients, hasLength(1));
+        expect(bloc.state.totalWeightG, 100);
+        expect(
+          bloc.state.aggregatedNutrimentsPer100.energyKcal100,
+          closeTo(340, 0.01),
+        );
+      },
+    );
 
     test('save with empty name emits nameRequired error', () async {
       bloc.add(const SaveRecipeEvent());
@@ -98,31 +143,35 @@ void main() {
       expect(repo.saved, isEmpty);
     });
 
-    test('save with explicit zero total weight emits invalidTotalWeight',
-        () async {
-      bloc.add(const UpdateNameEvent('Cake'));
-      bloc.add(AddIngredientEvent(
-        meal: _meal('flour', kcal: 340),
-        amount: 100,
-        unit: 'g',
-      ));
-      await Future<void>.delayed(Duration.zero);
-      bloc.add(const UpdateTotalWeightEvent(0));
-      await Future<void>.delayed(Duration.zero);
-      bloc.add(const SaveRecipeEvent());
-      await Future<void>.delayed(Duration.zero);
+    test(
+      'save with explicit zero total weight emits invalidTotalWeight',
+      () async {
+        bloc.add(const UpdateNameEvent('Cake'));
+        bloc.add(
+          AddIngredientEvent(
+            meal: _meal('flour', kcal: 340),
+            quantity: resolveFoodAmount(100, 'g', _meal('flour', kcal: 340))!,
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+        bloc.add(const UpdateTotalWeightEvent(0));
+        await Future<void>.delayed(Duration.zero);
+        bloc.add(const SaveRecipeEvent());
+        await Future<void>.delayed(Duration.zero);
 
-      expect(bloc.state.saveError, SaveError.invalidTotalWeight);
-      expect(repo.saved, isEmpty);
-    });
+        expect(bloc.state.saveError, SaveError.invalidTotalWeight);
+        expect(repo.saved, isEmpty);
+      },
+    );
 
     test('successful save persists and emits didSave', () async {
       bloc.add(const UpdateNameEvent('Cake'));
-      bloc.add(AddIngredientEvent(
-        meal: _meal('flour', kcal: 340),
-        amount: 100,
-        unit: 'g',
-      ));
+      bloc.add(
+        AddIngredientEvent(
+          meal: _meal('flour', kcal: 340),
+          quantity: resolveFoodAmount(100, 'g', _meal('flour', kcal: 340))!,
+        ),
+      );
       await Future<void>.delayed(Duration.zero);
       bloc.add(const SaveRecipeEvent());
       await Future<void>.delayed(Duration.zero);
@@ -154,25 +203,27 @@ void main() {
       expect(bloc.state.name, 'Original');
     });
 
-    test('initialize with empty-id recipe (duplicate sentinel) treats as create',
-        () async {
-      final duplicate = RecipeEntity(
-        id: '',
-        name: 'Cake (copy)',
-        description: null,
-        ingredients: const [],
-        totalWeightG: 100,
-        aggregatedNutrimentsPer100: MealNutrimentsEntity.empty(),
-        createdAt: DateTime.utc(2024, 1, 1),
-        updatedAt: DateTime.utc(2024, 1, 1),
-        servingsCount: null,
-      );
-      bloc.add(InitializeBuilderEvent(existing: duplicate));
-      await Future<void>.delayed(Duration.zero);
+    test(
+      'initialize with empty-id recipe (duplicate sentinel) treats as create',
+      () async {
+        final duplicate = RecipeEntity(
+          id: '',
+          name: 'Cake (copy)',
+          description: null,
+          ingredients: const [],
+          totalWeightG: 100,
+          aggregatedNutrimentsPer100: MealNutrimentsEntity.empty(),
+          createdAt: DateTime.utc(2024, 1, 1),
+          updatedAt: DateTime.utc(2024, 1, 1),
+          servingsCount: null,
+        );
+        bloc.add(InitializeBuilderEvent(existing: duplicate));
+        await Future<void>.delayed(Duration.zero);
 
-      expect(bloc.state.isExistingRecipe, isFalse);
-      expect(bloc.state.id, isNull);
-      expect(bloc.state.name, 'Cake (copy)');
-    });
+        expect(bloc.state.isExistingRecipe, isFalse);
+        expect(bloc.state.id, isNull);
+        expect(bloc.state.name, 'Cake (copy)');
+      },
+    );
   });
 }

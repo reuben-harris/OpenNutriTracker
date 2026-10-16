@@ -416,7 +416,7 @@ void main() {
   });
 
   group('parseMealText unit invariant', () {
-    // The app's UnitDropdownItem.toString() values (meal_detail_bloc.dart).
+    // Canonical parser outputs consumed by the shared amount resolver.
     // A future unit addition there without a matching update here should
     // fail this test rather than silently reach the app's g/ml fallback.
     const validUnitDropdownValues = {
@@ -429,7 +429,7 @@ void main() {
     };
 
     test(
-      'every parsed unit is null or one of the six UnitDropdownItem values',
+      'every parsed unit is null or one of the six canonical parser units',
       () {
         const inputs = [
           '100g toast',
@@ -467,10 +467,9 @@ void main() {
     test('anthropic answering a litre for a glass is dropped', () {
       // `ein Glas Milch` → `1 l`, normalised x1000 to 1000 ml, logged as
       // 470 kcal for a glass of milk. The whole reason this rule exists.
-      final result = validateParsedMealItems(
-        const [ParsedMealItem(query: 'Milch', quantity: 1, unit: 'l')],
-        statedIn: 'ein Glas Milch',
-      );
+      final result = validateParsedMealItems(const [
+        ParsedMealItem(query: 'Milch', quantity: 1, unit: 'l'),
+      ], statedIn: 'ein Glas Milch');
 
       expect(result.items.single.unit, isNull);
       expect(
@@ -482,10 +481,9 @@ void main() {
 
     test('the same phrase answered as a millilitre is dropped too', () {
       // The other half of the coin flip: same input, same provider, `1 ml`.
-      final result = validateParsedMealItems(
-        const [ParsedMealItem(query: 'Milch', quantity: 1, unit: 'ml')],
-        statedIn: 'ein Glas Milch',
-      );
+      final result = validateParsedMealItems(const [
+        ParsedMealItem(query: 'Milch', quantity: 1, unit: 'ml'),
+      ], statedIn: 'ein Glas Milch');
 
       expect(result.items.single.unit, isNull);
     });
@@ -497,10 +495,9 @@ void main() {
     });
 
     test('a stated unit is corroborated and kept', () {
-      final result = validateParsedMealItems(
-        const [ParsedMealItem(query: 'Milch', quantity: 200, unit: 'ml')],
-        statedIn: '200ml Milch',
-      );
+      final result = validateParsedMealItems(const [
+        ParsedMealItem(query: 'Milch', quantity: 200, unit: 'ml'),
+      ], statedIn: '200ml Milch');
 
       expect(result.items.single.unit, 'ml');
       expect(result.items.single.quantity, 200);
@@ -509,10 +506,9 @@ void main() {
     test('a stated litre still converts', () {
       // The conversion this rule must not break: it exists because dropping
       // a real litre silently logged 1.5 g/ml.
-      final result = validateParsedMealItems(
-        const [ParsedMealItem(query: 'Milch', quantity: 1.5, unit: 'l')],
-        statedIn: '1,5 l Milch',
-      );
+      final result = validateParsedMealItems(const [
+        ParsedMealItem(query: 'Milch', quantity: 1.5, unit: 'l'),
+      ], statedIn: '1,5 l Milch');
 
       expect(result.items.single.unit, 'ml');
       expect(result.items.single.quantity, 1500);
@@ -521,13 +517,10 @@ void main() {
     test('a mixed line still states a unit, so nothing changes', () {
       // Whole-input, so `100g Toast, 2 Eier` is untouched — the narrowing
       // must not reach the ordinary case.
-      final result = validateParsedMealItems(
-        const [
-          ParsedMealItem(query: 'Toast', quantity: 100, unit: 'g'),
-          ParsedMealItem(query: 'Eier', quantity: 2),
-        ],
-        statedIn: '100g Toast, 2 Eier',
-      );
+      final result = validateParsedMealItems(const [
+        ParsedMealItem(query: 'Toast', quantity: 100, unit: 'g'),
+        ParsedMealItem(query: 'Eier', quantity: 2),
+      ], statedIn: '100g Toast, 2 Eier');
 
       expect(result.items.first.unit, 'g');
       expect(result.items.first.quantity, 100);
@@ -536,12 +529,9 @@ void main() {
     test('the portion key survives, since it is not a unit', () {
       // Both providers answer `drei Scheiben Brot` correctly via `portion`,
       // and that is the field the dropped unit should have been.
-      final result = validateParsedMealItems(
-        const [
-          ParsedMealItem(query: 'Brot', quantity: 3, portion: 'Scheiben'),
-        ],
-        statedIn: 'zwei Eier und drei Scheiben Brot',
-      );
+      final result = validateParsedMealItems(const [
+        ParsedMealItem(query: 'Brot', quantity: 3, portion: 'Scheiben'),
+      ], statedIn: 'zwei Eier und drei Scheiben Brot');
 
       expect(result.items.single.portion, 'Scheiben');
       expect(result.items.single.quantity, 3);

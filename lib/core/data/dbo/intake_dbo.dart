@@ -67,14 +67,12 @@ class IntakeDBO extends HiveObject {
         quantityUnitFactor == null) {
       throw const FormatException('Incomplete food quantity snapshot');
     }
-    return FoodAmountSelection(
-      quantityAmount!,
-      FoodAmountOption(
-        unit: quantityUnit!,
-        baseUnit: quantityBaseUnit!,
-        factor: quantityUnitFactor!,
-        label: quantityUnitLabel,
-      ),
+    return FoodAmountSelection.fromSnapshot(
+      amount: quantityAmount!,
+      unit: quantityUnit!,
+      baseUnit: quantityBaseUnit!,
+      factor: quantityUnitFactor!,
+      label: quantityUnitLabel,
     );
   }
 

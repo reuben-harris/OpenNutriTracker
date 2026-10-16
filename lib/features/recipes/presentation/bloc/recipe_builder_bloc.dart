@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
@@ -106,18 +107,9 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
     AddIngredientEvent event,
     Emitter<RecipeBuilderState> emit,
   ) {
-    final convertedG =
-        _computeUseCase.convertAmountToGrams(
-          amount: event.amount,
-          unit: event.unit,
-          servingQuantityG: event.meal.scalableServingQuantity,
-        ) ??
-        0;
     final newIngredient = RecipeIngredientEntity(
       snapshotMeal: event.meal,
-      amount: event.amount,
-      unit: event.unit,
-      convertedAmountG: convertedG,
+      quantity: event.quantity,
     );
     emit(state.copyWith(ingredients: [...state.ingredients, newIngredient]));
     _recompute(emit);
@@ -129,18 +121,7 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
   ) {
     if (event.index < 0 || event.index >= state.ingredients.length) return;
     final old = state.ingredients[event.index];
-    final convertedG =
-        _computeUseCase.convertAmountToGrams(
-          amount: event.amount,
-          unit: event.unit,
-          servingQuantityG: old.snapshotMeal.scalableServingQuantity,
-        ) ??
-        0;
-    final updated = old.copyWith(
-      amount: event.amount,
-      unit: event.unit,
-      convertedAmountG: convertedG,
-    );
+    final updated = old.copyWith(quantity: event.quantity);
     final newList = List<RecipeIngredientEntity>.from(state.ingredients);
     newList[event.index] = updated;
     emit(state.copyWith(ingredients: newList));

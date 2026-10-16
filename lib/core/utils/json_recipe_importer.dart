@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:convert';
 
 import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
@@ -113,9 +114,7 @@ class JsonRecipeImporter {
         } else {
           return JsonRecipeImportResult(
             recipes: const [],
-            errors: [
-              'Could not parse: entry #${i + 1} is not an object',
-            ],
+            errors: ['Could not parse: entry #${i + 1} is not an object'],
           );
         }
       }
@@ -175,7 +174,7 @@ class JsonRecipeImporter {
         }
 
         final amount = _asDouble(ing[_kIngAmount]);
-        if (amount == null || amount <= 0) {
+        if (amount == null || !amount.isFinite || amount <= 0) {
           errors.add(
             'Recipe $entryNum ($name) ingredient $ingNum ($ingName): "amount" must be a positive number',
           );
@@ -209,9 +208,9 @@ class JsonRecipeImporter {
           name: ingName,
           url: null,
           mealQuantity: '100',
-          mealUnit: 'g',
+          mealUnit: MealEntity.liquidUnits.contains(unit) ? 'ml' : 'g',
           servingQuantity: null,
-          servingUnit: 'g',
+          servingUnit: null,
           servingSize: null,
           nutriments: MealNutrimentsEntity(
             energyKcal100: kcal100,
@@ -225,19 +224,21 @@ class JsonRecipeImporter {
           source: MealSourceEntity.custom,
         );
 
-        final convertedG = compute.convertAmountToGrams(
-              amount: amount,
-              unit: unit,
-              servingQuantityG: null,
-            ) ??
-            0;
-
-        ingredients.add(RecipeIngredientEntity(
-          snapshotMeal: ingredientMeal,
-          amount: amount,
-          unit: unit,
-          convertedAmountG: convertedG,
-        ));
+        final quantity = resolveFoodAmount(amount, unit, ingredientMeal);
+        if (quantity == null) {
+          errors.add(
+            'Recipe $entryNum ($name) ingredient $ingNum ($ingName): '
+            'unit "$unit" cannot be converted to a usable amount',
+          );
+          ingredientHadError = true;
+          break;
+        }
+        ingredients.add(
+          RecipeIngredientEntity(
+            snapshotMeal: ingredientMeal,
+            quantity: quantity,
+          ),
+        );
       }
 
       if (ingredientHadError || ingredients.isEmpty) {
@@ -269,23 +270,25 @@ class JsonRecipeImporter {
         totalWeightOverride: totalWeightOverride,
       );
 
-      recipes.add(ImportedRecipe(
-        recipe: RecipeEntity(
-          id: IdGenerator.getUniqueID(),
-          name: name,
-          description: (description != null && description.isNotEmpty)
-              ? description
-              : null,
-          ingredients: ingredients,
-          totalWeightG: result.totalWeightG,
-          aggregatedNutrimentsPer100: result.perHundredG,
-          createdAt: now,
-          updatedAt: now,
-          servingsCount: servingsCount,
-          tags: List.unmodifiable(tags),
+      recipes.add(
+        ImportedRecipe(
+          recipe: RecipeEntity(
+            id: IdGenerator.getUniqueID(),
+            name: name,
+            description: (description != null && description.isNotEmpty)
+                ? description
+                : null,
+            ingredients: ingredients,
+            totalWeightG: result.totalWeightG,
+            aggregatedNutrimentsPer100: result.perHundredG,
+            createdAt: now,
+            updatedAt: now,
+            servingsCount: servingsCount,
+            tags: List.unmodifiable(tags),
+          ),
+          totalWeightOverridden: totalWeightOverride != null,
         ),
-        totalWeightOverridden: totalWeightOverride != null,
-      ));
+      );
     }
 
     return JsonRecipeImportResult(recipes: recipes, errors: errors);

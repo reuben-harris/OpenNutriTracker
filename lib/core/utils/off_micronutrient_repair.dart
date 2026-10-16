@@ -120,9 +120,11 @@ class OffMicronutrientRepair {
       ingredients.add(
         RecipeIngredientDBO(
           snapshotMeal: meal,
-          amount: ingredient.amount,
-          unit: ingredient.unit,
-          convertedAmountG: ingredient.convertedAmountG,
+          quantityAmount: ingredient.quantityAmount,
+          quantityUnit: ingredient.quantityUnit,
+          quantityBaseUnit: ingredient.quantityBaseUnit,
+          quantityUnitFactor: ingredient.quantityUnitFactor,
+          quantityUnitLabel: ingredient.quantityUnitLabel,
         ),
       );
     }

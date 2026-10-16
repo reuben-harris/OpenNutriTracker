@@ -39,9 +39,12 @@ IntakeEntity diaryEntry({
           ingredients: [
             RecipeIngredientEntity(
               snapshotMeal: food,
-              amount: 100,
-              unit: 'g',
-              convertedAmountG: 100,
+              quantity: FoodAmountSelection.fromSnapshot(
+                amount: 100,
+                unit: 'g',
+                baseUnit: 'g',
+                factor: (100) / (100),
+              ),
             ),
           ],
           totalWeightG: 200,

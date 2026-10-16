@@ -1,11 +1,10 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
-import 'package:opennutritracker/features/meal_detail/util/meal_quantity_converter.dart';
-import 'package:opennutritracker/features/add_meal/util/portion_unit.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
@@ -139,7 +138,14 @@ void main() {
       expect(meal.nutriments.sodium100, 2);
       expect(meal.portions, hasLength(1));
       expect(meal.portions.single.label, '1 cup');
-      expect(convertQuantityToBaseUnit(2, portionUnit(0), meal), 280);
+      expect(
+        resolveFoodAmount(
+          2,
+          'portion:${meal.portions.first.id}',
+          meal,
+        )!.baseAmount,
+        280,
+      );
       expect(meal.nutriments.energyPerUnit! * 280, closeTo(145.6, 0.001));
     },
   );

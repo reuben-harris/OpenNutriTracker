@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:async';
 
@@ -205,6 +206,14 @@ class _ImportMealScannerScreenState extends State<ImportMealScannerScreen>
           );
         }
       }
+    } on SharedMealAmountException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(S.of(context).importMealAmountErrorLabel(error.food)),
+          ),
+        );
+      }
     } on SharedMealParseException {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -252,50 +261,31 @@ class _ImportMealScannerScreenState extends State<ImportMealScannerScreen>
     final remoteCache = locator<RemoteSearchCacheDataSource>();
     final saveRecipeUseCase = locator<SaveRecipeUseCase>();
 
-    // Custom + FDC items: route to the right local store before logging the
-    // intake. Custom snapshots become entries in the user's custom-meal
-    // box; FDC snapshots populate the remote-search cache so future
-    // searches hit them locally.
+    final prepared =
+        <
+          ({
+            MealEntity meal,
+            FoodAmountSelection? quantity,
+            RecipeEntity? recipe,
+          })
+        >[];
     for (final item in payload.items) {
       final meal = item.toMealEntity();
-      if (item.source == MealSourceEntity.fdc) {
-        await remoteCache.cache(MealDBO.fromMealEntity(meal));
-      } else {
-        await customMealDataSource.saveCustomMeal(MealDBO.fromMealEntity(meal));
-      }
-      if (!mounted) return;
-      _mealDetailBloc.addIntake(
-        context,
-        meal.isQuickAdd && !meal.hasQuickAddWeight
-            ? null
-            : selectionForFoodUnit(item.amount, item.unit, meal),
-        _intakeTypeEntity,
-        meal,
-        _day,
-      );
+      prepared.add((
+        meal: meal,
+        quantity: resolveSharedMealAmount(item.amount, item.unit, meal),
+        recipe: null,
+      ));
     }
-
-    // Recipes: persist to the recipe box (so the user can re-log them later
-    // from the Recipes tab) and create an intake from the recipe-as-meal.
-    for (final recipeItem in payload.recipes) {
-      final recipe = recipeItem.recipe.toRecipeEntity();
-      final saved = await saveRecipeUseCase.save(recipe);
-      if (!mounted) return;
-      _mealDetailBloc.addIntake(
-        context,
-        selectionForFoodUnit(
-          recipeItem.amount,
-          recipeItem.unit,
-          saved.toMealEntity(),
-        ),
-        _intakeTypeEntity,
-        saved.toMealEntity(),
-        _day,
-      );
+    for (final item in payload.recipes) {
+      final recipe = item.recipe.toRecipeEntity();
+      final meal = recipe.toMealEntity();
+      prepared.add((
+        meal: meal,
+        quantity: resolveSharedMealAmount(item.amount, item.unit, meal),
+        recipe: recipe,
+      ));
     }
-
-    // OFF refs: barcode lookup already populates the cache via
-    // SearchProductByBarcodeUseCase, so no extra cache write needed here.
     final offResults = await Future.wait(
       payload.offRefs.map((ref) async {
         try {
@@ -310,22 +300,42 @@ class _ImportMealScannerScreenState extends State<ImportMealScannerScreen>
         }
       }),
     );
-
-    if (!mounted) return;
-
     var skipped = 0;
-    for (final r in offResults) {
-      if (r != null) {
-        _mealDetailBloc.addIntake(
-          context,
-          selectionForFoodUnit(r.ref.amount, r.ref.unit, r.meal),
-          _intakeTypeEntity,
-          r.meal,
-          _day,
-        );
-      } else {
+    for (final result in offResults) {
+      if (result == null) {
         skipped++;
+        continue;
       }
+      prepared.add((
+        meal: result.meal,
+        quantity: resolveSharedMealAmount(
+          result.ref.amount,
+          result.ref.unit,
+          result.meal,
+        ),
+        recipe: null,
+      ));
+    }
+    // No recipes, custom foods, or intakes are saved until every amount resolves.
+    for (final entry in prepared) {
+      if (!mounted) return;
+      if (entry.recipe != null) {
+        await saveRecipeUseCase.save(entry.recipe!);
+      } else if (entry.meal.source == MealSourceEntity.fdc) {
+        await remoteCache.cache(MealDBO.fromMealEntity(entry.meal));
+      } else if (entry.meal.source == MealSourceEntity.custom) {
+        await customMealDataSource.saveCustomMeal(
+          MealDBO.fromMealEntity(entry.meal),
+        );
+      }
+      if (!mounted) return;
+      await _mealDetailBloc.addIntake(
+        context,
+        entry.quantity,
+        _intakeTypeEntity,
+        entry.meal,
+        _day,
+      );
     }
 
     if (skipped > 0 && mounted) {

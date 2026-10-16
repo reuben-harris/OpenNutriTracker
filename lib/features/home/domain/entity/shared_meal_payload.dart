@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:convert';
 import 'dart:io' show gzip;
 
@@ -11,6 +12,24 @@ import 'package:opennutritracker/features/recipes/domain/entity/shared_recipe_pa
 class SharedMealParseException implements Exception {
   final String message;
   SharedMealParseException(this.message);
+}
+
+class SharedMealAmountException implements Exception {
+  final String food;
+  const SharedMealAmountException(this.food);
+}
+
+FoodAmountSelection? resolveSharedMealAmount(
+  double amount,
+  String unit,
+  MealEntity meal,
+) {
+  if (meal.isQuickAdd && !meal.hasQuickAddWeight) return null;
+  final selection = resolveFoodAmount(amount, unit, meal);
+  if (selection == null) {
+    throw SharedMealAmountException(meal.name ?? meal.code ?? '?');
+  }
+  return selection;
 }
 
 // Emit int for whole numbers, round to 1dp otherwise — shrinks JSON before compression

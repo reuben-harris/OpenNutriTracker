@@ -8,6 +8,39 @@ import 'package:opennutritracker/core/utils/json_recipe_importer.dart';
 // original JSON supplied a total weight or not.
 
 void main() {
+  for (final unit in ['serving', 'tablespoon', 'portion:missing']) {
+    test('unresolved $unit rejects only its recipe', () {
+      final result = JsonRecipeImporter.parse(
+        '[{"name":"Bad","ingredients":[{"name":"Bread","amount":2,"unit":"$unit","kcalPer100":100}]},{"name":"Good","ingredients":[{"name":"Milk","amount":2,"unit":"cl","kcalPer100":50}]}]',
+      );
+      expect(result.recipes.map((r) => r.recipe.name), ['Good']);
+      expect(result.recipes.single.recipe.totalWeightG, 20);
+      expect(
+        result
+            .recipes
+            .single
+            .recipe
+            .ingredients
+            .single
+            .quantity
+            .option
+            .baseUnit,
+        'ml',
+      );
+      expect(result.errors.single, contains('Bread'));
+      expect(result.errors.single, contains(unit));
+    });
+  }
+  test('nonfinite amounts and conversion overflow are rejected', () {
+    for (final amount in ['NaN', 'Infinity', '1e308']) {
+      final result = JsonRecipeImporter.parse(
+        '{"name":"Bad","ingredients":[{"name":"Flour","amount":"$amount","unit":"kg","kcalPer100":100}]}',
+      );
+      expect(result.recipes, isEmpty);
+      expect(result.errors, isNotEmpty);
+    }
+  });
+
   group('JsonRecipeImporter.parse totalWeight override flag', () {
     test('sets totalWeightOverridden when the JSON supplies totalWeight', () {
       const json = '''{
@@ -70,7 +103,10 @@ void main() {
       expect(result.recipes, isEmpty);
       expect(result.errors, hasLength(3));
       for (final message in result.errors) {
-        expect(message, contains('"totalWeight" must be a positive finite number'));
+        expect(
+          message,
+          contains('"totalWeight" must be a positive finite number'),
+        );
       }
     });
 
