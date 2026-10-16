@@ -386,14 +386,14 @@ Future<void> initLocator() async {
       online: locator(),
       contextIdentity: () =>
           '${hiveDBProvider.activeProfileId}:${AppLocale.localeName}',
-      savedMeals: () async => [
-        ...locator<CustomMealDataSource>().getAllCustomMeals().map(
-          MealEntity.fromMealDBO,
-        ),
-        ...locator<RecipeDataSource>().getAllRecipes().map(
-          (r) => RecipeEntity.fromDBO(r).toMealEntity(),
-        ),
-      ],
+      savedMeals: () async => locator<CustomMealDataSource>()
+          .getAllCustomMeals()
+          .map(MealEntity.fromMealDBO)
+          .toList(),
+      savedRecipes: () async => locator<RecipeDataSource>()
+          .getAllRecipes()
+          .map((r) => RecipeEntity.fromDBO(r).toMealEntity())
+          .toList(),
       recentMeals: () async {
         final intakes = await locator<IntakeDataSource>().getAllIntakes();
         intakes.sort((a, b) {
