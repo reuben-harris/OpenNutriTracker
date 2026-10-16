@@ -109,9 +109,6 @@ import 'package:opennutritracker/features/add_meal/domain/usecase/resolve_parsed
 import 'package:opennutritracker/features/add_meal/domain/usecase/search_products_usecase.dart';
 import 'package:opennutritracker/features/add_meal/presentation/bloc/add_meal_bloc.dart';
 import 'package:opennutritracker/features/add_meal/presentation/bloc/bulk_add_bloc.dart';
-import 'package:opennutritracker/features/add_meal/presentation/bloc/food_bloc.dart';
-import 'package:opennutritracker/features/add_meal/presentation/bloc/products_bloc.dart';
-import 'package:opennutritracker/features/add_meal/presentation/bloc/recent_meal_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
 import 'package:opennutritracker/features/edit_meal/presentation/bloc/edit_meal_bloc.dart';
@@ -378,9 +375,6 @@ Future<void> initLocator() async {
   locator.registerFactory<BulkAddBloc>(
     () => BulkAddBloc(locator(), locator(), locator()),
   );
-  locator.registerFactory<ProductsBloc>(
-    () => ProductsBloc(locator(), locator()),
-  );
   locator.registerLazySingleton<FoodCatalogue>(() => SQLiteFoodCatalogue());
   locator.registerLazySingleton<OffFoodSearchSource>(
     () => OffFoodSearchSource(),
@@ -413,8 +407,6 @@ Future<void> initLocator() async {
       },
     ),
   );
-  locator.registerFactory<FoodBloc>(() => FoodBloc(locator(), locator()));
-  locator.registerFactory(() => RecentMealBloc(locator(), locator()));
   // #84: fasting timer. Factory so the screen-scoped timer and dialog
   // state reset cleanly each time the user opens the screen.
   locator.registerFactory<FastingBloc>(
