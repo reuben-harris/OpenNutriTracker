@@ -417,53 +417,20 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
     MealEntity food,
     FoodAmountSelection selection,
   ) async {
-    _bloc.add(
-      AddIngredientEvent(
-        meal: food,
-        amount: selection.option.isNamed
-            ? selection.baseAmount
-            : selection.amount,
-        unit: selection.option.isNamed
-            ? selection.option.baseUnit
-            : selection.option.unit,
-      ),
-    );
+    _bloc.add(AddIngredientEvent(meal: food, quantity: selection));
     return true;
   }
 
   Future<void> _onEditIngredient(BuildContext context, int index) async {
     final ingredient = _bloc.state.ingredients[index];
-    final options = foodAmountOptions(ingredient.snapshotMeal);
-    final option = options
-        .where(
-          (o) =>
-              o.unit == ingredient.unit ||
-              o.unit == ingredient.unit.replaceAll('fl.oz', 'fl oz'),
-        )
-        .firstOrNull;
     await showFoodAmountSheet(
       context,
       meal: ingredient.snapshotMeal,
       editing: true,
       hydrate: false,
-      initial: option == null
-          ? FoodAmountSelection(
-              ingredient.convertedAmountG,
-              options.firstWhere((o) => o.factor == 1),
-            )
-          : FoodAmountSelection(ingredient.amount, option),
+      initial: ingredient.quantity,
       onConfirm: (_, selection) async {
-        _bloc.add(
-          UpdateIngredientEvent(
-            index: index,
-            amount: selection.option.isNamed
-                ? selection.baseAmount
-                : selection.amount,
-            unit: selection.option.isNamed
-                ? selection.option.baseUnit
-                : selection.option.unit,
-          ),
-        );
+        _bloc.add(UpdateIngredientEvent(index: index, quantity: selection));
         return true;
       },
     );

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:convert';
 import 'dart:io' show gzip;
 
@@ -59,15 +60,21 @@ RecipeEntity _testRecipe() {
     ingredients: [
       RecipeIngredientEntity(
         snapshotMeal: flour,
-        amount: 200,
-        unit: 'g',
-        convertedAmountG: 200,
+        quantity: FoodAmountSelection.fromSnapshot(
+          amount: 200,
+          unit: 'g',
+          baseUnit: 'g',
+          factor: (200) / (200),
+        ),
       ),
       RecipeIngredientEntity(
         snapshotMeal: sugar,
-        amount: 100,
-        unit: 'g',
-        convertedAmountG: 100,
+        quantity: FoodAmountSelection.fromSnapshot(
+          amount: 100,
+          unit: 'g',
+          baseUnit: 'g',
+          factor: (100) / (100),
+        ),
       ),
     ],
     totalWeightG: 300,
@@ -89,6 +96,58 @@ RecipeEntity _testRecipe() {
 // Note: RecipeEntity tags default to const [], so we don't pass them above.
 
 void main() {
+  test('portion snapshots survive sharing at full precision', () {
+    const quantity = FoodAmountSelection(
+      2.123456789,
+      FoodAmountOption(
+        unit: 'portion:slice',
+        baseUnit: 'g',
+        factor: 38.123456789,
+        label: '1 slice',
+      ),
+    );
+    final recipe = _testRecipe();
+    final ingredient = recipe.ingredients.first.copyWith(quantity: quantity);
+    final shared = SharedRecipePayload.fromRecipe(
+      recipe.copyWith(ingredients: [ingredient]),
+    );
+    final restored = SharedRecipePayload.fromJsonString(
+      shared.toJsonString(),
+    ).toRecipeEntity();
+    expect(restored.ingredients.single.quantity, quantity);
+    expect(
+      restored.ingredients.single.quantity.baseAmount,
+      quantity.baseAmount,
+    );
+    expect(restored.ingredients.single.snapshotMeal.portions, isEmpty);
+  });
+  test(
+    'previous recipe payload version and invalid snapshots are rejected',
+    () {
+      final payload = SharedRecipePayload.fromRecipe(
+        _testRecipe(),
+      ).toJsonArray();
+      payload[0] = 1;
+      expect(
+        () => SharedRecipePayload.fromJsonArray(payload),
+        throwsA(isA<SharedRecipeParseException>()),
+      );
+      final invalid = SharedRecipePayload.fromRecipe(
+        _testRecipe(),
+      ).toJsonArray();
+      ((invalid[6] as List).first as List)[2] = {
+        'amount': 1,
+        'unit': 'serving',
+        'baseUnit': 'g',
+        'factor': 0,
+      };
+      expect(
+        () => SharedRecipePayload.fromJsonString(jsonEncode(invalid)),
+        throwsA(isA<SharedRecipeParseException>()),
+      );
+    },
+  );
+
   group('SharedRecipePayload', () {
     test('round-trips name, description, and ingredient count', () {
       final payload = SharedRecipePayload.fromRecipe(_testRecipe());
@@ -103,8 +162,9 @@ void main() {
     });
 
     test('preserves macro nutrients on aggregated and per-ingredient', () {
-      final encoded =
-          SharedRecipePayload.fromRecipe(_testRecipe()).toJsonString();
+      final encoded = SharedRecipePayload.fromRecipe(
+        _testRecipe(),
+      ).toJsonString();
       final decoded = SharedRecipePayload.fromJsonString(encoded);
 
       // 1dp tolerance because we round during compaction.
@@ -116,16 +176,17 @@ void main() {
       final flour = decoded.ingredients.first;
       expect(flour.name, 'Flour');
       expect(flour.brands, 'King Arthur');
-      expect(flour.amount, 200);
-      expect(flour.unit, 'g');
-      expect(flour.convertedAmountG, 200);
+      expect(flour.quantity.amount, 200);
+      expect(flour.quantity.option.unit, 'g');
+      expect(flour.quantity.baseAmount, 200);
       expect(flour.energyKcal100, closeTo(340, 0.1));
       expect(flour.thumbnailImageUrl, 'https://example.com/flour.jpg');
     });
 
     test('toRecipeEntity rebuilds a valid RecipeEntity', () {
-      final encoded =
-          SharedRecipePayload.fromRecipe(_testRecipe()).toJsonString();
+      final encoded = SharedRecipePayload.fromRecipe(
+        _testRecipe(),
+      ).toJsonString();
       final decoded = SharedRecipePayload.fromJsonString(encoded);
       final reconstructed = decoded.toRecipeEntity();
 
@@ -133,8 +194,10 @@ void main() {
       expect(reconstructed.ingredients, hasLength(2));
       // Ingredient meals get fresh UUID codes since they're snapshots.
       expect(reconstructed.ingredients.first.snapshotMeal.code, isNotNull);
-      expect(reconstructed.ingredients.first.snapshotMeal.source,
-          MealSourceEntity.custom);
+      expect(
+        reconstructed.ingredients.first.snapshotMeal.source,
+        MealSourceEntity.custom,
+      );
     });
 
     test('throws on malformed input', () {
@@ -146,31 +209,34 @@ void main() {
 
     test('throws on unsupported version', () {
       // Manually craft a payload with version 99
-      final fakeJson = '[99,"name",null,null,100,[null,null,null,null,null,null,null],[]]';
+      final fakeJson =
+          '[99,"name",null,null,100,[null,null,null,null,null,null,null],[]]';
       expect(
         () => SharedRecipePayload.fromJsonString(fakeJson),
         throwsA(isA<SharedRecipeParseException>()),
       );
     });
 
-    test('oversized decompressed payload throws SharedRecipeParseException',
-        () {
-      // 1 MiB of repeated bytes compresses to ~1 KiB but expands well
-      // past the 64 KiB cap. A malicious QR could in principle ship
-      // something like this; the cap keeps the parse predictable.
-      final blob = List<int>.filled(1024 * 1024, 0x42);
-      final compressed = gzip.encode(blob);
-      final raw = base64Url.encode(compressed);
-      expect(
-        () => SharedRecipePayload.fromJsonString(raw),
-        throwsA(
-          isA<SharedRecipeParseException>().having(
-            (e) => e.message,
-            'message',
-            contains('too large'),
+    test(
+      'oversized decompressed payload throws SharedRecipeParseException',
+      () {
+        // 1 MiB of repeated bytes compresses to ~1 KiB but expands well
+        // past the 64 KiB cap. A malicious QR could in principle ship
+        // something like this; the cap keeps the parse predictable.
+        final blob = List<int>.filled(1024 * 1024, 0x42);
+        final compressed = gzip.encode(blob);
+        final raw = base64Url.encode(compressed);
+        expect(
+          () => SharedRecipePayload.fromJsonString(raw),
+          throwsA(
+            isA<SharedRecipeParseException>().having(
+              (e) => e.message,
+              'message',
+              contains('too large'),
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   });
 }

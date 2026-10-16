@@ -4,9 +4,8 @@ import 'package:opennutritracker/core/utils/food_name_validator.dart';
 /// meal_detail_bottom_sheet.dart.
 const _maxQuantity = 10000;
 
-/// The exact set of `UnitDropdownItem.toString()` values (meal_detail_bloc
-/// .dart). [ParsedMealItem.unit] must always be `null` or one of these —
-/// see the assert in [parseMealText] and the dedicated invariant test.
+/// Canonical parser outputs; the shared food-amount resolver validates each
+/// request against the food selected in bulk review.
 const _validUnits = {'g', 'ml', 'g/ml', 'oz', 'fl.oz', 'serving'};
 
 /// One item extracted from a free-text meal description. [query] is what
@@ -427,11 +426,7 @@ _Extracted _extractQuantityAndUnit(String segment) {
   return _Extracted(query: segment);
 }
 
-/// The app's [UnitDropdownItem] (`meal_detail_bloc.dart`) has no `kg` or
-/// `l` — its `fromString` falls through to `g/ml` for anything it doesn't
-/// recognize, so emitting `kg`/`l` unchanged would silently turn `1,5 l
-/// milk` into 1.5 g/ml instead of 1500 ml. Converting here, before the
-/// value ever reaches that code, is what avoids the silent 1000x error.
+/// Normalize parsed aliases and measurements before candidate lookup.
 (double, String) _normalizeUnitAndQuantity(double quantity, String unit) {
   switch (unit) {
     case 'kg':

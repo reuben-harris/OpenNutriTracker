@@ -111,10 +111,10 @@ class RefreshDiaryIntakeUsecase {
     }
     final quantity = latest.quantity;
     if (quantity != null) {
-      final option = currentFoodAmountOption(
+      final option = resolveFoodAmountOption(
         meal,
         quantity.option.unit,
-        quantity.option.baseUnit,
+        baseUnit: quantity.option.baseUnit,
       );
       if (option == null) throw DiaryConversionUnavailable();
       final refreshed = FoodAmountSelection(quantity.amount, option);

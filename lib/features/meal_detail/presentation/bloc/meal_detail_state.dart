@@ -3,13 +3,10 @@ part of 'meal_detail_bloc.dart';
 enum ProductRefreshStatus { idle, loading, success, failure }
 
 abstract class MealDetailState extends Equatable {
-  final String totalQuantityConverted;
   final double totalKcal;
   final double totalCarbs;
   final double totalFat;
   final double totalProtein;
-
-  final String selectedUnit;
 
   final double dayKcalConsumed;
   final double dayKcalGoal;
@@ -32,12 +29,10 @@ abstract class MealDetailState extends Equatable {
   bool get isRefreshing => refreshStatus == ProductRefreshStatus.loading;
 
   const MealDetailState({
-    required this.totalQuantityConverted,
     this.totalKcal = 0,
     this.totalCarbs = 0,
     this.totalFat = 0,
     this.totalProtein = 0,
-    required this.selectedUnit,
     this.dayKcalConsumed = 0,
     this.dayKcalGoal = 0,
     this.dayCarbsGoal = 0,
@@ -52,12 +47,10 @@ abstract class MealDetailState extends Equatable {
 
   @override
   List<Object?> get props => [
-    totalQuantityConverted,
     totalKcal,
     totalCarbs,
     totalFat,
     totalProtein,
-    selectedUnit,
     dayKcalConsumed,
     dayKcalGoal,
     dayCarbsGoal,
@@ -71,12 +64,10 @@ abstract class MealDetailState extends Equatable {
   ];
 
   MealDetailInitial copyWith({
-    String? totalQuantityConverted,
     double? totalKcal,
     double? totalCarbs,
     double? totalFat,
     double? totalProtein,
-    String? selectedUnit,
     double? dayKcalConsumed,
     double? dayKcalGoal,
     double? dayCarbsGoal,
@@ -89,13 +80,10 @@ abstract class MealDetailState extends Equatable {
     int? mealRevision,
   }) {
     return MealDetailInitial(
-      totalQuantityConverted:
-          totalQuantityConverted ?? this.totalQuantityConverted,
       totalKcal: totalKcal ?? this.totalKcal,
       totalCarbs: totalCarbs ?? this.totalCarbs,
       totalFat: totalFat ?? this.totalFat,
       totalProtein: totalProtein ?? this.totalProtein,
-      selectedUnit: selectedUnit ?? this.selectedUnit,
       dayKcalConsumed: dayKcalConsumed ?? this.dayKcalConsumed,
       dayKcalGoal: dayKcalGoal ?? this.dayKcalGoal,
       dayCarbsGoal: dayCarbsGoal ?? this.dayCarbsGoal,
@@ -112,12 +100,10 @@ abstract class MealDetailState extends Equatable {
 
 class MealDetailInitial extends MealDetailState {
   const MealDetailInitial({
-    required super.totalQuantityConverted,
     super.totalKcal,
     super.totalCarbs,
     super.totalFat,
     super.totalProtein,
-    required super.selectedUnit,
     super.dayKcalConsumed,
     super.dayKcalGoal,
     super.dayCarbsGoal,

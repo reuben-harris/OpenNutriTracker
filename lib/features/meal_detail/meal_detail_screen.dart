@@ -67,13 +67,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
         ? FoodAmountSelection(1, serving)
         : defaultFoodAmount(_meal);
     _selection = selection;
-    _bloc.add(
-      UpdateKcalEvent(
-        meal: _meal,
-        selection: selection,
-        selectedUnit: selection.option.unit,
-      ),
-    );
+    _bloc.add(UpdateKcalEvent(meal: _meal, selection: selection));
   }
 
   void _replaceMeal(MealEntity meal) {

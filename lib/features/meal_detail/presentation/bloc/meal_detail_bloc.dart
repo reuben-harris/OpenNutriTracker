@@ -22,7 +22,6 @@ import 'package:opennutritracker/core/domain/usecase/get_tracked_day_usecase.dar
 import 'package:opennutritracker/core/utils/id_generator.dart';
 import 'package:opennutritracker/features/add_meal/data/repository/products_repository.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
-import 'package:opennutritracker/features/meal_detail/util/meal_quantity_converter.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 part 'meal_detail_event.dart';
@@ -59,50 +58,19 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
   }) : _recipeRepository = recipeRepository,
        _catalogue = catalogue,
        _getUserUsecase = getUserUsecase,
-       super(
-         MealDetailInitial(
-           totalQuantityConverted: '100',
-           selectedUnit: UnitDropdownItem.gml.toString(),
-         ),
-       ) {
-    on<UpdateKcalEvent>((event, emit) async {
-      try {
-        final selectedTotalQuantity =
-            event.totalQuantity ?? state.totalQuantityConverted;
-        final selectedUnit = event.selectedUnit ?? state.selectedUnit;
-
-        if (selectedUnit.isEmpty || selectedTotalQuantity.isEmpty) {
-          return;
-        }
-
-        final energyPerUnit = (event.meal.nutriments.energyPerUnit ?? 0);
-        final carbsPerUnit = (event.meal.nutriments.carbohydratesPerUnit ?? 0);
-        final fatPerUnit = (event.meal.nutriments.fatPerUnit ?? 0);
-        final proteinPerUnit = (event.meal.nutriments.proteinsPerUnit ?? 0);
-
-        final quantity = double.parse(
-          selectedTotalQuantity.replaceAll(',', '.'),
-        );
-
-        // Shared with the bulk-add screen so the two paths cannot drift.
-        final convertedQuantity =
-            event.selection?.baseAmount ??
-            convertQuantityToBaseUnit(quantity, selectedUnit, event.meal);
-
-        emit(
-          state.copyWith(
-            totalQuantityConverted: convertedQuantity.toString(),
-            totalKcal: convertedQuantity * energyPerUnit,
-            totalCarbs: convertedQuantity * carbsPerUnit,
-            totalFat: convertedQuantity * fatPerUnit,
-            totalProtein: convertedQuantity * proteinPerUnit,
-            selectedUnit: selectedUnit,
-          ),
-        );
-      } catch (e) {
-        log.severe('Error calculating kcal: $e');
-        Sentry.captureException(e);
-      }
+       super(const MealDetailInitial()) {
+    on<UpdateKcalEvent>((event, emit) {
+      event.selection.validate();
+      final scale = event.selection.baseAmount / 100;
+      final nutrients = event.meal.nutriments;
+      emit(
+        state.copyWith(
+          totalKcal: scale * (nutrients.energyKcal100 ?? 0),
+          totalCarbs: scale * (nutrients.carbohydrates100 ?? 0),
+          totalFat: scale * (nutrients.fat100 ?? 0),
+          totalProtein: scale * (nutrients.proteins100 ?? 0),
+        ),
+      );
     });
 
     on<LoadDailyTotalsEvent>((event, emit) async {
@@ -378,51 +346,5 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
       fatTracked: intakeEntity.totalFatsGram,
       proteinTracked: intakeEntity.totalProteinsGram,
     );
-  }
-}
-
-enum UnitDropdownItem {
-  g,
-  ml,
-  gml,
-  oz,
-  flOz,
-  serving;
-
-  UnitDropdownItem fromString(String value) {
-    switch (value) {
-      case 'g':
-        return UnitDropdownItem.g;
-      case 'ml':
-        return UnitDropdownItem.ml;
-      case 'g/ml':
-        return UnitDropdownItem.gml;
-      case 'oz':
-        return UnitDropdownItem.oz;
-      case 'fl oz' || 'fl.oz':
-        return UnitDropdownItem.flOz;
-      case 'serving':
-        return UnitDropdownItem.serving;
-      default:
-        return UnitDropdownItem.gml;
-    }
-  }
-
-  @override
-  String toString() {
-    switch (this) {
-      case UnitDropdownItem.g:
-        return 'g';
-      case UnitDropdownItem.ml:
-        return 'ml';
-      case UnitDropdownItem.gml:
-        return 'g/ml';
-      case UnitDropdownItem.oz:
-        return 'oz';
-      case UnitDropdownItem.flOz:
-        return 'fl.oz';
-      case UnitDropdownItem.serving:
-        return 'serving';
-    }
   }
 }

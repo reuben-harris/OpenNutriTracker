@@ -69,15 +69,21 @@ RecipeEntity _recipe({double kcal100 = 190}) => RecipeEntity(
   ingredients: [
     RecipeIngredientEntity(
       snapshotMeal: _food('Oats', 380),
-      amount: 60,
-      unit: 'g',
-      convertedAmountG: 60,
+      quantity: FoodAmountSelection.fromSnapshot(
+        amount: 60,
+        unit: 'g',
+        baseUnit: 'g',
+        factor: (60) / (60),
+      ),
     ),
     RecipeIngredientEntity(
       snapshotMeal: _food('Milk', 90, unit: 'ml'),
-      amount: 120,
-      unit: 'ml',
-      convertedAmountG: 120,
+      quantity: FoodAmountSelection.fromSnapshot(
+        amount: 120,
+        unit: 'ml',
+        baseUnit: 'ml',
+        factor: (120) / (120),
+      ),
     ),
   ],
   // The recipe yield was overridden from the 180 g ingredient sum.
@@ -216,6 +222,32 @@ class _SwitchableIntakeProvider extends FakeHiveDBProvider {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+    'expanding a recipe scales its saved portion without losing identity',
+    () {
+      final recipe = _recipe();
+      const quantity = FoodAmountSelection(
+        2,
+        FoodAmountOption(
+          unit: 'portion:slice',
+          baseUnit: 'g',
+          factor: 38,
+          label: '1 slice',
+        ),
+      );
+      final ingredient = recipe.ingredients.first.copyWith(quantity: quantity);
+      final snapshot = recipe.copyWith(
+        ingredients: [ingredient],
+        totalWeightG: 200,
+      );
+      final children = ExplodeRecipeIntakeUsecase.prepareIngredients(
+        _logged(snapshot: snapshot),
+      );
+      expect(children.single.quantity!.amount, 1);
+      expect(children.single.quantity!.option, quantity.option);
+      expect(children.single.baseAmount, 38);
+    },
+  );
   test('conversion scales saved ingredients by saved yield, not sum', () {
     final intake = _logged(snapshot: _recipe());
     final children = ExplodeRecipeIntakeUsecase.prepareIngredients(intake);

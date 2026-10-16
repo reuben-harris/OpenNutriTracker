@@ -25,10 +25,10 @@ class IngredientListItem extends StatelessWidget {
 
     final meal = ingredient.snapshotMeal;
     final kcalPer100 = meal.nutriments.energyKcal100 ?? 0;
-    final contributionKcal = kcalPer100 * ingredient.convertedAmountG / 100;
-    final amountStr = ingredient.amount % 1 == 0
-        ? ingredient.amount.toStringAsFixed(0)
-        : ingredient.amount.toStringAsFixed(1);
+    final contributionKcal = kcalPer100 * ingredient.quantity.baseAmount / 100;
+    final amountStr = ingredient.quantity.amount % 1 == 0
+        ? ingredient.quantity.amount.toStringAsFixed(0)
+        : ingredient.quantity.amount.toStringAsFixed(1);
 
     return Material(
       color: Colors.transparent,
@@ -37,7 +37,10 @@ class IngredientListItem extends StatelessWidget {
         borderRadius: Dimens.borderRadiusM,
         onTap: onEdit,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing8, vertical: Dimens.spacing12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: Dimens.spacing8,
+            vertical: Dimens.spacing12,
+          ),
           child: Row(
             children: [
               Container(
@@ -58,22 +61,30 @@ class IngredientListItem extends StatelessWidget {
                       meal.name ?? '?',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$amountStr ${ingredient.unit} · '
+                      '$amountStr ${ingredient.quantity.option.displayLabel} · '
                       '${EnergyDisplay.formatWithUnit(context, contributionKcal)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodySmall?.copyWith(color: palette.textMuted),
+                      style: textTheme.bodySmall?.copyWith(
+                        color: palette.textMuted,
+                      ),
                     ),
                   ],
                 ),
               ),
               if (onRemove != null)
                 IconButton(
-                  icon: Icon(Icons.delete_outline_rounded, color: palette.textMuted, size: 22),
+                  icon: Icon(
+                    Icons.delete_outline_rounded,
+                    color: palette.textMuted,
+                    size: 22,
+                  ),
                   onPressed: onRemove,
                 ),
             ],

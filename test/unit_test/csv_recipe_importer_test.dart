@@ -2,9 +2,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/utils/csv_recipe_importer.dart';
 
 void main() {
+  for (final amount in ['2', 'NaN', 'Infinity', '1e308']) {
+    test('invalid conversion $amount rejects the whole affected recipe', () {
+      final unit = amount == '2' ? 'serving' : 'kg';
+      final result = CsvRecipeImporter.parse(
+        'recipe_name,ingredient_name,ingredient_amount,ingredient_unit,ingredient_kcal_100\nBad,Bread,$amount,$unit,100\nBad,Sugar,50,g,400\nGood,Milk,2,cl,50\n',
+      );
+      expect(result.recipes.map((r) => r.recipe.name), ['Good']);
+      expect(result.recipes.single.recipe.totalWeightG, 20);
+      expect(result.errors, isNotEmpty);
+    });
+  }
+
   group('CsvRecipeImporter', () {
     test('groups multiple rows by recipe_name into one RecipeEntity', () {
-      const csv = 'recipe_name,recipe_description,recipe_servings,'
+      const csv =
+          'recipe_name,recipe_description,recipe_servings,'
           'recipe_total_weight_g,recipe_tags,ingredient_name,'
           'ingredient_brands,ingredient_amount,ingredient_unit,'
           'ingredient_kcal_100,ingredient_carbs_100,ingredient_fat_100,'
@@ -34,7 +47,8 @@ void main() {
     });
 
     test('multiple recipes parsed independently', () {
-      const csv = 'recipe_name,recipe_description,recipe_servings,'
+      const csv =
+          'recipe_name,recipe_description,recipe_servings,'
           'recipe_total_weight_g,recipe_tags,ingredient_name,'
           'ingredient_brands,ingredient_amount,ingredient_unit,'
           'ingredient_kcal_100,ingredient_carbs_100,ingredient_fat_100,'
@@ -47,17 +61,17 @@ void main() {
 
       expect(result.errors, isEmpty);
       expect(result.recipes, hasLength(2));
-      expect(result.recipes.map((r) => r.recipe.name).toSet(),
-          {'Cake', 'Smoothie'});
+      expect(result.recipes.map((r) => r.recipe.name).toSet(), {
+        'Cake',
+        'Smoothie',
+      });
       // No `recipe_total_weight_g` in either row.
-      expect(
-        result.recipes.every((r) => !r.totalWeightOverridden),
-        isTrue,
-      );
+      expect(result.recipes.every((r) => !r.totalWeightOverridden), isTrue);
     });
 
-    test('rows with missing required fields are skipped with errors', () {
-      const csv = 'recipe_name,ingredient_name,ingredient_amount,'
+    test('a malformed ingredient rejects its whole recipe', () {
+      const csv =
+          'recipe_name,ingredient_name,ingredient_amount,'
           'ingredient_unit,ingredient_kcal_100\n'
           ',Flour,200,g,340\n' // missing recipe_name
           'Cake,,200,g,340\n' // missing ingredient_name
@@ -67,12 +81,7 @@ void main() {
       final result = CsvRecipeImporter.parse(csv);
 
       expect(result.errors, hasLength(3));
-      expect(result.recipes, hasLength(1));
-      expect(result.recipes.single.recipe.ingredients, hasLength(1));
-      expect(
-        result.recipes.single.recipe.ingredients.single.snapshotMeal.name,
-        'Sugar',
-      );
+      expect(result.recipes, isEmpty);
     });
 
     test('header missing required column reports a clear error', () {
@@ -86,7 +95,8 @@ void main() {
     });
 
     test('aggregated nutrition is computed from ingredients', () {
-      const csv = 'recipe_name,ingredient_name,ingredient_amount,'
+      const csv =
+          'recipe_name,ingredient_name,ingredient_amount,'
           'ingredient_unit,ingredient_kcal_100\n'
           'Mix,A,100,g,200\n'
           'Mix,B,100,g,300\n';
@@ -104,7 +114,8 @@ void main() {
     test('quoted decimal-comma in ingredient quantities is supported', () {
       // The documented happy path: wrap decimal-comma values in
       // double quotes so the splitter doesn't see the comma.
-      const csv = 'recipe_name,ingredient_name,ingredient_amount,'
+      const csv =
+          'recipe_name,ingredient_name,ingredient_amount,'
           'ingredient_unit,ingredient_kcal_100,ingredient_fat_100\n'
           'Cookie,Vanilla,"1,5",g,288,"12,5"\n'
           'Cookie,Flour,200,g,340,1\n';
@@ -115,73 +126,66 @@ void main() {
       expect(result.recipes, hasLength(1));
       final ingredients = result.recipes.single.recipe.ingredients;
       expect(ingredients, hasLength(2));
-      expect(ingredients[0].amount, 1.5);
-      expect(ingredients[0].unit, 'g');
+      expect(ingredients[0].quantity.amount, 1.5);
+      expect(ingredients[0].quantity.option.unit, 'g');
       expect(ingredients[0].snapshotMeal.nutriments.fat100, 12.5);
-      expect(ingredients[1].amount, 200);
+      expect(ingredients[1].quantity.amount, 200);
     });
 
     // #1194: keeps the CSV importer symmetric with #1169's JSON fix.
-    test(
-      'totalWeightOverridden reflects whether recipe_total_weight_g '
-      'was supplied per recipe',
-      () {
-        const csv = 'recipe_name,recipe_description,recipe_servings,'
-            'recipe_total_weight_g,recipe_tags,ingredient_name,'
-            'ingredient_brands,ingredient_amount,ingredient_unit,'
-            'ingredient_kcal_100,ingredient_carbs_100,ingredient_fat_100,'
-            'ingredient_protein_100,ingredient_sugars_100,'
-            'ingredient_sat_fat_100,ingredient_fiber_100\n'
-            'Cake,,,1500,,Flour,,200,g,340,,,,,,\n'
-            'Smoothie,,,,,Banana,,300,g,89,,,,,,\n';
+    test('totalWeightOverridden reflects whether recipe_total_weight_g '
+        'was supplied per recipe', () {
+      const csv =
+          'recipe_name,recipe_description,recipe_servings,'
+          'recipe_total_weight_g,recipe_tags,ingredient_name,'
+          'ingredient_brands,ingredient_amount,ingredient_unit,'
+          'ingredient_kcal_100,ingredient_carbs_100,ingredient_fat_100,'
+          'ingredient_protein_100,ingredient_sugars_100,'
+          'ingredient_sat_fat_100,ingredient_fiber_100\n'
+          'Cake,,,1500,,Flour,,200,g,340,,,,,,\n'
+          'Smoothie,,,,,Banana,,300,g,89,,,,,,\n';
 
-        final result = CsvRecipeImporter.parse(csv);
+      final result = CsvRecipeImporter.parse(csv);
 
-        expect(result.errors, isEmpty);
-        expect(result.recipes, hasLength(2));
-        final byName = {
-          for (final r in result.recipes) r.recipe.name: r,
-        };
-        expect(byName['Cake']!.totalWeightOverridden, isTrue);
-        expect(byName['Smoothie']!.totalWeightOverridden, isFalse);
-      },
-    );
+      expect(result.errors, isEmpty);
+      expect(result.recipes, hasLength(2));
+      final byName = {for (final r in result.recipes) r.recipe.name: r};
+      expect(byName['Cake']!.totalWeightOverridden, isTrue);
+      expect(byName['Smoothie']!.totalWeightOverridden, isFalse);
+    });
 
-    test(
-      'rejects recipe_total_weight_g of 0, negative or NaN and drops '
-      'the recipe',
-      () {
-        const csv = 'recipe_name,recipe_description,recipe_servings,'
-            'recipe_total_weight_g,recipe_tags,ingredient_name,'
-            'ingredient_brands,ingredient_amount,ingredient_unit,'
-            'ingredient_kcal_100,ingredient_carbs_100,ingredient_fat_100,'
-            'ingredient_protein_100,ingredient_sugars_100,'
-            'ingredient_sat_fat_100,ingredient_fiber_100\n'
-            'Zero,,,0,,Flour,,200,g,340,,,,,,\n'
-            'Negative,,,-100,,Flour,,200,g,340,,,,,,\n'
-            'NaN,,,NaN,,Flour,,200,g,340,,,,,,\n'
-            'Good,,,300,,Flour,,110,g,360,,,,,,\n';
+    test('rejects recipe_total_weight_g of 0, negative or NaN and drops '
+        'the recipe', () {
+      const csv =
+          'recipe_name,recipe_description,recipe_servings,'
+          'recipe_total_weight_g,recipe_tags,ingredient_name,'
+          'ingredient_brands,ingredient_amount,ingredient_unit,'
+          'ingredient_kcal_100,ingredient_carbs_100,ingredient_fat_100,'
+          'ingredient_protein_100,ingredient_sugars_100,'
+          'ingredient_sat_fat_100,ingredient_fiber_100\n'
+          'Zero,,,0,,Flour,,200,g,340,,,,,,\n'
+          'Negative,,,-100,,Flour,,200,g,340,,,,,,\n'
+          'NaN,,,NaN,,Flour,,200,g,340,,,,,,\n'
+          'Good,,,300,,Flour,,110,g,360,,,,,,\n';
 
-        final result = CsvRecipeImporter.parse(csv);
+      final result = CsvRecipeImporter.parse(csv);
 
-        expect(result.recipes, hasLength(1));
-        expect(result.recipes.single.recipe.name, 'Good');
-        expect(result.errors, hasLength(3));
-        for (final message in result.errors) {
-          expect(
-            message,
-            contains(
-              'recipe_total_weight_g must be a positive finite number',
-            ),
-          );
-        }
-      },
-    );
+      expect(result.recipes, hasLength(1));
+      expect(result.recipes.single.recipe.name, 'Good');
+      expect(result.errors, hasLength(3));
+      for (final message in result.errors) {
+        expect(
+          message,
+          contains('recipe_total_weight_g must be a positive finite number'),
+        );
+      }
+    });
 
     test('unquoted decimal-comma surfaces a too-many-columns hint', () {
       // 16 expected columns; the unquoted `1,5` in the ingredient_amount
       // cell over-splits the row.
-      const csv = 'recipe_name,recipe_description,recipe_servings,'
+      const csv =
+          'recipe_name,recipe_description,recipe_servings,'
           'recipe_total_weight_g,recipe_tags,ingredient_name,'
           'ingredient_brands,ingredient_amount,ingredient_unit,'
           'ingredient_kcal_100,ingredient_carbs_100,ingredient_fat_100,'

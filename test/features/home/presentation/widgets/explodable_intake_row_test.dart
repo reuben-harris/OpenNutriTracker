@@ -57,12 +57,15 @@ IntakeEntity recipeIntake({
     id: 'recipe-1',
     name: 'Morning oats',
     description: null,
-    ingredients: const [
+    ingredients: [
       RecipeIngredientEntity(
         snapshotMeal: ingredient,
-        amount: 100,
-        unit: 'g',
-        convertedAmountG: 100,
+        quantity: FoodAmountSelection.fromSnapshot(
+          amount: 100,
+          unit: 'g',
+          baseUnit: 'g',
+          factor: (100) / (100),
+        ),
       ),
     ],
     totalWeightG: 100,

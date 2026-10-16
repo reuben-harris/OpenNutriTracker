@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_ingredient_entity.dart';
 import 'dart:io';
@@ -338,9 +339,12 @@ void main() {
         ingredients: [
           RecipeIngredientEntity(
             snapshotMeal: imageMeal(thumbnail: 'thumb-url'),
-            amount: 100,
-            unit: 'g',
-            convertedAmountG: 100,
+            quantity: FoodAmountSelection.fromSnapshot(
+              amount: 100,
+              unit: 'g',
+              baseUnit: 'g',
+              factor: (100) / (100),
+            ),
           ),
         ],
         totalWeightG: 100,

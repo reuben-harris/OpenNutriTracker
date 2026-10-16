@@ -64,10 +64,10 @@ FoodAmountSelection? supportedRememberedAmount(
   FoodAmountPreference? remembered,
 ) {
   if (remembered == null) return null;
-  final option = currentFoodAmountOption(
+  final option = resolveFoodAmountOption(
     meal,
     remembered.unit,
-    remembered.baseUnit,
+    baseUnit: remembered.baseUnit,
   );
   return option == null ? null : FoodAmountSelection(remembered.amount, option);
 }

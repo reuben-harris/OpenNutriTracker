@@ -394,9 +394,12 @@ void main() {
         ingredients: [
           RecipeIngredientEntity(
             snapshotMeal: food(),
-            amount: weight,
-            unit: 'g',
-            convertedAmountG: weight,
+            quantity: FoodAmountSelection.fromSnapshot(
+              amount: weight,
+              unit: 'g',
+              baseUnit: 'g',
+              factor: (weight) / (weight),
+            ),
           ),
         ],
         totalWeightG: weight,
@@ -588,9 +591,12 @@ void main() {
         ingredients: [
           RecipeIngredientEntity(
             snapshotMeal: food(kcal: null),
-            amount: 80,
-            unit: 'g',
-            convertedAmountG: 80,
+            quantity: FoodAmountSelection.fromSnapshot(
+              amount: 80,
+              unit: 'g',
+              baseUnit: 'g',
+              factor: (80) / (80),
+            ),
           ),
         ],
         totalWeightG: 200,

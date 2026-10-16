@@ -1,5 +1,4 @@
 import 'package:opennutritracker/core/domain/entity/recipe_ingredient_entity.dart';
-import 'package:opennutritracker/core/utils/calc/unit_calc.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 
 class ComputeRecipeNutritionResult {
@@ -13,45 +12,6 @@ class ComputeRecipeNutritionResult {
 }
 
 class ComputeRecipeNutritionUseCase {
-  // Treat a serving as the snapshot meal's serving weight in grams.
-  // Treat 1 ml ≈ 1 g per the v1 simplification (see plan §3, decision 3).
-  // Returns null when the unit can't be converted (e.g. a "serving" unit
-  // on an ingredient that has no servingQuantity).
-  double? convertAmountToGrams({
-    required double amount,
-    required String unit,
-    double? servingQuantityG,
-  }) {
-    switch (unit) {
-      case 'g':
-      case 'gml':
-      case 'g/ml':
-        return amount;
-      case 'ml':
-      case 'l':
-      case 'cl':
-      case 'dl':
-        if (unit == 'l') return amount * 1000;
-        if (unit == 'cl') return amount * 10;
-        if (unit == 'dl') return amount * 100;
-        return amount;
-      case 'kg':
-        return amount * 1000;
-      case 'mg':
-        return amount / 1000;
-      case 'oz':
-        return UnitCalc.ozToG(amount);
-      case 'fl oz':
-      case 'fl.oz':
-        return UnitCalc.flOzToMl(amount);
-      case 'serving':
-        if (servingQuantityG == null || servingQuantityG <= 0) return null;
-        return amount * servingQuantityG;
-      default:
-        return null;
-    }
-  }
-
   ComputeRecipeNutritionResult compute(
     List<RecipeIngredientEntity> ingredients, {
     double? totalWeightOverride,
@@ -63,11 +23,13 @@ class ComputeRecipeNutritionUseCase {
       );
     }
 
-    final totalWeightG = totalWeightOverride ??
-        ingredients.fold<double>(
-          0,
-          (sum, i) => sum + i.convertedAmountG,
-        );
+    for (final ingredient in ingredients) {
+      ingredient.quantity.validate();
+    }
+    // Recipe weight retains the explicit approximation 1 ml ≈ 1 g.
+    final totalWeightG =
+        totalWeightOverride ??
+        ingredients.fold<double>(0, (sum, i) => sum + i.quantity.baseAmount);
 
     if (totalWeightG <= 0) {
       return ComputeRecipeNutritionResult(
@@ -76,7 +38,7 @@ class ComputeRecipeNutritionUseCase {
       );
     }
 
-    // For every nutrient field: sum (value100 ?? 0) × convertedAmountG / 100
+    // For every nutrient field: sum (value100 ?? 0) × baseAmount / 100
     // across ingredients, but track whether *any* ingredient had a non-null
     // value for that field. If none did, the recipe field stays null too —
     // that preserves the existing UI behaviour of hiding unknown micros.
@@ -87,7 +49,10 @@ class ComputeRecipeNutritionUseCase {
     // while collapsing 48 traversals into 1.
     final acc = _NutrientAccumulator();
     for (final ingredient in ingredients) {
-      acc.addFrom(ingredient.snapshotMeal.nutriments, ingredient.convertedAmountG);
+      acc.addFrom(
+        ingredient.snapshotMeal.nutriments,
+        ingredient.quantity.baseAmount,
+      );
     }
 
     final per = acc.toEntityPerHundredG(totalWeightG);
@@ -113,16 +78,25 @@ class _NutrientAccumulator {
   double _iron = 0, _zinc = 0, _phosphorus = 0;
   double _vitA = 0, _vitC = 0, _vitD = 0, _vitB6 = 0, _vitB12 = 0, _niacin = 0;
 
-  bool _hasEnergy = false, _hasCarbs = false, _hasFat = false, _hasProtein = false;
+  bool _hasEnergy = false,
+      _hasCarbs = false,
+      _hasFat = false,
+      _hasProtein = false;
   bool _hasSugars = false, _hasSatFat = false, _hasFiber = false;
-  bool _hasMonoFat = false, _hasPolyFat = false, _hasTransFat = false, _hasCholesterol = false;
-  bool _hasSodium = false, _hasPotassium = false, _hasMagnesium = false, _hasCalcium = false;
+  bool _hasMonoFat = false,
+      _hasPolyFat = false,
+      _hasTransFat = false,
+      _hasCholesterol = false;
+  bool _hasSodium = false,
+      _hasPotassium = false,
+      _hasMagnesium = false,
+      _hasCalcium = false;
   bool _hasIron = false, _hasZinc = false, _hasPhosphorus = false;
   bool _hasVitA = false, _hasVitC = false, _hasVitD = false;
   bool _hasVitB6 = false, _hasVitB12 = false, _hasNiacin = false;
 
-  void addFrom(MealNutrimentsEntity n, double convertedAmountG) {
-    final ratio = convertedAmountG / 100;
+  void addFrom(MealNutrimentsEntity n, double baseAmount) {
+    final ratio = baseAmount / 100;
 
     if (n.energyKcal100 != null) _hasEnergy = true;
     _energyKcal += (n.energyKcal100 ?? 0) * ratio;
