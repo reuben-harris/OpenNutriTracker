@@ -12,6 +12,7 @@ class SwipeRevealAction {
   final double iconSize;
   final Color? color;
   final Color? foregroundColor;
+  final bool animateClose;
 
   const SwipeRevealAction({
     required this.icon,
@@ -21,6 +22,7 @@ class SwipeRevealAction {
     this.iconSize = 28,
     this.color,
     this.foregroundColor,
+    this.animateClose = true,
     this.revealThreshold = SwipeReveal.actionWidth / 2,
   }) : assert(
          revealThreshold >= 0 && revealThreshold <= SwipeReveal.actionWidth,
@@ -67,6 +69,7 @@ class _SwipeRevealState extends State<SwipeReveal>
   SwipeRevealController? _group;
   double _startOffset = 0;
   double _rightExtent = 0;
+  bool _actionSelected = false;
   double get _offset =>
       _slide.value *
       (_slide.value < 0 ? _rightExtent : SwipeReveal.actionWidth);
@@ -99,12 +102,13 @@ class _SwipeRevealState extends State<SwipeReveal>
   void didUpdateWidget(SwipeReveal oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.resetKey != widget.resetKey ||
-        !widget.enabled ||
         (_offset > 0 && widget.leftAction == null) ||
         (_offset < 0 &&
             (widget.rightActions.isEmpty ||
                 oldWidget.rightActions.length != widget.rightActions.length))) {
       _reset();
+    } else if (oldWidget.enabled && !widget.enabled) {
+      _close();
     }
   }
 
@@ -112,6 +116,7 @@ class _SwipeRevealState extends State<SwipeReveal>
     _group?.release(_close);
     _slide.stop();
     _slide.value = 0;
+    _actionSelected = false;
   }
 
   @override
@@ -192,6 +197,7 @@ class _SwipeRevealState extends State<SwipeReveal>
             onHorizontalDragStart: !draggable
                 ? null
                 : (_) {
+                    _actionSelected = false;
                     _startOffset = _offset;
                     _slide.stop();
                     _group?.open(_close);
@@ -245,6 +251,7 @@ class _SwipeRevealState extends State<SwipeReveal>
   }) {
     final exposed =
         widget.enabled &&
+        !_actionSelected &&
         !_slide.isAnimating &&
         _slide.value == (left ? 1 : -1);
     final extent = left ? SwipeReveal.actionWidth : _rightExtent;
@@ -302,7 +309,13 @@ class _SwipeRevealState extends State<SwipeReveal>
           onPressed: !exposed
               ? null
               : () {
-                  _reset();
+                  if (_actionSelected || !widget.enabled) return;
+                  _actionSelected = true;
+                  if (action.animateClose) {
+                    _settle(0);
+                  } else {
+                    _reset();
+                  }
                   action.onTap();
                 },
           child: ExcludeSemantics(

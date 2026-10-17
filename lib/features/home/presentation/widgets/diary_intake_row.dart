@@ -62,6 +62,7 @@ class _DiaryIntakeRowState extends State<DiaryIntakeRow> {
         icon: Icons.info_outline_rounded,
         label: S.of(context).diaryInfoLabel,
         semanticsIdentifier: 'diary-intake-info',
+        animateClose: false,
         onTap: _onInfo,
         // The recognizer consumes touch slop before reporting drag updates.
         revealThreshold: 32,

@@ -30,6 +30,7 @@ void main() {
             icon: Icons.info_outline,
             label: 'Info',
             semanticsIdentifier: '$id-info',
+            animateClose: false,
             onTap: () => leftActions++,
             revealThreshold: threshold ?? 52,
           ),
@@ -115,25 +116,64 @@ void main() {
   SemanticsFinder actionSemantics(String identifier) => find.semantics
       .byPredicate((node) => node.getSemanticsData().identifier == identifier);
 
-  testWidgets(
-    'two-sided actions settle at 104px and close before invoking callbacks',
-    (tester) async {
-      await tester.pumpWidget(app());
-      await open(tester);
-      expect(offset(tester), 104);
-      await tester.tap(find.text('Info'));
-      await tester.pump();
-      expect(offset(tester), 0);
-      expect(leftActions, 1);
-      expect(taps, 0);
-      await open(tester, left: false);
-      expect(offset(tester), -104);
-      await tester.tap(find.text('Refresh'));
-      await tester.pump();
-      expect(offset(tester), 0);
-      expect(rightActions, 1);
-    },
-  );
+  testWidgets('Info runs immediately and closes without animating', (
+    tester,
+  ) async {
+    await tester.pumpWidget(app());
+    await open(tester);
+    await tester.tap(find.text('Info'));
+    expect(leftActions, 1);
+    await tester.pump();
+    expect(offset(tester), 0);
+    expect(taps, 0);
+  });
+
+  testWidgets('actions run immediately while the row animates closed', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(app());
+    await open(tester, left: false);
+    await tester.tap(find.text('Refresh'));
+    expect(rightActions, 1);
+    await tester.pump();
+    expect(offset(tester), -104);
+    expect(actionSemantics('row-refresh'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(offset(tester), greaterThan(-104));
+    expect(offset(tester), lessThan(0));
+    await tester.tapAt(tester.getCenter(find.text('Refresh')));
+    await tester.pumpAndSettle();
+    expect(offset(tester), 0);
+    expect(rightActions, 1);
+    expect(taps, 0);
+    semantics.dispose();
+  });
+
+  testWidgets('becoming busy preserves the action close animation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(app());
+    await open(tester, left: false);
+    await tester.tap(find.text('Refresh'));
+    await tester.pumpWidget(app(enabled: false));
+    expect(rightActions, 1);
+    expect(offset(tester), -104);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(offset(tester), greaterThan(-104));
+    expect(offset(tester), lessThan(0));
+    await tester.pumpAndSettle();
+    expect(offset(tester), 0);
+  });
+
+  testWidgets('reduced motion closes action taps immediately', (tester) async {
+    await tester.pumpWidget(app(reducedMotion: true));
+    await open(tester, left: false);
+    await tester.tap(find.text('Refresh'));
+    await tester.pump();
+    expect(offset(tester), 0);
+    expect(rightActions, 1);
+  });
 
   testWidgets('one-sided rows keep unsupported directions closed', (
     tester,
@@ -227,7 +267,7 @@ void main() {
       expect(actionSemantics('row-info'), findsOneWidget);
       expect(actionSemantics('row-refresh'), findsNothing);
       await tester.pumpWidget(app(enabled: false));
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(actionSemantics('row-info'), findsNothing);
       expect(offset(tester), 0);
       semantics.dispose();
@@ -269,6 +309,7 @@ void main() {
     await tester.pumpWidget(app());
     await open(tester);
     await tester.pumpWidget(app(enabled: false));
+    await tester.pumpAndSettle();
     await open(tester, left: false);
     expect(offset(tester), 0);
     await tester.tapAt(tester.getCenter(child()));

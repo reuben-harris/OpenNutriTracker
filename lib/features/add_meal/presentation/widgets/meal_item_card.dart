@@ -47,6 +47,7 @@ class MealItemCard extends StatelessWidget {
           icon: Icons.info_outline_rounded,
           label: S.of(context).diaryInfoLabel,
           semanticsIdentifier: 'meal-item-info',
+          animateClose: false,
           revealThreshold: 32,
           onTap: onInfo,
         ),

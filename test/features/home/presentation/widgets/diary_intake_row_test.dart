@@ -350,6 +350,7 @@ void main() {
       await tester.pumpWidget(_app(entry, () {}));
       await _open(tester);
       await tester.tap(_control('copy'));
+      expect(clipboard.state.single.id, entry.id);
       await tester.pumpAndSettle();
       expect(tester.getTopLeft(_card()).dx, 0);
       expect(clipboard.state.single.id, entry.id);
@@ -361,7 +362,7 @@ void main() {
   );
 
   testWidgets(
-    'swipe Delete closes before its single confirmation and honors cancellation',
+    'swipe Delete shows its prompt immediately and honors cancellation',
     (tester) async {
       var deletions = 0;
       await tester.pumpWidget(
@@ -370,6 +371,9 @@ void main() {
       for (final confirm in [false, true]) {
         await _open(tester);
         await tester.tap(_control('delete'));
+        await tester.pump();
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(tester.getTopLeft(_card()).dx, -274);
         await tester.pumpAndSettle();
         expect(tester.getTopLeft(_card()).dx, 0);
         expect(find.byType(AlertDialog), findsOneWidget);
@@ -390,7 +394,13 @@ void main() {
     await tester.pumpWidget(_app(recipeIntake(recipe: false), () {}));
     await _open(tester);
     await tester.tap(_action());
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.getTopLeft(_card()).dx, greaterThan(-204));
+    expect(tester.getTopLeft(_card()).dx, lessThan(0));
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(tester.getTopLeft(_card()).dx, 0);
     final thumb = find.byType(FoodImage);
     expect(
       find.descendant(of: thumb, matching: find.byType(ImageFiltered)),
@@ -757,8 +767,8 @@ void main() {
         findsOneWidget,
       );
       await tester.tap(find.text('Info'));
-      await tester.pumpAndSettle();
       expect(route!.name, NavigationOptions.mealDetailRoute);
+      await tester.pumpAndSettle();
       final args = route!.arguments as MealDetailScreenArguments;
       expect(args.day, DateTime(2026, 9, 20));
       expect(args.mealEntity.name, 'Oats');
