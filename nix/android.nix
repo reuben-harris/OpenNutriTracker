@@ -68,6 +68,8 @@
           ont_prepare
           ${workflow.offline}
           flutter --suppress-analytics build apk --debug --flavor develop --no-pub
+          apkanalyzer manifest print build/app/outputs/flutter-apk/app-develop-debug.apk > apk-manifest.xml
+          dart tool/check_health_permissions.dart apk-manifest.xml
           runHook postBuild
         '';
         installPhase = ''
