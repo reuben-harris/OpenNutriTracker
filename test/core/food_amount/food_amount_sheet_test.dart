@@ -13,6 +13,7 @@ void main() {
   Future<void> mount(
     WidgetTester tester, {
     bool arithmetic = false,
+    bool editing = false,
     bool liquid = false,
     Future<bool> Function(MealEntity, FoodAmountSelection)? confirm,
     FoodAmountSelection? initial,
@@ -39,6 +40,7 @@ void main() {
           body: FoodAmountEditor(
             meal: meal,
             arithmetic: arithmetic,
+            editing: editing,
             hydrate: false,
             initial: initial,
             remembered: remembered,
@@ -131,32 +133,39 @@ void main() {
     );
     expect(dropdown.initialValue, 'serving:g:30.0');
   });
-  testWidgets('invalid amount stays open; errors permit correction and retry', (
-    tester,
-  ) async {
-    var calls = 0;
-    await mount(
+  for (final editing in [false, true]) {
+    final action = editing ? 'Save' : 'Add';
+    testWidgets('$action validates amounts and permits retry after errors', (
       tester,
-      confirm: (_, _) async {
-        calls++;
-        throw StateError('save');
-      },
-    );
-    await tester.enterText(find.byType(TextField), '0');
-    await tester.tap(find.text('Add'));
-    await tester.pumpAndSettle();
-    expect(calls, 0);
-    expect(find.byType(FoodAmountEditor), findsOneWidget);
-    await tester.enterText(find.byType(TextField), '53');
-    await tester.tap(find.text('Add'));
-    await tester.pumpAndSettle();
-    expect(calls, 1);
-    expect(find.byType(FoodAmountEditor), findsOneWidget);
-    expect(find.text('Could not add this entry. Try again.'), findsOneWidget);
-    await tester.tap(find.text('Add'));
-    await tester.pumpAndSettle();
-    expect(calls, 2);
-  });
+    ) async {
+      var calls = 0;
+      await mount(
+        tester,
+        editing: editing,
+        confirm: (_, _) async {
+          calls++;
+          throw StateError('save');
+        },
+      );
+      await tester.enterText(find.byType(TextField), '0');
+      await tester.tap(find.widgetWithText(FilledButton, action));
+      await tester.pumpAndSettle();
+      expect(calls, 0);
+      expect(find.byType(FoodAmountEditor), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '53');
+      await tester.tap(find.widgetWithText(FilledButton, action));
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+      expect(find.byType(FoodAmountEditor), findsOneWidget);
+      expect(
+        find.text('Could not save this amount. Try again.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.widgetWithText(FilledButton, action));
+      await tester.pumpAndSettle();
+      expect(calls, 2);
+    });
+  }
   testWidgets('pending save disables repeated confirmation', (tester) async {
     final pending = Completer<bool>();
     var calls = 0;

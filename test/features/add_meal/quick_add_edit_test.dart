@@ -155,9 +155,9 @@ void main() {
         find.byType(DropdownButton<FoodAmountUnit>),
       );
       expect(unit.value, FoodAmountUnit.g);
-      await tester.ensureVisible(find.text('Save changes'));
+      await tester.ensureVisible(find.text('Save'));
       await tester.runAsync(() async {
-        await tester.tap(find.text('Save changes'));
+        await tester.tap(find.text('Save'));
         await Future<void>.delayed(const Duration(milliseconds: 200));
       });
       await tester.pumpAndSettle();
@@ -227,9 +227,9 @@ void main() {
           )
           .onChanged!(FoodAmountUnit.kg);
       await tester.pump();
-      await tester.ensureVisible(find.text('Save changes'));
+      await tester.ensureVisible(find.text('Save'));
       await tester.runAsync(() async {
-        await tester.tap(find.text('Save changes'));
+        await tester.tap(find.text('Save'));
         await Future<void>.delayed(const Duration(milliseconds: 200));
       });
       await tester.pumpAndSettle();
@@ -244,9 +244,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.widget<TextField>(field(5)).controller!.text, '2.0');
       await tester.enterText(field(5), '');
-      await tester.ensureVisible(find.text('Save changes'));
+      await tester.ensureVisible(find.text('Save'));
       await tester.runAsync(() async {
-        await tester.tap(find.text('Save changes'));
+        await tester.tap(find.text('Save'));
         await Future<void>.delayed(const Duration(milliseconds: 200));
       });
       await tester.pumpAndSettle();
@@ -314,9 +314,9 @@ void main() {
         }
         await tester.enterText(field(0), 'Renamed quick');
         await tester.enterText(field(2), '0');
-        await tester.ensureVisible(find.text('Save changes'));
+        await tester.ensureVisible(find.text('Save'));
         await tester.runAsync(() async {
-          await tester.tap(find.text('Save changes'));
+          await tester.tap(find.text('Save'));
           await Future<void>.delayed(const Duration(milliseconds: 200));
         });
         await tester.pump(const Duration(milliseconds: 300));
