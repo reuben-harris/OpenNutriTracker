@@ -193,6 +193,7 @@ const _legacyRecipeJson =
 }''';
 
 void main() {
+  useTestHive();
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late Directory tempDir;
@@ -205,11 +206,6 @@ void main() {
   late Box<CustomActivityTemplateDBO> templateBox;
   late ImportDataUsecase usecase;
   late File Function(String name, List<int> bytes) write;
-
-  setUpAll(() {
-    Hive.init('.');
-    registerHiveAdaptersOnce();
-  });
 
   setUp(() async {
     tempDir = Directory.systemTemp.createTempSync('import_off_repair_test');

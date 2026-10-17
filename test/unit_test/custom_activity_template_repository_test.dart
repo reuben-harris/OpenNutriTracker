@@ -9,61 +9,56 @@ import '../helpers/hive_test_setup.dart';
 import '../helpers/fake_hive_db_provider.dart';
 
 void main() {
+  useTestHive();
   group('CustomActivityTemplateRepository', () {
     setUpAll(() {
       TestWidgetsFlutterBinding.ensureInitialized();
-      registerHiveAdaptersOnce();
     });
 
-    setUp(() {
-      Hive.init('.');
-    });
+    test(
+      'addTemplate persists and allTemplates returns it alphabetised',
+      () async {
+        // #70 follow-up: a saved template should make it back out of the
+        // box with the same name, typical kcal, and optional notes, and
+        // the listing should be alphabetised by name so the picker UI
+        // doesn't have to do its own sort.
+        final box = await Hive.openBox<CustomActivityTemplateDBO>(
+          'template_test',
+        );
+        await box.clear();
+        final repo = CustomActivityTemplateRepository(
+          CustomActivityTemplateDataSource(
+            FakeHiveDBProvider(customActivityTemplateBox: box),
+          ),
+        );
 
-    tearDown(() async {
-      await Hive.close();
-      Hive.deleteFromDisk();
-    });
+        await repo.addTemplate(
+          const CustomActivityTemplateEntity(
+            name: 'Evening bike commute',
+            typicalKcal: 240,
+            notes: 'Home from the office, rough terrain',
+          ),
+        );
+        await repo.addTemplate(
+          const CustomActivityTemplateEntity(
+            name: 'Climbing gym',
+            typicalKcal: 480,
+          ),
+        );
 
-    test('addTemplate persists and allTemplates returns it alphabetised',
-        () async {
-      // #70 follow-up: a saved template should make it back out of the
-      // box with the same name, typical kcal, and optional notes, and
-      // the listing should be alphabetised by name so the picker UI
-      // doesn't have to do its own sort.
-      final box = await Hive.openBox<CustomActivityTemplateDBO>(
-        'template_test',
-      );
-      await box.clear();
-      final repo = CustomActivityTemplateRepository(
-        CustomActivityTemplateDataSource(FakeHiveDBProvider(customActivityTemplateBox: box)),
-      );
-
-      await repo.addTemplate(
-        const CustomActivityTemplateEntity(
-          name: 'Evening bike commute',
-          typicalKcal: 240,
-          notes: 'Home from the office, rough terrain',
-        ),
-      );
-      await repo.addTemplate(
-        const CustomActivityTemplateEntity(
-          name: 'Climbing gym',
-          typicalKcal: 480,
-        ),
-      );
-
-      final templates = await repo.allTemplates();
-      expect(templates, hasLength(2));
-      expect(templates[0].name, equals('Climbing gym'));
-      expect(templates[0].typicalKcal, equals(480));
-      expect(templates[0].notes, isNull);
-      expect(templates[1].name, equals('Evening bike commute'));
-      expect(templates[1].typicalKcal, equals(240));
-      expect(
-        templates[1].notes,
-        equals('Home from the office, rough terrain'),
-      );
-    });
+        final templates = await repo.allTemplates();
+        expect(templates, hasLength(2));
+        expect(templates[0].name, equals('Climbing gym'));
+        expect(templates[0].typicalKcal, equals(480));
+        expect(templates[0].notes, isNull);
+        expect(templates[1].name, equals('Evening bike commute'));
+        expect(templates[1].typicalKcal, equals(240));
+        expect(
+          templates[1].notes,
+          equals('Home from the office, rough terrain'),
+        );
+      },
+    );
 
     test('addTemplate with an existing name overwrites in place', () async {
       // Re-saving "Climbing gym" with a new kcal should keep one entry
@@ -74,7 +69,9 @@ void main() {
       );
       await box.clear();
       final repo = CustomActivityTemplateRepository(
-        CustomActivityTemplateDataSource(FakeHiveDBProvider(customActivityTemplateBox: box)),
+        CustomActivityTemplateDataSource(
+          FakeHiveDBProvider(customActivityTemplateBox: box),
+        ),
       );
 
       await repo.addTemplate(
@@ -101,7 +98,9 @@ void main() {
       );
       await box.clear();
       final repo = CustomActivityTemplateRepository(
-        CustomActivityTemplateDataSource(FakeHiveDBProvider(customActivityTemplateBox: box)),
+        CustomActivityTemplateDataSource(
+          FakeHiveDBProvider(customActivityTemplateBox: box),
+        ),
       );
 
       await repo.addTemplate(
@@ -132,7 +131,9 @@ void main() {
       );
       await box.clear();
       final repo = CustomActivityTemplateRepository(
-        CustomActivityTemplateDataSource(FakeHiveDBProvider(customActivityTemplateBox: box)),
+        CustomActivityTemplateDataSource(
+          FakeHiveDBProvider(customActivityTemplateBox: box),
+        ),
       );
 
       final imported = [
@@ -154,8 +155,7 @@ void main() {
       expect(templates[1].name, equals('Evening bike commute'));
     });
 
-    test('a template round-trips through JSON without losing fields',
-        () async {
+    test('a template round-trips through JSON without losing fields', () async {
       // The export/import bundle serialises templates as JSON. This
       // pins down that the JSON shape lines up with what fromJson
       // reads back, so the zip a user emails themselves between
@@ -165,8 +165,9 @@ void main() {
         240,
         notes: 'Rough terrain',
       );
-      final roundTripped =
-          CustomActivityTemplateDBO.fromJson(original.toJson());
+      final roundTripped = CustomActivityTemplateDBO.fromJson(
+        original.toJson(),
+      );
 
       expect(roundTripped.name, equals('Evening bike commute'));
       expect(roundTripped.typicalKcal, equals(240));

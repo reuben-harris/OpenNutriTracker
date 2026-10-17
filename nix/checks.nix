@@ -37,7 +37,9 @@
             ont_prepare
             dart tool/check_locales.dart
             flutter --suppress-analytics analyze --no-pub
-            flutter --suppress-analytics test --no-pub
+            flutter --suppress-analytics test --no-pub --exclude-tags dst
+            TZ=Pacific/Auckland TZDIR=${pkgs.tzdata}/share/zoneinfo \
+              flutter --suppress-analytics test --no-pub --tags dst
           '';
           installPhase = ''touch "$out"'';
         };

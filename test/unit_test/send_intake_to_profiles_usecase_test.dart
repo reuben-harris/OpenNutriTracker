@@ -51,6 +51,7 @@ class _TestHiveDBProvider extends HiveDBProvider {
 }
 
 void main() {
+  useTestHive();
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late Box<IntakeDBO> intakeBox;
@@ -62,8 +63,6 @@ void main() {
   late _TestHiveDBProvider provider;
 
   setUp(() async {
-    Hive.init('.');
-    registerHiveAdaptersOnce();
     final tag = DateTime.now().microsecondsSinceEpoch;
     intakeBox = await Hive.openBox<IntakeDBO>('send_intake_$tag');
     trackedDayBox = await Hive.openBox<TrackedDayDBO>('send_tracked_$tag');
@@ -93,10 +92,6 @@ void main() {
       HiveDBProvider.userActivityBoxName: activityBox,
     });
     sut = SendIntakeToProfilesUsecase(provider);
-  });
-
-  tearDown(() async {
-    await Hive.deleteFromDisk();
   });
 
   IntakeEntity buildIntake() => IntakeEntity(

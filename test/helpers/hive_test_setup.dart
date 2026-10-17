@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:opennutritracker/hive_registrar.g.dart';
 
@@ -19,4 +22,25 @@ void registerHiveAdaptersOnce() {
   if (_hiveAdaptersRegistered) return;
   Hive.registerAdapters();
   _hiveAdaptersRegistered = true;
+}
+
+/// Installs isolated storage for each test in the current group.
+///
+/// Call before registering feature teardown so dependent blocs are closed
+/// before Hive. Closing Hive alone does not remove already closed boxes;
+/// deleting the whole directory also cleans up persistence/reopen tests.
+void useTestHive() {
+  late Directory directory;
+  setUp(() async {
+    directory = await Directory.systemTemp.createTemp('ont-hive-test-');
+    Hive.init(directory.path);
+    registerHiveAdaptersOnce();
+  });
+  tearDown(() async {
+    try {
+      await Hive.close();
+    } finally {
+      await directory.delete(recursive: true);
+    }
+  });
 }

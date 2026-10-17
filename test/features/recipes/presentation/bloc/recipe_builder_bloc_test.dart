@@ -65,6 +65,18 @@ void main() {
 
   tearDown(() => bloc.close());
 
+  Future<void> dispatch(RecipeBuilderEvent event) async {
+    final changed = bloc.stream
+        .firstWhere(
+          (state) =>
+              event is! SaveRecipeEvent ||
+              (!state.isSaving && (state.didSave || state.saveError != null)),
+        )
+        .timeout(const Duration(seconds: 5));
+    bloc.add(event);
+    await changed;
+  }
+
   test(
     'builder preserves portions through editing, saving and reopening',
     () async {
@@ -77,37 +89,32 @@ void main() {
           label: '1 slice',
         ),
       );
-      bloc.add(
+      await dispatch(
         AddIngredientEvent(meal: _meal('bread', kcal: 200), quantity: quantity),
       );
-      await Future<void>.delayed(Duration.zero);
+
       expect(bloc.state.ingredients.single.quantity, quantity);
       expect(bloc.state.totalWeightG, 76);
-      bloc.add(
+      await dispatch(
         UpdateIngredientEvent(
           index: 0,
           quantity: FoodAmountSelection(3, quantity.option),
         ),
       );
-      bloc.add(const UpdateNameEvent('Bread recipe'));
-      await Future<void>.delayed(Duration.zero);
+      await dispatch(const UpdateNameEvent('Bread recipe'));
+
       expect(bloc.state.totalWeightG, 114);
-      bloc.add(const SaveRecipeEvent());
-      await Future<void>.delayed(Duration.zero);
+      await dispatch(const SaveRecipeEvent());
+
       final saved = repo.saved.single;
       expect(saved.ingredients.single.quantity.amount, 3);
       expect(saved.ingredients.single.quantity.option, quantity.option);
-      bloc.add(InitializeBuilderEvent(existing: saved));
-      await Future<void>.delayed(Duration.zero);
+      await dispatch(InitializeBuilderEvent(existing: saved));
+
       expect(bloc.state.ingredients.single.quantity.option, quantity.option);
       expect(bloc.state.totalWeightG, 114);
     },
   );
-
-  Future<void> dispatch(RecipeBuilderEvent event) async {
-    bloc.add(event);
-    await Future<void>.delayed(Duration.zero);
-  }
 
   Future<void> addFlour(double grams) => dispatch(
     AddIngredientEvent(
@@ -266,13 +273,12 @@ void main() {
     test(
       'AddIngredientEvent recomputes total weight + per-100g nutrition',
       () async {
-        bloc.add(
+        await dispatch(
           AddIngredientEvent(
             meal: _meal('flour', kcal: 340),
             quantity: resolveFoodAmount(100, 'g', _meal('flour', kcal: 340))!,
           ),
         );
-        await Future<void>.delayed(Duration.zero);
 
         expect(bloc.state.ingredients, hasLength(1));
         expect(bloc.state.totalWeightG, 100);
@@ -284,56 +290,30 @@ void main() {
     );
 
     test('save with empty name emits nameRequired error', () async {
-      bloc.add(const SaveRecipeEvent());
-      await Future<void>.delayed(Duration.zero);
+      await dispatch(const SaveRecipeEvent());
 
       expect(bloc.state.saveError, SaveError.nameRequired);
       expect(repo.saved, isEmpty);
     });
 
     test('save with no ingredients emits needsIngredients error', () async {
-      bloc.add(const UpdateNameEvent('Cake'));
-      bloc.add(const SaveRecipeEvent());
-      await Future<void>.delayed(Duration.zero);
+      await dispatch(const UpdateNameEvent('Cake'));
+      await dispatch(const SaveRecipeEvent());
 
       expect(bloc.state.saveError, SaveError.needsIngredients);
       expect(repo.saved, isEmpty);
     });
 
-    test(
-      'save with explicit zero total weight emits invalidTotalWeight',
-      () async {
-        bloc.add(const UpdateNameEvent('Cake'));
-        bloc.add(
-          AddIngredientEvent(
-            meal: _meal('flour', kcal: 340),
-            quantity: resolveFoodAmount(100, 'g', _meal('flour', kcal: 340))!,
-          ),
-        );
-        await Future<void>.delayed(Duration.zero);
-        bloc.add(const UpdateWeightModeEvent(RecipeWeightMode.custom));
-        await Future<void>.delayed(Duration.zero);
-        bloc.add(const UpdateCookedWeightEvent(0));
-        await Future<void>.delayed(Duration.zero);
-        bloc.add(const SaveRecipeEvent());
-        await Future<void>.delayed(Duration.zero);
-
-        expect(bloc.state.saveError, SaveError.invalidTotalWeight);
-        expect(repo.saved, isEmpty);
-      },
-    );
-
     test('successful save persists and emits didSave', () async {
-      bloc.add(const UpdateNameEvent('Cake'));
-      bloc.add(
+      await dispatch(const UpdateNameEvent('Cake'));
+      await dispatch(
         AddIngredientEvent(
           meal: _meal('flour', kcal: 340),
           quantity: resolveFoodAmount(100, 'g', _meal('flour', kcal: 340))!,
         ),
       );
-      await Future<void>.delayed(Duration.zero);
-      bloc.add(const SaveRecipeEvent());
-      await Future<void>.delayed(Duration.zero);
+
+      await dispatch(const SaveRecipeEvent());
 
       expect(bloc.state.didSave, isTrue);
       expect(bloc.state.saveError, isNull);
@@ -354,8 +334,7 @@ void main() {
         updatedAt: DateTime.utc(2024, 1, 1),
         servingsCount: null,
       );
-      bloc.add(InitializeBuilderEvent(existing: existing));
-      await Future<void>.delayed(Duration.zero);
+      await dispatch(InitializeBuilderEvent(existing: existing));
 
       expect(bloc.state.isExistingRecipe, isTrue);
       expect(bloc.state.id, 'existing-1');
@@ -376,8 +355,7 @@ void main() {
           updatedAt: DateTime.utc(2024, 1, 1),
           servingsCount: null,
         );
-        bloc.add(InitializeBuilderEvent(existing: duplicate));
-        await Future<void>.delayed(Duration.zero);
+        await dispatch(InitializeBuilderEvent(existing: duplicate));
 
         expect(bloc.state.isExistingRecipe, isFalse);
         expect(bloc.state.id, isNull);

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/repository/config_repository.dart';
 import 'package:opennutritracker/core/data/repository/user_repository.dart';
@@ -33,10 +34,12 @@ class _FakeUserRepository implements UserRepository {
 }
 
 class _FakeConfigRepository implements ConfigRepository {
+  bool writeStarted = false;
   final Completer<void> anonCompleter = Completer<void>();
 
   @override
   Future<void> setConfigHasAcceptedAnonymousData(bool _) async {
+    writeStarted = true;
     await anonCompleter.future;
   }
 
@@ -92,7 +95,7 @@ void main() {
     late _FakeConfigRepository configRepo;
     late OnboardingBloc bloc;
 
-    setUp(() {
+    void initialize() {
       userRepo = _FakeUserRepository();
       configRepo = _FakeConfigRepository();
       bloc = OnboardingBloc(
@@ -100,11 +103,9 @@ void main() {
         AddConfigUsecase(configRepo),
         GetConfigUsecase(configRepo),
       );
-    });
+    }
 
-    tearDown(() {
-      bloc.close();
-    });
+    tearDown(() => bloc.close());
 
     UserEntity makeUser() => UserEntity(
       birthday: DateTime(1990, 6, 15),
@@ -117,50 +118,37 @@ void main() {
 
     test(
       'saveOnboardingData does not resolve until the user write completes',
-      () async {
-        // Regression: saveOnboardingData was `void ... async` and did not
-        // await `_addUserUsecase.addUser(...)`. The onboarding screen then
-        // navigated away before the user had been written to Hive, and the
-        // home screen recomputed kcal against the dummy default user.
+      () {
+        fakeAsync((time) {
+          initialize();
+          final saveFuture = bloc.saveOnboardingData(
+            makeUser(),
+            false,
+            false,
+            BodyWeightUnit.kg,
+            false,
+            appTheme: AppThemeEntity.system,
+            dailyReminderEnabled: false,
+            useMaterialYou: true,
+            accentColor: null,
+          );
 
-        final saveFuture = bloc.saveOnboardingData(
-          makeUser(),
-          false,
-          false,
-          BodyWeightUnit.kg,
-          false,
-          appTheme: AppThemeEntity.system,
-          dailyReminderEnabled: false,
-          useMaterialYou: true,
-          accentColor: null,
-        );
+          var resolved = false;
+          saveFuture.then((_) => resolved = true);
+          time.flushMicrotasks();
+          expect(userRepo.writeStarted, isTrue);
+          expect(configRepo.writeStarted, isFalse);
+          expect(resolved, isFalse);
 
-        // Yield once so the bloc has a chance to start the inner write.
-        await Future<void>.delayed(Duration.zero);
-        expect(
-          userRepo.writeStarted,
-          isTrue,
-          reason: 'bloc must start the user write immediately',
-        );
+          userRepo.writeCompleter.complete();
+          time.flushMicrotasks();
+          expect(configRepo.writeStarted, isTrue);
+          expect(resolved, isFalse);
 
-        bool resolved = false;
-        // ignore: unawaited_futures
-        saveFuture.then((_) => resolved = true);
-
-        // Without completing the user write, saveOnboardingData must not be
-        // done — proves the bloc actually awaits the write.
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        expect(
-          resolved,
-          isFalse,
-          reason: 'saveOnboardingData must await the user write',
-        );
-
-        // Complete the writes in order; saveOnboardingData should now resolve.
-        userRepo.writeCompleter.complete();
-        configRepo.anonCompleter.complete();
-        await saveFuture;
-        expect(resolved, isTrue);
+          configRepo.anonCompleter.complete();
+          time.flushMicrotasks();
+          expect(resolved, isTrue);
+        });
       },
     );
   });

@@ -1,99 +1,189 @@
-// Regression guard for issue #156 — "Add" button at the bottom is behind
-// phone navigation bar.
-//
-// The fix for #156 wrapped four files in SafeArea so that persistent bottom
-// UI (a Scaffold.bottomSheet, a BottomAppBar, a sticky Padding-wrapped
-// button, or a list that runs all the way to the bottom edge of the body)
-// doesn't render under the Android gesture-navigation strip on devices that
-// don't reserve insets.
-//
-// This test reads each file in the curated list below and asserts that the
-// file contains a `SafeArea` in its source. It is deliberately a source-
-// level check rather than a widget-pump: these screens depend on the GetIt
-// service locator, BLoCs, route arguments, and (for some) network or
-// product network access, and standing up that surface inside a unit test costs
-// more than the rule is worth. A source-level check is honest about what it
-// actually verifies — the lexical pattern that the SafeArea fix landed in
-// the right files, and that the next contributor who adds a sticky-bottom
-// screen to this list can't quietly forget the wrap.
-//
-// The list is hand-maintained on purpose. If you add a new screen with a
-// persistent bottom button or a body that reaches the bottom edge, add it
-// here. A fully-automatic walk of `lib/features/` would flag screens that
-// don't actually have sticky bottom UI, and a flaky guard is worse than no
-// guard.
-//
-// Screens introduced by other in-flight branches that will need to be added
-// to this list once they merge into develop:
-//   - lib/features/profile/presentation/weight_history_screen.dart (#38)
-//   - lib/features/settings/presentation/widgets/paste_json_meals_sheet.dart (#181)
-//   - lib/features/recipes/presentation/screens/recipe_builder_screen.dart
-//     image picker UI (#64)
-//
-// Those files are not on the branch this test was written against, so they
-// aren't included here. Update the list (and remove this note) when the
-// branches land.
-
-import 'dart:io';
-
+import 'package:flutter/services.dart';
+import 'package:opennutritracker/core/styles/app_theme.dart';
+import 'package:opennutritracker/core/styles/app_palette.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
+import 'package:opennutritracker/core/domain/entity/config_entity.dart';
+import 'package:opennutritracker/core/domain/entity/physical_activity_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_entity.dart';
+import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
+import 'package:opennutritracker/core/food_amount/food_amount_sheet.dart';
+import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
+import 'package:opennutritracker/core/utils/locator.dart';
+import 'package:opennutritracker/features/activity_detail/activity_detail_screen.dart';
+import 'package:opennutritracker/features/activity_detail/presentation/bloc/activity_detail_bloc.dart';
+import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
+import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
+import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
+import 'package:opennutritracker/generated/l10n.dart';
+import 'package:provider/provider.dart';
 
-/// Files that must contain a `SafeArea` because they introduce persistent
-/// bottom UI or a body region that reaches the bottom edge of the screen.
-/// Paths are relative to the package root (where `flutter test` runs).
-///
-const _screensWithStickyBottomUi = <String>[
-  // The shared search view owns the results list and its bottom inset.
-  'lib/features/add_meal/presentation/widgets/food_search_view.dart',
+import '../core/search/food_search_engine_test.dart' show food;
+import '../fixture/physical_activity_entity_fixtures.dart';
+import '../fixture/user_entity_fixtures.dart';
+import '../helpers/locator_test_setup.dart';
 
-  // Scaffolds with a `bottomSheet:` — the bottom sheet sticks to the very
-  // bottom of the screen with no scroll padding.
-  'lib/features/activity_detail/activity_detail_screen.dart',
-  'lib/features/meal_detail/meal_detail_screen.dart',
+class _ActivityBloc extends Cubit<ActivityDetailState>
+    implements ActivityDetailBloc {
+  _ActivityBloc()
+    : super(
+        ActivityDetailLoadedState(
+          0,
+          UserEntityFixtures.youngSedentaryMaleWantingToMaintainWeight,
+          0,
+        ),
+      );
+  String? submitted;
+  @override
+  double getTotalKcalBurned(
+    UserEntity user,
+    PhysicalActivityEntity activity,
+    double duration,
+  ) => duration * 8;
+  @override
+  Future<void> persistActivity(
+    String quantity,
+    double kcal,
+    PhysicalActivityEntity activity,
+    DateTime day,
+  ) async {
+    submitted = quantity;
+  }
 
-  // The bottom-sheet widgets themselves — these are the widgets actually
-  // hosting the "Add" button. They wrap their content in
-  // `SafeArea(top: false)` so the button clears the gesture-nav strip.
-  'lib/features/activity_detail/presentation/widget/activity_detail_bottom_sheet.dart',
-  'lib/core/food_amount/food_amount_sheet.dart',
-];
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Home extends Fake implements HomeBloc {
+  @override
+  void add(HomeEvent event) {}
+}
+
+class _Diary extends Fake implements DiaryBloc {
+  @override
+  void add(DiaryEvent event) {}
+}
+
+class _Calendar extends Fake implements CalendarDayBloc {
+  @override
+  void add(CalendarDayEvent event) {}
+}
+
+class _Config extends Fake implements GetConfigUsecase {
+  @override
+  Future<ConfigEntity> getConfig() async =>
+      const ConfigEntity(true, true, false, AppThemeEntity.system);
+}
 
 void main() {
-  group('SafeArea guard for screens with persistent bottom UI (#156)', () {
-    for (final relativePath in _screensWithStickyBottomUi) {
-      test('$relativePath contains a SafeArea wrap', () {
-        final file = File(relativePath);
-        expect(
-          file.existsSync(),
-          isTrue,
-          reason:
-              '$relativePath is listed as a screen with persistent bottom '
-              'UI but the file does not exist. If the screen was renamed or '
-              'removed, update _screensWithStickyBottomUi in this test.',
-        );
+  useTestLocator();
+  const height = 800.0;
+  const bottomInset = 48.0;
 
-        final source = file.readAsStringSync();
+  Future<void> mount(
+    WidgetTester tester,
+    Widget home, {
+    RouteFactory? route,
+  }) async {
+    final font = FontLoader('Nunito')
+      ..addFont(rootBundle.load('fonts/Nunito.ttf'));
+    await font.load();
+    tester.view.physicalSize = const Size(400, height);
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(bottom: bottomInset);
+    tester.view.viewPadding = const FakeViewPadding(bottom: bottomInset);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => EnergyUnitProvider(),
+        child: MaterialApp(
+          theme: buildAppTheme(AppPalette.light),
+          localizationsDelegates: S.localizationsDelegates,
+          supportedLocales: S.supportedLocales,
+          home: route == null ? home : null,
+          onGenerateRoute: route,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
 
-        expect(
-          source.contains('SafeArea'),
-          isTrue,
-          reason:
-              '$relativePath has persistent bottom UI but is missing a '
-              'SafeArea wrap. Bottom buttons will sit under the Android '
-              'gesture-navigation strip on devices that do not reserve '
-              'insets — see issue #156. Wrap the bottom region (or the '
-              'whole Scaffold body) in SafeArea(bottom: true).',
-        );
-      });
-    }
+  void expectUsable(WidgetTester tester, Finder action) {
+    final bounds = tester.getRect(action);
+    expect(bounds.top, greaterThanOrEqualTo(0));
+    expect(bounds.bottom, lessThanOrEqualTo(height - bottomInset));
+    expect(action.hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  }
 
-    test('every tracked path is unique', () {
-      final unique = _screensWithStickyBottomUi.toSet();
-      expect(
-        unique.length,
-        _screensWithStickyBottomUi.length,
-        reason: 'Duplicate entries in _screensWithStickyBottomUi',
-      );
-    });
+  testWidgets('meal Add clears the navigation inset and confirms the amount', (
+    tester,
+  ) async {
+    locator.registerSingleton<GetConfigUsecase>(_Config());
+    FoodAmountSelection? saved;
+    await mount(
+      tester,
+      Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showFoodAmountSheet(
+              context,
+              meal: food('meal', 'Test meal'),
+              hydrate: false,
+              onConfirm: (_, amount) async {
+                saved = amount;
+                return true;
+              },
+            ),
+            child: const Text('Choose amount'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Choose amount'));
+    await tester.pumpAndSettle();
+    final add = find.widgetWithText(FilledButton, 'Add');
+    expectUsable(tester, add);
+    await tester.enterText(find.byType(TextField), '53');
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+    expect(saved!.amount, 53);
+    expect(saved!.baseAmount, 53);
+    expect(find.byType(FoodAmountEditor), findsNothing);
   });
+
+  testWidgets(
+    'activity Add clears the navigation inset and submits entered minutes',
+    (tester) async {
+      final bloc = _ActivityBloc();
+      addTearDown(bloc.close);
+      locator.registerSingleton<ActivityDetailBloc>(bloc);
+      locator.registerSingleton<HomeBloc>(_Home());
+      locator.registerSingleton<DiaryBloc>(_Diary());
+      locator.registerSingleton<CalendarDayBloc>(_Calendar());
+      await mount(
+        tester,
+        const SizedBox(),
+        route: (_) => MaterialPageRoute<void>(
+          settings: RouteSettings(
+            arguments: ActivityDetailScreenArguments(
+              PhysicalActivityFixtures.moderateBicycling,
+              DateTime(2026, 9, 29),
+            ),
+          ),
+          builder: (_) => const ActivityDetailScreen(),
+        ),
+      );
+      final add = find.widgetWithText(ElevatedButton, 'Add');
+      expectUsable(tester, add);
+      await tester.enterText(find.byType(TextFormField), '35');
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      expect(bloc.submitted, '35');
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 }

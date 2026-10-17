@@ -1,3 +1,5 @@
+import '../../../helpers/pump_until.dart';
+import '../../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -53,6 +55,7 @@ import '../../../helpers/test_l10n.dart';
 /// Only the main screen is stubbed, because all these unwinds want from it
 /// is a route named `main` to survive.
 void main() {
+  useTestLocator();
   final getIt = GetIt.instance;
   final loggedIntakes = <IntakeEntity>[];
 
@@ -113,7 +116,7 @@ void main() {
   });
 
   tearDown(() async {
-    await getIt.reset();
+    await getIt.resetScope();
   });
 
   /// Pumps `[main, mealDetail]` — the stack a recipe Log leaves behind —
@@ -195,19 +198,13 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, l10nEn.addLabel));
       await tester.pumpAndSettle();
-      // Logging closes its owned bloc before the caller unwinds the route.
-      // Allow that stream cleanup to complete outside the fake frame clock.
-      for (
-        var i = 0;
-        i < 100 &&
-            find.text('${NavigationOptions.mainRoute}-stub').evaluate().isEmpty;
-        i++
-      ) {
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 20)),
-        );
-        await tester.pump();
-      }
+      await pumpUntil(
+        tester,
+        () => find
+            .text('${NavigationOptions.mainRoute}-stub')
+            .evaluate()
+            .isNotEmpty,
+      );
       await tester.pumpAndSettle();
 
       // The intake is written whatever the navigator does — that is why the

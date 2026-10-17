@@ -10,11 +10,22 @@ void main() {
     });
 
     test('round-trip lbs → kg → lbs is exact for whole-pound weights', () {
-      for (final lbs in const [100.0, 120.0, 150.0, 165.0, 180.0, 200.0, 250.0]) {
+      for (final lbs in const [
+        100.0,
+        120.0,
+        150.0,
+        165.0,
+        180.0,
+        200.0,
+        250.0,
+      ]) {
         final kg = UnitCalc.lbsToKg(lbs);
         final roundTrip = UnitCalc.kgToLbs(kg);
-        expect(roundTrip, equals(lbs),
-            reason: '$lbs lbs -> $kg kg -> $roundTrip lbs lost precision');
+        expect(
+          roundTrip,
+          equals(lbs),
+          reason: '$lbs lbs -> $kg kg -> $roundTrip lbs lost precision',
+        );
       }
     });
 
@@ -98,13 +109,17 @@ void main() {
 
   group('UnitCalc.metricToImperialValue', () {
     test('converts grams to ounces', () {
-      expect(UnitCalc.metricToImperialValue(100, 'g'),
-          closeTo(UnitCalc.gToOz(100), 0.0001));
+      expect(
+        UnitCalc.metricToImperialValue(100, 'g'),
+        closeTo(3.5274, 0.00001),
+      );
     });
 
     test('converts ml to fl oz', () {
-      expect(UnitCalc.metricToImperialValue(250, 'ml'),
-          closeTo(UnitCalc.mlToFlOz(250), 0.0001));
+      expect(
+        UnitCalc.metricToImperialValue(250, 'ml'),
+        closeTo(8.453514126, 0.000000001),
+      );
     });
 
     test('passes through unknown units unchanged', () {
@@ -116,14 +131,18 @@ void main() {
   group('UnitCalc.kcalToKj / kjToKcal (#177)', () {
     test('1 kcal converts to 4.184 kJ exactly', () {
       expect(UnitCalc.kcalToKj(1), equals(4.184));
+      expect(UnitCalc.kjToKcal(1046), equals(250));
     });
 
     test('round-trip kcal → kJ → kcal is exact for whole-kcal values', () {
       for (final kcal in const [100.0, 250.0, 500.0, 2000.0]) {
         final kj = UnitCalc.kcalToKj(kcal);
         final back = UnitCalc.kjToKcal(kj);
-        expect(back, closeTo(kcal, 1e-9),
-            reason: '$kcal kcal -> $kj kJ -> $back kcal lost precision');
+        expect(
+          back,
+          closeTo(kcal, 1e-9),
+          reason: '$kcal kcal -> $kj kJ -> $back kcal lost precision',
+        );
       }
     });
 
@@ -139,15 +158,21 @@ void main() {
 
   group('UnitCalc.imperialToMetricValue', () {
     test('converts ounces to grams', () {
-      expect(UnitCalc.imperialToMetricValue(2, 'oz'),
-          closeTo(UnitCalc.ozToG(2), 0.0001));
+      expect(
+        UnitCalc.imperialToMetricValue(2, 'oz'),
+        closeTo(56.699, 0.000000001),
+      );
     });
 
     test('converts fl oz (both spelling variants) to ml', () {
-      expect(UnitCalc.imperialToMetricValue(8, 'fl oz'),
-          closeTo(UnitCalc.flOzToMl(8), 0.0001));
-      expect(UnitCalc.imperialToMetricValue(8, 'fl.oz'),
-          closeTo(UnitCalc.flOzToMl(8), 0.0001));
+      expect(
+        UnitCalc.imperialToMetricValue(8, 'fl oz'),
+        closeTo(236.588, 0.000000001),
+      );
+      expect(
+        UnitCalc.imperialToMetricValue(8, 'fl.oz'),
+        closeTo(236.588, 0.000000001),
+      );
     });
 
     test('passes through unknown units unchanged', () {
@@ -176,26 +201,23 @@ void main() {
       for (final kg in const [50.0, 63.5, 70.3, 80.0, 100.0, 120.7]) {
         final (stones, pounds) = UnitCalc.kgToStLb(kg);
         final back = UnitCalc.stLbToKg(stones, pounds);
-        expect(back, closeTo(kg, 0.05),
-            reason: '$kg kg -> $stones st $pounds lb -> $back kg exceeded tolerance');
+        expect(
+          back,
+          closeTo(kg, 0.05),
+          reason:
+              '$kg kg -> $stones st $pounds lb -> $back kg exceeded tolerance',
+        );
       }
     });
 
-    test('rollover: a weight whose pound remainder rounds to 14.0 increments stones', () {
-      // 2 stone = 12.70058 kg. A tiny amount below the next full stone keeps
-      // the pounds remainder very close to 14.0; the rollover guard should
-      // bump stones to 3 and set pounds to 0.0 rather than showing "2 st 14.0 lb".
-      // We construct the boundary ourselves: 3 st - epsilon.
-      const threeStoneKg = 3 * 14 / 2.20462; // exactly 3 stone in kg
-      // Subtract a tiny amount so raw pounds land just at 13.995+, which
-      // toStringAsFixed(2) rounds to 14.00, triggering the rollover guard.
-      final nearThreeSt = threeStoneKg - 0.001;
-      final (stones, pounds) = UnitCalc.kgToStLb(nearThreeSt);
-      // The result should either be (2, <14) or have rolled over to (3, 0.0)
-      // — the invariant is that pounds < 14.0 always.
-      expect(pounds, lessThan(14.0),
-          reason: 'pounds should never reach 14.0 after rollover guard');
-    });
+    test(
+      'rollover: a weight whose pound remainder rounds to 14.0 increments stones',
+      () {
+        // Just below 3 stone, the remainder rounds to 14.00 lb and must carry.
+        final (stones, pounds) = UnitCalc.kgToStLb(19.04989);
+        expect((stones, pounds), (3, 0.0));
+      },
+    );
 
     test('poundsDecimals: 1 rolls over a remainder the default keeps', () {
       // 63.49 kg is 9 st 13.978 lb. At two decimals that is 13.97, which

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/presentation/widgets/badged_title.dart';
 
@@ -70,13 +71,22 @@ void main() {
     expect(text.overflow, TextOverflow.ellipsis);
   });
 
-  testWidgets('no badge means no wrapper at all', (tester) async {
-    // Rows without a badge must keep behaving exactly as they did before this
-    // widget existed, including their own wrapping.
-    await pump(tester, width: 200, title: 'Plain title');
-
-    expect(find.byType(Wrap), findsNothing);
-    expect(tester.widget<Text>(find.text('Plain title')).maxLines, isNull);
+  testWidgets('a badge-free title renders fully and wraps in a narrow space', (
+    tester,
+  ) async {
+    const title = 'A plain title that needs several lines in this space';
+    await pump(tester, width: 120, title: title);
+    final paragraph = tester.renderObject<RenderParagraph>(find.text(title));
+    final lines = paragraph
+        .getBoxesForSelection(
+          const TextSelection(baseOffset: 0, extentOffset: title.length),
+        )
+        .map((box) => box.top)
+        .toSet();
+    expect(lines.length, greaterThan(1));
+    expect(paragraph.didExceedMaxLines, isFalse);
+    expect(tester.getSize(find.text(title)).width, lessThanOrEqualTo(120));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('both fit on one line at ordinary sizes', (tester) async {

@@ -92,6 +92,7 @@ ExternalWorkout _workout({
 );
 
 void main() {
+  useTestHive();
   // A fixed "now", well clear of both midnight and any configurable day
   // boundary, so the window arithmetic below reads the same in every zone.
   final now = DateTime(2026, 5, 23, 12, 0);
@@ -114,11 +115,10 @@ void main() {
 
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    registerHiveAdaptersOnce();
   });
 
+  late DateTime Function() originalClock;
   setUp(() async {
-    Hive.init('.');
     configBox = await Hive.openBox<ConfigDBO>('health_import_config_test');
     activityBox = await Hive.openBox<UserActivityDBO>(
       'health_import_activity_test',
@@ -185,14 +185,13 @@ void main() {
       configRepository,
     );
 
+    originalClock = ImportWorkoutsUsecase.clock;
     ImportWorkoutsUsecase.clock = () => now;
     await configDataSource.setConfigHealthImportEnabled(true);
   });
 
   tearDown(() async {
-    ImportWorkoutsUsecase.clock = DateTime.now;
-    await Hive.close();
-    await Hive.deleteFromDisk();
+    ImportWorkoutsUsecase.clock = originalClock;
   });
 
   group('ImportWorkoutsUsecase budget invariant', () {

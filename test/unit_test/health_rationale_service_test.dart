@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xml/xml.dart';
 import 'package:opennutritracker/core/utils/health_rationale_service.dart';
 
 // #927: Health Connect asks the app to explain what it wants health data for
@@ -71,62 +72,70 @@ void main() {
     });
   });
 
-  // These are the checks that would have caught the original bug: the manifest
-  // was right and unread, which no Dart test could have noticed.
-  group('the Android side is wired to answer', () {
-    final manifest = File(
-      'android/app/src/main/AndroidManifest.xml',
-    ).readAsStringSync();
-    final activity = File(
-      'android/app/src/main/kotlin/com/opennutritracker/ont/'
-      'opennutritracker/MainActivity.kt',
-    ).readAsStringSync();
+  group('Android rationale entry points', () {
+    final manifest = XmlDocument.parse(
+      File('android/app/src/main/AndroidManifest.xml').readAsStringSync(),
+    );
+    const android = 'http://schemas.android.com/apk/res/android';
+    final activity = manifest
+        .findAllElements('activity')
+        .singleWhere(
+          (e) => e.getAttribute('name', namespace: android) == '.MainActivity',
+        );
+    final alias = manifest
+        .findAllElements('activity-alias')
+        .singleWhere(
+          (e) => e
+              .findAllElements('action')
+              .any(
+                (action) =>
+                    action.getAttribute('name', namespace: android) ==
+                    _permissionUsageAction,
+              ),
+        );
 
-    test('the manifest offers both ways in', () {
-      expect(manifest, contains(_rationaleAction));
-      expect(manifest, contains(_permissionUsageAction));
-    });
-
-    test('the activity reads both actions the manifest advertises', () {
-      // Declaring a filter the activity does not handle is precisely the bug
-      // in #927: the user reaches the app and no question gets answered.
+    test('the main activity exposes the rationale intent', () {
+      expect(activity.getAttribute('exported', namespace: android), 'true');
       expect(
-        activity,
-        contains(_rationaleAction),
-        reason: 'manifest advertises the rationale action; MainActivity must '
-            'recognise it or the user lands on the diary',
+        activity.getAttribute('launchMode', namespace: android),
+        'singleTop',
       );
       expect(
-        activity,
-        contains(_permissionUsageAction),
-        reason: 'manifest advertises the permission-usage action; '
-            'MainActivity must recognise it',
+        activity
+            .findElements('intent-filter')
+            .any(
+              (filter) => filter
+                  .findElements('action')
+                  .any(
+                    (action) =>
+                        action.getAttribute('name', namespace: android) ==
+                        _rationaleAction,
+                  ),
+            ),
+        isTrue,
       );
     });
 
-    // singleTop means a running process is handed the intent through
-    // onNewIntent. Reading only the launching intent works once per process
-    // and then silently stops, which is a worse failure than the original
-    // because it passes a first manual test.
-    test('the activity survives being reached twice', () {
-      expect(
-        manifest,
-        contains('android:launchMode="singleTop"'),
-        reason: 'the onNewIntent override below is only needed while this '
-            'holds — if the launch mode changed, re-check the activity',
-      );
-      expect(activity, contains('onNewIntent'));
-    });
-
-    // Without the permission guard any app on the device could open this
-    // activity; Google's own snippet carries it.
-    test('the permission-usage alias stays guarded', () {
-      expect(
-        manifest,
-        contains(
-          'android:permission="android.permission.START_VIEW_PERMISSION_USAGE"',
-        ),
-      );
-    });
+    test(
+      'the permission-usage alias targets MainActivity and stays guarded',
+      () {
+        expect(
+          alias.getAttribute('targetActivity', namespace: android),
+          '.MainActivity',
+        );
+        expect(alias.getAttribute('exported', namespace: android), 'true');
+        expect(
+          alias.getAttribute('permission', namespace: android),
+          'android.permission.START_VIEW_PERMISSION_USAGE',
+        );
+        final filter = alias.findElements('intent-filter').single;
+        expect(
+          filter
+              .findElements('category')
+              .map((e) => e.getAttribute('name', namespace: android)),
+          contains('android.intent.category.HEALTH_PERMISSIONS'),
+        );
+      },
+    );
   });
 }

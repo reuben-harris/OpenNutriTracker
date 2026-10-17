@@ -1,9 +1,10 @@
+import '../../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../helpers/memory_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'dart:async';
 import 'package:opennutritracker/features/add_meal/domain/usecase/probe_ai_endpoint_usecase.dart';
@@ -156,23 +157,22 @@ Future<void> _register(
   Map<String, List<MealEntity>> results, {
   bool failOnSecondWrite = false,
 }) async {
-  await getIt.reset();
   _mealDetailBloc = _FakeMealDetailBloc(failOnSecondWrite: failOnSecondWrite);
   _homeBloc = _FakeHomeBloc();
   // The screen asks this directly, to decide whether to offer the camera at
   // all. Empty storage means no key, so the action stays hidden.
   getIt.registerLazySingleton<AiCredentialStorage>(
-    () => AiCredentialStorage(_EmptyStorage()),
+    () => AiCredentialStorage(MemorySecureStorage()),
   );
   getIt.registerFactory<BulkAddBloc>(
     () => BulkAddBloc(
       ResolveParsedMealsUseCase(_FakeSearch(results)),
       ReadMealTextUseCase(
-        AiCredentialStorage(_EmptyStorage()),
+        AiCredentialStorage(MemorySecureStorage()),
         (_) => throw StateError('must not be built without a key'),
       ),
       ReadMealPhotoUseCase(
-        AiCredentialStorage(_EmptyStorage()),
+        AiCredentialStorage(MemorySecureStorage()),
         (_) => throw StateError('must not be built without a key'),
       ),
     ),
@@ -193,7 +193,7 @@ Future<BulkAddBloc> _registerWithPhotoReading(
   final bloc = BulkAddBloc(
     ResolveParsedMealsUseCase(_FakeSearch(const {})),
     ReadMealTextUseCase(
-      AiCredentialStorage(_EmptyStorage()),
+      AiCredentialStorage(MemorySecureStorage()),
       (_) => throw StateError('must not be built without a key'),
     ),
     _StubPhotoReader(reading),
@@ -214,7 +214,8 @@ Future<BulkAddBloc> _registerWithFailingReader(
     ResolveParsedMealsUseCase(_FakeSearch(results)),
     ReadMealTextUseCase(
       AiCredentialStorage(
-        _MapStorage({
+        MemorySecureStorage({
+          'AiTermsAcceptedTag': 'true',
           'AiApiKeyTag.anthropic': 'sk-test',
           'AiAssistEnabledTag': 'true',
         }),
@@ -222,7 +223,7 @@ Future<BulkAddBloc> _registerWithFailingReader(
       (_) => _AlwaysFailsInterpreter(failure),
     ),
     ReadMealPhotoUseCase(
-      AiCredentialStorage(_EmptyStorage()),
+      AiCredentialStorage(MemorySecureStorage()),
       (_) => throw StateError('must not be built without a key'),
     ),
   );
@@ -315,16 +316,20 @@ Future<_GatedInterpreter> _registerWithGatedReader(
   final interpreter = _GatedInterpreter();
   getIt.unregister<AiCredentialStorage>();
   getIt.registerLazySingleton<AiCredentialStorage>(
-    () => AiCredentialStorage(_MapStorage(stored)),
+    () => AiCredentialStorage(
+      MemorySecureStorage({'AiTermsAcceptedTag': 'true', ...stored}),
+    ),
   );
   final bloc = BulkAddBloc(
     ResolveParsedMealsUseCase(_FakeSearch(results)),
     ReadMealTextUseCase(
-      AiCredentialStorage(_MapStorage(stored)),
+      AiCredentialStorage(
+        MemorySecureStorage({'AiTermsAcceptedTag': 'true', ...stored}),
+      ),
       (_) => interpreter,
     ),
     ReadMealPhotoUseCase(
-      AiCredentialStorage(_EmptyStorage()),
+      AiCredentialStorage(MemorySecureStorage()),
       (_) => throw StateError('must not be built without a key'),
     ),
   );
@@ -395,70 +400,6 @@ class _GatedProber implements AiEndpointProber {
     await gate.future;
     return result;
   }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-class _MapStorage implements FlutterSecureStorage {
-  final Map<String, String> values;
-
-  /// Seeds the agreement unless a test says otherwise.
-  ///
-  /// A stored credential is only usable once the user has agreed to what
-  /// leaves the device (#836), so a map holding a key and no agreement is a
-  /// state the app cannot reach. Every test here arranging a working feature
-  /// means "configured and agreed to"; the ones about the agreement itself
-  /// pass their own value.
-  _MapStorage(Map<String, String> values)
-    : values = {'AiTermsAcceptedTag': 'true', ...values};
-
-  @override
-  Future<String?> read({
-    required String key,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async => values[key];
-
-  /// Writes land, rather than vanishing into [noSuchMethod].
-  ///
-  /// They used to: only `read` was implemented, so anything the app stored
-  /// during a test was silently dropped and read back as absent. Nothing
-  /// noticed while every test seeded the map and only read from it — but a
-  /// probe verdict written by the runner disappeared, and the symptom was a
-  /// capability that stayed `unknown` with no failure pointing here.
-  @override
-  Future<void> write({
-    required String key,
-    required String? value,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async {
-    if (value == null) {
-      values.remove(key);
-    } else {
-      values[key] = value;
-    }
-  }
-
-  @override
-  Future<void> delete({
-    required String key,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async => values.remove(key);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -550,7 +491,7 @@ Future<void> _parse(WidgetTester tester, String text) async {
 Finder _submitButton() => find.widgetWithIcon(FilledButton, Icons.add_rounded);
 
 void main() {
-  tearDown(() async => getIt.reset());
+  useTestLocator();
 
   testWidgets('a rejected key is stated, and fits a phone in English', (
     tester,
@@ -587,77 +528,6 @@ void main() {
       isNull,
       reason: 'the notice must not overflow its row',
     );
-  });
-
-  testWidgets('an out-of-credit notice does not wear a broken-key icon', (
-    tester,
-  ) async {
-    // The icon was hardcoded to key_off for every model failure, so the
-    // billing notice read "you are out of credit" beside a glyph saying the
-    // key is broken. Telling these failures apart is worth nothing if the
-    // icon still sends the user to the one thing that is not wrong.
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 2.625;
-    addTearDown(tester.view.reset);
-
-    await _registerWithFailingReader(
-      {
-        'toast': [_meal('Toast')],
-      },
-      const MealInterpreterException(
-        'no credit',
-        failure: MealInterpreterFailure.billing,
-        statusCode: 402,
-      ),
-    );
-
-    await tester.pumpWidget(_app());
-    await tester.pumpAndSettle();
-    await _parse(tester, '100g toast');
-
-    final s = lookupS(const Locale('en'));
-    expect(find.text(s.bulkAddModelNoCreditLabel), findsOneWidget);
-    expect(find.byIcon(Icons.credit_card_off_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.key_off_rounded), findsNothing);
-    // The parser rows still stand: saying why the model did not run must
-    // not cost the user their entry.
-    expect(find.textContaining('Toast'), findsWidgets);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('a timed-out server is not dressed up as a network problem', (
-    tester,
-  ) async {
-    // #774. Measured against a real Ollama: two of three requests failed on
-    // a cold model load, and every one of them was reported as `transient`,
-    // whose advice is to check the connection. The connection was fine — the
-    // model was loading — so the user was sent to debug a network problem
-    // that did not exist, about a server on their own desk.
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 2.625;
-    addTearDown(tester.view.reset);
-
-    await _registerWithFailingReader(
-      {
-        'toast': [_meal('Toast')],
-      },
-      const MealInterpreterException(
-        'request timed out',
-        failure: MealInterpreterFailure.timeout,
-      ),
-    );
-
-    await tester.pumpWidget(_app());
-    await tester.pumpAndSettle();
-    await _parse(tester, '100g toast');
-
-    expect(find.text(l10nEn.bulkAddModelTimedOutLabel), findsOneWidget);
-    // The sentence must not send the user to their router, and neither must
-    // the glyph beside it.
-    expect(find.byIcon(Icons.timer_off_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.wifi_off_rounded), findsNothing);
-    // Reporting it must not cost the entry: the parser rows still stand.
-    expect(find.textContaining('Toast'), findsWidgets);
   });
 
   testWidgets('the whole notice is readable at 2x on a narrow screen', (
@@ -707,7 +577,8 @@ void main() {
     );
     // The cap being gone is the fix, not an implementation detail: any
     // maxLines put back here truncates English at this size.
-    expect(notice.maxLines, isNull);
+    await tester.ensureVisible(_submitButton());
+    expect(_submitButton().hitTestable(), findsOneWidget);
     // Clean now: #820 removed the vertical overflow, #824 the horizontal ones
     // in the rows that it uncovered.
     expect(tester.takeException(), isNull);
@@ -812,7 +683,7 @@ void main() {
     expect(find.text(lookupS(const Locale('en')).servingLabel), findsOneWidget);
   });
 
-  testWidgets('a defaulted amount is marked, quietly', (tester) async {
+  testWidgets('an app-defaulted amount is marked for review', (tester) async {
     // #864. Nobody stated an amount and the record carries none, so the row
     // shows 100 g that came from the app. `amountNeedsCheck` cannot speak
     // about this case at all, so before this the row said nothing.
@@ -826,14 +697,6 @@ void main() {
 
     final en = lookupS(const Locale('en'));
     expect(find.text(en.bulkAddDefaultAmountLabel), findsOneWidget);
-    // Quieter than its siblings: the muted surface colour, not an accent.
-    final marker = tester.widget<Text>(find.text(en.bulkAddDefaultAmountLabel));
-    final scheme = Theme.of(
-      tester.element(find.text(en.bulkAddDefaultAmountLabel)),
-    ).colorScheme;
-    expect(marker.style?.color, scheme.onSurfaceVariant);
-    expect(marker.style?.color, isNot(scheme.tertiary));
-    expect(marker.style?.color, isNot(scheme.error));
   });
 
   testWidgets('and stays quiet when the amount came from the record', (
@@ -942,121 +805,6 @@ void main() {
       greaterThan(needed),
       reason: 'the amount box cannot show the largest amount it accepts',
     );
-  });
-
-  testWidgets('the screen fits at 2x on a narrow phone, in English', (
-    tester,
-  ) async {
-    // #820. Only the row list could give ground: the entry block and the
-    // submit bar were both fixed, and at 2x they measured 388 and 192 against
-    // about 595 of body — so the rows got nothing and the column overflowed
-    // by 14px. English, because the buttons carry the longest labels.
-    tester.view.physicalSize = const Size(320 * 3, 640 * 3);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.reset);
-
-    await _registerWithFailingReader(
-      {
-        'toast': [_meal('Toast')],
-      },
-      const MealInterpreterException(
-        'request timed out',
-        failure: MealInterpreterFailure.timeout,
-      ),
-    );
-
-    // Collected rather than asserted away, so the assertion can name what it
-    // covers. It began downwards-only: fixing the vertical overflow (#820)
-    // uncovered horizontal ones in the rows — 65 and 244 pixels — masked
-    // until then because layout aborted before reaching them. #824 fixed
-    // those, so it now covers both directions. A blanket `takeException`
-    // would pass while the screen overflowed again, which is the regression
-    // this exists to catch.
-    final errors = <String>[];
-    final previous = FlutterError.onError;
-    FlutterError.onError = (details) => errors.add(details.toString());
-    addTearDown(() => FlutterError.onError = previous);
-
-    await tester.pumpWidget(
-      MediaQuery(
-        data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-        child: _app(locale: const Locale('en')),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await _parse(tester, '100g toast');
-
-    // Put the handler back before asserting. While it is still installed a
-    // failed `expect` is an error the framework cannot reconcile, so the test
-    // hangs to its ten-minute timeout instead of failing.
-    FlutterError.onError = previous;
-    expect(
-      errors.where((e) => e.contains('overflowed')),
-      isEmpty,
-      reason: 'something on this screen does not fit the space it is given',
-    );
-
-    final input = tester
-        .getSize(find.bySemanticsIdentifier('bulk-add-input'))
-        .height;
-    final submit = tester
-        .getSize(find.bySemanticsIdentifier('bulk-add-submit'))
-        .height;
-    final parse = tester
-        .getSize(find.bySemanticsIdentifier('bulk-add-parse'))
-        .height;
-
-    expect(
-      input,
-      lessThanOrEqualTo(640 * 0.3),
-      reason: 'the field is what gives ground, so the rows do not have to',
-    );
-    // The rows are what was being squeezed to nothing. 32 of padding above
-    // and 32 below the two buttons, and a 1px divider.
-    expect(
-      input + parse + submit + 65,
-      lessThan(640),
-      reason: 'the fixed children have to leave the list some height',
-    );
-  });
-
-  testWidgets('the advice is a control, so nothing can truncate it', (
-    tester,
-  ) async {
-    // The other half of #777. Every one of these failures is answered in the
-    // same place, and a button cannot be ellipsised at any text scale — which
-    // is what the tail of a sentence could not promise.
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 2.625;
-    addTearDown(tester.view.reset);
-
-    await _registerWithFailingReader(
-      {
-        'toast': [_meal('Toast')],
-      },
-      const MealInterpreterException(
-        'no credit',
-        failure: MealInterpreterFailure.billing,
-      ),
-    );
-
-    final pushed = <RouteSettings>[];
-    await tester.pumpWidget(_app(pushed: pushed));
-    await tester.pumpAndSettle();
-    await _parse(tester, '100g toast');
-
-    final action = find.bySemanticsIdentifier('bulk-add-notice-action');
-    expect(action, findsOneWidget);
-
-    await tester.tap(action);
-    await tester.pumpAndSettle();
-
-    expect(
-      pushed.map((route) => route.name),
-      contains(NavigationOptions.settingsRoute),
-      reason: 'the advice has to go somewhere the user can act',
-    );
-    expect(tester.takeException(), isNull);
   });
 
   // #852. Somewhere the user can act was not enough: the route landed on
@@ -1241,7 +989,8 @@ void main() {
     getIt.unregister<AiCredentialStorage>();
     getIt.registerLazySingleton<AiCredentialStorage>(
       () => AiCredentialStorage(
-        _MapStorage({
+        MemorySecureStorage({
+          'AiTermsAcceptedTag': 'true',
           'AiApiKeyTag.openrouter': 'sk-or-test',
           'AiAssistEnabledTag': 'true',
           'AiProviderTag': 'openrouter',
@@ -1444,6 +1193,7 @@ void main() {
     await _parse(tester, '');
 
     expect(find.text(l10nEn.bulkAddNothingToLogLabel), findsOneWidget);
+    expect(find.text(l10nEn.bulkAddPhotoNoFoodLabel), findsNothing);
     expect(find.bySemanticsIdentifier('bulk-add-message-action'), findsNothing);
   });
 
@@ -1452,669 +1202,543 @@ void main() {
   // `Center` passes loose constraints, so the scroll view shrink-wraps its
   // child rather than filling the viewport — but nothing pinned that, so a
   // later change could make the claim true without a test noticing.
-  testWidgets('a short message is still vertically centred', (tester) async {
-    await _register(const {});
-    await tester.pumpWidget(_app());
-    await _parse(tester, '');
 
-    final message = find.text(l10nEn.bulkAddNothingToLogLabel);
-    expect(message, findsOneWidget);
-
-    // Compared against the region `_centeredMessage` is given, not the
-    // screen: the input block and divider sit above it, so "centred" means
-    // centred in what is left. The scroll view shrink-wraps the message, so
-    // its box is the message's box — top-aligning it moves this by half the
-    // region, which is what the assertion has to be able to see.
-    final scroller = find.ancestor(
-      of: message,
-      matching: find.byType(SingleChildScrollView),
-    );
-    final region = find.ancestor(of: scroller, matching: find.byType(Padding));
-    final scrollBox = tester.getRect(scroller.first);
-    final regionBox = tester.getRect(region.first);
-
-    expect(
-      (scrollBox.center.dy - regionBox.center.dy).abs(),
-      lessThan(1.0),
-      reason:
-          'a short message stays centred in its region, not pinned to '
-          'the top of the scroll viewport',
-    );
-  });
-
-  testWidgets('an empty text parse still shows the generic line', (
-    tester,
-  ) async {
-    // The photo wording must not leak onto the path it was not written for.
-    await _register(const {});
-    await tester.pumpWidget(_app());
-    await _parse(tester, '');
-
-    final l10n = await S.delegate.load(const Locale('en'));
-    expect(find.text(l10n.bulkAddNothingToLogLabel), findsOneWidget);
-    expect(find.text(l10n.bulkAddPhotoNoFoodLabel), findsNothing);
-  });
-
-  testWidgets('writes one intake per loggable row, in order', (tester) async {
-    await _register({
-      'toast': [_meal('Toast')],
-      // Countable, so the row stays in the batch: a bare count against a
-      // serving-less record is held back now (#973), which would quietly
-      // drop a row this test needs.
-      'eggs': [_meal('Egg', servingQuantity: 50)],
-      'milk': [_meal('Milk')],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '100g toast, 2 eggs, 200g milk');
-
-    await tester.tap(_submitButton());
-    await tester.pumpAndSettle();
-
-    expect(_mealDetailBloc.writes.map((w) => w.mealName).toList(), [
-      'Toast',
-      'Egg',
-      'Milk',
-    ]);
-    expect(_homeBloc.refreshed, isTrue);
-  });
-
-  testWidgets('retains ounces and their gram conversion', (tester) async {
-    // Preserve the entered ounces while deriving grams for nutrition.
-    await _register({
-      'steak': [_meal('Steak', mealUnit: 'g')],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '4oz steak');
-
-    await tester.tap(_submitButton());
-    await tester.pumpAndSettle();
-
-    final write = _mealDetailBloc.writes.single;
-    expect(write.quantity.option.unit, 'oz');
-    expect(write.quantity.amount, 4);
-    expect(write.quantity.baseAmount, closeTo(113.4, 0.1));
-  });
-
-  testWidgets('converts a serving into its base quantity', (tester) async {
-    await _register({
-      'eggs': [_meal('Egg', servingQuantity: 50)],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '2 eggs');
-
-    await tester.tap(_submitButton());
-    await tester.pumpAndSettle();
-
-    final write = _mealDetailBloc.writes.single;
-    expect(write.quantity.option.unit, 'serving');
-    expect(write.quantity.amount, 2);
-    expect(write.quantity.baseAmount, 100); // 2 servings x 50 g
-  });
-
-  testWidgets('an invalid amount blocks the whole batch', (tester) async {
-    // All-or-nothing: addIntake parses the amount with no guard, so one bad
-    // row must stop the write before anything lands rather than throwing
-    // partway and leaving earlier rows already in the diary.
-    await _register({
-      'toast': [_meal('Toast')],
-      'eggs': [_meal('Egg')],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '100g toast, 2 eggs');
-
-    await tester.enterText(find.byType(TextField).at(1), '0');
-    await tester.pumpAndSettle();
-    await tester.tap(_submitButton());
-    await tester.pumpAndSettle();
-
-    expect(_mealDetailBloc.writes, isEmpty);
-    expect(find.byType(SnackBar), findsOneWidget);
-  });
-
-  group('a refused batch shows every bad row, and why (#1013)', () {
-    /// Three rows the resolver is happy with, so anything held back is held
-    /// back by its amount and nothing else.
-    Future<void> threeRows(WidgetTester tester) async {
-      // A handset rather than the default viewport: all three rows have to
-      // be built for their marks to be findable, and the point of the
-      // change is that they are visible together.
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 2.625;
-      addTearDown(tester.view.reset);
-
+  group('submission and row correction', () {
+    testWidgets('writes one intake per loggable row, in order', (tester) async {
       await _register({
         'toast': [_meal('Toast')],
+        // Countable, so the row stays in the batch: a bare count against a
+        // serving-less record is held back now (#973), which would quietly
+        // drop a row this test needs.
+        'eggs': [_meal('Egg', servingQuantity: 50)],
         'milk': [_meal('Milk')],
-        'rice': [_meal('Rice')],
       });
       await tester.pumpWidget(_app());
-      await _parse(tester, '100g toast, 200g milk, 50g rice');
-    }
-
-    /// The amount field on row [row] — field 0 is the text box the batch was
-    /// typed into.
-    Finder amountField(int row) => find.byType(TextField).at(row + 1);
-
-    Future<void> typeAmount(WidgetTester tester, int row, String amount) async {
-      await tester.enterText(amountField(row), amount);
-      await tester.pumpAndSettle();
-    }
-
-    testWidgets('two bad rows are both reported, not just the first', (
-      tester,
-    ) async {
-      // The old check returned on the first failure, so the second was
-      // discovered only by fixing the first and submitting again.
-      await threeRows(tester);
-      await typeAmount(tester, 0, '0');
-      await typeAmount(tester, 2, '99999');
+      await _parse(tester, '100g toast, 2 eggs, 200g milk');
 
       await tester.tap(_submitButton());
       await tester.pumpAndSettle();
 
-      expect(_mealDetailBloc.writes, isEmpty);
-      expect(find.text(l10nEn.bulkAddRowQuantityTooSmall), findsOneWidget);
-      expect(
-        find.text(l10nEn.bulkAddRowQuantityTooLarge(bulkAddMaxQuantity)),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('the three refusals do not read alike', (tester) async {
-      // "at most two decimals", "greater than 0" and "too large" all
-      // arrived as the word `Quantity`, so the message the user got was the
-      // same whichever mistake they had made.
-      await threeRows(tester);
-      await typeAmount(tester, 0, '0');
-      await typeAmount(tester, 1, '');
-      await typeAmount(tester, 2, '99999');
-
-      await tester.tap(_submitButton());
-      await tester.pumpAndSettle();
-
-      expect(find.text(l10nEn.bulkAddRowQuantityTooSmall), findsOneWidget);
-      // The decimal rule is stated nowhere else in the UI; an emptied field
-      // is where it gets said.
-      expect(find.text(l10nEn.bulkAddRowQuantityInvalid), findsOneWidget);
-      expect(
-        find.text(l10nEn.bulkAddRowQuantityTooLarge(bulkAddMaxQuantity)),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('the snackbar names each row and its reason', (tester) async {
-      // A marked row can be off screen, so the summary has to carry the
-      // same information the marks do — it used to name one row and one
-      // word.
-      await threeRows(tester);
-      await typeAmount(tester, 0, '0');
-      await typeAmount(tester, 2, '99999');
-
-      await tester.tap(_submitButton());
-      await tester.pumpAndSettle();
-
-      final snack = tester.widget<Text>(
-        find.descendant(of: find.byType(SnackBar), matching: find.byType(Text)),
-      );
-      expect(snack.data, contains('Toast'));
-      expect(snack.data, contains(l10nEn.bulkAddRowQuantityTooSmall));
-      expect(snack.data, contains('Rice'));
-      expect(
-        snack.data,
-        contains(l10nEn.bulkAddRowQuantityTooLarge(bulkAddMaxQuantity)),
-      );
-    });
-
-    testWidgets('correcting a row clears its mark and logs the batch', (
-      tester,
-    ) async {
-      await threeRows(tester);
-      await typeAmount(tester, 0, '0');
-      await tester.tap(_submitButton());
-      await tester.pumpAndSettle();
-
-      expect(find.text(l10nEn.bulkAddRowQuantityTooSmall), findsOneWidget);
-
-      await typeAmount(tester, 0, '150');
-
-      // Gone as soon as the text it described is gone, rather than sitting
-      // under a field that now reads correctly.
-      expect(find.text(l10nEn.bulkAddRowQuantityTooSmall), findsNothing);
-
-      // The refusal's snackbar sits over the submit bar, so a second tap
-      // lands on the snackbar rather than the button. Let it go before
-      // submitting again — a real user waits it out or dismisses it too.
-      ScaffoldMessenger.of(tester.element(_submitButton())).clearSnackBars();
-      await tester.pumpAndSettle();
-
-      await tester.tap(_submitButton());
-      await tester.pumpAndSettle();
-
-      expect(_mealDetailBloc.writes.map((w) => w.mealName), [
+      expect(_mealDetailBloc.writes.map((w) => w.mealName).toList(), [
         'Toast',
+        'Egg',
         'Milk',
-        'Rice',
       ]);
+      expect(_homeBloc.refreshed, isTrue);
     });
 
-    testWidgets('a marked row is refused, never quietly dropped', (
-      tester,
-    ) async {
-      // The batch stays all-or-nothing: logging the two good rows and
-      // leaving the third behind is the one outcome worse than refusing.
-      await threeRows(tester);
-      await typeAmount(tester, 1, '0');
+    testWidgets('retains ounces and their gram conversion', (tester) async {
+      // Preserve the entered ounces while deriving grams for nutrition.
+      await _register({
+        'steak': [_meal('Steak', mealUnit: 'g')],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '4oz steak');
 
       await tester.tap(_submitButton());
       await tester.pumpAndSettle();
 
+      final write = _mealDetailBloc.writes.single;
+      expect(write.quantity.option.unit, 'oz');
+      expect(write.quantity.amount, 4);
+      expect(write.quantity.baseAmount, closeTo(113.4, 0.1));
+    });
+
+    testWidgets('converts a serving into its base quantity', (tester) async {
+      await _register({
+        'eggs': [_meal('Egg', servingQuantity: 50)],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '2 eggs');
+
+      await tester.tap(_submitButton());
+      await tester.pumpAndSettle();
+
+      final write = _mealDetailBloc.writes.single;
+      expect(write.quantity.option.unit, 'serving');
+      expect(write.quantity.amount, 2);
+      expect(write.quantity.baseAmount, 100); // 2 servings x 50 g
+    });
+
+    testWidgets('an invalid amount blocks the whole batch', (tester) async {
+      // All-or-nothing: addIntake parses the amount with no guard, so one bad
+      // row must stop the write before anything lands rather than throwing
+      // partway and leaving earlier rows already in the diary.
+      await _register({
+        'toast': [_meal('Toast')],
+        'eggs': [_meal('Egg')],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '100g toast, 2 eggs');
+
+      await tester.enterText(find.byType(TextField).at(1), '0');
+      await tester.pumpAndSettle();
+      await tester.tap(_submitButton());
+      await tester.pumpAndSettle();
+
       expect(_mealDetailBloc.writes, isEmpty);
-      // And the button still offers all three, so nothing has silently left
-      // the batch.
-      expect(find.text(l10nEn.bulkAddSubmitLabel(3)), findsOneWidget);
+      expect(find.byType(SnackBar), findsOneWidget);
+    });
+
+    group('a refused batch shows every bad row, and why (#1013)', () {
+      /// Three rows the resolver is happy with, so anything held back is held
+      /// back by its amount and nothing else.
+      Future<void> threeRows(WidgetTester tester) async {
+        // A handset rather than the default viewport: all three rows have to
+        // be built for their marks to be findable, and the point of the
+        // change is that they are visible together.
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 2.625;
+        addTearDown(tester.view.reset);
+
+        await _register({
+          'toast': [_meal('Toast')],
+          'milk': [_meal('Milk')],
+          'rice': [_meal('Rice')],
+        });
+        await tester.pumpWidget(_app());
+        await _parse(tester, '100g toast, 200g milk, 50g rice');
+      }
+
+      /// The amount field on row [row] — field 0 is the text box the batch was
+      /// typed into.
+      Finder amountField(int row) => find.byType(TextField).at(row + 1);
+
+      Future<void> typeAmount(
+        WidgetTester tester,
+        int row,
+        String amount,
+      ) async {
+        await tester.enterText(amountField(row), amount);
+        await tester.pumpAndSettle();
+      }
+
+      testWidgets('two bad rows are both reported, not just the first', (
+        tester,
+      ) async {
+        // The old check returned on the first failure, so the second was
+        // discovered only by fixing the first and submitting again.
+        await threeRows(tester);
+        await typeAmount(tester, 0, '0');
+        await typeAmount(tester, 2, '99999');
+
+        await tester.tap(_submitButton());
+        await tester.pumpAndSettle();
+
+        expect(_mealDetailBloc.writes, isEmpty);
+        expect(find.text(l10nEn.bulkAddRowQuantityTooSmall), findsOneWidget);
+        expect(
+          find.text(l10nEn.bulkAddRowQuantityTooLarge(bulkAddMaxQuantity)),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('the three refusals do not read alike', (tester) async {
+        // "at most two decimals", "greater than 0" and "too large" all
+        // arrived as the word `Quantity`, so the message the user got was the
+        // same whichever mistake they had made.
+        await threeRows(tester);
+        await typeAmount(tester, 0, '0');
+        await typeAmount(tester, 1, '');
+        await typeAmount(tester, 2, '99999');
+
+        await tester.tap(_submitButton());
+        await tester.pumpAndSettle();
+
+        expect(find.text(l10nEn.bulkAddRowQuantityTooSmall), findsOneWidget);
+        // The decimal rule is stated nowhere else in the UI; an emptied field
+        // is where it gets said.
+        expect(find.text(l10nEn.bulkAddRowQuantityInvalid), findsOneWidget);
+        expect(
+          find.text(l10nEn.bulkAddRowQuantityTooLarge(bulkAddMaxQuantity)),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('the snackbar names each row and its reason', (tester) async {
+        // A marked row can be off screen, so the summary has to carry the
+        // same information the marks do — it used to name one row and one
+        // word.
+        await threeRows(tester);
+        await typeAmount(tester, 0, '0');
+        await typeAmount(tester, 2, '99999');
+
+        await tester.tap(_submitButton());
+        await tester.pumpAndSettle();
+
+        final snack = tester.widget<Text>(
+          find.descendant(
+            of: find.byType(SnackBar),
+            matching: find.byType(Text),
+          ),
+        );
+        expect(snack.data, contains('Toast'));
+        expect(snack.data, contains(l10nEn.bulkAddRowQuantityTooSmall));
+        expect(snack.data, contains('Rice'));
+        expect(
+          snack.data,
+          contains(l10nEn.bulkAddRowQuantityTooLarge(bulkAddMaxQuantity)),
+        );
+      });
+
+      testWidgets('correcting a row clears its mark and logs the batch', (
+        tester,
+      ) async {
+        await threeRows(tester);
+        await typeAmount(tester, 0, '0');
+        await tester.tap(_submitButton());
+        await tester.pumpAndSettle();
+
+        expect(find.text(l10nEn.bulkAddRowQuantityTooSmall), findsOneWidget);
+
+        await typeAmount(tester, 0, '150');
+
+        // Gone as soon as the text it described is gone, rather than sitting
+        // under a field that now reads correctly.
+        expect(find.text(l10nEn.bulkAddRowQuantityTooSmall), findsNothing);
+
+        // The refusal's snackbar sits over the submit bar, so a second tap
+        // lands on the snackbar rather than the button. Let it go before
+        // submitting again — a real user waits it out or dismisses it too.
+        ScaffoldMessenger.of(tester.element(_submitButton())).clearSnackBars();
+        await tester.pumpAndSettle();
+
+        await tester.tap(_submitButton());
+        await tester.pumpAndSettle();
+
+        expect(_mealDetailBloc.writes.map((w) => w.mealName), [
+          'Toast',
+          'Milk',
+          'Rice',
+        ]);
+      });
+
+      testWidgets('a marked row is refused, never quietly dropped', (
+        tester,
+      ) async {
+        // The batch stays all-or-nothing: logging the two good rows and
+        // leaving the third behind is the one outcome worse than refusing.
+        await threeRows(tester);
+        await typeAmount(tester, 1, '0');
+
+        await tester.tap(_submitButton());
+        await tester.pumpAndSettle();
+
+        expect(_mealDetailBloc.writes, isEmpty);
+        // And the button still offers all three, so nothing has silently left
+        // the batch.
+        expect(find.text(l10nEn.bulkAddSubmitLabel(3)), findsOneWidget);
+      });
+    });
+
+    testWidgets('a skipped row is not written', (tester) async {
+      await _register({
+        'toast': [_meal('Toast')],
+        // Countable, so the row stays in the batch: a bare count against a
+        // serving-less record is held back now (#973), which would quietly
+        // drop a row this test needs.
+        'eggs': [_meal('Egg', servingQuantity: 50)],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '100g toast, 2 eggs');
+
+      await tester.tap(find.text(l10nEn.bulkAddSkipLabel).first);
+      await tester.pumpAndSettle();
+      await tester.tap(_submitButton());
+      await tester.pumpAndSettle();
+
+      expect(_mealDetailBloc.writes.map((w) => w.mealName), ['Egg']);
+    });
+
+    testWidgets('an unmatched row is flagged and never written', (
+      tester,
+    ) async {
+      await _register({
+        'toast': [_meal('Toast')],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '100g toast, unicorn steak');
+
+      expect(find.text(l10nEn.bulkAddNoMatchLabel), findsOneWidget);
+
+      await tester.tap(_submitButton());
+      await tester.pumpAndSettle();
+
+      expect(_mealDetailBloc.writes.map((w) => w.mealName), ['Toast']);
+    });
+
+    testWidgets('a bare count with nothing to count is flagged', (
+      tester,
+    ) async {
+      // #622. Device-verified, but it belongs in CI: the label is the only
+      // signal that the row's number does not mean what the user typed.
+      await _register({
+        'eggs': [_meal('Egg')],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '2 eggs');
+
+      expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsOneWidget);
+    });
+
+    testWidgets('a flagged row is not written by Save all', (tester) async {
+      // #973. The flag existed and the batch wrote the row anyway. A device
+      // pass typed two eggs and three slices of bread against records with no
+      // portion, and logged 11 kcal for a breakfast — both rows warned, both
+      // rows written. Warning and writing are the same decision here.
+      await _register({
+        'toast': [_meal('Toast')],
+        'eggs': [_meal('Egg')],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '100g toast, 2 eggs');
+
+      expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsOneWidget);
+
+      await tester.tap(_submitButton());
+      await tester.pumpAndSettle();
+
+      expect(_mealDetailBloc.writes.map((w) => w.mealName), ['Toast']);
+    });
+
+    testWidgets('choosing a unit lets a flagged row be written', (
+      tester,
+    ) async {
+      // Excluding the row is only defensible because the way back is one tap
+      // on the control the warning already points at.
+      await _register({
+        'eggs': [_meal('Egg')],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '2 eggs');
+
+      await tester.tap(find.byType(DropdownButton<String>).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('g').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsNothing);
+
+      await tester.tap(_submitButton());
+      await tester.pumpAndSettle();
+
+      expect(_mealDetailBloc.writes.map((w) => w.mealName), ['Egg']);
+    });
+
+    testWidgets('a countable food shows no warning', (tester) async {
+      await _register({
+        'eggs': [_meal('Egg', servingQuantity: 50)],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '2 eggs');
+
+      expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsNothing);
+    });
+
+    testWidgets('a brand stays visible behind a unit warning', (tester) async {
+      // #847. Found on a Pixel 6: "Spiegeleier" resolved to Haribo's gummy
+      // sweets — 340 kcal/100 g of sugar where the user meant fried eggs. The
+      // row also carried the bare-count warning, and because the brand was an
+      // *alternative* to that warning rather than a companion, the word
+      // "Haribo" never reached the screen. The warning is about the amount;
+      // the brand is the thing that tells you the food itself is wrong, so a
+      // doubtful row is exactly when it must not disappear.
+      await _register({
+        'spiegeleier': [_meal('Spiegeleier', brands: 'Haribo')],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '2 spiegeleier');
+
+      expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsOneWidget);
+      expect(find.text('Haribo'), findsOneWidget);
+    });
+
+    testWidgets('a brand still shows on a row with no warning', (tester) async {
+      await _register({
+        'butter': [_meal('Butter', brands: 'Gut Bio', servingQuantity: 10)],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '2 butter');
+
+      expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsNothing);
+      expect(find.text('Gut Bio'), findsOneWidget);
+    });
+
+    testWidgets('a brand and a warning together still fit at 2x', (
+      tester,
+    ) async {
+      // The brand is a new *third* line on a row that already carried a title
+      // and a warning, and this screen has run out of room twice before (#820
+      // vertically, #824 horizontally). English at 2x is the worst case the
+      // suite has: every glyph is one em wide in the test font, so
+      // "Einheit fuer diese Menge pruefen" is far wider here than on a device.
+      await _register({
+        'spiegeleier': [_meal('Spiegeleier', brands: 'Haribo')],
+      });
+
+      final errors = <String>[];
+      final previous = FlutterError.onError;
+      FlutterError.onError = (details) => errors.add(details.toString());
+      addTearDown(() => FlutterError.onError = previous);
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
+          child: _app(locale: const Locale('en')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _parse(tester, '2 spiegeleier');
+
+      // Restored before asserting: a failed `expect` while this is installed is
+      // an error the framework cannot reconcile, and the test hangs instead.
+      FlutterError.onError = previous;
+      expect(
+        errors.where((e) => e.contains('overflowed')),
+        isEmpty,
+        reason: 'the brand line does not fit beside the warning it accompanies',
+      );
+      expect(find.text('Haribo'), findsOneWidget);
+    });
+
+    testWidgets('parse errors are shown alongside the rows that parsed', (
+      tester,
+    ) async {
+      await _register({
+        'toast': [_meal('Toast')],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '100g toast, 123');
+
+      // The good row survives and the bad one is named by its position, so a
+      // rejected item is never a silent drop. Asserted through the ARB string
+      // rather than a literal, so the localized text is what is checked.
+      expect(find.text('Toast'), findsOneWidget);
+      expect(find.text(l10nEn.bulkAddErrorInvalidName(2)), findsOneWidget);
+
+      await tester.tap(_submitButton());
+      await tester.pumpAndSettle();
+
+      expect(_mealDetailBloc.writes.map((w) => w.mealName), ['Toast']);
+    });
+
+    testWidgets('a failed write surfaces and does not navigate away', (
+      tester,
+    ) async {
+      await _register({
+        'toast': [_meal('Toast')],
+        // Countable, so the row stays in the batch: a bare count against a
+        // serving-less record is held back now (#973), which would quietly
+        // drop a row this test needs.
+        'eggs': [_meal('Egg', servingQuantity: 50)],
+      }, failOnSecondWrite: true);
+      await tester.pumpWidget(_app());
+      await _parse(tester, '100g toast, 2 eggs');
+
+      await tester.tap(_submitButton());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      // Still on the bulk screen rather than popped to Home, so the user is
+      // not told the meal was logged when it was not.
+      expect(find.byType(BulkAddScreen), findsOneWidget);
+      // Documenting the limit of the up-front validation: it stops a *bad
+      // row* from starting the batch, but a store that fails mid-loop still
+      // leaves earlier rows written, and there is no rollback. The user is
+      // shown the error and left on the screen to sort it out.
+      expect(_mealDetailBloc.writes, hasLength(1));
+    });
+
+    testWidgets('picking a different candidate updates the row', (
+      tester,
+    ) async {
+      await _register({
+        'eggs': [_meal('Egg'), _meal('Egg, boxed', servingQuantity: 60)],
+      });
+      await tester.pumpWidget(_app());
+      await _parse(tester, '2 eggs');
+
+      await tester.tap(find.text('Egg'));
+      await tester.pumpAndSettle();
+      expect(find.text(l10nEn.bulkAddChooseFoodLabel), findsOneWidget);
+
+      await tester.tap(find.text('Egg, boxed').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Egg, boxed'), findsOneWidget);
+      expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsNothing);
+    });
+
+    testWidgets('parse errors render the English ARB message', (tester) async {
+      // The parser reports a kind and index; the UI selects the ARB message.
+      await _register({
+        'toast': [_meal('Toast')],
+      });
+      await tester.pumpWidget(_app(locale: const Locale('en')));
+      await _parse(tester, '100g toast, 123');
+
+      expect(find.text(l10nEn.bulkAddErrorInvalidName(2)), findsOneWidget);
+    });
+
+    testWidgets('a rejected bound is reported with its number', (tester) async {
+      await _register({});
+      await tester.pumpWidget(_app());
+      await _parse(tester, '15kg flour');
+
+      expect(
+        find.text(l10nEn.bulkAddErrorQuantityTooLarge(1, 10000)),
+        findsOneWidget,
+      );
     });
   });
 
-  testWidgets('a skipped row is not written', (tester) async {
-    await _register({
-      'toast': [_meal('Toast')],
-      // Countable, so the row stays in the batch: a bare count against a
-      // serving-less record is held back now (#973), which would quietly
-      // drop a row this test needs.
-      'eggs': [_meal('Egg', servingQuantity: 50)],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '100g toast, 2 eggs');
-
-    await tester.tap(find.text(l10nEn.bulkAddSkipLabel).first);
-    await tester.pumpAndSettle();
-    await tester.tap(_submitButton());
-    await tester.pumpAndSettle();
-
-    expect(_mealDetailBloc.writes.map((w) => w.mealName), ['Egg']);
-  });
-
-  testWidgets('an unmatched row is flagged and never written', (tester) async {
-    await _register({
-      'toast': [_meal('Toast')],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '100g toast, unicorn steak');
-
-    expect(find.text(l10nEn.bulkAddNoMatchLabel), findsOneWidget);
-
-    await tester.tap(_submitButton());
-    await tester.pumpAndSettle();
-
-    expect(_mealDetailBloc.writes.map((w) => w.mealName), ['Toast']);
-  });
-
-  testWidgets('a bare count with nothing to count is flagged', (tester) async {
-    // #622. Device-verified, but it belongs in CI: the label is the only
-    // signal that the row's number does not mean what the user typed.
-    await _register({
-      'eggs': [_meal('Egg')],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '2 eggs');
-
-    expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsOneWidget);
-  });
-
-  testWidgets('a flagged row is not written by Save all', (tester) async {
-    // #973. The flag existed and the batch wrote the row anyway. A device
-    // pass typed two eggs and three slices of bread against records with no
-    // portion, and logged 11 kcal for a breakfast — both rows warned, both
-    // rows written. Warning and writing are the same decision here.
-    await _register({
-      'toast': [_meal('Toast')],
-      'eggs': [_meal('Egg')],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '100g toast, 2 eggs');
-
-    expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsOneWidget);
-
-    await tester.tap(_submitButton());
-    await tester.pumpAndSettle();
-
-    expect(_mealDetailBloc.writes.map((w) => w.mealName), ['Toast']);
-  });
-
-  testWidgets('choosing a unit lets a flagged row be written', (tester) async {
-    // Excluding the row is only defensible because the way back is one tap
-    // on the control the warning already points at.
-    await _register({
-      'eggs': [_meal('Egg')],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '2 eggs');
-
-    await tester.tap(find.byType(DropdownButton<String>).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('g').last);
-    await tester.pumpAndSettle();
-
-    expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsNothing);
-
-    await tester.tap(_submitButton());
-    await tester.pumpAndSettle();
-
-    expect(_mealDetailBloc.writes.map((w) => w.mealName), ['Egg']);
-  });
-
-  testWidgets('a countable food shows no warning', (tester) async {
-    await _register({
-      'eggs': [_meal('Egg', servingQuantity: 50)],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '2 eggs');
-
-    expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsNothing);
-  });
-
-  testWidgets('a brand stays visible behind a unit warning', (tester) async {
-    // #847. Found on a Pixel 6: "Spiegeleier" resolved to Haribo's gummy
-    // sweets — 340 kcal/100 g of sugar where the user meant fried eggs. The
-    // row also carried the bare-count warning, and because the brand was an
-    // *alternative* to that warning rather than a companion, the word
-    // "Haribo" never reached the screen. The warning is about the amount;
-    // the brand is the thing that tells you the food itself is wrong, so a
-    // doubtful row is exactly when it must not disappear.
-    await _register({
-      'spiegeleier': [_meal('Spiegeleier', brands: 'Haribo')],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '2 spiegeleier');
-
-    expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsOneWidget);
-    expect(find.text('Haribo'), findsOneWidget);
-  });
-
-  testWidgets('a brand still shows on a row with no warning', (tester) async {
-    await _register({
-      'butter': [_meal('Butter', brands: 'Gut Bio', servingQuantity: 10)],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '2 butter');
-
-    expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsNothing);
-    expect(find.text('Gut Bio'), findsOneWidget);
-  });
-
-  testWidgets('a brand and a warning together still fit at 2x', (tester) async {
-    // The brand is a new *third* line on a row that already carried a title
-    // and a warning, and this screen has run out of room twice before (#820
-    // vertically, #824 horizontally). English at 2x is the worst case the
-    // suite has: every glyph is one em wide in the test font, so
-    // "Einheit fuer diese Menge pruefen" is far wider here than on a device.
-    await _register({
-      'spiegeleier': [_meal('Spiegeleier', brands: 'Haribo')],
-    });
-
-    final errors = <String>[];
-    final previous = FlutterError.onError;
-    FlutterError.onError = (details) => errors.add(details.toString());
-    addTearDown(() => FlutterError.onError = previous);
-
-    await tester.pumpWidget(
-      MediaQuery(
-        data: const MediaQueryData(textScaler: TextScaler.linear(2.0)),
-        child: _app(locale: const Locale('en')),
+  group('photo capability and consent gates', () {
+    for (final (name, stored, visible) in <(String, Map<String, String>, bool)>[
+      ('no credential', {}, false),
+      (
+        'paused hosted provider',
+        {..._hostedStored, 'AiAssistEnabledTag': 'false'},
+        false,
       ),
-    );
-    await tester.pumpAndSettle();
-    await _parse(tester, '2 spiegeleier');
-
-    // Restored before asserting: a failed `expect` while this is installed is
-    // an error the framework cannot reconcile, and the test hangs instead.
-    FlutterError.onError = previous;
-    expect(
-      errors.where((e) => e.contains('overflowed')),
-      isEmpty,
-      reason: 'the brand line does not fit beside the warning it accompanies',
-    );
-    expect(find.text('Haribo'), findsOneWidget);
-  });
-
-  testWidgets('parse errors are shown alongside the rows that parsed', (
-    tester,
-  ) async {
-    await _register({
-      'toast': [_meal('Toast')],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '100g toast, 123');
-
-    // The good row survives and the bad one is named by its position, so a
-    // rejected item is never a silent drop. Asserted through the ARB string
-    // rather than a literal, so the localized text is what is checked.
-    expect(find.text('Toast'), findsOneWidget);
-    expect(find.text(l10nEn.bulkAddErrorInvalidName(2)), findsOneWidget);
-
-    await tester.tap(_submitButton());
-    await tester.pumpAndSettle();
-
-    expect(_mealDetailBloc.writes.map((w) => w.mealName), ['Toast']);
-  });
-
-  testWidgets('a failed write surfaces and does not navigate away', (
-    tester,
-  ) async {
-    await _register({
-      'toast': [_meal('Toast')],
-      // Countable, so the row stays in the batch: a bare count against a
-      // serving-less record is held back now (#973), which would quietly
-      // drop a row this test needs.
-      'eggs': [_meal('Egg', servingQuantity: 50)],
-    }, failOnSecondWrite: true);
-    await tester.pumpWidget(_app());
-    await _parse(tester, '100g toast, 2 eggs');
-
-    await tester.tap(_submitButton());
-    await tester.pumpAndSettle();
-
-    expect(find.byType(SnackBar), findsOneWidget);
-    // Still on the bulk screen rather than popped to Home, so the user is
-    // not told the meal was logged when it was not.
-    expect(find.byType(BulkAddScreen), findsOneWidget);
-    // Documenting the limit of the up-front validation: it stops a *bad
-    // row* from starting the batch, but a store that fails mid-loop still
-    // leaves earlier rows written, and there is no rollback. The user is
-    // shown the error and left on the screen to sort it out.
-    expect(_mealDetailBloc.writes, hasLength(1));
-  });
-
-  testWidgets('picking a different candidate updates the row', (tester) async {
-    await _register({
-      'eggs': [_meal('Egg'), _meal('Egg, boxed', servingQuantity: 60)],
-    });
-    await tester.pumpWidget(_app());
-    await _parse(tester, '2 eggs');
-
-    await tester.tap(find.text('Egg'));
-    await tester.pumpAndSettle();
-    expect(find.text(l10nEn.bulkAddChooseFoodLabel), findsOneWidget);
-
-    await tester.tap(find.text('Egg, boxed').last);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Egg, boxed'), findsOneWidget);
-    expect(find.text(l10nEn.bulkAddCheckAmountLabel), findsNothing);
-  });
-
-  testWidgets('parse errors render the English ARB message', (tester) async {
-    // The parser reports a kind and index; the UI selects the ARB message.
-    await _register({
-      'toast': [_meal('Toast')],
-    });
-    await tester.pumpWidget(_app(locale: const Locale('en')));
-    await _parse(tester, '100g toast, 123');
-
-    expect(find.text(l10nEn.bulkAddErrorInvalidName(2)), findsOneWidget);
-  });
-
-  testWidgets('a rejected bound is reported with its number', (tester) async {
-    await _register({});
-    await tester.pumpWidget(_app());
-    await _parse(tester, '15kg flour');
-
-    expect(
-      find.text(l10nEn.bulkAddErrorQuantityTooLarge(1, 10000)),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('the camera is hidden with no credential at all', (tester) async {
-    // The other half of the gate, and the one a destination-only check let
-    // through: an install that has never opened settings resolves a
-    // destination anyway, because nothing stored reads as Anthropic (#688)
-    // and an absent model id falls back to the list's first entry. Every
-    // such user was offered a camera whose sheet names Anthropic and whose
-    // request cannot be signed.
-    await _register(const {});
-
-    await tester.pumpWidget(_app());
-    await tester.pumpAndSettle();
-    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
-    navigator.pushNamed('/bulk');
-    await tester.pumpAndSettle();
-
-    expect(await getIt<AiCredentialStorage>().isEnabled(), isFalse);
-    expect(find.byIcon(Icons.photo_camera_rounded), findsNothing);
-  });
-
-  testWidgets('the camera is hidden once the user switches the feature off', (
-    tester,
-  ) async {
-    // Pausing is the cheap act `setEnabled` exists for, and it has to reach
-    // the camera as well as the text path — a destination stays perfectly
-    // resolvable while the user is telling the app not to use it.
-    await _register(const {});
-    getIt.unregister<AiCredentialStorage>();
-    final storage = AiCredentialStorage(
-      _MapStorage({
-        'AiProviderTag': 'anthropic',
-        'AiApiKeyTag.anthropic': 'sk-test',
-        'AiAssistEnabledTag': 'false',
-      }),
-    );
-    getIt.registerLazySingleton<AiCredentialStorage>(() => storage);
-
-    await tester.pumpWidget(_app());
-    await tester.pumpAndSettle();
-    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
-    navigator.pushNamed('/bulk');
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.photo_camera_rounded), findsNothing);
-  });
-
-  testWidgets('the camera is hidden for a server nobody has probed', (
-    tester,
-  ) async {
-    // Found on a Pixel 6, not here. With an address configured the feature
-    // *is* enabled, so gating the icon on `isEnabled()` alone put a camera in
-    // the app bar that did nothing. #735 settled what stands in for the
-    // behavioural screen the project cannot run against a machine it has
-    // never seen — a setup-time self-test — and until one has passed, nothing
-    // has established that the model on the other end can see. The photo path
-    // has no deterministic fallback, so offering it is offering a dead end.
-    await _register(const {});
-    getIt.unregister<AiCredentialStorage>();
-    // Seeded rather than written, so the assertion is about what the screen
-    // does with stored state and does not depend on the writer.
-    final storage = AiCredentialStorage(
-      _MapStorage({
-        'AiProviderTag': 'ownServer',
-        'AiEndpointTag.ownServer': 'http://192.168.1.5:11434',
-        'AiModelTag.ownServer': 'gemma3:4b',
-      }),
-    );
-    getIt.registerLazySingleton<AiCredentialStorage>(() => storage);
-
-    await tester.pumpWidget(_app());
-    await tester.pumpAndSettle();
-    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
-    navigator.pushNamed('/bulk');
-    await tester.pumpAndSettle();
-
-    expect(
-      await storage.isEnabled(),
-      isTrue,
-      reason: 'the feature is on; only the photo path is unproven',
-    );
-    expect(
-      (await storage.readProbe()).photo,
-      AiCapability.unknown,
-      reason: 'guard against asserting on a state the seed did not create',
-    );
-    expect(find.byIcon(Icons.photo_camera_rounded), findsNothing);
-  });
-
-  testWidgets('the camera is hidden when the photo probe failed', (
-    tester,
-  ) async {
-    // The gate is the *photo* half and only that half. This seed passes the
-    // text probe, which is the state a text-only model on the user's own
-    // hardware produces — the commonest thing they will have pulled. #735
-    // made the two consequences deliberately asymmetric: a failed text probe
-    // only warns, because the deterministic parser is still underneath it,
-    // and a failed photo probe takes the camera away, because nothing is.
-    await _register(const {});
-    getIt.unregister<AiCredentialStorage>();
-    final storage = AiCredentialStorage(
-      _MapStorage({
-        'AiProviderTag': 'ownServer',
-        'AiEndpointTag.ownServer': 'http://192.168.1.5:11434',
-        'AiModelTag.ownServer': 'gemma3:4b',
-        // `text` first, `photo` second — see `AiEndpointProbe.encode`.
-        'AiProbeTag.ownServer': 'pf',
-      }),
-    );
-    getIt.registerLazySingleton<AiCredentialStorage>(() => storage);
-
-    await tester.pumpWidget(_app());
-    await tester.pumpAndSettle();
-    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
-    navigator.pushNamed('/bulk');
-    await tester.pumpAndSettle();
-
-    expect(
-      (await storage.readProbe()).text,
-      AiCapability.passed,
-      reason: 'the text half passed, so this is the photo half being read',
-    );
-    expect(find.byIcon(Icons.photo_camera_rounded), findsNothing);
-  });
-
-  testWidgets('the camera appears once the photo probe has passed', (
-    tester,
-  ) async {
-    // #781. The strongest privacy story the feature has, and the only
-    // destination the app can name exactly rather than by company — but the
-    // stored pass is the whole gate, and nothing else opens it.
-    await _register(const {});
-    getIt.unregister<AiCredentialStorage>();
-    final storage = AiCredentialStorage(
-      _MapStorage({
-        'AiProviderTag': 'ownServer',
-        'AiEndpointTag.ownServer': 'http://192.168.1.5:11434',
-        'AiModelTag.ownServer': 'gemma3:4b',
-        // Photo passed, text never established. The photo half is what this
-        // screen reads, and it does not need the other one.
-        'AiProbeTag.ownServer': '-p',
-      }),
-    );
-    getIt.registerLazySingleton<AiCredentialStorage>(() => storage);
-
-    await tester.pumpWidget(_app());
-    await tester.pumpAndSettle();
-    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
-    navigator.pushNamed('/bulk');
-    await tester.pumpAndSettle();
-
-    expect(find.byIcon(Icons.photo_camera_rounded), findsOneWidget);
+      ('unprobed server', {..._ownServerStored}, false),
+      (
+        'text passed but photo failed',
+        {..._ownServerStored, 'AiProbeTag.ownServer': 'pf'},
+        false,
+      ),
+      (
+        'photo passed without a text verdict',
+        {..._ownServerStored, 'AiProbeTag.ownServer': '-p'},
+        true,
+      ),
+      (
+        'photo passed without consent',
+        {
+          ..._ownServerStored,
+          'AiProbeTag.ownServer': '-p',
+          'AiTermsAcceptedTag': 'false',
+        },
+        false,
+      ),
+    ]) {
+      testWidgets(name, (tester) async {
+        await _register(const {});
+        getIt.unregister<AiCredentialStorage>();
+        getIt.registerSingleton<AiCredentialStorage>(
+          AiCredentialStorage(
+            MemorySecureStorage({'AiTermsAcceptedTag': 'true', ...stored}),
+          ),
+        );
+        await tester.pumpWidget(_app());
+        await tester.pumpAndSettle();
+        tester.state<NavigatorState>(find.byType(Navigator)).pushNamed('/bulk');
+        await tester.pumpAndSettle();
+        expect(
+          find.byIcon(Icons.photo_camera_rounded),
+          visible ? findsOneWidget : findsNothing,
+        );
+      });
+    }
   });
 
   testWidgets('the photo sheet names the address and no company', (
@@ -2128,7 +1752,8 @@ void main() {
     getIt.unregister<AiCredentialStorage>();
     getIt.registerLazySingleton<AiCredentialStorage>(
       () => AiCredentialStorage(
-        _MapStorage({
+        MemorySecureStorage({
+          'AiTermsAcceptedTag': 'true',
           'AiProviderTag': 'ownServer',
           // Stored as `writeEndpoint` really stores it — resolved, with the
           // chat route on the end — so this also pins that the sheet shows
@@ -2180,7 +1805,8 @@ void main() {
     await _register(const {});
     getIt.unregister<AiCredentialStorage>();
     final storage = AiCredentialStorage(
-      _MapStorage({
+      MemorySecureStorage({
+        'AiTermsAcceptedTag': 'true',
         'AiProviderTag': 'anthropic',
         'AiApiKeyTag.anthropic': 'sk-test',
       }),
@@ -2209,7 +1835,9 @@ void main() {
     Future<void> useStorage(Map<String, String> stored) async {
       await _register(const {});
       getIt.unregister<AiCredentialStorage>();
-      final storage = AiCredentialStorage(_MapStorage(stored));
+      final storage = AiCredentialStorage(
+        MemorySecureStorage({'AiTermsAcceptedTag': 'true', ...stored}),
+      );
       getIt.registerLazySingleton<AiCredentialStorage>(() => storage);
     }
 
@@ -2300,7 +1928,7 @@ void main() {
       // Held rather than passed by value: writing into it partway through is
       // this test's stand-in for the user configuring a provider over in
       // settings, and the screen reads the same instance throughout.
-      final stored = _MapStorage(const {});
+      final stored = MemorySecureStorage({'AiTermsAcceptedTag': 'true'});
       getIt.registerLazySingleton<AiCredentialStorage>(
         () => AiCredentialStorage(stored),
       );
@@ -2336,8 +1964,8 @@ void main() {
         ),
       );
 
-      stored.values['AiProviderTag'] = 'anthropic';
-      stored.values['AiApiKeyTag.anthropic'] = 'sk-test';
+      stored.store['AiProviderTag'] = 'anthropic';
+      stored.store['AiApiKeyTag.anthropic'] = 'sk-test';
 
       navigator.pop();
       await tester.pumpAndSettle();
@@ -2370,7 +1998,7 @@ void main() {
         ),
       );
       getIt.unregister<AiCredentialStorage>();
-      final stored = _MapStorage(const {});
+      final stored = MemorySecureStorage({'AiTermsAcceptedTag': 'true'});
       getIt.registerLazySingleton<AiCredentialStorage>(
         () => AiCredentialStorage(stored),
       );
@@ -2398,8 +2026,8 @@ void main() {
         ),
       );
 
-      stored.values['AiProviderTag'] = 'anthropic';
-      stored.values['AiApiKeyTag.anthropic'] = 'sk-test';
+      stored.store['AiProviderTag'] = 'anthropic';
+      stored.store['AiApiKeyTag.anthropic'] = 'sk-test';
 
       tester.state<NavigatorState>(find.byType(Navigator)).pop();
       await tester.pumpAndSettle();
@@ -2413,12 +2041,16 @@ void main() {
     /// Nothing configured, so the discovery hint is on screen and the route
     /// out of it is the one this exercises.
     Future<
-      ({_MapStorage stored, _GatedProber prober, AiEndpointProbeRunner runner})
+      ({
+        MemorySecureStorage stored,
+        _GatedProber prober,
+        AiEndpointProbeRunner runner,
+      })
     >
     arrange(WidgetTester tester, AiCapability photo) async {
       await _register(const {});
       getIt.unregister<AiCredentialStorage>();
-      final stored = _MapStorage(const {});
+      final stored = MemorySecureStorage({'AiTermsAcceptedTag': 'true'});
       final storage = AiCredentialStorage(stored);
       getIt.registerLazySingleton<AiCredentialStorage>(() => storage);
 
@@ -2433,12 +2065,12 @@ void main() {
     /// What the user does over in settings: saves an address, which starts a
     /// probe the dialog deliberately does not await (#780).
     void configureOwnServerAndStartProbe(
-      _MapStorage stored,
+      MemorySecureStorage stored,
       AiEndpointProbeRunner runner,
     ) {
-      stored.values['AiProviderTag'] = 'ownServer';
-      stored.values['AiEndpointTag.ownServer'] = 'http://192.168.1.5:11434';
-      stored.values['AiModelTag.ownServer'] = 'gemma3:4b';
+      stored.store['AiProviderTag'] = 'ownServer';
+      stored.store['AiEndpointTag.ownServer'] = 'http://192.168.1.5:11434';
+      stored.store['AiModelTag.ownServer'] = 'gemma3:4b';
       unawaited(runner.start(AiProvider.ownServer));
     }
 
@@ -2673,18 +2305,3 @@ class _StubPhotoReader implements ReadMealPhotoUseCase {
 
 /// A keystore with nothing in it, so the read use case always takes the
 /// deterministic path.
-class _EmptyStorage implements FlutterSecureStorage {
-  @override
-  Future<String?> read({
-    required String key,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async => null;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}

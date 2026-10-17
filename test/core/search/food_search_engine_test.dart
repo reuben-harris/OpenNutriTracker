@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/data_source/remote_search_cache_data_source.dart';
 import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
@@ -282,31 +283,73 @@ void main() {
       expect(retried.meals.single.code, 'cached');
     },
   );
-  test(
-    'cancel, profile change and language change reject late results and writes',
-    () async {
-      for (final change in ['cancel', 'profile-b:en', 'profile-a:de']) {
+  for (final change in ['cancel', 'profile-b:en', 'profile-a:de']) {
+    test('$change rejects late online results and cache writes', () {
+      fakeAsync((time) {
         final session = search('orange');
-        await until(
-          session,
-          (s) => !s.pending.contains(FoodSearchSource.cache),
-        );
+        time.flushMicrotasks();
+        expect(online.calls, [('orange', 1)]);
         final before = session.state;
         if (change == 'cancel') {
           session.cancel();
         } else {
           context = change;
         }
-        online.responses.last.complete(
+        online.responses.single.complete(
           OffFoodSearchPage([food('late', 'Orange')], hasMore: false),
         );
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-        expect(identical(session.state, before), isTrue);
+        time.flushMicrotasks();
+        expect(session.state, same(before));
         expect(cache.writes, isEmpty);
-        context = 'profile-a:en';
-      }
+        session.cancel();
+      });
+    });
+  }
+
+  test(
+    'online debounce fires once at its boundary and cancellation removes it',
+    () {
+      fakeAsync((time) {
+        final first = search('orange', immediate: false);
+        time.flushMicrotasks();
+        time.elapse(engine.debounce - const Duration(microseconds: 1));
+        expect(online.calls, isEmpty);
+        time.elapse(const Duration(microseconds: 1));
+        expect(online.calls, [('orange', 1)]);
+        first.submit();
+        expect(online.calls, hasLength(1));
+        first.cancel();
+        online.responses.single.complete(
+          const OffFoodSearchPage([], hasMore: false),
+        );
+        time.flushMicrotasks();
+        final cancelled = search('pear', immediate: false);
+        time.flushMicrotasks();
+        cancelled.cancel();
+        time.elapse(engine.debounce);
+        expect(online.calls, hasLength(1));
+        expect(time.pendingTimers, isEmpty);
+      });
     },
   );
+
+  test('Recipes never schedules online work after debounce or submission', () {
+    fakeAsync((time) {
+      final session = search(
+        'orange',
+        filter: FoodSearchFilter.recipes,
+        immediate: false,
+      );
+      time.flushMicrotasks();
+      session.submit();
+      session.loadMore();
+      time.elapse(const Duration(minutes: 1));
+      expect(online.calls, isEmpty);
+      expect(time.pendingTimers, isEmpty);
+      session.cancel();
+    });
+  });
+
   test(
     'keyboard submit flushes debounce once, including before session startup',
     () async {
@@ -388,7 +431,6 @@ void main() {
       expect(matches.meals.map((meal) => meal.code), ['exact', 'cake']);
       session.submit();
       session.loadMore();
-      await Future<void>.delayed(const Duration(milliseconds: 550));
       expect(online.calls, isEmpty);
       expect(catalogue.queries, isEmpty);
       expect(cache.queries, isEmpty);

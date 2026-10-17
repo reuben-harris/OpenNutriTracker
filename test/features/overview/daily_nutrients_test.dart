@@ -1,3 +1,5 @@
+import '../../helpers/pump_until.dart';
+import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +17,7 @@ import '../../helpers/overview_diary_harness.dart';
 import 'overview_widgets_test.dart' show app;
 
 void main() {
+  useTestLocator();
   testWidgets(
     'Overview keeps selected-day nutrients, visibility and goals without a week selector',
     (tester) async {
@@ -71,7 +74,7 @@ void main() {
       locator.registerSingleton<GetIntakeUsecase>(h.getIntakes);
       locator.registerSingleton<GetUserUsecase>(h.getUser);
       addTearDown(() async {
-        await locator.reset();
+        await locator.resetScope();
         await h.dispose();
       });
       final daily = await tester.runAsync(
@@ -98,10 +101,7 @@ void main() {
           ),
         ),
       );
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 60)),
-      );
-      await tester.pump();
+      await pumpUntil(tester, () => find.text('700%').evaluate().isNotEmpty);
       expect(find.text('700%'), findsOneWidget);
       expect(find.text('sodium'), findsNothing);
       expect(find.text('Week'), findsNothing);

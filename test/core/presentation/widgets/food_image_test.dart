@@ -1,3 +1,5 @@
+import '../../../helpers/pump_until.dart';
+import '../../../helpers/locator_test_setup.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -36,6 +38,7 @@ class _Loader extends Fake implements FoodImageLoader {
 }
 
 void main() {
+  useTestLocator();
   late _Loader loader;
   late Directory directory;
   late File file;
@@ -263,16 +266,10 @@ void main() {
     );
     loader.forUrl('first').add(FoodImageLoad.complete(invalid));
     await tester.pumpAndSettle();
-    for (
-      var i = 0;
-      i < 20 && find.byIcon(Icons.restaurant_rounded).evaluate().isEmpty;
-      i++
-    ) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 20)),
-      );
-      await tester.pump();
-    }
+    await pumpUntil(
+      tester,
+      () => find.byIcon(Icons.restaurant_rounded).evaluate().isNotEmpty,
+    );
     expect(find.byIcon(Icons.restaurant_rounded), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -307,17 +304,13 @@ void main() {
     await tester.pumpWidget(app(onTap: () => taps++));
     expect(find.bySemanticsIdentifier('food-image-enlarge'), findsNothing);
     loader.forUrl('first').add(FoodImageLoad.complete(file));
-    for (
-      var i = 0;
-      i < 30 &&
-          find.bySemanticsIdentifier('food-image-enlarge').evaluate().isEmpty;
-      i++
-    ) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 20)),
-      );
-      await tester.pump();
-    }
+    await pumpUntil(
+      tester,
+      () => find
+          .bySemanticsIdentifier('food-image-enlarge')
+          .evaluate()
+          .isNotEmpty,
+    );
     expect(find.bySemanticsIdentifier('food-image-enlarge'), findsOneWidget);
     await tester.tap(find.bySemanticsIdentifier('food-image-enlarge'));
     expect(taps, 1);

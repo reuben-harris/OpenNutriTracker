@@ -1,3 +1,4 @@
+import '../../../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/quick_add_bottom_sheet.dart';
 import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
@@ -182,11 +183,12 @@ class _Recipes extends Fake implements RecipeRepository {
 }
 
 void main() {
+  useTestLocator();
   testWidgets('refresh progress blurs the thumbnail for at least 500ms', (
     tester,
   ) async {
     locator.registerSingleton<RefreshDiaryIntakeUsecase>(_ImmediateRefresh());
-    addTearDown(() => locator.reset());
+    addTearDown(() => locator.resetScope());
     await tester.pumpWidget(_app(recipeIntake(recipe: false), () {}));
     await _open(tester);
     await tester.tap(_action());
@@ -276,7 +278,7 @@ void main() {
       locator.registerSingleton<RefreshDiaryIntakeUsecase>(
         _UnavailableRefresh(),
       );
-      addTearDown(() => locator.reset());
+      addTearDown(() => locator.resetScope());
       await tester.pumpWidget(_app(recipeIntake(old: true), () {}));
       await _open(tester);
       await tester.tap(_action());
@@ -311,7 +313,8 @@ void main() {
     expect(opened, lessThan(0));
     await tester.pump(const Duration(seconds: 10));
     expect(tester.getTopLeft(_card()).dx, opened);
-    await tester.drag(_card(), const Offset(140, 0));
+    // The open card absorbs pointers; the enclosing row handles the gesture.
+    await tester.drag(_row(), const Offset(140, 0));
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(_card()).dx, 0);
 
@@ -354,7 +357,7 @@ void main() {
   testWidgets('scroll starting on the open card closes it', (tester) async {
     await tester.pumpWidget(_app(recipeIntake(), () {}));
     await _open(tester);
-    await tester.drag(_card(), const Offset(0, -40));
+    await tester.drag(_row(), const Offset(0, -40));
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(_card()).dx, 0);
   });
@@ -404,7 +407,7 @@ void main() {
 
   testWidgets('refresh failure leaves the row closed', (tester) async {
     locator.registerSingleton<RefreshDiaryIntakeUsecase>(_FailingRefresh());
-    addTearDown(() => locator.reset());
+    addTearDown(() => locator.resetScope());
     await tester.pumpWidget(_app(recipeIntake(), () {}));
     await _open(tester);
     await tester.tap(_action());
@@ -522,7 +525,7 @@ void main() {
       );
       locator.registerSingleton<SelectedDayCubit>(selected);
       addTearDown(() async {
-        await locator.reset();
+        await locator.resetScope();
         await selected.close();
       });
       final semantics = tester.ensureSemantics();
@@ -572,7 +575,7 @@ void main() {
     final intake = recipeIntake();
     final recipes = _Recipes()..recipe = intake.recipeSnapshot;
     locator.registerSingleton<RecipeRepository>(recipes);
-    addTearDown(() => locator.reset());
+    addTearDown(() => locator.resetScope());
     RouteSettings? route;
     final navigator = GlobalKey<NavigatorState>();
     await tester.pumpWidget(

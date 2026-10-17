@@ -17,6 +17,7 @@ import '../helpers/hive_test_setup.dart';
 /// is dropping one that is still doing work, so the boundary is where the
 /// tests are concentrated.
 void main() {
+  useTestHive();
   const overlap = ImportWorkoutsUsecase.overlapTolerance;
   final now = DateTime(2026, 8, 27, 12);
 
@@ -111,11 +112,9 @@ void main() {
 
     setUpAll(() {
       TestWidgetsFlutterBinding.ensureInitialized();
-      registerHiveAdaptersOnce();
     });
 
     setUp(() async {
-      Hive.init('.');
       appBox = await Hive.openBox<ConfigDBO>('tombstone_app_test');
       profileBox = await Hive.openBox<ConfigDBO>('tombstone_profile_test');
       await appBox.clear();
@@ -124,11 +123,6 @@ void main() {
         FakeHiveDBProvider(configBox: profileBox, appConfigBox: appBox),
       );
       await source.initializeConfig();
-    });
-
-    tearDown(() async {
-      await Hive.close();
-      await Hive.deleteFromDisk();
     });
 
     test('a tombstone older than the cutoff is dropped', () async {
@@ -190,11 +184,9 @@ void main() {
 
     setUpAll(() {
       TestWidgetsFlutterBinding.ensureInitialized();
-      registerHiveAdaptersOnce();
     });
 
     setUp(() async {
-      Hive.init('.');
       appBox = await Hive.openBox<ConfigDBO>('tombstone_legacy_app_test');
       profileBox = await Hive.openBox<ConfigDBO>('tombstone_legacy_test');
       await appBox.clear();
@@ -202,11 +194,6 @@ void main() {
       source = ConfigDataSource(
         FakeHiveDBProvider(configBox: profileBox, appConfigBox: appBox),
       );
-    });
-
-    tearDown(() async {
-      await Hive.close();
-      await Hive.deleteFromDisk();
     });
 
     Future<void> seedLegacy(List<String> ids) async {

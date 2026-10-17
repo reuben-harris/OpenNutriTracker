@@ -1,66 +1,179 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opennutritracker/core/utils/calc/unit_calc.dart';
+import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
+import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
+import 'package:opennutritracker/core/data/repository/config_repository.dart';
+import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
+import 'package:opennutritracker/core/domain/entity/config_entity.dart';
+import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
+import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
+import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
+import 'package:opennutritracker/core/utils/locator.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
+import 'package:opennutritracker/features/edit_meal/presentation/bloc/edit_meal_bloc.dart';
+import 'package:opennutritracker/features/edit_meal/presentation/edit_meal_screen.dart';
+import 'package:opennutritracker/generated/l10n.dart';
+import 'package:provider/provider.dart';
 
-/// Mirrors the rounding the edit-meal screen applies when it folds a
-/// user-typed energy value back to stored kcal (one decimal place is
-/// plenty for a manually-entered field). Kept in test code so the
-/// rounding contract is explicit even though the production helper is
-/// a private method on the screen.
-double _kjToStoredKcal(double kj) =>
-    double.parse(UnitCalc.kjToKcal(kj).toStringAsFixed(1));
+import '../helpers/locator_test_setup.dart';
+import '../helpers/test_l10n.dart';
 
-/// Mirrors the rounding the edit-meal screen applies when it converts a
-/// stored kcal value into a kJ display string. Same one-decimal contract
-/// — the field is for humans, not for bit-exact storage.
-double _storedKcalToKjDisplay(double kcal) =>
-    double.parse(UnitCalc.kcalToKj(kcal).toStringAsFixed(1));
+class _Config extends Fake implements GetConfigUsecase {
+  @override
+  Future<ConfigEntity> getConfig() async =>
+      const ConfigEntity(true, true, false, AppThemeEntity.system);
+}
+
+class _Preferences extends Fake implements ConfigRepository {
+  CustomMealFormMode mode = CustomMealFormMode.simple;
+  @override
+  Future<String?> getCustomMealFormMode() async => mode.name;
+}
+
+class _CustomMeals extends Fake implements CustomMealDataSource {
+  MealDBO? saved;
+  @override
+  Future<void> saveCustomMeal(MealDBO meal) async => saved = meal;
+}
 
 void main() {
-  group('edit-meal manual energy entry, kJ ↔ kcal round trip (#177 follow-up)', () {
-    test('typing 2000 in kJ mode stores ≈ 478.0 kcal', () {
-      // 2000 kJ / 4.184 = 477.9923... rounded to 1dp = 478.0
-      expect(_kjToStoredKcal(2000), equals(478.0));
-    });
+  useTestLocator();
+  late _CustomMeals meals;
+  late _Preferences preferences;
+  late EnergyUnitProvider units;
+  MealEntity? returned;
 
-    test('a 478 kcal stored value re-displays as ≈ 2000 kJ', () {
-      // 478 kcal × 4.184 = 1999.952 — within rounding tolerance of the
-      // 2000 the user originally typed. Use closeTo because the
-      // 478.0-kcal storage drops a small amount of precision; we accept
-      // any value that rounds to "2000" in the UI.
-      expect(_storedKcalToKjDisplay(478.0), closeTo(2000.0, 0.1));
-    });
-
-    test('typing in kcal mode stores the value verbatim (no conversion)', () {
-      // When the user has kcal selected, save just round-trips the
-      // typed value — no scaling. The integer 250 stays 250.
-      const typed = 250.0;
-      expect(typed, equals(250.0));
-      // And re-display in kcal mode is identity:
-      expect(typed, equals(typed));
-    });
-
-    test('a 250 kcal stored value displays as ≈ 1046.0 kJ when kJ is active', () {
-      // 250 kcal × 4.184 = 1046.0 — clean to 1dp.
-      expect(_storedKcalToKjDisplay(250.0), equals(1046.0));
-    });
-
-    test('round-trip kJ → stored kcal → kJ display for typical daily-goal values', () {
-      // Picks values a user might plausibly type as a calorie goal in
-      // either unit. After one full pass through the conversion the
-      // display value should land within 0.5 kJ of the original — well
-      // below what a human would notice in an input field.
-      for (final kjTyped in const [500.0, 1000.0, 2000.0, 2500.0, 8368.0]) {
-        final storedKcal = _kjToStoredKcal(kjTyped);
-        final redisplayed = _storedKcalToKjDisplay(storedKcal);
-        expect(redisplayed, closeTo(kjTyped, 0.5),
-            reason:
-                '$kjTyped kJ → $storedKcal kcal → $redisplayed kJ should round-trip cleanly');
-      }
-    });
-
-    test('zero is preserved exactly in both directions', () {
-      expect(_kjToStoredKcal(0), equals(0));
-      expect(_storedKcalToKjDisplay(0), equals(0));
-    });
+  setUp(() {
+    meals = _CustomMeals();
+    preferences = _Preferences();
+    returned = null;
+    locator.registerFactory<EditMealBloc>(
+      () => EditMealBloc(_Config(), meals, preferences),
+    );
   });
+
+  Finder getEnergy() => find.byWidgetPredicate(
+    (w) =>
+        w is TextField &&
+        (w.decoration?.labelText ?? '').startsWith(l10nEn.mealEnergyLabel),
+  );
+
+  Future<void> open(WidgetTester tester, {required bool kj}) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    units = EnergyUnitProvider(usesKilojoules: kj);
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: units,
+        child: MaterialApp(
+          localizationsDelegates: S.localizationsDelegates,
+          supportedLocales: S.supportedLocales,
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () async {
+                  returned = await Navigator.of(context).push<MealEntity>(
+                    MaterialPageRoute(
+                      settings: RouteSettings(
+                        arguments: EditMealScreenArguments(
+                          DateTime(2026, 9, 29),
+                          const MealEntity(
+                            code: 'custom-food',
+                            name: 'Energy test',
+                            url: null,
+                            mealQuantity: '100',
+                            mealUnit: 'g',
+                            servingQuantity: 100,
+                            servingUnit: 'g',
+                            servingSize: null,
+                            source: MealSourceEntity.custom,
+                            nutriments: MealNutrimentsEntity(
+                              energyKcal100: 250,
+                              carbohydrates100: null,
+                              fat100: null,
+                              proteins100: null,
+                              sugars100: null,
+                              saturatedFat100: null,
+                              fiber100: null,
+                            ),
+                          ),
+                          IntakeTypeEntity.snack,
+                          false,
+                          editOnly: true,
+                        ),
+                      ),
+                      builder: (_) => const EditMealScreen(),
+                    ),
+                  );
+                },
+                child: const Text('Edit food'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Edit food'));
+    await tester.pumpAndSettle();
+  }
+
+  for (final (name, mode, kj, typed, expected)
+      in <(String, CustomMealFormMode, bool, String, double?)>[
+        ('simple kJ conversion', CustomMealFormMode.simple, true, '2000', 478),
+        (
+          'advanced kJ conversion',
+          CustomMealFormMode.advanced,
+          true,
+          '2000',
+          478,
+        ),
+        (
+          'kcal remains unchanged',
+          CustomMealFormMode.simple,
+          false,
+          '250',
+          250,
+        ),
+        ('zero remains known', CustomMealFormMode.simple, true, '0', 0),
+        ('blank remains unknown', CustomMealFormMode.simple, true, '', null),
+      ]) {
+    testWidgets(name, (tester) async {
+      preferences.mode = mode;
+      await open(tester, kj: kj);
+      await tester.enterText(getEnergy(), typed);
+      await tester.tap(
+        find.widgetWithText(FilledButton, l10nEn.buttonSaveLabel),
+      );
+      await tester.pumpAndSettle();
+      expect(meals.saved, isNotNull);
+      expect(meals.saved!.nutriments.energyKcal100, expected);
+      expect(returned!.nutriments.energyKcal100, expected);
+      expect(find.byType(EditMealScreen), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      units.dispose();
+    });
+  }
+
+  testWidgets(
+    'stored kcal displays in kJ and survives unit changes without saving',
+    (tester) async {
+      await open(tester, kj: true);
+      expect(tester.widget<TextField>(getEnergy()).controller!.text, '1046.0');
+      units.updateUsesKilojoules(false);
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(getEnergy()).controller!.text, '250.0');
+      units.updateUsesKilojoules(true);
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(getEnergy()).controller!.text, '1046.0');
+      expect(meals.saved, isNull);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(returned, isNull);
+      expect(meals.saved, isNull);
+      await tester.pumpWidget(const SizedBox());
+      units.dispose();
+    },
+  );
 }

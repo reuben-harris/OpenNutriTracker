@@ -1,3 +1,4 @@
+import '../../../../helpers/locator_test_setup.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
@@ -76,6 +77,7 @@ class _FakeTrendsBloc extends Fake implements TrendsBloc {
 }
 
 void main() {
+  useTestLocator();
   late _FakeTrendsBloc trendsBloc;
 
   ProfileBloc buildProfileBloc(UserEntity user) {
@@ -88,9 +90,7 @@ void main() {
     );
   }
 
-  tearDown(() {
-    GetIt.instance.reset();
-  });
+  tearDown(() => GetIt.instance.resetScope());
 
   test('updateUser refreshes TrendsBloc, preserving the currently selected '
       'range chip (regression: home weight chip did not update the Trends '

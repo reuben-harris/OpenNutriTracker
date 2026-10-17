@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../../helpers/memory_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/presentation/widgets/badged_title.dart';
@@ -14,30 +17,14 @@ import 'package:provider/provider.dart';
 
 import '../../../../helpers/test_l10n.dart';
 
-class _MemoryStorage implements FlutterSecureStorage {
-  /// Starts with the agreement already given.
-  ///
-  /// A stored credential is only usable once the user has agreed to what
-  /// leaves the device (#836), so a store holding a key and no agreement is a
-  /// state the app cannot reach. These tests arrange a working feature, which
-  /// now means configured *and* agreed to.
-  final store = <String, String>{'AiTermsAcceptedTag': 'true'};
+/// Keeps keystore reads pending until the test releases them.
+class _DelayedStorage extends MemorySecureStorage {
+  _DelayedStorage() : super({'AiTermsAcceptedTag': 'true'});
+  final ready = Completer<void>();
 
   @override
   Future<String?> read({
     required String key,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async => store[key];
-
-  @override
-  Future<void> write({
-    required String key,
-    required String? value,
     AppleOptions? iOptions,
     AndroidOptions? aOptions,
     LinuxOptions? lOptions,
@@ -45,45 +32,9 @@ class _MemoryStorage implements FlutterSecureStorage {
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
   }) async {
-    if (value == null) {
-      store.remove(key);
-    } else {
-      store[key] = value;
-    }
+    await ready.future;
+    return store[key];
   }
-
-  @override
-  Future<void> delete({
-    required String key,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async => store.remove(key);
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-/// Reads land after a delay, which the in-memory store cannot reproduce: its
-/// future resolves in the same microtask drain as the first `pump`, so the row
-/// is already populated by the time a test can look at it. The real keystore
-/// is a platform channel and takes frames.
-class _DelayedStorage extends _MemoryStorage {
-  static const delay = Duration(milliseconds: 50);
-
-  @override
-  Future<String?> read({
-    required String key,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) => Future.delayed(delay, () => store[key]);
 }
 
 /// The AI row on onboarding's Other options page. #728.
@@ -91,7 +42,9 @@ void main() {
   late AiCredentialStorage storage;
 
   setUp(() {
-    storage = AiCredentialStorage(_MemoryStorage());
+    storage = AiCredentialStorage(
+      MemorySecureStorage({'AiTermsAcceptedTag': 'true'}),
+    );
   });
 
   Future<void> pumpPage(
@@ -151,9 +104,10 @@ void main() {
     // honours the letter and loses the point — an empty Text still occupies
     // its line, so the row resizes under the user as the read comes back.
     // Caught by review on #729.
+    final backing = _DelayedStorage();
     await pumpPage(
       tester,
-      credentials: AiCredentialStorage(_DelayedStorage()),
+      credentials: AiCredentialStorage(backing),
       settle: false,
     );
 
@@ -165,10 +119,8 @@ void main() {
     );
     expect(tile.subtitle, isNull);
 
-    // Stepped rather than `pumpAndSettle`: the three keystore reads are
-    // sequential delays and settling races them.
-    await tester.pump(_DelayedStorage.delay * 10);
-    await tester.pump();
+    backing.ready.complete();
+    await tester.pumpAndSettle();
     expect(
       find.text(l10nEn.settingsAiAssistNotConfiguredLabel),
       findsOneWidget,

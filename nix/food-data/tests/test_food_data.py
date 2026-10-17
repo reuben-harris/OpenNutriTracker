@@ -238,10 +238,12 @@ class CatalogueTest(FixtureCase):
                 with self.assertRaisesRegex(importer.ValidationError, "Invalid id|duplicate food-nutrient ID"):
                     self.build()
 
-    def test_duplicate_ids_and_hash_mismatch_fail(self):
+    def test_hash_mismatch_fails(self):
         self.lock["sources"]["foundation"]["sha256"] = "0" * 64
         with self.assertRaisesRegex(importer.ValidationError, "SHA256 mismatch"):
             self.build()
+
+    def test_duplicate_food_ids_fail(self):
         self.tables["foundation"]["tables"]["food"].append(self.tables["foundation"]["tables"]["food"][1])
         self.write_archives()
         with self.assertRaisesRegex(importer.ValidationError, "Duplicate fdc_id"):
@@ -396,6 +398,8 @@ class UpdaterTest(FixtureCase):
         html += '<a href="https://example.com/fdc-datasets/FoodData_Central_foundation_food_csv_2099-04-30.zip">unofficial</a>'
         html += '<a href="/fdc-datasets/FoodData_Central_foundation_food_json_2099-04-30.zip">JSON</a>'
         self.assertEqual(updater.discover(html)["foundation"]["release"], "2027-04-30")
+
+    def test_discovery_rejects_an_index_without_csv_releases(self):
         with self.assertRaisesRegex(importer.ValidationError, "no CSV release"):
             updater.discover("<html>unavailable</html>")
 
@@ -547,10 +551,12 @@ class SourceFixTest(FixtureCase):
         with self.assertRaisesRegex(importer.ValidationError, 'Invalid fdc_id'):
             self.build()
 
-    def test_auxiliary_hash_and_contract_failures(self):
+    def test_auxiliary_hash_failure(self):
         self.paths['test_april'].write_bytes(b'corrupt')
         with self.assertRaisesRegex(importer.ValidationError, 'SHA256 mismatch'):
             self.build()
+
+    def test_auxiliary_pin_contract_failure(self):
         self.lock['auxiliary']['test_april']['sha256'] = '0' * 64
         with self.assertRaisesRegex(importer.ValidationError, 'Auxiliary pins differ'):
             self.build()

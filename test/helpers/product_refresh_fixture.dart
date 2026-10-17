@@ -77,6 +77,7 @@ class ProductRefreshFixture {
   MealDetailBloc? bloc;
 
   Future<void> open() async {
+    GetIt.instance.pushNewScope();
     PackageInfo.setMockInitialValues(
       appName: 'OpenNutriTracker',
       packageName: 'refresh.test',
@@ -149,7 +150,8 @@ class ProductRefreshFixture {
   }
 
   Future<void> close() async {
-    await GetIt.instance.reset();
+    if (bloc != null && !bloc!.isClosed) await bloc!.close();
+    await GetIt.instance.popScope();
     await directory.delete(recursive: true);
   }
 
@@ -183,17 +185,6 @@ class ProductRefreshFixture {
 Finder get refreshButton => find.byWidgetPredicate(
   (w) => w is IconButton && w.tooltip == 'Refresh from Open Food Facts',
 );
-
-Future<void> pumpUntil(WidgetTester tester, bool Function() done) async {
-  for (var i = 0; i < 100 && !done(); i++) {
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 20)),
-    );
-    await tester.pump(const Duration(milliseconds: 100));
-  }
-  expect(done(), isTrue, reason: 'refresh should finish');
-  await tester.pump();
-}
 
 class _NoIntakeWrites extends Fake implements AddIntakeUsecase {}
 

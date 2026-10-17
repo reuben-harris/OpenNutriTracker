@@ -123,8 +123,9 @@ void main() {
   late GetKcalGoalBreakdownUsecase breakdownUsecase;
 
   setUp(() {
+    final originalClock = DayBoundaryCalc.clock;
     DayBoundaryCalc.clock = () => beforeBoundary;
-    addTearDown(() => DayBoundaryCalc.clock = DateTime.now);
+    addTearDown(() => DayBoundaryCalc.clock = originalClock);
 
     final userRepo = _FakeUserRepository(user);
     final configRepo = _FakeConfigRepository(config);
@@ -137,12 +138,14 @@ void main() {
     );
   });
 
-  test('the kcal goal asks for the logical day, not the wall-clock one',
-      () async {
-    await kcalGoalUsecase.getKcalGoal();
+  test(
+    'the kcal goal asks for the logical day, not the wall-clock one',
+    () async {
+      await kcalGoalUsecase.getKcalGoal();
 
-    expect(activityRepo.requestedDay, logicalToday);
-  });
+      expect(activityRepo.requestedDay, logicalToday);
+    },
+  );
 
   test('the breakdown asks for the same logical day', () async {
     await breakdownUsecase.getBreakdown();
@@ -150,12 +153,14 @@ void main() {
     expect(activityRepo.requestedDay, logicalToday);
   });
 
-  test('activities from before the boundary still count toward the goal',
-      () async {
-    final breakdown = await breakdownUsecase.getBreakdown();
+  test(
+    'activities from before the boundary still count toward the goal',
+    () async {
+      final breakdown = await breakdownUsecase.getBreakdown();
 
-    expect(breakdown.activityKcal, closeTo(312.5 + 87.25, 0.0001));
-  });
+      expect(breakdown.activityKcal, closeTo(312.5 + 87.25, 0.0001));
+    },
+  );
 
   test('goal and breakdown agree on the activity contribution', () async {
     final breakdown = await breakdownUsecase.getBreakdown();

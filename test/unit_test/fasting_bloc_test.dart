@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opennutritracker/core/data/dbo/app_theme_dbo.dart';
 import 'package:opennutritracker/core/data/repository/config_repository.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/config_entity.dart';
@@ -81,12 +80,6 @@ class _FakeConfigRepository implements ConfigRepository {
 }
 
 void main() {
-  // Hide an unused import warning by mentioning the symbol where the
-  // analyzer can see it. AppThemeDBO is reachable via fromConfigDBO but not
-  // otherwise referenced in this file.
-  // ignore: unused_local_variable
-  final _ = AppThemeDBO.system;
-
   group('FastingBloc', () {
     late _FakeFastingRepository fastingRepo;
     late _FakeConfigRepository configRepo;
@@ -109,19 +102,27 @@ void main() {
       await bloc.close();
     });
 
+    Future<void> send(
+      FastingEvent event,
+      bool Function(FastingState) done,
+    ) async {
+      final next = bloc.stream
+          .firstWhere(done)
+          .timeout(const Duration(seconds: 5));
+      bloc.add(event);
+      await next;
+    }
+
     test('initial state is FastingInitial', () {
       expect(bloc.state, isA<FastingInitial>());
     });
 
     test('start then cancel records cancelledAt, not completedAt', () async {
-      bloc.add(const FastingStartRequested(60));
-      // Wait for the event loop to process.
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await send(const FastingStartRequested(60), (s) => s is FastingActive);
       expect(bloc.state, isA<FastingActive>());
       expect(fastingRepo.addCalls, 1);
 
-      bloc.add(const FastingCancelRequested());
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await send(const FastingCancelRequested(), (s) => s is FastingIdle);
 
       expect(bloc.state, isA<FastingIdle>());
       expect(fastingRepo.updateCalls, 1);
@@ -139,14 +140,12 @@ void main() {
 
     test('reaching target naturally records completedAt', () async {
       // 0-minute target so the very first tick fires the completion path.
-      bloc.add(const FastingStartRequested(0));
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await send(const FastingStartRequested(0), (s) => s is FastingActive);
       expect(bloc.state, isA<FastingActive>());
 
       // Drive a synthetic tick at "now + 1 second" so the bloc believes the
       // target has been reached without waiting on the wall-clock timer.
-      bloc.add(FastingTicked(DateTime.now().add(const Duration(seconds: 1))));
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await send(FastingTicked(DateTime(2100)), (s) => s is FastingCompleted);
 
       expect(bloc.state, isA<FastingCompleted>());
       expect(fastingRepo.updateCalls, 1);
@@ -158,12 +157,15 @@ void main() {
       'load with un-acknowledged warning emits FastingWarningRequired',
       () async {
         configRepo.acknowledged = false;
-        bloc.add(const FastingLoadRequested());
-        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await send(
+          const FastingLoadRequested(),
+          (s) => s is FastingWarningRequired,
+        );
+
         expect(bloc.state, isA<FastingWarningRequired>());
 
-        bloc.add(const FastingWarningAcknowledged());
-        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await send(const FastingWarningAcknowledged(), (s) => s is FastingIdle);
+
         expect(bloc.state, isA<FastingIdle>());
         expect(configRepo.acknowledged, isTrue);
       },

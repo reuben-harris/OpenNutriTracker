@@ -1,3 +1,6 @@
+import '../../../helpers/pump_until.dart';
+import 'package:opennutritracker/features/add_meal/presentation/widgets/meal_item_card.dart';
+import '../../../helpers/locator_test_setup.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -41,6 +44,7 @@ class MealDetails extends Cubit<MealDetailState> implements MealDetailBloc {
 }
 
 void main() {
+  useTestLocator();
   late Catalogue catalogue;
   late Cache cache;
   late Online online;
@@ -78,7 +82,7 @@ void main() {
         response.complete(const OffFoodSearchPage([], hasMore: false));
       }
     }
-    await locator.reset();
+    await locator.resetScope();
   });
   Future<void> open(WidgetTester tester) async {
     await tester.pumpWidget(
@@ -109,15 +113,78 @@ void main() {
     ),
     matching: find.byType(ChoiceChip),
   );
-  Future<void> settle(WidgetTester tester, bool Function() done) async {
-    for (var i = 0; i < 100 && !done(); i++) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+  Future<void> settle(WidgetTester tester, bool Function() done) =>
+      pumpUntil(tester, done);
+
+  testWidgets(
+    'the final search result and its Add action clear the bottom inset',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(bottom: 48);
+      tester.view.viewPadding = const FakeViewPadding(bottom: 48);
+      addTearDown(tester.view.reset);
+      locator.registerSingleton<GetConfigUsecase>(Config());
+      recipes = () async => [
+        for (var i = 0; i < 30; i++)
+          food(
+            'recipe:$i',
+            'Recipe ${i.toString().padLeft(2, '0')}',
+            source: MealSourceEntity.recipe,
+          ),
+      ];
+      String? added;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: S.localizationsDelegates,
+          supportedLocales: S.supportedLocales,
+          home: Scaffold(
+            body: FoodSearchView(
+              itemBuilder: (context, meal) => MealItemCard(
+                key: ValueKey<String>(meal.code!),
+                mealEntity: meal,
+                onInfo: () {},
+                onSelected: (_) => showFoodAmountSheet(
+                  context,
+                  meal: meal,
+                  hydrate: false,
+                  onConfirm: (food, quantity) async {
+                    added = food.code;
+                    expect(quantity.baseAmount, 100);
+                    return true;
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
       );
-      await tester.pump(const Duration(milliseconds: 10));
-    }
-    expect(done(), isTrue);
-  }
+      await tester.ensureVisible(chip('recipes'));
+      await tester.tap(chip('recipes'));
+      await settle(
+        tester,
+        () => find.byKey(const ValueKey('recipe:0')).evaluate().isNotEmpty,
+      );
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('recipe:29')),
+        400,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.pumpAndSettle();
+      final last = find.byKey(const ValueKey('recipe:29'));
+      expect(tester.getRect(last).bottom, lessThanOrEqualTo(752));
+      await tester.tap(last);
+      await tester.pumpAndSettle();
+      final add = find.widgetWithText(FilledButton, 'Add');
+      expect(tester.getRect(add).bottom, lessThanOrEqualTo(752));
+      expect(add.hitTestable(), findsOneWidget);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      expect(added, 'recipe:29');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('shared ingredient picker returns food without logging', (
     tester,

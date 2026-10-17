@@ -1,3 +1,4 @@
+import '../../../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
@@ -35,7 +36,8 @@ class _Calendar extends Fake implements CalendarDayBloc {
 }
 
 void main() {
-  tearDown(() => locator.reset());
+  useTestLocator();
+  tearDown(() => locator.resetScope());
   Future<void> mount(
     WidgetTester tester,
     IntakeEntity entry, {

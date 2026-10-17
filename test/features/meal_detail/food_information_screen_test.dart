@@ -1,3 +1,4 @@
+import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_image.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/widgets/meal_detail_macro_nutrients.dart';
 import 'package:opennutritracker/core/domain/usecase/get_user_usecase.dart';
@@ -80,6 +81,7 @@ double _maxScrollOffset(WidgetTester tester) {
 }
 
 void main() {
+  useTestLocator();
   final getIt = GetIt.instance;
   MealDetailBloc? bloc;
   GetUserUsecase? users;
@@ -124,7 +126,7 @@ void main() {
   });
 
   tearDown(() async {
-    await getIt.reset();
+    await getIt.resetScope();
   });
 
   Future<NavigatorState> pumpMealDetail(

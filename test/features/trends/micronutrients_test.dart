@@ -54,6 +54,7 @@ IntakeEntity intake(String id, DateTime time, {double amount = 100}) =>
 
 class DelayedHistory extends Fake implements GetIntakeUsecase {
   final first = Completer<List<IntakeEntity>>();
+  final entered = Completer<void>();
   int calls = 0;
   @override
   Future<List<IntakeEntity>> getIntakesByRange(
@@ -62,12 +63,16 @@ class DelayedHistory extends Fake implements GetIntakeUsecase {
     int dayStartOffsetHours = 0,
     int dayStartOffsetMinutes = 0,
   }) async {
-    if (++calls == 1) return first.future;
+    if (++calls == 1) {
+      entered.complete();
+      return first.future;
+    }
     return [];
   }
 }
 
 void main() {
+  late DateTime Function() originalClock;
   group('Trends nutrient storage', () {
     late OverviewDiaryHarness h;
     late TrendsBloc bloc;
@@ -86,6 +91,7 @@ void main() {
     }
 
     setUp(() async {
+      originalClock = DayBoundaryCalc.clock;
       DayBoundaryCalc.clock = () => DateTime(2026, 9, 29, 4, 29);
       h = OverviewDiaryHarness();
       await h.initialize();
@@ -97,7 +103,7 @@ void main() {
     tearDown(() async {
       await bloc.close();
       await h.dispose();
-      DayBoundaryCalc.clock = DateTime.now;
+      DayBoundaryCalc.clock = originalClock;
     });
     test(
       'groups portions by logical day, preserves date labels, excludes future and old records',
@@ -146,12 +152,10 @@ void main() {
       final reader = DelayedHistory();
       bloc = makeBloc(reader);
       bloc.add(const LoadTrendsEvent());
-      while (reader.calls == 0) {
-        await Future<void>.delayed(const Duration(milliseconds: 1));
-      }
+      await reader.entered.future.timeout(const Duration(seconds: 5));
       expect((await load(30)).rangeDays, 30);
       reader.first.complete([intake('late', DateTime(2026, 9, 28))]);
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await bloc.close();
       expect((bloc.state as TrendsLoaded).rangeDays, 30);
       expect((bloc.state as TrendsLoaded).nutrientsByDay, isEmpty);
     });

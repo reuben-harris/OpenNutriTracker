@@ -1,3 +1,4 @@
+import '../../helpers/locator_test_setup.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -138,6 +139,7 @@ MealEntity _full(Map<String, dynamic> product) =>
     MealEntity.fromOFFProduct(OFFProductDTO.fromJson(product), detailed: true);
 
 void main() {
+  useTestLocator();
   final getIt = GetIt.instance;
   late Completer<MealEntity> hydration;
   late _FakeRemoteSearchCacheDataSource cache;
@@ -177,7 +179,7 @@ void main() {
       if (!bloc.isClosed) await bloc.close();
     }
     details.clear();
-    await getIt.reset();
+    await getIt.resetScope();
   });
 
   Future<void> pumpSheet(

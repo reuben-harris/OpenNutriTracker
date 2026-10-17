@@ -1,3 +1,5 @@
+import '../../helpers/pump_until.dart';
+import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -45,12 +47,15 @@ Finder menu(IntakeTypeEntity type) => find.descendant(
 );
 
 void main() {
+  useTestLocator();
+  late DateTime Function() originalClock;
   late DiaryWorkflowHarness h;
   late DiaryBloc diary;
   late DiaryClipboardCubit clipboard;
   var now = DateTime(2026, 9, 29, 12);
   setUp(() async {
     now = DateTime(2026, 9, 29, 12);
+    originalClock = DayBoundaryCalc.clock;
     DayBoundaryCalc.clock = () => now;
     h = DiaryWorkflowHarness();
     await h.initialize();
@@ -80,11 +85,11 @@ void main() {
     locator.registerSingleton<IntakeRepository>(h.intakes);
   });
   tearDown(() async {
-    await locator.reset();
+    await locator.resetScope();
     await diary.close();
     await clipboard.close();
     await h.dispose();
-    DayBoundaryCalc.clock = DateTime.now;
+    DayBoundaryCalc.clock = originalClock;
   });
 
   Future<void> mount(
@@ -138,8 +143,14 @@ void main() {
   Future<void> settleStorage(WidgetTester tester) async {
     await tester.runAsync(() async {
       await h.copier.idle;
-      await Future<void>.delayed(const Duration(milliseconds: 150));
     });
+    await tester.pump();
+    await pumpUntil(
+      tester,
+      () =>
+          h.calendar!.state is CalendarDayLoaded &&
+          diary.state is DiaryLoadedState,
+    );
     await tester.pumpAndSettle();
   }
 
@@ -297,9 +308,17 @@ void main() {
         await tester.runAsync(gesture.up);
         await tester.pumpAndSettle();
         expect(find.byType(AlertDialog), findsOneWidget);
+        var reloaded = !confirm;
+        final loaded = confirm
+            ? h.calendar!.stream
+                  .firstWhere((s) => s is CalendarDayLoaded)
+                  .then((_) => reloaded = true)
+            : Future.value(true);
         await tester.runAsync(
           () => tester.tap(find.text(confirm ? 'OK' : 'CANCEL')),
         );
+        await pumpUntil(tester, () => reloaded);
+        await loaded;
         await settleStorage(tester);
         expect(await h.intakes.getAllIntakesDBO(), hasLength(confirm ? 0 : 1));
       }
@@ -406,8 +425,9 @@ void main() {
       expect(find.text('Copy from yesterday'), findsOneWidget);
       expect(find.text('Copy to today'), findsNothing);
       await tester.runAsync(() => tester.tap(find.text('Copy from yesterday')));
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 80)),
+      await pumpUntil(
+        tester,
+        () => find.byType(AlertDialog).evaluate().isNotEmpty,
       );
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);
@@ -503,8 +523,15 @@ void main() {
       expect(control('diary-intake-info'), findsNothing);
       await tester.runAsync(() async {
         h.selection.select(DateTime(2026, 9, 29));
-        await Future<void>.delayed(const Duration(milliseconds: 80));
       });
+      await tester.pump();
+      await pumpUntil(
+        tester,
+        () =>
+            h.calendar!.state is CalendarDayLoaded &&
+            (h.calendar!.state as CalendarDayLoaded).day ==
+                DateTime(2026, 9, 29),
+      );
       await tester.pumpAndSettle();
       await tester.runAsync(
         () => tester.drag(find.byType(IntakeCard).first, const Offset(-140, 0)),

@@ -201,6 +201,7 @@ Map<String, dynamic> _exported(IntakeDBO intake) =>
     jsonDecode(_json(intake.toJson())) as Map<String, dynamic>;
 
 void main() {
+  useTestHive();
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('OffMicronutrientRepair.repairMeal', () {
@@ -294,11 +295,6 @@ void main() {
     late Box<MealDBO> cacheBox;
     late Box<MealDBO> customMealBox;
     late Box<RecipeDBO> recipeBox;
-
-    setUpAll(() {
-      Hive.init('.');
-      registerHiveAdaptersOnce();
-    });
 
     setUp(() async {
       final tag = DateTime.now().microsecondsSinceEpoch;

@@ -60,6 +60,7 @@ IntakeDBO _intake({required String id, required MealDBO meal, DateTime? at}) =>
     );
 
 void main() {
+  useTestHive();
   group('MergeCustomMealsUseCase', () {
     late Box<MealDBO> customBox;
     late Box<IntakeDBO> intakeBox;
@@ -68,8 +69,6 @@ void main() {
 
     setUpAll(() {
       TestWidgetsFlutterBinding.ensureInitialized();
-      Hive.init('.');
-      registerHiveAdaptersOnce();
     });
 
     setUp(() async {

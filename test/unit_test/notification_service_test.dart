@@ -8,7 +8,12 @@ import 'package:timezone/timezone.dart' as tz;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUpAll(tzdata.initializeTimeZones);
+  setUpAll(() {
+    tzdata.initializeTimeZones();
+    // Host tests have no native plugin registrant. Establish a baseline that
+    // individual tests can replace and restore without reading an unset slot.
+    AndroidFlutterLocalNotificationsPlugin.registerWith();
+  });
 
   test(
     'initialize uses the native timezone identifier and initializes notifications',
@@ -21,6 +26,9 @@ void main() {
       final messenger =
           TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
+      final originalTarget = debugDefaultTargetPlatformOverride;
+      final originalPlatform = FlutterLocalNotificationsPlatform.instance;
+      final originalTimezone = tz.local;
       debugDefaultTargetPlatformOverride = TargetPlatform.android;
       FlutterLocalNotificationsPlatform.instance =
           AndroidFlutterLocalNotificationsPlugin();
@@ -41,8 +49,9 @@ void main() {
       } finally {
         messenger.setMockMethodCallHandler(timezoneChannel, null);
         messenger.setMockMethodCallHandler(notificationsChannel, null);
-        debugDefaultTargetPlatformOverride = null;
-        tz.setLocalLocation(tz.UTC);
+        debugDefaultTargetPlatformOverride = originalTarget;
+        FlutterLocalNotificationsPlatform.instance = originalPlatform;
+        tz.setLocalLocation(originalTimezone);
       }
     },
   );
