@@ -234,6 +234,35 @@ void main() {
     },
   );
 
+  testWidgets('action icon colours stay steady while swiping and settling', (
+    tester,
+  ) async {
+    for (final left in [true, false]) {
+      await tester.pumpWidget(app());
+      final icon = find.byIcon(left ? Icons.info_outline : Icons.refresh);
+      final foreground = Theme.of(
+        tester.element(child()),
+      ).colorScheme.onPrimary;
+      Color? iconColour() => IconTheme.of(tester.element(icon)).color;
+      expect(iconColour(), foreground);
+
+      final gesture = await tester.startGesture(tester.getCenter(child()));
+      final direction = left ? 1.0 : -1.0;
+      await gesture.moveBy(Offset(direction * 20, 0));
+      await gesture.moveBy(Offset(direction * 60, 0));
+      await tester.pump();
+      expect(iconColour(), foreground);
+      await gesture.up();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(iconColour(), foreground);
+      await tester.pumpAndSettle();
+      expect(offset(tester), direction * 104);
+      expect(iconColour(), foreground);
+      await tester.pumpWidget(const SizedBox());
+    }
+  });
+
   testWidgets('busy rows disable swipe, revealed actions, and child taps', (
     tester,
   ) async {
