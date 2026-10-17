@@ -1,10 +1,6 @@
-import 'package:opennutritracker/features/diary/presentation/widgets/explode_diary_recipe.dart';
-import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'dart:async';
 
-import 'package:opennutritracker/core/presentation/widgets/delete_dialog.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
-import 'package:opennutritracker/features/diary/presentation/widgets/diary_drag_targets.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/diary_transfer_style.dart';
 import 'package:opennutritracker/core/presentation/widgets/swipe_reveal_scope.dart';
 import 'package:flutter/material.dart';
@@ -76,7 +72,7 @@ class _DiaryPageState extends State<DiaryPage> {
       }
       final y = box.globalToLocal(position).dy;
       const edge = 72.0;
-      final bottom = box.size.height - 84;
+      final bottom = box.size.height;
       final speed = y < edge
           ? -12 * ((edge - y) / edge).clamp(0.0, 1.0)
           : y > bottom - edge
@@ -90,24 +86,6 @@ class _DiaryPageState extends State<DiaryPage> {
       );
       if (next != scroll.pixels) _scrollController.jumpTo(next);
     });
-  }
-
-  Future<void> _deleteDraggedEntry(IntakeEntity entry) async {
-    final day = _selectedDate;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => const DeleteDialog(),
-    );
-    if (confirmed != true || !mounted) return;
-    await _calendarDayBloc.deleteIntakeItem(context, entry, day);
-    _diaryBloc.add(const LoadDiaryYearEvent());
-    _calendarDayBloc.add(RefreshCalendarDayEvent());
-    _diaryBloc.updateHomePage();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(S.of(context).itemDeletedSnackbar)),
-      );
-    }
   }
 
   DateTime get _selectedDate => locator<SelectedDayCubit>().state.day;
@@ -152,21 +130,6 @@ class _DiaryPageState extends State<DiaryPage> {
                 return const SizedBox();
               },
             ),
-            if (_dragging)
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 12,
-                child: DiaryDragTargets(
-                  onDelete: _deleteDraggedEntry,
-                  onExplode:
-                      _draggedEntry?.meal.source == MealSourceEntity.recipe
-                      ? (entry) => explodeDiaryRecipe(context, entry)
-                      : null,
-                  onCopy: (entry) =>
-                      locator<DiaryClipboardCubit>().copy([entry]),
-                ),
-              ),
             if (!_dragging && entries.isNotEmpty)
               Positioned(
                 left: 0,
