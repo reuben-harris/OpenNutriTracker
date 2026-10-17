@@ -212,6 +212,11 @@ void main() {
       expect(find.byType(TextField), findsNothing);
       expect(find.text('Log this food'), findsOneWidget);
       expect(find.text('1 serving (30 g)'), findsOneWidget);
+      expect(find.text('Nutritional information'), findsNothing);
+      expect(
+        tester.getBottomLeft(find.bySemanticsIdentifier('meal-detail-nutrition-basis')).dy,
+        lessThan(tester.getTopLeft(find.byKey(const ValueKey('meal-detail-macro-summary'))).dy),
+      );
       expect(
         find.byKey(const ValueKey('meal-detail-macro-summary')),
         findsOneWidget,
