@@ -1,3 +1,12 @@
+import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
+import 'package:opennutritracker/core/presentation/widgets/share_qr_dialog.dart';
+import 'package:opennutritracker/core/domain/entity/recipe_ingredient_entity.dart';
+import 'package:opennutritracker/core/domain/usecase/save_recipe_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/delete_recipe_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/compute_recipe_nutrition_usecase.dart';
+import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
+import 'package:opennutritracker/features/recipes/presentation/bloc/recipe_builder_bloc.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_amount_card.dart';
 import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_image.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/widgets/meal_detail_macro_nutrients.dart';
@@ -133,6 +142,7 @@ void main() {
     WidgetTester tester,
     MealEntity meal, {
     Widget Function(RouteSettings)? destination,
+    bool recipeDetail = false,
     Size size = const Size(600, 800),
     double textScale = 1,
     Future<bool> Function(MealEntity, FoodAmountSelection)? onConfirm,
@@ -172,14 +182,18 @@ void main() {
           onGenerateInitialRoutes: (_) => [
             routeFor(
               RouteSettings(
-                name: NavigationOptions.mealDetailRoute,
-                arguments: MealDetailScreenArguments(
-                  meal,
-                  IntakeTypeEntity.breakfast,
-                  DateTime(2026, 9, 14),
-                  imperialFoodUnits,
-                  onConfirm: onConfirm,
-                ),
+                name: recipeDetail
+                    ? NavigationOptions.recipeDetailRoute
+                    : NavigationOptions.mealDetailRoute,
+                arguments: recipeDetail
+                    ? RecipeDetailArguments(recipeId: savedRecipe!.id)
+                    : MealDetailScreenArguments(
+                        meal,
+                        IntakeTypeEntity.breakfast,
+                        DateTime(2026, 9, 14),
+                        imperialFoodUnits,
+                        onConfirm: onConfirm,
+                      ),
               ),
             ),
           ],
@@ -204,14 +218,263 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<_LiveRecipes> openRecipe(
+    WidgetTester tester, {
+    double textScale = 1,
+    bool fromSearch = false,
+  }) async {
+    final food = _solidWithServing();
+    savedRecipe = RecipeEntity(
+      id: 'recipe-live',
+      name: 'My recipe',
+      description: 'Description',
+      ingredients: [
+        RecipeIngredientEntity(
+          snapshotMeal: food,
+          quantity: FoodAmountSelection(
+            100,
+            foodAmountOptions(food).firstWhere((o) => o.unit == 'g'),
+          ),
+        ),
+      ],
+      totalWeightG: 100,
+      aggregatedNutrimentsPer100: food.nutriments,
+      servingsCount: 2,
+      createdAt: DateTime(2026, 1, 1),
+      updatedAt: DateTime(2026, 1, 2),
+    );
+    final saves = _LiveRecipes();
+    getIt.registerSingleton<SaveRecipeUseCase>(saves);
+    getIt.registerSingleton<DeleteRecipeUseCase>(saves);
+    getIt.registerFactory<RecipeBuilderBloc>(
+      () => RecipeBuilderBloc(ComputeRecipeNutritionUseCase(), saves),
+    );
+    final selectedDay = SelectedDayCubit(getIt<GetConfigUsecase>());
+    getIt.registerSingleton<SelectedDayCubit>(selectedDay);
+    addTearDown(selectedDay.close);
+    await pumpMealDetail(
+      tester,
+      savedRecipe!.toMealEntity(),
+      recipeDetail: !fromSearch,
+      size: const Size(360, 800),
+      textScale: textScale,
+      destination: (_) => const RecipeDetailScreen(),
+    );
+    return saves;
+  }
+
+  testWidgets(
+    'recipe reuses nutrition and logging, and details edits save on leaving',
+    (tester) async {
+      final saves = await openRecipe(tester);
+      expect(find.text('Log this item'), findsOneWidget);
+      expect(find.byType(MealDetailNutrimentsTable), findsOneWidget);
+      expect(find.byIcon(Icons.edit_outlined), findsNothing);
+      expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
+      final logRect = tester.getRect(
+        find.bySemanticsIdentifier('recipe-log-item'),
+      );
+      await tester.tap(find.text('Details'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getRect(find.bySemanticsIdentifier('recipe-log-item')),
+        logRect,
+      );
+      final name = find.descendant(
+        of: find.bySemanticsIdentifier('recipe-name'),
+        matching: find.byType(TextField),
+      );
+      await tester.ensureVisible(name);
+      await tester.enterText(name, 'Updated recipe');
+      await tester.pump();
+      // Leave before the debounce expires; the final write must still complete.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(saves.saved.last.name, 'Updated recipe');
+      expect(saves.saved.last.createdAt, DateTime(2026, 1, 1));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'ingredient swipes copy and delete, quantity edits update nutrition and save',
+    (tester) async {
+      final saves = await openRecipe(tester);
+      await tester.tap(find.text('Ingredients').first);
+      await tester.pumpAndSettle();
+      expect(
+        find.bySemanticsIdentifier('recipe-ingredients-sort'),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
+      await tester.drag(
+        find.byType(FoodAmountCard).first,
+        const Offset(-240, 0),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsIdentifier('recipe-ingredient-copy'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 450));
+      await tester.pumpAndSettle();
+      expect(saves.saved.last.ingredients, hasLength(2));
+      await tester.tap(find.byType(FoodAmountCard).first);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).last, '50');
+      await tester.tap(find.bySemanticsIdentifier('food-amount-confirm'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 450));
+      await tester.pumpAndSettle();
+      expect(saves.saved.last.totalWeightG, 150);
+      await tester.drag(
+        find.byType(FoodAmountCard).last,
+        const Offset(-240, 0),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.bySemanticsIdentifier('recipe-ingredient-delete').last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK').last);
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 450));
+      await tester.pumpAndSettle();
+      expect(saves.saved.last.ingredients, hasLength(1));
+      expect(saves.saved.last.totalWeightG, 50);
+      await tester.tap(find.text('Nutrition'));
+      await tester.pumpAndSettle();
+      expect(find.text('1 serving (25 g)'), findsOneWidget);
+      expect(bloc!.state.totalKcal, 25);
+      expect(logged, isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'recipe logging opens the amount sheet and logs the selected quantity',
+    (tester) async {
+      await openRecipe(tester);
+      await tester.tap(find.bySemanticsIdentifier('recipe-log-item'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsIdentifier('recipe-log-breakfast'));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+      await tester.enterText(find.byType(TextField).last, '40');
+      await tester.tap(find.bySemanticsIdentifier('food-amount-confirm'));
+      await tester.pumpAndSettle();
+      expect(logged.single.baseAmount, 40);
+      expect(logged.single.meal.source, MealSourceEntity.recipe);
+      expect(find.bySemanticsIdentifier('recipe-log-item'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'recipe quick add requires weight and adds an ingredient without logging',
+    (tester) async {
+      final saves = await openRecipe(tester);
+      await tester.tap(find.text('Ingredients').first);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .getTopLeft(
+              find.descendant(
+                of: find.byType(FoodAmountCard).first,
+                matching: find.byType(AppCard),
+              ),
+            )
+            .dx,
+        16,
+      );
+      await tester.tap(
+        find.bySemanticsIdentifier('recipe-quick-add-ingredient'),
+      );
+      await tester.pumpAndSettle();
+      Future<void> enter(String identifier, String value) => tester.enterText(
+        find.descendant(
+          of: find.bySemanticsIdentifier(identifier),
+          matching: find.byType(TextField),
+        ),
+        value,
+      );
+      await enter('quick-add-title', 'Sauce');
+      await enter('quick-add-energy', '80');
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.descendant(
+                of: find.bySemanticsIdentifier('quick-add-submit'),
+                matching: find.byType(FilledButton),
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+      await enter('quick-add-weight', '20');
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsIdentifier('quick-add-submit'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 450));
+      await tester.pumpAndSettle();
+      expect(saves.saved.last.ingredients.last.snapshotMeal.name, 'Sauce');
+      expect(saves.saved.last.totalWeightG, 120);
+      expect(logged, isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets('recipe share displays its QR payload', (tester) async {
+    await openRecipe(tester);
+    await tester.tap(find.bySemanticsIdentifier('recipe-share'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ShareQrDialog), findsOneWidget);
+    expect(
+      tester.widget<ShareQrDialog>(find.byType(ShareQrDialog)).code,
+      isNotEmpty,
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('recipe tabs and pinned logging fit enlarged text', (
+    tester,
+  ) async {
+    await openRecipe(tester, textScale: 3);
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getRect(find.bySemanticsIdentifier('recipe-log-item')).bottom,
+      lessThanOrEqualTo(800),
+    );
+    await tester.ensureVisible(find.text('Ingredients').first);
+    await tester.tap(find.text('Ingredients').first);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets(
     'information previews one weighted serving without amount fields',
     (tester) async {
       await pumpMealDetail(tester, _solidWithServing());
       expect(bloc!.state.totalKcal, 30);
       expect(find.byType(TextField), findsNothing);
-      expect(find.text('Log this food'), findsOneWidget);
+      expect(find.text('Log this item'), findsOneWidget);
       expect(find.text('1 serving (30 g)'), findsOneWidget);
+      expect(find.text('Nutrition Information'), findsNothing);
+      expect(
+        tester
+            .getBottomLeft(
+              find.bySemanticsIdentifier('meal-detail-nutrition-basis'),
+            )
+            .dy,
+        lessThan(
+          tester
+              .getTopLeft(
+                find.byKey(const ValueKey('meal-detail-macro-summary')),
+              )
+              .dy,
+        ),
+      );
       expect(
         find.byKey(const ValueKey('meal-detail-macro-summary')),
         findsOneWidget,
@@ -261,7 +524,7 @@ void main() {
   );
 
   for (final imperial in [false, true]) {
-    testWidgets('Log this food opens an amount sheet with imperial=$imperial', (
+    testWidgets('Log this item opens an amount sheet with imperial=$imperial', (
       tester,
     ) async {
       imperialFoodUnits = imperial;
@@ -456,67 +719,21 @@ void main() {
     },
   );
 
-  for (final exists in [false, true]) {
-    testWidgets(
-      'recipe information ${exists ? 'opens its ID and reloads saved data on return' : 'reports an unavailable recipe'}',
-      (tester) async {
-        final recipe = RecipeEntity(
-          id: 'recipe-123',
-          name: 'Recipe',
-          description: null,
-          ingredients: const [],
-          totalWeightG: 300,
-          aggregatedNutrimentsPer100: _nutriments,
-          createdAt: DateTime(2026),
-          updatedAt: DateTime(2026),
-          servingsCount: 3,
-        );
-        savedRecipe = exists ? recipe : null;
-        final navigator = await pumpMealDetail(
-          tester,
-          recipe.toMealEntity(),
-          destination: (settings) {
-            expect(settings.name, NavigationOptions.recipeDetailRoute);
-            expect(
-              (settings.arguments as RecipeDetailArguments).recipeId,
-              'recipe-123',
-            );
-            return const Scaffold(body: Text('Recipe details'));
-          },
-        );
-        await tester.drag(
-          find.byType(SingleChildScrollView).first,
-          const Offset(0, -1600),
-        );
-        await tester.pumpAndSettle();
-        await tester.ensureVisible(
-          find.bySemanticsIdentifier('meal-detail-information'),
-        );
-        await tester.tap(find.bySemanticsIdentifier('meal-detail-information'));
-        await tester.pumpAndSettle();
-        if (exists) {
-          expect(find.text('Recipe details'), findsOneWidget);
-          savedRecipe = recipe.copyWith(name: 'Updated recipe');
-          navigator.pop();
-          await tester.pumpAndSettle();
-          expect(
-            tester
-                .widget<MealDetailNutrimentsTable>(
-                  find.byType(MealDetailNutrimentsTable),
-                )
-                .product
-                .name,
-            'Updated recipe',
-          );
-        } else {
-          expect(
-            find.text('This saved recipe is no longer available.'),
-            findsOneWidget,
-          );
-        }
-      },
-    );
-  }
+  testWidgets(
+    'recipe search information opens the same tabs with no self-link',
+    (tester) async {
+      await openRecipe(tester, fromSearch: true);
+      expect(find.text('Custom Recipe'), findsOneWidget);
+      expect(find.bySemanticsIdentifier('recipe-detail-tabs'), findsOneWidget);
+      expect(
+        find.bySemanticsIdentifier('meal-detail-information'),
+        findsNothing,
+      );
+      expect(find.bySemanticsIdentifier('recipe-share'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
   for (final textScale in [1.0, 2.0, 3.0]) {
     testWidgets(
       '360px screen at text scale $textScale keeps logging and keyboard controls reachable',
@@ -807,4 +1024,19 @@ class _UnavailableUser implements GetUserUsecase {
   Future<UserEntity> getUserData() async => throw StateError('No user');
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
+class _LiveRecipes implements SaveRecipeUseCase, DeleteRecipeUseCase {
+  final saved = <RecipeEntity>[];
+  final deleted = <String>[];
+  @override
+  Future<RecipeEntity> save(RecipeEntity recipe) async {
+    saved.add(recipe);
+    return recipe;
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    deleted.add(id);
+  }
 }

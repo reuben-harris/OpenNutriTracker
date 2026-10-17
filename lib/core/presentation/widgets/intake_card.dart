@@ -1,10 +1,6 @@
+import 'package:opennutritracker/core/presentation/widgets/food_amount_card.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
-import 'package:opennutritracker/core/presentation/widgets/food_card.dart';
-import 'package:opennutritracker/core/presentation/widgets/food_card_text.dart';
-import 'package:opennutritracker/core/presentation/widgets/meal_value_unit_text.dart';
-import 'package:opennutritracker/core/utils/energy_display.dart';
-import 'package:opennutritracker/generated/l10n.dart';
 
 /// A logged intake, rendered as a full-width row: a rounded thumbnail, the meal
 /// name and amount, and the energy on the trailing edge. Replaces the old
@@ -26,53 +22,19 @@ class IntakeCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final s = S.of(context);
-    return FoodCard(
-      meal: intake.meal,
-      isRefreshing: isRefreshing,
-      borderColor: intake.isIncomplete ? Colors.orange : null,
-      onTap: onItemTapped != null
-          ? () => onTappedItem(context, usesImperialUnits)
-          : null,
-      onLongPress: onItemLongPressed != null
-          ? () => onLongPressedItem(context)
-          : null,
-      content: FoodCardText(
-        title: intake.meal.name ?? '?',
-        subtitle: TextSpan(
-          children: [
-            TextSpan(
-              text: intake.quantity == null
-                  ? '—'
-                  : MealValueUnitText.format(
-                      context,
-                      intake.baseAmount!,
-                      intake.meal,
-                      sourceUnit: intake.baseUnit,
-                      usesImperialUnits: usesImperialUnits,
-                    ),
-            ),
-            if (intake.isIncomplete)
-              TextSpan(
-                text: ' · ${s.missingNutritionLabel}',
-                style: const TextStyle(fontStyle: FontStyle.italic),
-              ),
-          ],
-        ),
-        trailingTitle: intake.meal.nutriments.energyKcal100 == null
-            ? '—'
-            : EnergyDisplay.formatWithUnit(context, intake.totalKcal),
-        trailingSubtitle:
-            '${_known(intake.meal.nutriments.carbohydrates100, intake.totalCarbsGram)} ${s.carbsLabelShort} '
-            '${_known(intake.meal.nutriments.fat100, intake.totalFatsGram)} ${s.fatLabelShort} '
-            '${_known(intake.meal.nutriments.proteins100, intake.totalProteinsGram)} ${s.proteinLabelShort}',
-      ),
-    );
-  }
-
-  String _known(double? value, double total) =>
-      value == null ? '—' : total.toStringAsFixed(0);
+  Widget build(BuildContext context) => FoodAmountCard(
+    meal: intake.meal,
+    quantity: intake.quantity,
+    usesImperialUnits: usesImperialUnits,
+    isRefreshing: isRefreshing,
+    isIncomplete: intake.isIncomplete,
+    onTap: onItemTapped == null
+        ? null
+        : () => onTappedItem(context, usesImperialUnits),
+    onLongPress: onItemLongPressed == null
+        ? null
+        : () => onLongPressedItem(context),
+  );
 
   void onLongPressedItem(BuildContext context) {
     onItemLongPressed?.call(context, intake);

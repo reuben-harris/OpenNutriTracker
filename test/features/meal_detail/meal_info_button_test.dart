@@ -37,7 +37,6 @@ void main() {
     WidgetTester tester,
     MealSourceEntity source, {
     String? url,
-    VoidCallback? onRecipe,
     VoidCallback? onCustom,
   }) => tester.pumpWidget(
     MaterialApp(
@@ -57,7 +56,6 @@ void main() {
             nutriments: MealNutrimentsEntity.empty(),
             source: source,
           ),
-          onRecipe: onRecipe ?? () {},
           onCustom: onCustom ?? () {},
         ),
       ),
@@ -104,27 +102,21 @@ void main() {
     });
   }
   testWidgets(
-    'recipe and custom actions use their supplied navigation; unknown is plain text',
+    'recipes have no self-link, custom opens editing, and unknown is plain text',
     (tester) async {
-      var recipes = 0, custom = 0;
+      var custom = 0;
       for (final source in [
         MealSourceEntity.recipe,
         MealSourceEntity.custom,
         MealSourceEntity.unknown,
       ]) {
-        await mount(
-          tester,
-          source,
-          onRecipe: () => recipes++,
-          onCustom: () => custom++,
-        );
-        if (source == MealSourceEntity.unknown) {
+        await mount(tester, source, onCustom: () => custom++);
+        if (source != MealSourceEntity.custom) {
           expect(find.byType(TextButton), findsNothing);
         } else {
           await tester.tap(find.byType(TextButton));
         }
       }
-      expect(recipes, 1);
       expect(custom, 1);
       expect(urls, isEmpty);
     },

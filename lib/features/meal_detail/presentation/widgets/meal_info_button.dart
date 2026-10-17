@@ -7,16 +7,12 @@ import 'package:url_launcher/url_launcher.dart';
 
 class MealInfoButton extends StatelessWidget {
   final MealEntity meal;
-  final VoidCallback onRecipe, onCustom;
-  const MealInfoButton({
-    super.key,
-    required this.meal,
-    required this.onRecipe,
-    required this.onCustom,
-  });
+  final VoidCallback onCustom;
+  const MealInfoButton({super.key, required this.meal, required this.onCustom});
 
   @override
   Widget build(BuildContext context) {
+    if (meal.source == MealSourceEntity.recipe) return const SizedBox.shrink();
     final s = S.of(context);
     final label = switch (meal.source) {
       MealSourceEntity.unknown => s.additionalInfoLabelUnknown,
@@ -30,7 +26,7 @@ class MealInfoButton extends StatelessWidget {
       identifier: 'meal-detail-information',
       child: TextButton.icon(
         onPressed: switch (meal.source) {
-          MealSourceEntity.recipe => onRecipe,
+          MealSourceEntity.recipe => null,
           MealSourceEntity.custom => onCustom,
           _ => () => _launch(context),
         },

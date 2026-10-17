@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/usecase/create_recipe_from_intakes_usecase.dart';
 import 'package:opennutritracker/core/utils/food_cache_maintenance.dart';
 import 'package:opennutritracker/core/utils/food_image_loader.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
@@ -126,7 +127,6 @@ import 'package:opennutritracker/features/onboarding/presentation/bloc/onboardin
 import 'package:opennutritracker/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:opennutritracker/features/profile/presentation/utils/profile_switch_coordinator.dart';
 import 'package:opennutritracker/features/recipes/presentation/bloc/recipe_builder_bloc.dart';
-import 'package:opennutritracker/features/recipes/presentation/bloc/recipe_detail_bloc.dart';
 import 'package:opennutritracker/features/recipes/presentation/bloc/recipes_bloc.dart';
 import 'package:opennutritracker/features/scanner/domain/usecase/search_product_by_barcode_usecase.dart';
 import 'package:opennutritracker/features/scanner/presentation/scanner_bloc.dart';
@@ -303,9 +303,6 @@ Future<void> initLocator() async {
   );
   locator.registerFactory<RecipeBuilderBloc>(
     () => RecipeBuilderBloc(locator(), locator()),
-  );
-  locator.registerFactory<RecipeDetailBloc>(
-    () => RecipeDetailBloc(locator(), locator()),
   );
   locator.registerLazySingleton(
     () => SettingsBloc(
@@ -620,6 +617,9 @@ Future<void> initLocator() async {
   // Recipe use cases
   locator.registerLazySingleton(() => ComputeRecipeNutritionUseCase());
   locator.registerLazySingleton(() => SaveRecipeUseCase(locator(), locator()));
+  locator.registerLazySingleton(
+    () => CreateRecipeFromIntakesUsecase(locator(), locator()),
+  );
   locator.registerLazySingleton(() => GetAllRecipesUseCase(locator()));
   locator.registerLazySingleton(() => GetRecipeByIdUseCase(locator()));
   locator.registerLazySingleton(() => DeleteRecipeUseCase(locator()));

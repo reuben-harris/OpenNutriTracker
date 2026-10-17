@@ -1,5 +1,6 @@
 import '../../../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
+import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/quick_add_bottom_sheet.dart';
 import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
@@ -20,7 +21,7 @@ import 'package:opennutritracker/core/domain/entity/recipe_ingredient_entity.dar
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
-import 'package:opennutritracker/features/home/presentation/widgets/explodable_intake_row.dart';
+import 'package:opennutritracker/features/home/presentation/widgets/diary_intake_row.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
 import 'package:opennutritracker/core/presentation/widgets/swipe_reveal_scope.dart';
@@ -93,6 +94,9 @@ Widget _app(
   VoidCallback onDaySwipe, {
   List<IntakeEntity> others = const [],
   VoidCallback? onTap,
+  VoidCallback? onDelete,
+  double scale = 1,
+  Locale? locale,
   VoidCallback? onOutsideTap,
   bool active = true,
   bool reducedMotion = false,
@@ -102,11 +106,15 @@ Widget _app(
   create: (_) => EnergyUnitProvider(),
   child: MaterialApp(
     navigatorKey: navigatorKey,
+    locale: locale,
     onGenerateRoute: onGenerateRoute,
     localizationsDelegates: const [S.delegate],
     supportedLocales: S.supportedLocales,
     home: MediaQuery(
-      data: MediaQueryData(disableAnimations: reducedMotion),
+      data: MediaQueryData(
+        disableAnimations: reducedMotion,
+        textScaler: TextScaler.linear(scale),
+      ),
       child: Scaffold(
         body: SwipeRevealScope(
           active: active,
@@ -118,9 +126,10 @@ Widget _app(
                   Column(
                     key: ValueKey('section-${entry.id}'),
                     children: [
-                      ExplodableIntakeRow(
+                      DiaryIntakeRow(
                         key: ValueKey(entry.id),
                         intake: entry,
+                        onDelete: onDelete ?? () {},
                         usesImperialUnits: false,
                         onItemTapped: (_, _, _) => onTap?.call(),
                       ),
@@ -157,6 +166,11 @@ Future<void> _open(WidgetTester tester, [String id = 'intake-1']) async {
   await tester.pumpAndSettle();
 }
 
+Finder _control(String id) => find.byWidgetPredicate(
+  (widget) =>
+      widget is Semantics && widget.properties.identifier == 'diary-intake-$id',
+);
+
 class _FailingRefresh extends Fake implements RefreshDiaryIntakeUsecase {
   @override
   Future<IntakeEntity?> refresh(String id) async =>
@@ -184,6 +198,194 @@ class _Recipes extends Fake implements RecipeRepository {
 
 void main() {
   useTestLocator();
+  testWidgets('food and recipe action strips keep order, size and alignment', (
+    tester,
+  ) async {
+    for (final recipe in [false, true]) {
+      await tester.pumpWidget(_app(recipeIntake(recipe: recipe), () {}));
+      await _open(tester);
+      final ids = ['refresh', 'copy', if (recipe) 'explode', 'delete'];
+      final rects = [for (final id in ids) tester.getRect(_control(id))];
+      for (var i = 0; i < ids.length; i++) {
+        expect(rects[i].width, 64);
+        expect(rects[i].top, rects.first.top);
+        expect(rects[i].bottom, rects.first.bottom);
+        if (i > 0) expect(rects[i].left - rects[i - 1].right, 6);
+        expect(
+          tester
+              .widget<Icon>(
+                find.descendant(
+                  of: _control(ids[i]),
+                  matching: find.byType(Icon),
+                ),
+              )
+              .size,
+          24,
+        );
+      }
+      expect(rects.first.top, tester.getTopLeft(_card()).dy + 4);
+      expect(rects.last.bottom, tester.getBottomLeft(_card()).dy - 4);
+      expect(_control('explode'), recipe ? findsOneWidget : findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    }
+  });
+
+  testWidgets(
+    'narrow rows fit enlarged translated labels with full accessible names',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.binding.setSurfaceSize(const Size(280, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        _app(recipeIntake(), () {}, scale: 2, locale: const Locale('de')),
+      );
+      await _open(tester);
+      final rects = [
+        for (final id in ['refresh', 'copy', 'explode', 'delete'])
+          tester.getRect(_control(id)),
+      ];
+      expect(rects.first.left, 16);
+      expect(rects.last.right, 264);
+      expect(rects.first.width, 57.5);
+      for (final id in ['refresh', 'copy', 'explode', 'delete']) {
+        final control = _control(id);
+        final text = tester.widget<Text>(
+          find.descendant(of: control, matching: find.byType(Text)),
+        );
+        expect(text.maxLines, 1);
+        expect(text.overflow, TextOverflow.ellipsis);
+        expect(tester.getSemantics(control).label, text.data);
+        expect(
+          tester
+              .widget<Tooltip>(
+                find.descendant(of: control, matching: find.byType(Tooltip)),
+              )
+              .message,
+          text.data,
+        );
+      }
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    },
+  );
+
+  testWidgets('a short slow left swipe still opens the whole recipe strip', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(recipeIntake(), () {}));
+    final gesture = await tester.startGesture(tester.getCenter(_card()));
+    for (var i = 0; i < 4; i++) {
+      await gesture.moveBy(const Offset(-20, 0));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pump(const Duration(milliseconds: 300));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(_card()).dx, -274);
+  });
+
+  testWidgets(
+    'all hidden and partially revealed actions stay inaccessible and inactive',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      await tester.pumpWidget(_app(recipeIntake(), () {}));
+      void expectHidden() {
+        for (final id in ['refresh', 'copy', 'explode', 'delete']) {
+          expect(
+            find.semantics.byPredicate(
+              (node) =>
+                  node.getSemanticsData().identifier == 'diary-intake-$id',
+            ),
+            findsNothing,
+          );
+          expect(
+            tester
+                .widget<TextButton>(
+                  find.descendant(
+                    of: _control(id),
+                    matching: find.byType(TextButton),
+                  ),
+                )
+                .onPressed,
+            isNull,
+          );
+        }
+      }
+
+      expectHidden();
+      final gesture = await tester.startGesture(tester.getCenter(_card()));
+      await gesture.moveBy(const Offset(-20, 0));
+      await gesture.moveBy(const Offset(-80, 0));
+      await tester.pump();
+      expectHidden();
+      await tester.tapAt(tester.getCenter(_control('delete')));
+      expect(find.byType(AlertDialog), findsNothing);
+      await gesture.up();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expectHidden();
+      await tester.pumpAndSettle();
+      for (final id in ['refresh', 'copy', 'explode', 'delete']) {
+        expect(
+          find.semantics.byPredicate(
+            (node) => node.getSemanticsData().identifier == 'diary-intake-$id',
+          ),
+          findsOneWidget,
+        );
+      }
+      semantics.dispose();
+    },
+  );
+
+  testWidgets(
+    'swipe Copy closes the row and captures detached recipe snapshots',
+    (tester) async {
+      final clipboard = DiaryClipboardCubit();
+      locator.registerSingleton<DiaryClipboardCubit>(clipboard);
+      addTearDown(() async {
+        await locator.resetScope();
+        await clipboard.close();
+      });
+      final entry = recipeIntake();
+      await tester.pumpWidget(_app(entry, () {}));
+      await _open(tester);
+      await tester.tap(_control('copy'));
+      expect(clipboard.state.single.id, entry.id);
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(_card()).dx, 0);
+      expect(clipboard.state.single.id, entry.id);
+      expect(clipboard.state.single, isNot(same(entry)));
+      entry.recipeSnapshot!.ingredients.clear();
+      expect(clipboard.state.single.recipeSnapshot!.ingredients, hasLength(1));
+      expect(find.byType(AlertDialog), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'swipe Delete shows its prompt immediately and honors cancellation',
+    (tester) async {
+      var deletions = 0;
+      await tester.pumpWidget(
+        _app(recipeIntake(), () {}, onDelete: () => deletions++),
+      );
+      for (final confirm in [false, true]) {
+        await _open(tester);
+        await tester.tap(_control('delete'));
+        await tester.pump();
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(tester.getTopLeft(_card()).dx, -274);
+        await tester.pumpAndSettle();
+        expect(tester.getTopLeft(_card()).dx, 0);
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(deletions, 0);
+        await tester.tap(find.text(confirm ? 'OK' : 'CANCEL'));
+        await tester.pumpAndSettle();
+        expect(deletions, confirm ? 1 : 0);
+        expect(find.byType(AlertDialog), findsNothing);
+      }
+    },
+  );
+
   testWidgets('refresh progress blurs the thumbnail for at least 500ms', (
     tester,
   ) async {
@@ -192,7 +394,13 @@ void main() {
     await tester.pumpWidget(_app(recipeIntake(recipe: false), () {}));
     await _open(tester);
     await tester.tap(_action());
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.getTopLeft(_card()).dx, greaterThan(-204));
+    expect(tester.getTopLeft(_card()).dx, lessThan(0));
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(tester.getTopLeft(_card()).dx, 0);
     final thumb = find.byType(FoodImage);
     expect(
       find.descendant(of: thumb, matching: find.byType(ImageFiltered)),
@@ -267,7 +475,7 @@ void main() {
       await _open(tester);
       expect(days, 0);
       expect(_action(), findsOneWidget);
-      expect(tester.getTopLeft(_card()).dx, -104);
+      expect(tester.getTopLeft(_card()).dx, recipe ? -274 : -204);
       await tester.pumpWidget(const SizedBox());
     }
   });
@@ -559,8 +767,8 @@ void main() {
         findsOneWidget,
       );
       await tester.tap(find.text('Info'));
-      await tester.pumpAndSettle();
       expect(route!.name, NavigationOptions.mealDetailRoute);
+      await tester.pumpAndSettle();
       final args = route!.arguments as MealDetailScreenArguments;
       expect(args.day, DateTime(2026, 9, 20));
       expect(args.mealEntity.name, 'Oats');
@@ -627,7 +835,7 @@ void main() {
       await tester.pumpAndSettle();
       await _open(tester, 'second');
       expect(tester.getTopLeft(_card()).dx, 0);
-      expect(tester.getTopLeft(_card('second')).dx, -104);
+      expect(tester.getTopLeft(_card('second')).dx, -274);
       await tester.tapAt(tester.getCenter(_card()));
       expect(taps, 1);
     },
