@@ -23,6 +23,7 @@ ConfigDBO _dbo({
 );
 
 void main() {
+  useTestHive();
   group('ConfigEntity health import defaults', () {
     test('a config written before the feature existed reads as opted out', () {
       final config = ConfigEntity.fromConfigDBO(ConfigDBO.empty());
@@ -104,22 +105,15 @@ void main() {
 
     setUpAll(() {
       TestWidgetsFlutterBinding.ensureInitialized();
-      registerHiveAdaptersOnce();
     });
 
     setUp(() async {
-      Hive.init('.');
       appBox = await Hive.openBox<ConfigDBO>('health_owner_app_test');
       profileABox = await Hive.openBox<ConfigDBO>('health_owner_a_test');
       profileBBox = await Hive.openBox<ConfigDBO>('health_owner_b_test');
       await appBox.clear();
       await profileABox.clear();
       await profileBBox.clear();
-    });
-
-    tearDown(() async {
-      await Hive.close();
-      await Hive.deleteFromDisk();
     });
 
     ConfigDataSource sourceFor(Box<ConfigDBO> profileBox) => ConfigDataSource(

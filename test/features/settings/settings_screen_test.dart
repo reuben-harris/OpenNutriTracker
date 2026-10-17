@@ -1,3 +1,4 @@
+import '../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -106,9 +107,10 @@ Widget _app({Object? arguments}) => MaterialApp(
 );
 
 void main() {
+  useTestLocator();
   // A handset, because the point of #852 is where the AI row sits on one.
   setUp(() => _register());
-  tearDown(() async => locator.reset());
+  tearDown(() async => locator.resetScope());
 
   group('the embedded form is not a scrollable (#974)', () {
     /// The You tab hosts the screen inside its own scrollable, so anything
@@ -139,16 +141,15 @@ void main() {
       // scrolls to a computed offset, which a fling never rests at. So this
       // pins the structural property the fix rests on instead, and says so
       // rather than implying wider cover.
-      await tester.pumpWidget(
-        embeddedIn(const SettingsScreen(embedded: true)),
-      );
+      await tester.pumpWidget(embeddedIn(const SettingsScreen(embedded: true)));
       await tester.pumpAndSettle();
 
       final scrollables = tester.widgetList(find.byType(Scrollable));
       expect(
         scrollables,
         hasLength(1),
-        reason: 'only the host scrollable — the embedded settings must add '
+        reason:
+            'only the host scrollable — the embedded settings must add '
             'none of its own',
       );
     });

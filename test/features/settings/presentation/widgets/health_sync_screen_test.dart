@@ -1,3 +1,4 @@
+import '../../../../helpers/locator_test_setup.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -101,6 +102,7 @@ Finder _byIdentifier(String identifier) => find.byWidgetPredicate(
 );
 
 void main() {
+  useTestLocator();
   late _FakeSettingsBloc settingsBloc;
   late _FakeGetConfigUsecase getConfigUsecase;
   late _FakeHealthImportRepository healthImportRepository;
@@ -129,7 +131,7 @@ void main() {
   });
 
   tearDown(() async {
-    await GetIt.instance.reset();
+    await GetIt.instance.resetScope();
   });
 
   /// Rewrites the stored config the screen loads from. Positional arguments

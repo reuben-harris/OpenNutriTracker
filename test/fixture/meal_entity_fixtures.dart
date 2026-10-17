@@ -2,7 +2,7 @@ import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dar
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 
 class MealEntityFixtures {
-  static final mealOne = MealEntity(
+  static MealEntity get mealOne => MealEntity(
     code: "1",
     name: null,
     url: null,
@@ -14,7 +14,7 @@ class MealEntityFixtures {
     nutriments: MealNutrimentsEntity.empty(),
     source: MealSourceEntity.custom,
   );
-  static final mealTwo = MealEntity(
+  static MealEntity get mealTwo => MealEntity(
     code: "2",
     name: null,
     url: null,
@@ -26,7 +26,7 @@ class MealEntityFixtures {
     nutriments: MealNutrimentsEntity.empty(),
     source: MealSourceEntity.custom,
   );
-  static final mealThree = MealEntity(
+  static MealEntity get mealThree => MealEntity(
     code: "3",
     name: null,
     url: null,

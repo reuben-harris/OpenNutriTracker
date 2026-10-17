@@ -216,12 +216,21 @@ void main() {
       reason: '5 kg clears the hard bounds, so the page can still proceed',
     );
 
-    // Leaving the field again must not re-open the dialog for the same value.
-    await tester.tap(find.byType(TextFormField).first);
+    // Refocus the confirmed weight and leave it again without changing it.
+    final weight = find.byType(TextField).at(1);
+    await tester.ensureVisible(weight);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(TextFormField).at(2));
+    await tester.tap(weight);
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(weight).focusNode!.hasFocus, isTrue);
+
+    final height = find.byType(TextField).first;
+    await tester.ensureVisible(height);
+    await tester.pumpAndSettle();
+    await tester.tap(height);
     await tester.pumpAndSettle();
 
+    expect(tester.widget<TextField>(weight).focusNode!.hasFocus, isFalse);
     expect(find.text(l10nEn.onboardingImplausibleTitle), findsNothing);
   });
 

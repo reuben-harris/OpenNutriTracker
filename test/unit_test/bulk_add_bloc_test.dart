@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../helpers/memory_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/utils/ai_credential_storage.dart';
 import 'package:opennutritracker/features/add_meal/domain/meal_photo_interpreter.dart';
@@ -68,14 +68,14 @@ class _FakeSearch implements SearchProductsUseCase {
 /// No credential stored, so the use case always takes the parser path —
 /// these tests are about the bloc, not about which reader produced the items.
 ReadMealTextUseCase parserOnlyReader() => ReadMealTextUseCase(
-  AiCredentialStorage(_EmptyStorage()),
+  AiCredentialStorage(MemorySecureStorage()),
   (_) => throw StateError('must not be built without a key'),
 );
 
 /// Same idea for photos: no credential, so the use case reports the feature
 /// unavailable without ever building an interpreter.
 ReadMealPhotoUseCase photoReaderWithoutKey() => ReadMealPhotoUseCase(
-  AiCredentialStorage(_EmptyStorage()),
+  AiCredentialStorage(MemorySecureStorage()),
   (_) => throw StateError('must not be built without a key'),
 );
 
@@ -85,7 +85,8 @@ ReadMealPhotoUseCase photoReaderWithoutKey() => ReadMealPhotoUseCase(
 ReadMealTextUseCase readerFailingWith(MealInterpreterException failure) {
   return ReadMealTextUseCase(
     AiCredentialStorage(
-      _MapStorage({
+      MemorySecureStorage({
+        'AiTermsAcceptedTag': 'true',
         'AiApiKeyTag.anthropic': 'sk-test',
         'AiAssistEnabledTag': 'true',
       }),
@@ -110,7 +111,8 @@ class _AlwaysFailsInterpreter implements MealTextInterpreter {
 ReadMealTextUseCase readerReturning(List<ParsedMealItem> items) =>
     ReadMealTextUseCase(
       AiCredentialStorage(
-        _MapStorage({
+        MemorySecureStorage({
+          'AiTermsAcceptedTag': 'true',
           'AiApiKeyTag.anthropic': 'sk-test',
           'AiAssistEnabledTag': 'true',
         }),
@@ -130,31 +132,44 @@ class _FixedInterpreter implements MealTextInterpreter {
   }) async => MealTextParseResult(items: items, errors: const []);
 }
 
+BulkAddBloc _ownedBloc(BulkAddBloc bloc) {
+  addTearDown(() async {
+    if (!bloc.isClosed) await bloc.close();
+  });
+  return bloc;
+}
+
 BulkAddBloc blocWithModelReply(
   Map<String, List<MealEntity>> results,
   List<ParsedMealItem> items,
-) => BulkAddBloc(
-  ResolveParsedMealsUseCase(_FakeSearch(results)),
-  readerReturning(items),
-  photoReaderWithoutKey(),
+) => _ownedBloc(
+  BulkAddBloc(
+    ResolveParsedMealsUseCase(_FakeSearch(results)),
+    readerReturning(items),
+    photoReaderWithoutKey(),
+  ),
 );
 
 BulkAddBloc blocWithFailingReader(
   Map<String, List<MealEntity>> results,
   MealInterpreterException failure,
-) => BulkAddBloc(
-  ResolveParsedMealsUseCase(_FakeSearch(results)),
-  readerFailingWith(failure),
-  photoReaderWithoutKey(),
+) => _ownedBloc(
+  BulkAddBloc(
+    ResolveParsedMealsUseCase(_FakeSearch(results)),
+    readerFailingWith(failure),
+    photoReaderWithoutKey(),
+  ),
 );
 
 BulkAddBloc blocWith(
   Map<String, List<MealEntity>> results, {
   ReadMealPhotoUseCase? photoReader,
-}) => BulkAddBloc(
-  ResolveParsedMealsUseCase(_FakeSearch(results)),
-  parserOnlyReader(),
-  photoReader ?? photoReaderWithoutKey(),
+}) => _ownedBloc(
+  BulkAddBloc(
+    ResolveParsedMealsUseCase(_FakeSearch(results)),
+    parserOnlyReader(),
+    photoReader ?? photoReaderWithoutKey(),
+  ),
 );
 
 /// Candidates come back ranked, not in the order they were faked, so tests
@@ -782,10 +797,12 @@ void main() {
   });
 
   test('a resolution failure surfaces as an error state', () async {
-    final bloc = BulkAddBloc(
-      ResolveParsedMealsUseCase(_FakeSearch({}, throws: true)),
-      parserOnlyReader(),
-      photoReaderWithoutKey(),
+    final bloc = _ownedBloc(
+      BulkAddBloc(
+        ResolveParsedMealsUseCase(_FakeSearch({}, throws: true)),
+        parserOnlyReader(),
+        photoReaderWithoutKey(),
+      ),
     );
 
     bloc.add(const ParseBulkTextEvent(text: 'toast', usesImperialUnits: false));
@@ -812,60 +829,7 @@ void main() {
     expect(state.parseErrors, hasLength(1));
   });
 
-  group('reading a photo', () {
-    Future<BulkAddState> readPhoto(
-      Map<String, List<MealEntity>> results,
-      MealPhotoReadResult reading,
-    ) async {
-      final bloc = blocWith(results, photoReader: _StubPhotoReader(reading));
-      bloc.add(ReadMealPhotoEvent(photo: _photo, usesImperialUnits: false));
-      return bloc.stream.firstWhere((s) => s is! BulkAddLoadingState);
-    }
-
-    test('resolves the foods a photo produced', () async {
-      final state = await readPhoto(
-        {
-          'egg': [meal('Egg', servingQuantity: 50)],
-        },
-        const MealPhotoRead(
-          MealTextParseResult(
-            items: [ParsedMealItem(query: 'egg', quantity: 2)],
-            errors: [],
-          ),
-        ),
-      );
-
-      expect(state, isA<BulkAddLoadedState>());
-      final loaded = state as BulkAddLoadedState;
-      expect(loaded.rows.single.meal?.name, 'Egg');
-      // A bare count against a scalable record is servings, same rule the
-      // text path uses — the reader changes, the row logic does not.
-      expect(loaded.rows.single.amountText, '2');
-      expect(loaded.rows.single.unit, 'serving');
-    });
-
-    test('marks the batch as read from a photo', () async {
-      final state = await readPhoto(
-        {
-          'egg': [meal('Egg')],
-        },
-        const MealPhotoRead(
-          MealTextParseResult(
-            items: [ParsedMealItem(query: 'egg')],
-            errors: [],
-          ),
-        ),
-      );
-
-      expect(
-        (state as BulkAddLoadedState).source,
-        BulkAddReadSource.photo,
-        reason:
-            'the review notice is the only thing telling the user a machine '
-            'identified this food from a picture',
-      );
-    });
-
+  group('text model failures retain parser rows', () {
     test('a rejected key reaches the state, not just the log', () async {
       // Before this, a wrong key produced a screen indistinguishable from a
       // working one. The rows are still the parser's — what changes is that
@@ -932,6 +896,40 @@ void main() {
 
       expect(state.modelFailure, isNull);
       expect(state.rows, isNotEmpty);
+    });
+  });
+
+  group('reading a photo', () {
+    Future<BulkAddState> readPhoto(
+      Map<String, List<MealEntity>> results,
+      MealPhotoReadResult reading,
+    ) async {
+      final bloc = blocWith(results, photoReader: _StubPhotoReader(reading));
+      bloc.add(ReadMealPhotoEvent(photo: _photo, usesImperialUnits: false));
+      return bloc.stream.firstWhere((s) => s is! BulkAddLoadingState);
+    }
+
+    test('resolves the foods a photo produced', () async {
+      final state = await readPhoto(
+        {
+          'egg': [meal('Egg', servingQuantity: 50)],
+        },
+        const MealPhotoRead(
+          MealTextParseResult(
+            items: [ParsedMealItem(query: 'egg', quantity: 2)],
+            errors: [],
+          ),
+        ),
+      );
+
+      expect(state, isA<BulkAddLoadedState>());
+      final loaded = state as BulkAddLoadedState;
+      expect(loaded.rows.single.meal?.name, 'Egg');
+      expect(loaded.source, BulkAddReadSource.photo);
+      // A bare count against a scalable record is servings, same rule the
+      // text path uses — the reader changes, the row logic does not.
+      expect(loaded.rows.single.amountText, '2');
+      expect(loaded.rows.single.unit, 'serving');
     });
 
     test(
@@ -1551,86 +1549,29 @@ void main() {
       return state.rows.single.copyWith(amountText: amount);
     }
 
-    test('zero is refused for being zero', () async {
-      final row = await rowWithAmount('0');
-
-      expect(row.quantityError, BulkAddQuantityError.tooSmall);
-    });
-
-    test('and so is a zero written with decimals', () async {
-      final row = await rowWithAmount('0.00');
-
-      expect(row.quantityError, BulkAddQuantityError.tooSmall);
-    });
-
-    test('past the bound is refused for being past the bound', () async {
-      final row = await rowWithAmount('${bulkAddMaxQuantity + 1}');
-
-      expect(row.quantityError, BulkAddQuantityError.tooLarge);
-    });
-
-    test('the bound itself is allowed', () async {
-      final row = await rowWithAmount('$bulkAddMaxQuantity');
-
-      expect(row.quantityError, isNull);
-    });
-
-    test('a third decimal is refused for its shape, not its size', () async {
-      // The rule nothing on the screen states. Reported as itself rather
-      // than as "too small", which is what a check that parsed first would
-      // have called 0.001.
-      final row = await rowWithAmount('0.001');
-
-      expect(row.quantityError, BulkAddQuantityError.malformed);
-    });
-
-    test('an emptied field is refused the same way', () async {
-      final row = await rowWithAmount('');
-
-      expect(row.quantityError, BulkAddQuantityError.malformed);
-    });
-
-    test('a decimal comma is a number, not a fault', () async {
-      final row = await rowWithAmount('1,5');
-
-      expect(row.quantityError, isNull);
-    });
-
-    test('surrounding space is not a fault either', () async {
-      final row = await rowWithAmount(' 100 ');
-
-      expect(row.quantityError, isNull);
-    });
-
-    test('the three refusals are three distinct answers', () async {
-      final errors = {
-        (await rowWithAmount('0')).quantityError,
-        (await rowWithAmount('99999')).quantityError,
-        (await rowWithAmount('1.234')).quantityError,
-      };
-
-      // One message for all three was the bug: `Rice: Quantity`, whichever
-      // of them had happened.
-      expect(errors, hasLength(3));
-    });
-
-    test('a refused row is still part of the batch', () async {
-      // The batch is all-or-nothing, so a bad amount has to be handed back
-      // to the user rather than filtered out of the write — dropping it
-      // would log everything else and say nothing about the row that was
-      // meant to be there.
-      final row = await rowWithAmount('0');
-
-      expect(row.quantityError, isNotNull);
-      expect(row.willBeLogged, isTrue);
-    });
+    for (final (name, input, error)
+        in <(String, String, BulkAddQuantityError?)>[
+          ('zero', '0', BulkAddQuantityError.tooSmall),
+          ('decimal zero', '0.00', BulkAddQuantityError.tooSmall),
+          ('above maximum', '10001', BulkAddQuantityError.tooLarge),
+          ('exact maximum', '10000', null),
+          ('third decimal', '0.001', BulkAddQuantityError.malformed),
+          ('empty', '', BulkAddQuantityError.malformed),
+          ('decimal comma', '1,5', null),
+          ('surrounding whitespace', ' 100 ', null),
+        ]) {
+      test(name, () async {
+        final row = await rowWithAmount(input);
+        expect(row.quantityError, error);
+        // Invalid rows remain in the all-or-nothing batch for correction.
+        expect(row.willBeLogged, isTrue);
+      });
+    }
   });
 }
 
-final _photo = MealPhoto(
-  bytes: Uint8List.fromList([1, 2, 3]),
-  mediaType: 'image/webp',
-);
+MealPhoto get _photo =>
+    MealPhoto(bytes: Uint8List.fromList([1, 2, 3]), mediaType: 'image/webp');
 
 /// Returns a fixed reading without touching a credential or a network.
 class _StubPhotoReader implements ReadMealPhotoUseCase {
@@ -1643,52 +1584,6 @@ class _StubPhotoReader implements ReadMealPhotoUseCase {
     MealPhoto photo, {
     String? localeCode,
   }) async => reading;
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-/// A keystore with nothing in it, so the read use case always takes the
-/// deterministic path.
-/// Holds what it is given, so a test can put the use case on the model path
-/// instead of the parser one.
-class _MapStorage implements FlutterSecureStorage {
-  final Map<String, String> values;
-
-  /// Seeds the agreement unless a test says otherwise.
-  ///
-  /// A stored credential is only usable once the user has agreed to what
-  /// leaves the device (#836), so a map holding a key and no agreement is a
-  /// state the app cannot reach.
-  _MapStorage(Map<String, String> values)
-    : values = {'AiTermsAcceptedTag': 'true', ...values};
-
-  @override
-  Future<String?> read({
-    required String key,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async => values[key];
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-class _EmptyStorage implements FlutterSecureStorage {
-  @override
-  Future<String?> read({
-    required String key,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async => null;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

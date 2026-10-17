@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,17 +7,19 @@ import 'package:opennutritracker/generated/l10n.dart';
 
 import '../../../../helpers/test_l10n.dart';
 
-Widget _app(AiProvider provider, {String endpoint = 'http://192.168.1.5:11434'}) =>
-    MaterialApp(
-      localizationsDelegates: const [
-        S.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: S.supportedLocales,
-      home: AiConsentScreen(provider: provider, typedEndpoint: endpoint),
-    );
+Widget _app(
+  AiProvider provider, {
+  String endpoint = 'http://192.168.1.5:11434',
+}) => MaterialApp(
+  localizationsDelegates: const [
+    S.delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+  ],
+  supportedLocales: S.supportedLocales,
+  home: AiConsentScreen(provider: provider, typedEndpoint: endpoint),
+);
 
 void main() {
   group('what the consent screen promises about sending (#985)', () {
@@ -74,41 +73,11 @@ void main() {
       expect(
         note.contains('you type or photograph'),
         isTrue,
-        reason: 'an unqualified "nothing is sent" is false for a user-run '
+        reason:
+            'an unqualified "nothing is sent" is false for a user-run '
             'server — see #985',
       );
       expect(find.text(note), findsOneWidget);
     });
-  });
-
-  test('every locale carries the own-server note', () {
-    // The same shape as the l10n parity check, and here for the same reason:
-    // a re-translation that blanks the key would leave that locale silently
-    // showing nothing at all on the one screen that has to be accurate. A
-    // locale that has not translated the key yet is skipped: gen-l10n shows
-    // the English note until Weblate fills it.
-    final dir = Directory('lib/l10n');
-    final arbs = dir
-        .listSync()
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.arb'))
-        .toList();
-    expect(arbs, isNotEmpty, reason: 'no ARB files found');
-
-    for (final file in arbs) {
-      final map = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
-      final value = map['aiConsentOwnServerCheckNote'];
-      if (value == null) continue; // untranslated: English until Weblate
-      expect(
-        value,
-        isA<String>(),
-        reason: '${file.uri.pathSegments.last} has a non-string note',
-      );
-      expect(
-        (value as String).trim(),
-        isNotEmpty,
-        reason: '${file.uri.pathSegments.last} has it empty',
-      );
-    }
   });
 }

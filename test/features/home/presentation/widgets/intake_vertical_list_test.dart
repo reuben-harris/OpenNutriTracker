@@ -1,3 +1,5 @@
+import 'dart:async';
+import '../../../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_intake_usecase.dart';
@@ -118,7 +120,8 @@ Widget _wrapWithMaterial(Widget child) {
 }
 
 void main() {
-  setUpAll(() {
+  useTestLocator();
+  setUp(() {
     final locator = GetIt.instance;
     final logger = _FakeMealDetailBloc();
     locator.registerSingleton<MealDetailBloc>(logger);
@@ -126,10 +129,17 @@ void main() {
     selection.emit(
       SelectedDayState(DateTime(2026, 1, 2), DateTime(2026, 1, 2)),
     );
-    locator.registerSingleton<SelectedDayCubit>(selection);
-    locator.registerSingleton<DiaryClipboardCubit>(DiaryClipboardCubit());
+    locator.registerSingleton<SelectedDayCubit>(
+      selection,
+      dispose: (cubit) => cubit.close(),
+    );
+    locator.registerSingleton<DiaryClipboardCubit>(
+      DiaryClipboardCubit(),
+      dispose: (cubit) => cubit.close(),
+    );
     locator.registerSingleton<DiaryCopyCubit>(
       DiaryCopyCubit(logger, _Intakes(), _Config(), _Tracked(), () {}),
+      dispose: (cubit) => cubit.close(),
     );
     locator.registerFactory<HomeBloc>(_FakeHomeBloc.new);
     locator.registerFactory<GetProfilesUsecase>(
@@ -137,9 +147,7 @@ void main() {
     );
   });
 
-  tearDownAll(() {
-    GetIt.instance.reset();
-  });
+  tearDown(() => GetIt.instance.resetScope());
 
   // 100 g intake of food with 200 kcal/100g, 20 g carbs/100g, 10 g fat/100g, 5 g protein/100g
   // → totals: 200 kcal, 20 g C, 10 g F, 5 g P
@@ -414,12 +422,13 @@ void main() {
         dateTime: first.dateTime,
       ),
     ];
+    final gates = [Completer<void>(), Completer<void>()];
     final started = <int>[];
     final completed = <int>[];
     (GetIt.instance<MealDetailBloc>() as _FakeMealDetailBloc).onLog = () async {
       final index = started.length;
       started.add(index);
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await gates[index].future;
       completed.add(index);
     };
     addTearDown(
@@ -449,10 +458,12 @@ void main() {
     await tester.pump();
     expect(started, [0]);
     expect(completed, isEmpty);
-    await tester.pump(const Duration(milliseconds: 50));
+    gates[0].complete();
+    await tester.pump();
     expect(started, [0, 1]);
     expect(completed, [0]);
-    await tester.pump(const Duration(milliseconds: 50));
+    gates[1].complete();
+    await tester.pump();
     expect(completed, [0, 1]);
     await tester.pumpAndSettle();
   });

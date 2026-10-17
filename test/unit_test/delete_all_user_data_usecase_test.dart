@@ -133,6 +133,7 @@ class _TestHiveDBProvider extends HiveDBProvider {
 }
 
 void main() {
+  useTestHive();
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late _TestHiveDBProvider provider;
@@ -143,8 +144,6 @@ void main() {
   late Box<ConfigDBO> appConfigBox;
 
   setUp(() async {
-    Hive.init('.');
-    registerHiveAdaptersOnce();
     final tag = DateTime.now().microsecondsSinceEpoch;
 
     configBox = await Hive.openBox<ConfigDBO>('wipe_config_$tag');
@@ -171,10 +170,6 @@ void main() {
       ConfigRepository(ConfigDataSource(provider)),
       credentials,
     );
-  });
-
-  tearDown(() async {
-    await Hive.deleteFromDisk();
   });
 
   test('clears the active profile amount preferences', () async {

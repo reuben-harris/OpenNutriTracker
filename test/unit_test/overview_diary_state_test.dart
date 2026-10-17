@@ -39,6 +39,7 @@ class DelayedIntakes extends GetIntakeUsecase {
 }
 
 void main() {
+  late DateTime Function() originalClock;
   TestWidgetsFlutterBinding.ensureInitialized();
   late OverviewDiaryHarness h;
   var now = DateTime(2026, 9, 29, 12);
@@ -46,13 +47,14 @@ void main() {
   final past = DateTime(2026, 9, 20);
   setUp(() async {
     now = DateTime(2026, 9, 29, 12);
+    originalClock = DayBoundaryCalc.clock;
     DayBoundaryCalc.clock = () => now;
     h = OverviewDiaryHarness();
     await h.initialize();
   });
   tearDown(() async {
     await h.dispose();
-    DayBoundaryCalc.clock = DateTime.now;
+    DayBoundaryCalc.clock = originalClock;
   });
 
   Future<HomeLoadedState> reload() {
@@ -200,7 +202,7 @@ void main() {
         h.selection.select(today);
         await completed;
         delayed.release.complete();
-        await Future<void>.delayed(const Duration(milliseconds: 50));
+        await (home ? h.home!.close() : h.calendar!.close());
         expect(emittedDays, [today]);
         await subscription.cancel();
       },

@@ -26,6 +26,7 @@ final _running = PhysicalActivityDBO(
 );
 
 void main() {
+  useTestHive();
   final user = UserEntityFixtures.youngSedentaryMaleWantingToMaintainWeight;
 
   late Box<UserActivityDBO> activityBox;
@@ -35,11 +36,9 @@ void main() {
 
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    registerHiveAdaptersOnce();
   });
 
   setUp(() async {
-    Hive.init('.');
     activityBox = await Hive.openBox<UserActivityDBO>(
       'update_activity_activity_test',
     );
@@ -61,11 +60,6 @@ void main() {
       userActivityRepository,
       GetUserUsecase(userRepository),
     );
-  });
-
-  tearDown(() async {
-    await Hive.close();
-    await Hive.deleteFromDisk();
   });
 
   Future<UserActivityEntity> storeActivity({

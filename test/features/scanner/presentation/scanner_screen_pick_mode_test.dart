@@ -1,3 +1,4 @@
+import '../../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -16,6 +17,7 @@ import 'package:opennutritracker/features/scanner/scanner_screen.dart';
 /// scanner that hands a [MealEntity] back to its caller rather than routing
 /// into the meal-detail logging flow.
 void main() {
+  useTestLocator();
   group('ScannerScreenArguments', () {
     test('pick() sets pickMode true and leaves logging-flow fields null', () {
       final args = ScannerScreenArguments.pick();

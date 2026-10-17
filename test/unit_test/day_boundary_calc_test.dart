@@ -66,10 +66,7 @@ void main() {
       }
       // At offset 15 or higher, 14:00 has not yet reached today's
       // boundary, so it still belongs to yesterday.
-      expect(
-        DayBoundaryCalc.logicalDayOf(moment, 15),
-        DateTime(2024, 1, 14),
-      );
+      expect(DayBoundaryCalc.logicalDayOf(moment, 15), DateTime(2024, 1, 14));
     });
 
     test('offset 23: only the 23:00-23:59 window stays in today', () {
@@ -89,10 +86,7 @@ void main() {
       // Fresh installs and existing users have no stored offset; null
       // should keep them on wall-clock midnight.
       final moment = DateTime(2024, 1, 15, 2, 0);
-      expect(
-        DayBoundaryCalc.logicalDayOf(moment, null),
-        DateTime(2024, 1, 15),
-      );
+      expect(DayBoundaryCalc.logicalDayOf(moment, null), DateTime(2024, 1, 15));
     });
 
     test('out-of-range offsets clamp to 0', () {
@@ -100,18 +94,9 @@ void main() {
       // the diary into an impossible state. Anything outside 0-23 is
       // treated as the default.
       final moment = DateTime(2024, 1, 15, 2, 0);
-      expect(
-        DayBoundaryCalc.logicalDayOf(moment, -1),
-        DateTime(2024, 1, 15),
-      );
-      expect(
-        DayBoundaryCalc.logicalDayOf(moment, 24),
-        DateTime(2024, 1, 15),
-      );
-      expect(
-        DayBoundaryCalc.logicalDayOf(moment, 999),
-        DateTime(2024, 1, 15),
-      );
+      expect(DayBoundaryCalc.logicalDayOf(moment, -1), DateTime(2024, 1, 15));
+      expect(DayBoundaryCalc.logicalDayOf(moment, 24), DateTime(2024, 1, 15));
+      expect(DayBoundaryCalc.logicalDayOf(moment, 999), DateTime(2024, 1, 15));
     });
   });
 
@@ -298,22 +283,23 @@ void main() {
       );
     });
 
-    test('a local-midnight label works too (diary before any day is tapped)',
-        () {
-      // _selectedDate starts life as DateTime.now(), so the label handed
-      // to the query is not always UTC.
-      expect(
-        DayBoundaryCalc.isMomentInLogicalDayMinutes(
-          DateTime(2026, 7, 20),
-          DateTime(2026, 7, 20, 12, 0),
-          sixAm,
-        ),
-        isTrue,
-      );
-    });
+    test(
+      'a local-midnight label works too (diary before any day is tapped)',
+      () {
+        // _selectedDate starts life as DateTime.now(), so the label handed
+        // to the query is not always UTC.
+        expect(
+          DayBoundaryCalc.isMomentInLogicalDayMinutes(
+            DateTime(2026, 7, 20),
+            DateTime(2026, 7, 20, 12, 0),
+            sixAm,
+          ),
+          isTrue,
+        );
+      },
+    );
 
-    test('an imported entry dated the 20th is a label, in either spelling',
-        () {
+    test('an imported entry dated the 20th is a label, in either spelling', () {
       // JsonMealImporter dates an entry `DateTime(y, m, d)` — *local*
       // midnight — from its optional `date` field. Keying "is this a
       // label?" off the UTC flag alone filed every date-only import a
@@ -363,28 +349,6 @@ void main() {
           sixAm,
         ),
         isFalse,
-      );
-    });
-  });
-
-  group('ConfigEntity-level clamping (via the minutes companion)', () {
-    // The actual clamping happens at the entity boundary, but the
-    // data-source code path also defends itself. This documents the
-    // expected behaviour at the call-site level: a stored 99-minute
-    // value should not be able to produce a > 23:59 total offset.
-    test('clamped minute=99 inside data-source path resolves as 59', () {
-      // The data sources apply `.clamp(0, 59)` to the minute parameter
-      // before composing the total. With hours=4 and minutes=99, the
-      // effective offset is 4*60 + 59 = 299 minutes, not 4*60 + 99.
-      const hours = 4;
-      const rawMinutes = 99;
-      final clampedTotal = hours * 60 + rawMinutes.clamp(0, 59);
-      expect(clampedTotal, 299);
-      // And 04:30 still rolls back to yesterday under this offset.
-      final moment = DateTime(2024, 1, 15, 4, 30);
-      expect(
-        DayBoundaryCalc.logicalDayOfMinutes(moment, clampedTotal),
-        DateTime(2024, 1, 14),
       );
     });
   });

@@ -47,7 +47,7 @@ void main() {
               ? http.Response('{}', 404)
               : ProductRefreshFixture.success(kcal: 100),
         );
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await bloc.close();
         expect(bloc.state.hydratedMeal!.nutriments.energyKcal100, 300);
         expect((await fixture.cached).nutriments.energyKcal100, 300);
         expect(bloc.state.isHydrating, isFalse);

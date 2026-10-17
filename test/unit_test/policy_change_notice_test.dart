@@ -15,6 +15,7 @@ import '../helpers/hive_test_setup.dart';
 /// Whether it *shows* is one comparison, so the tests that matter are about
 /// what the stored value is in each of the situations a real install can be in.
 void main() {
+  useTestHive();
   group('who the notice is for', () {
     test('an install that predates the field has seen nothing', () {
       // The null-to-zero mapping is the whole upgrade path: every existing
@@ -95,22 +96,15 @@ void main() {
 
     setUpAll(() {
       TestWidgetsFlutterBinding.ensureInitialized();
-      registerHiveAdaptersOnce();
     });
 
     setUp(() async {
-      Hive.init('.');
       appBox = await Hive.openBox<ConfigDBO>('policy_notice_app_test');
       profileABox = await Hive.openBox<ConfigDBO>('policy_notice_a_test');
       profileBBox = await Hive.openBox<ConfigDBO>('policy_notice_b_test');
       await appBox.clear();
       await profileABox.clear();
       await profileBBox.clear();
-    });
-
-    tearDown(() async {
-      await Hive.close();
-      await Hive.deleteFromDisk();
     });
 
     ConfigDataSource sourceFor(Box<ConfigDBO> profileBox) => ConfigDataSource(

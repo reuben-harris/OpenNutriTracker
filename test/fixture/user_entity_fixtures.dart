@@ -12,7 +12,7 @@ class UserEntityFixtures {
 
   /// Mocked user entity
   /// 25 years, 180 cm, 80 kg, male, maintain weight, sedentary
-  static final youngSedentaryMaleWantingToMaintainWeight = UserEntity(
+  static UserEntity get youngSedentaryMaleWantingToMaintainWeight => UserEntity(
     birthday: DateTime(_yesterday.year - 25, _yesterday.month, _yesterday.day),
     heightCM: 180.0,
     weightKG: 80.0,
@@ -23,23 +23,18 @@ class UserEntityFixtures {
 
   /// Mocked user entity
   /// 54 years, 160 cm, 75 kg, female, lose weight, active
-  static final UserEntity middleAgedActiveFemaleWantingToLoseWeight =
-      UserEntity(
-        birthday: DateTime(
-          _yesterday.year - 54,
-          _yesterday.month,
-          _yesterday.day,
-        ),
-        heightCM: 160.0,
-        weightKG: 75.0,
-        gender: UserGenderEntity.female,
-        goal: UserWeightGoalEntity.loseWeight,
-        pal: UserPALEntity.active,
-      );
+  static UserEntity get middleAgedActiveFemaleWantingToLoseWeight => UserEntity(
+    birthday: DateTime(_yesterday.year - 54, _yesterday.month, _yesterday.day),
+    heightCM: 160.0,
+    weightKG: 75.0,
+    gender: UserGenderEntity.female,
+    goal: UserWeightGoalEntity.loseWeight,
+    pal: UserPALEntity.active,
+  );
 
   /// Mocked user entity
   /// 76 years, 164 cm, 55 kg, male, gain weight, low active
-  static final UserEntity elderlyLowActiveMaleWantingToGainWeight = UserEntity(
+  static UserEntity get elderlyLowActiveMaleWantingToGainWeight => UserEntity(
     birthday: DateTime(_yesterday.year - 76, _yesterday.month, _yesterday.day),
     heightCM: 164.0,
     weightKG: 55.0,
@@ -50,7 +45,7 @@ class UserEntityFixtures {
 
   /// Mocked user entity
   /// 19 years, 190 cm, 105 kg, female, lose weight, very active
-  static final UserEntity youngVeryActiveOverweightFemaleWantingToLoseWeight =
+  static UserEntity get youngVeryActiveOverweightFemaleWantingToLoseWeight =>
       UserEntity(
         birthday: DateTime(
           _yesterday.year - 19,

@@ -1,3 +1,4 @@
+import '../../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -95,6 +96,7 @@ Widget _wrap(Widget child) {
 }
 
 void main() {
+  useTestLocator();
   late _FakeProfileBloc fakeProfileBloc;
   late _FakeAddWeightLogUsecase fakeAddWeightLogUsecase;
   final user = UserEntityFixtures.youngSedentaryMaleWantingToMaintainWeight;
@@ -124,7 +126,7 @@ void main() {
 
   tearDown(() async {
     await fakeProfileBloc.close();
-    await GetIt.instance.reset();
+    await GetIt.instance.resetScope();
   });
 
   testWidgets('tapping the profile weight tile logs a weight-history entry '

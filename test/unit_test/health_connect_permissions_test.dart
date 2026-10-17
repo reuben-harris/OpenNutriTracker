@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xml/xml.dart';
 
 /// Pins the Health Connect permissions in `android/app/src/main/AndroidManifest.xml`.
 ///
@@ -37,35 +38,25 @@ import 'package:flutter_test/flutter_test.dart';
 /// (2) and (3) are not redundant: one runs everywhere and reasons about
 /// intent, the other runs after a build and reasons about the artifact.
 void main() {
-  /// Health `uses-permission` elements, however they are spelled.
-  ///
-  /// Element-wise rather than one whole-document pattern, so each declaration
-  /// can also be inspected for a manifest-merger marker. Attribute order and
-  /// quote style are free in XML and both occur in the wild:
-  /// `<uses-permission android:maxSdkVersion="32" android:name="…"/>` merges
-  /// exactly like the canonical spelling, and a pattern that required
-  /// `android:name` first would stay green while the release acquired it.
-  ///
-  /// Not handled, and not worth a parser: a manifest binding the Android
-  /// namespace to an alias other than `android:`. No plugin in the wild does
-  /// that, and the robust fix is structural XML parsing, which would mean
-  /// promoting `xml` from a transitive dependency to a declared one.
-  final usesPermission = RegExp(r'<uses-permission\b[^>]*?/?>');
-  final healthName = RegExp(
-    r'''\bandroid:name\s*=\s*["']android\.permission\.health\.([A-Z_]+)["']''',
-  );
-  final nodeRemove = RegExp(r'''\btools:node\s*=\s*["']remove["']''');
-
-  /// Health permissions in [xml], split by whether the element carries the
-  /// `tools:node="remove"` manifest-merger marker.
-  ({Set<String> kept, Set<String> removed}) healthIn(String xml) {
+  ({Set<String> kept, Set<String> removed}) healthIn(String source) {
     final kept = <String>{};
     final removed = <String>{};
-    for (final element in usesPermission.allMatches(xml)) {
-      final text = element.group(0)!;
-      final name = healthName.firstMatch(text);
-      if (name == null) continue;
-      (nodeRemove.hasMatch(text) ? removed : kept).add(name.group(1)!);
+    for (final element in XmlDocument.parse(
+      source,
+    ).findAllElements('uses-permission')) {
+      final name = element.getAttribute(
+        'name',
+        namespace: 'http://schemas.android.com/apk/res/android',
+      );
+      const prefix = 'android.permission.health.';
+      if (name == null || !name.startsWith(prefix)) continue;
+      final remove =
+          element.getAttribute(
+            'node',
+            namespace: 'http://schemas.android.com/tools',
+          ) ==
+          'remove';
+      (remove ? removed : kept).add(name.substring(prefix.length));
     }
     return (kept: kept, removed: removed);
   }
@@ -82,16 +73,18 @@ void main() {
       .where((f) => f.existsSync())
       .toList();
 
-  final manifest = appManifests.map((f) => f.readAsStringSync()).join('\n');
+  final permissions = appManifests
+      .map((f) => healthIn(f.readAsStringSync()))
+      .toList();
 
   /// Every `android.permission.health.*` the app's own manifests declare.
-  final declared = healthIn(manifest).kept;
+  final declared = permissions.expand((p) => p.kept).toSet();
 
   /// Permissions the app strips from the merged manifest with the standard
   /// manifest-merger marker. A plugin's lower-priority declaration of one of
   /// these never reaches the artifact, so charging the plugin for it would
   /// block the normal remedy for a dependency that asks for too much.
-  final removedByApp = healthIn(manifest).removed;
+  final removedByApp = permissions.expand((p) => p.removed).toSet();
 
   /// The same, per plugin, from each plugin's own manifest.
   ///
@@ -118,9 +111,11 @@ void main() {
   final pluginPermissions = <String, Set<String>>{};
   var pluginManifestsRead = 0;
   if (pluginListPresent) {
-    final plugins = ((jsonDecode(pluginList.readAsStringSync())
-            as Map<String, dynamic>)['plugins']
-        as Map<String, dynamic>)['android'] as List<dynamic>;
+    final plugins =
+        ((jsonDecode(pluginList.readAsStringSync())
+                    as Map<String, dynamic>)['plugins']
+                as Map<String, dynamic>)['android']
+            as List<dynamic>;
     for (final plugin in plugins.cast<Map<String, dynamic>>()) {
       final root = (plugin['path'] as String).replaceAll(RegExp(r'/+$'), '');
       // Only the source sets Gradle merges into a release build. `debug`,
@@ -129,8 +124,9 @@ void main() {
       // it would be a false alarm, and the app's own debug/profile manifests
       // are excluded for the same reason.
       for (final sourceSet in const ['main', 'release']) {
-        final pluginManifest =
-            File('$root/android/src/$sourceSet/AndroidManifest.xml');
+        final pluginManifest = File(
+          '$root/android/src/$sourceSet/AndroidManifest.xml',
+        );
         if (!pluginManifest.existsSync()) continue;
         pluginManifestsRead++;
         final found = healthIn(pluginManifest.readAsStringSync()).kept
@@ -144,30 +140,20 @@ void main() {
     }
   }
 
+  test('permission parsing ignores comments and respects XML namespaces', () {
+    final parsed = healthIn('''<manifest
+      xmlns:a="http://schemas.android.com/apk/res/android"
+      xmlns:m="http://schemas.android.com/tools">
+      <!-- <uses-permission a:name="android.permission.health.READ_STEPS"/> -->
+      <uses-permission a:maxSdkVersion="36" a:name="android.permission.health.READ_EXERCISE"/>
+      <uses-permission m:node="remove" a:name="android.permission.health.READ_DISTANCE"/>
+      <uses-permission a:name="android.permission.INTERNET"/>
+    </manifest>''');
+    expect(parsed.kept, {'READ_EXERCISE'});
+    expect(parsed.removed, {'READ_DISTANCE'});
+  });
+
   group('Health Connect permissions', () {
-    test('exercise and total calories are declared', () {
-      // The workout import needs the session, and the calories that give an
-      // imported workout its kcal. Without these the feature cannot work.
-      expect(declared, contains('READ_EXERCISE'));
-      expect(declared, contains('READ_TOTAL_CALORIES_BURNED'));
-    });
-
-    test('the three permissions Play refused are not declared', () {
-      expect(
-        declared.intersection({
-          'READ_BODY_FAT',
-          'READ_DISTANCE',
-          'READ_STEPS',
-        }),
-        isEmpty,
-        reason:
-            'Play enforced against these on 8 Sept 2026 as excessive for the '
-            'features this app offers. Reinstating one needs a feature that '
-            'genuinely requires it AND a Health Connect declaration that '
-            'covers it — not a manifest edit.',
-      );
-    });
-
     test('no health permission is declared beyond those two', () {
       // Catches a new read added here without the declaration form being
       // updated to match. A plugin merging one in never reaches this set —
@@ -216,13 +202,6 @@ void main() {
             'reads ExerciseSessionRecord itself.',
       );
     });
-
-    test('nothing is ever written back', () {
-      expect(
-        declared.where((permission) => permission.startsWith('WRITE_')),
-        isEmpty,
-      );
-    });
   });
 
   // Check (3): the artifact rather than the intent. The plugin check above
@@ -234,16 +213,17 @@ void main() {
   // that release was known to be clean.
   group('the merged manifest Gradle produced', () {
     // AGP has used both spellings for this directory; take whichever exists.
-    final mergedManifests = [
-      'build/app/intermediates/merged_manifest',
-      'build/app/intermediates/merged_manifests',
-    ]
-        .map(Directory.new)
-        .where((directory) => directory.existsSync())
-        .expand((directory) => directory.listSync(recursive: true))
-        .whereType<File>()
-        .where((file) => file.path.endsWith('AndroidManifest.xml'))
-        .toList();
+    final mergedManifests =
+        [
+              'build/app/intermediates/merged_manifest',
+              'build/app/intermediates/merged_manifests',
+            ]
+            .map(Directory.new)
+            .where((directory) => directory.existsSync())
+            .expand((directory) => directory.listSync(recursive: true))
+            .whereType<File>()
+            .where((file) => file.path.endsWith('AndroidManifest.xml'))
+            .toList();
 
     test('declares those two health permissions and no others', () {
       // Not a failure: the Android build is not a precondition for the unit

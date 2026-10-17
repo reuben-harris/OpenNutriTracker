@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:fake_async/fake_async.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -123,30 +125,34 @@ void main() {
 
     test('what cannot be requested at all has nowhere to ask', () {
       // The form Ollama's own documentation shows, and not a URL.
-      expect(AiCredentialStorage.resolveModelsEndpoint('192.168.1.5:11434'),
-          isNull);
+      expect(
+        AiCredentialStorage.resolveModelsEndpoint('192.168.1.5:11434'),
+        isNull,
+      );
       expect(AiCredentialStorage.resolveModelsEndpoint(''), isNull);
     });
   });
 
   group('asking', () {
-    test('reports the ids the server listed, in the order it listed them',
-        () async {
-      // Order is the server's. Sorting would invent a ranking over a list
-      // whose whole point is that nothing about it has been measured.
-      final api = AiModelListApi(
-        client: MockClient(
-          (_) async => http.Response(_reply(['qwen3:8b', 'gemma3:4b']), 200),
-        ),
-      );
+    test(
+      'reports the ids the server listed, in the order it listed them',
+      () async {
+        // Order is the server's. Sorting would invent a ranking over a list
+        // whose whole point is that nothing about it has been measured.
+        final api = AiModelListApi(
+          client: MockClient(
+            (_) async => http.Response(_reply(['qwen3:8b', 'gemma3:4b']), 200),
+          ),
+        );
 
-      final result = await api.list(
-        Uri.parse('http://127.0.0.1:11434/v1/models'),
-      );
+        final result = await api.list(
+          Uri.parse('http://127.0.0.1:11434/v1/models'),
+        );
 
-      expect(result.ids, ['qwen3:8b', 'gemma3:4b']);
-      expect(result.failure, isNull);
-    });
+        expect(result.ids, ['qwen3:8b', 'gemma3:4b']);
+        expect(result.failure, isNull);
+      },
+    );
 
     test('one model is a normal answer, not an error', () async {
       // llama.cpp serves exactly the one file it was started with, so a
@@ -159,41 +165,54 @@ void main() {
         ),
       );
 
-      final result = await api.list(Uri.parse('http://127.0.0.1:8080/v1/models'));
+      final result = await api.list(
+        Uri.parse('http://127.0.0.1:8080/v1/models'),
+      );
 
       expect(result.failure, isNull);
       expect(result.ids, ['Meta-Llama-3.1-8B-Q4_K_M']);
     });
 
-    test('an empty list is an answer, and an unreachable server is not', () async {
-      // The pair that must never collapse into one message: both produce an
-      // empty picker, and they want opposite fixes.
-      final empty = await AiModelListApi(
-        client: MockClient((_) async => http.Response(_reply([]), 200)),
-      ).list(Uri.parse('http://127.0.0.1:11434/v1/models'));
-      final unreachable = await AiModelListApi(
-        client: MockClient(
-          (_) async => throw const SocketException('connection refused'),
-        ),
-      ).list(Uri.parse('http://127.0.0.1:11434/v1/models'));
+    test(
+      'an empty list is an answer, and an unreachable server is not',
+      () async {
+        // The pair that must never collapse into one message: both produce an
+        // empty picker, and they want opposite fixes.
+        final empty = await AiModelListApi(
+          client: MockClient((_) async => http.Response(_reply([]), 200)),
+        ).list(Uri.parse('http://127.0.0.1:11434/v1/models'));
+        final unreachable = await AiModelListApi(
+          client: MockClient(
+            (_) async => throw const SocketException('connection refused'),
+          ),
+        ).list(Uri.parse('http://127.0.0.1:11434/v1/models'));
 
-      expect(empty.failure, isNull, reason: 'the server answered');
-      expect(empty.ids, isEmpty);
-      expect(unreachable.failure, AiModelListFailure.unreachable);
-    });
+        expect(empty.failure, isNull, reason: 'the server answered');
+        expect(empty.ids, isEmpty);
+        expect(unreachable.failure, AiModelListFailure.unreachable);
+      },
+    );
 
-    test('a server that gives up on us is unreachable, not empty', () async {
-      final api = AiModelListApi(
-        client: MockClient((_) async {
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-          return http.Response(_reply(['gemma3:4b']), 200);
-        }),
-        timeout: const Duration(milliseconds: 5),
-      );
-
-      final result = await api.list(Uri.parse('http://127.0.0.1:11434/v1/models'));
-
-      expect(result.failure, AiModelListFailure.unreachable);
+    test('a timed-out model list ignores a later successful response', () {
+      fakeAsync((time) {
+        final response = Completer<http.Response>();
+        final api = AiModelListApi(
+          client: MockClient((_) => response.future),
+          timeout: const Duration(seconds: 5),
+        );
+        AiModelListResult? result;
+        api
+            .list(Uri.parse('http://127.0.0.1:11434/v1/models'))
+            .then((value) => result = value);
+        time.flushMicrotasks();
+        expect(result, isNull);
+        time.elapse(const Duration(seconds: 5));
+        expect(result!.failure, AiModelListFailure.unreachable);
+        response.complete(http.Response(_reply(['gemma3:4b']), 200));
+        time.flushMicrotasks();
+        expect(result!.failure, AiModelListFailure.unreachable);
+        expect(result!.ids, isEmpty);
+      });
     });
 
     test('something answering with the wrong thing is neither', () async {
@@ -207,76 +226,95 @@ void main() {
       expect(notFound.failure, AiModelListFailure.rejected);
     });
 
-    test('a 200 that is not a model list is rejected, not read as empty', () async {
-      // A router's admin page answers 200 to anything. Calling that "this
-      // server lists no models" would state a fact about a machine that never
-      // served a model in its life.
-      final api = AiModelListApi(
-        client: MockClient(
-          (_) async => http.Response('<html>Welcome</html>', 200),
-        ),
-      );
-
-      final result = await api.list(Uri.parse('http://192.168.1.1/v1/models'));
-
-      expect(result.failure, AiModelListFailure.rejected);
-    });
-
-    test('entries without a usable id are skipped rather than fabricated', () async {
-      final api = AiModelListApi(
-        client: MockClient(
-          (_) async => http.Response(
-            jsonEncode({
-              'data': [
-                {'id': 'gemma3:4b'},
-                {'object': 'model'},
-                {'id': ''},
-                'not-an-object',
-              ],
-            }),
-            200,
+    test(
+      'a 200 that is not a model list is rejected, not read as empty',
+      () async {
+        // A router's admin page answers 200 to anything. Calling that "this
+        // server lists no models" would state a fact about a machine that never
+        // served a model in its life.
+        final api = AiModelListApi(
+          client: MockClient(
+            (_) async => http.Response('<html>Welcome</html>', 200),
           ),
-        ),
-      );
+        );
 
-      final result = await api.list(Uri.parse('http://127.0.0.1:11434/v1/models'));
+        final result = await api.list(
+          Uri.parse('http://192.168.1.1/v1/models'),
+        );
 
-      expect(result.ids, ['gemma3:4b']);
-    });
+        expect(result.failure, AiModelListFailure.rejected);
+      },
+    );
 
-    test('the key is sent when there is one, and no header when there is not',
-        () async {
-      // None of the four runtimes wants one by default; a reverse proxy in
-      // front of one will. An empty bearer is worse than no bearer.
-      final seen = <Map<String, String>>[];
-      final api = AiModelListApi(
-        client: MockClient((request) async {
-          seen.add(request.headers);
-          return http.Response(_reply(['gemma3:4b']), 200);
-        }),
-      );
+    test(
+      'entries without a usable id are skipped rather than fabricated',
+      () async {
+        final api = AiModelListApi(
+          client: MockClient(
+            (_) async => http.Response(
+              jsonEncode({
+                'data': [
+                  {'id': 'gemma3:4b'},
+                  {'object': 'model'},
+                  {'id': ''},
+                  'not-an-object',
+                ],
+              }),
+              200,
+            ),
+          ),
+        );
 
-      await api.list(Uri.parse('http://127.0.0.1:11434/v1/models'), apiKey: 'k');
-      await api.list(Uri.parse('http://127.0.0.1:11434/v1/models'));
+        final result = await api.list(
+          Uri.parse('http://127.0.0.1:11434/v1/models'),
+        );
 
-      expect(seen[0]['authorization'], 'Bearer k');
-      expect(seen[1].containsKey('authorization'), isFalse);
-    });
+        expect(result.ids, ['gemma3:4b']);
+      },
+    );
 
-    test('plaintext to a public address is refused, and says which it is',
-        () async {
-      // #758's rule covers this call the same way it covers a meal, because
-      // the request goes through the same guard. Reporting it as unreachable
-      // would send the user to wake a machine the app never spoke to.
-      final api = AiModelListApi(
-        client: MockClient(
-          (_) async => fail('the guard must refuse before anything is sent'),
-        ),
-      );
+    test(
+      'the key is sent when there is one, and no header when there is not',
+      () async {
+        // None of the four runtimes wants one by default; a reverse proxy in
+        // front of one will. An empty bearer is worse than no bearer.
+        final seen = <Map<String, String>>[];
+        final api = AiModelListApi(
+          client: MockClient((request) async {
+            seen.add(request.headers);
+            return http.Response(_reply(['gemma3:4b']), 200);
+          }),
+        );
 
-      final result = await api.list(Uri.parse('http://93.184.216.34/v1/models'));
+        await api.list(
+          Uri.parse('http://127.0.0.1:11434/v1/models'),
+          apiKey: 'k',
+        );
+        await api.list(Uri.parse('http://127.0.0.1:11434/v1/models'));
 
-      expect(result.failure, AiModelListFailure.insecureDestination);
-    });
+        expect(seen[0]['authorization'], 'Bearer k');
+        expect(seen[1].containsKey('authorization'), isFalse);
+      },
+    );
+
+    test(
+      'plaintext to a public address is refused, and says which it is',
+      () async {
+        // #758's rule covers this call the same way it covers a meal, because
+        // the request goes through the same guard. Reporting it as unreachable
+        // would send the user to wake a machine the app never spoke to.
+        final api = AiModelListApi(
+          client: MockClient(
+            (_) async => fail('the guard must refuse before anything is sent'),
+          ),
+        );
+
+        final result = await api.list(
+          Uri.parse('http://93.184.216.34/v1/models'),
+        );
+
+        expect(result.failure, AiModelListFailure.insecureDestination);
+      },
+    );
   });
 }

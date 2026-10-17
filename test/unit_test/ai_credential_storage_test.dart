@@ -1,74 +1,15 @@
 import 'dart:async';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../helpers/memory_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/utils/ai_credential_storage.dart';
 
-/// In-memory stand-in for the platform keystore.
-///
-/// [reads] counts round trips, because on a real device each one is a
-/// platform channel call and the cost is invisible from the call site — the
-/// defect #730 recorded.
-class _MemoryStorage implements FlutterSecureStorage {
-  final store = <String, String>{};
-  final reads = <String>[];
-  final readGates = <String, Completer<void>>{};
-
-  @override
-  Future<String?> read({
-    required String key,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async {
-    reads.add(key);
-    final gate = readGates[key];
-    if (gate != null) await gate.future;
-    return store[key];
-  }
-
-  @override
-  Future<void> write({
-    required String key,
-    required String? value,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async {
-    if (value == null) {
-      store.remove(key);
-    } else {
-      store[key] = value;
-    }
-  }
-
-  @override
-  Future<void> delete({
-    required String key,
-    AppleOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    AppleOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async => store.remove(key);
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
 void main() {
-  late _MemoryStorage backing;
+  late MemorySecureStorage backing;
   late AiCredentialStorage storage;
 
   setUp(() async {
-    backing = _MemoryStorage();
+    backing = MemorySecureStorage();
     storage = AiCredentialStorage(backing);
     // A credential is only usable once the user has agreed to what leaving
     // the device means (#836). Tests below are about something else, so the
@@ -629,7 +570,7 @@ void main() {
         (AiProvider.openai, 'sk-o', true),
         (AiProvider.openrouter, null, false),
       ]) {
-        final fresh = _MemoryStorage();
+        final fresh = MemorySecureStorage();
         final store = AiCredentialStorage(fresh);
         await store.setActiveProvider(provider);
         if (key != null) await store.writeApiKey(key, provider: provider);
@@ -1232,7 +1173,7 @@ void main() {
         AiProvider.openrouter,
         AiProvider.openai,
       ]) {
-        final fresh = AiCredentialStorage(_MemoryStorage());
+        final fresh = AiCredentialStorage(MemorySecureStorage());
         await fresh.setActiveProvider(provider);
         await fresh.writeEndpoint('http://192.168.1.5:11434');
 

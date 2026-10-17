@@ -7,20 +7,17 @@ import '../helpers/hive_test_setup.dart';
 import '../helpers/fake_hive_db_provider.dart';
 
 void main() {
+  useTestHive();
   group('WeightLogDataSource', () {
     late Box<WeightLogDBO> box;
     late WeightLogDataSource dataSource;
 
     setUpAll(() {
       TestWidgetsFlutterBinding.ensureInitialized();
-      registerHiveAdaptersOnce();
     });
 
     setUp(() async {
-      Hive.init('.');
-      box = await Hive.openBox<WeightLogDBO>(
-        'weight_log_test_${DateTime.now().microsecondsSinceEpoch}',
-      );
+      box = await Hive.openBox<WeightLogDBO>('weight_log_test');
       dataSource = WeightLogDataSource(FakeHiveDBProvider(weightLogBox: box));
     });
 
@@ -41,39 +38,43 @@ void main() {
       expect(entry.note, equals('morning'));
     });
 
-    test('saving twice for the same day overwrites the previous reading',
-        () async {
-      final day = DateTime.utc(2025, 3, 12);
+    test(
+      'saving twice for the same day overwrites the previous reading',
+      () async {
+        final day = DateTime.utc(2025, 3, 12);
 
-      await dataSource.addEntry(WeightLogDBO(date: day, weightKg: 71.4));
-      await dataSource.addEntry(WeightLogDBO(date: day, weightKg: 71.0));
+        await dataSource.addEntry(WeightLogDBO(date: day, weightKg: 71.4));
+        await dataSource.addEntry(WeightLogDBO(date: day, weightKg: 71.0));
 
-      final all = await dataSource.allEntries();
-      expect(all.length, equals(1));
-      expect(all.first.weightKg, equals(71.0));
-    });
+        final all = await dataSource.allEntries();
+        expect(all.length, equals(1));
+        expect(all.first.weightKg, equals(71.0));
+      },
+    );
 
-    test('entriesInRange returns only entries inside the bounds, inclusive',
-        () async {
-      await dataSource.addAllEntries([
-        WeightLogDBO(date: DateTime.utc(2025, 3, 10), weightKg: 72.0),
-        WeightLogDBO(date: DateTime.utc(2025, 3, 12), weightKg: 71.4),
-        WeightLogDBO(date: DateTime.utc(2025, 3, 14), weightKg: 71.1),
-        WeightLogDBO(date: DateTime.utc(2025, 3, 20), weightKg: 70.5),
-      ]);
+    test(
+      'entriesInRange returns only entries inside the bounds, inclusive',
+      () async {
+        await dataSource.addAllEntries([
+          WeightLogDBO(date: DateTime.utc(2025, 3, 10), weightKg: 72.0),
+          WeightLogDBO(date: DateTime.utc(2025, 3, 12), weightKg: 71.4),
+          WeightLogDBO(date: DateTime.utc(2025, 3, 14), weightKg: 71.1),
+          WeightLogDBO(date: DateTime.utc(2025, 3, 20), weightKg: 70.5),
+        ]);
 
-      final result = await dataSource.entriesInRange(
-        DateTime.utc(2025, 3, 12),
-        DateTime.utc(2025, 3, 14),
-      );
+        final result = await dataSource.entriesInRange(
+          DateTime.utc(2025, 3, 12),
+          DateTime.utc(2025, 3, 14),
+        );
 
-      expect(result.length, equals(2));
-      final dates = result.map((e) => e.date).toList();
-      expect(dates, containsAll([
-        DateTime.utc(2025, 3, 12),
-        DateTime.utc(2025, 3, 14),
-      ]));
-    });
+        expect(result.length, equals(2));
+        final dates = result.map((e) => e.date).toList();
+        expect(
+          dates,
+          containsAll([DateTime.utc(2025, 3, 12), DateTime.utc(2025, 3, 14)]),
+        );
+      },
+    );
 
     test('deleteEntry removes the entry for that day only', () async {
       final keep = DateTime.utc(2025, 3, 10);

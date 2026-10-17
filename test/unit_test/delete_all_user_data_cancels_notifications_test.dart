@@ -75,6 +75,7 @@ class _RecordingNotificationService extends NotificationService {
 }
 
 void main() {
+  useTestHive();
   group('delete-all and the alarm the OS is holding', () {
     late Box<ConfigDBO> appConfigBox;
     late Box<ConfigDBO> configBox;
@@ -84,8 +85,6 @@ void main() {
 
     setUp(() async {
       TestWidgetsFlutterBinding.ensureInitialized();
-      Hive.init('.');
-      registerHiveAdaptersOnce();
 
       appConfigBox = await Hive.openBox<ConfigDBO>('delete_all_app_config');
       configBox = await Hive.openBox<ConfigDBO>('delete_all_config');

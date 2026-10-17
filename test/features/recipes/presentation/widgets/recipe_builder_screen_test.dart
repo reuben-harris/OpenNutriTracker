@@ -1,3 +1,4 @@
+import '../../../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -26,6 +27,7 @@ class _Recipes implements RecipeRepository {
 }
 
 void main() {
+  useTestLocator();
   testWidgets(
     'weight sits below tags, nutrition preview is absent, and errors require saving',
     (tester) async {
@@ -37,7 +39,7 @@ void main() {
       final compute = ComputeRecipeNutritionUseCase();
       final bloc = RecipeBuilderBloc(compute, SaveRecipeUseCase(repo, compute));
       locator.registerFactory<RecipeBuilderBloc>(() => bloc);
-      addTearDown(() => locator.reset());
+      addTearDown(() => locator.resetScope());
       final recipe = diaryEntry(recipe: true).recipeSnapshot!;
       await tester.pumpWidget(
         ChangeNotifierProvider(

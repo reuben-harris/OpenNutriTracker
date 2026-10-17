@@ -1,3 +1,4 @@
+import '../../../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -14,7 +15,8 @@ import 'package:provider/provider.dart';
 
 import '../../../../fixture/user_entity_fixtures.dart';
 
-class _FakeBreakdownUsecase extends Fake implements GetKcalGoalBreakdownUsecase {
+class _FakeBreakdownUsecase extends Fake
+    implements GetKcalGoalBreakdownUsecase {
   final KcalGoalBreakdownEntity breakdown;
 
   _FakeBreakdownUsecase(this.breakdown);
@@ -40,20 +42,21 @@ Widget _wrap(Widget child) {
 }
 
 void main() {
+  useTestLocator();
   setUp(() {
     // The gauge navigates to KcalGoalInfoScreen, which pulls its usecase
     // from the locator when none is injected.
     locator.registerSingleton<GetKcalGoalBreakdownUsecase>(
-      _FakeBreakdownUsecase(KcalGoalBreakdownEntity.compute(
-        user: UserEntityFixtures.youngSedentaryMaleWantingToMaintainWeight,
-        totalKcalActivities: 0,
-      )),
+      _FakeBreakdownUsecase(
+        KcalGoalBreakdownEntity.compute(
+          user: UserEntityFixtures.youngSedentaryMaleWantingToMaintainWeight,
+          totalKcalActivities: 0,
+        ),
+      ),
     );
   });
 
-  tearDown(() {
-    GetIt.instance.reset();
-  });
+  tearDown(() => GetIt.instance.resetScope());
 
   testWidgets(
     'kcal gauge exposes a semantic tap action that opens the goal screen '
@@ -64,18 +67,22 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(500, 1600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(_wrap(const DashboardWidget(
-        totalKcalSupplied: 800,
-        totalKcalBurned: 200,
-        totalKcalDaily: 2500,
-        totalKcalLeft: 1900,
-        totalCarbsIntake: 100,
-        totalFatsIntake: 30,
-        totalProteinsIntake: 60,
-        totalCarbsGoal: 375,
-        totalFatsGoal: 69,
-        totalProteinsGoal: 93,
-      )));
+      await tester.pumpWidget(
+        _wrap(
+          const DashboardWidget(
+            totalKcalSupplied: 800,
+            totalKcalBurned: 200,
+            totalKcalDaily: 2500,
+            totalKcalLeft: 1900,
+            totalCarbsIntake: 100,
+            totalFatsIntake: 30,
+            totalProteinsIntake: 60,
+            totalCarbsGoal: 375,
+            totalFatsGoal: 69,
+            totalProteinsGoal: 93,
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       final gaugeFinder = find.byWidgetPredicate(
@@ -85,11 +92,15 @@ void main() {
       );
       expect(gaugeFinder, findsOneWidget);
 
+      expect(find.text('800'), findsOneWidget);
+      expect(find.text('200'), findsOneWidget);
       final node = tester.getSemantics(gaugeFinder);
+      expect(node.label, startsWith('1900 '));
       expect(
         node.getSemanticsData().hasAction(SemanticsAction.tap),
         isTrue,
-        reason: 'excludeSemantics drops the GestureDetector\'s tap action, '
+        reason:
+            'excludeSemantics drops the GestureDetector\'s tap action, '
             'so the Semantics node must register its own onTap',
       );
 

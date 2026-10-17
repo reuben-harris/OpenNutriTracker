@@ -1,3 +1,4 @@
+import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/utils/food_amount_unit.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/meal_item_card.dart';
@@ -19,7 +20,6 @@ import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/core/utils/hive_db_provider.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
-import 'package:opennutritracker/core/utils/calc/unit_calc.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/quick_add_bottom_sheet.dart';
@@ -68,6 +68,7 @@ MealEntity quick({double? kcal = 123.456789, double? carbs}) => MealEntity(
 );
 
 void main() {
+  useTestLocator();
   late Directory dir;
   late IntakeRepository repo;
   late FakeHiveDBProvider db;
@@ -90,7 +91,7 @@ void main() {
     locator.registerSingleton<CalendarDayBloc>(_Calendar());
   });
   tearDown(() async {
-    await locator.reset();
+    await locator.resetScope();
     await Hive.close();
     await dir.delete(recursive: true);
   });
@@ -120,6 +121,21 @@ void main() {
       ),
     ),
   );
+  Future<void> submitEdit(WidgetTester tester) async {
+    final action = find.widgetWithText(FilledButton, 'Save');
+    await tester.ensureVisible(action);
+    final callback = tester.widget<FilledButton>(action).onPressed;
+    expect(callback, isNotNull);
+    // Await the rendered control's async action so all Hive writes finish.
+    await tester.runAsync(
+      () => (callback as Future<void> Function())().timeout(
+        const Duration(seconds: 10),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(QuickAddBottomSheet), findsNothing);
+  }
+
   Finder field(int index) => find.byType(TextField).at(index);
   testWidgets(
     'editing uses the logged amount and unit rather than the food default',
@@ -156,10 +172,7 @@ void main() {
       );
       expect(unit.value, FoodAmountUnit.g);
       await tester.ensureVisible(find.text('Save'));
-      await tester.runAsync(() async {
-        await tester.tap(find.text('Save'));
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-      });
+      await submitEdit(tester);
       await tester.pumpAndSettle();
       final saved = (await repo.getIntakeById(intake.id))!;
       expect(saved.baseAmount, 53);
@@ -228,10 +241,7 @@ void main() {
           .onChanged!(FoodAmountUnit.kg);
       await tester.pump();
       await tester.ensureVisible(find.text('Save'));
-      await tester.runAsync(() async {
-        await tester.tap(find.text('Save'));
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-      });
+      await submitEdit(tester);
       await tester.pumpAndSettle();
       final weighted = (await repo.getIntakeById('occurrence'))!;
       expect(weighted.baseAmount, 2000);
@@ -245,10 +255,7 @@ void main() {
       expect(tester.widget<TextField>(field(5)).controller!.text, '2.0');
       await tester.enterText(field(5), '');
       await tester.ensureVisible(find.text('Save'));
-      await tester.runAsync(() async {
-        await tester.tap(find.text('Save'));
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-      });
+      await submitEdit(tester);
       await tester.pumpAndSettle();
       final cleared = (await repo.getIntakeById('occurrence'))!;
       expect(cleared.meal.hasQuickAddWeight, false);
@@ -309,16 +316,13 @@ void main() {
         if (kj) {
           expect(
             double.parse(tester.widget<TextField>(field(1)).controller!.text),
-            UnitCalc.kcalToKj(123.456789),
+            516.543205176,
           );
         }
         await tester.enterText(field(0), 'Renamed quick');
         await tester.enterText(field(2), '0');
         await tester.ensureVisible(find.text('Save'));
-        await tester.runAsync(() async {
-          await tester.tap(find.text('Save'));
-          await Future<void>.delayed(const Duration(milliseconds: 200));
-        });
+        await submitEdit(tester);
         await tester.pump(const Duration(milliseconds: 300));
         final updated = (await repo.getIntakeById('occurrence'))!;
         expect(updated.id, intake.id);

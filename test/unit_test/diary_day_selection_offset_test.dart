@@ -25,24 +25,13 @@ import '../helpers/hive_test_setup.dart';
 /// label; subtracting the offset from it moved the whole selection back a
 /// day and the diary listed the previous day's food.
 void main() {
+  useTestHive();
   // The 20th as the diary's calendar would deliver it.
   final selectedDay = DateTime.utc(2026, 7, 20);
   const sixAmOffset = 6;
 
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    Hive.init(".");
-    registerHiveAdaptersOnce();
-  });
-
-  tearDown(() async {
-    // Awaited: deleteFromDisk is asynchronous, and letting it run loose
-    // lets the deletion land after the next test has already reopened
-    // its box, which fails as a PathNotFoundException on the box file.
-    // Not preceded by Hive.close() either — that deregisters the boxes,
-    // and deleteFromDisk would then have nothing left to delete, so the
-    // next test would inherit this one's entries.
-    await Hive.deleteFromDisk();
   });
 
   group('intakes under a 06:00 day start', () {
@@ -119,6 +108,38 @@ void main() {
     });
   });
 
+  test('data-source minute offsets clamp at 59 before filtering', () async {
+    final box = await Hive.openBox<IntakeDBO>('minute_clamping');
+    final source = IntakeDataSource(FakeHiveDBProvider(intakeBox: box));
+    final repository = IntakeRepository(source);
+    await repository.addIntake(
+      IntakeEntity(
+        id: 'after-clamped-boundary',
+        quantity: const FoodAmountSelection(
+          1,
+          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+        type: IntakeTypeEntity.lunch,
+        meal: MealEntityFixtures.mealOne,
+        dateTime: DateTime(2026, 7, 21, 5, 15),
+      ),
+    );
+    final previous = await source.getAllIntakesByDate(
+      IntakeTypeDBO.lunch,
+      selectedDay,
+      dayStartOffsetHours: 4,
+      dayStartOffsetMinutes: 99,
+    );
+    final next = await source.getAllIntakesByDate(
+      IntakeTypeDBO.lunch,
+      DateTime(2026, 7, 21),
+      dayStartOffsetHours: 4,
+      dayStartOffsetMinutes: 99,
+    );
+    expect(previous, isEmpty);
+    expect(next.map((e) => e.id), ['after-clamped-boundary']);
+  });
+
   // The Home page asks for "today" rather than a selected day, so it has
   // to resolve the boundary into a label *before* filtering: passing a
   // raw `DateTime.now()` to a label-taking query asks for the wall-clock
@@ -137,8 +158,9 @@ void main() {
     final beforeBoundary = DateTime(2026, 7, 20, 2, 0);
 
     setUp(() async {
+      final originalClock = DayBoundaryCalc.clock;
       DayBoundaryCalc.clock = () => beforeBoundary;
-      addTearDown(() => DayBoundaryCalc.clock = DateTime.now);
+      addTearDown(() => DayBoundaryCalc.clock = originalClock);
 
       final intakeBox = await Hive.openBox<IntakeDBO>('intake_today_test');
       repo = IntakeRepository(

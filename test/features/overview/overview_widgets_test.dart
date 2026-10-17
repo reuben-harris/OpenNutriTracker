@@ -1,3 +1,5 @@
+import '../../helpers/pump_until.dart';
+import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:async';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
@@ -126,6 +128,7 @@ Finder id(String name) => find.byWidgetPredicate(
 );
 
 void main() {
+  useTestLocator();
   test(
     'percentages use daily goals, exceed 100, and handle undefined goals',
     () {
@@ -247,12 +250,13 @@ void main() {
         ..addFont(rootBundle.load('fonts/Nunito.ttf'));
       await font.load();
       final h = OverviewDiaryHarness();
+      final originalClock = DayBoundaryCalc.clock;
       DayBoundaryCalc.clock = () => DateTime(2026, 9, 29, 12);
       await tester.runAsync(h.initialize);
       locator.registerSingleton<SelectedDayCubit>(h.selection);
       addTearDown(() async {
-        DayBoundaryCalc.clock = DateTime.now;
-        await locator.reset();
+        DayBoundaryCalc.clock = originalClock;
+        await locator.resetScope();
         await h.dispose();
       });
       await tester.pumpWidget(
@@ -455,6 +459,7 @@ void main() {
       final h = OverviewDiaryHarness();
       late DiaryBloc diary;
       final importer = NoWorkouts();
+      final originalClock = DayBoundaryCalc.clock;
       DayBoundaryCalc.clock = () => DateTime(2026, 9, 29, 12);
       await tester.runAsync(() async {
         await h.initialize();
@@ -479,15 +484,17 @@ void main() {
       locator.registerFactory<MealDetailBloc>(UnusedMealDetail.new);
       locator.registerFactory<ActivityDetailBloc>(UnusedActivityDetail.new);
       addTearDown(() async {
-        DayBoundaryCalc.clock = DateTime.now;
-        await locator.reset();
+        DayBoundaryCalc.clock = originalClock;
+        await locator.resetScope();
         await diary.close();
         await clipboard.close();
         await h.dispose();
       });
       await tester.pumpWidget(app(const MainScreen()));
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      await tester.pump();
+      await pumpUntil(
+        tester,
+        () => find.byType(DayInfoWidget).evaluate().isNotEmpty,
       );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
@@ -500,8 +507,13 @@ void main() {
       );
       expect(importer.calls, 1);
       await tester.tap(id('selected-day-next'));
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 60)),
+      await tester.pump();
+      await pumpUntil(
+        tester,
+        () =>
+            h.calendar!.state is CalendarDayLoaded &&
+            (h.calendar!.state as CalendarDayLoaded).day ==
+                DateTime(2026, 9, 30),
       );
       await tester.pump();
       expect(h.selection.state.day, DateTime(2026, 9, 30));
@@ -514,8 +526,10 @@ void main() {
       calendar.onDateSelected(DateTime.utc(2026, 9, 20), const {});
       await tester.pump(const Duration(milliseconds: 500));
       await tester.tap(id('nav-overview'));
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 80)),
+      await tester.pump();
+      await pumpUntil(
+        tester,
+        () => find.byType(DashboardWidget).evaluate().isNotEmpty,
       );
       await tester.pump();
       expect(h.selection.state.day, DateTime(2026, 9, 20));
@@ -535,8 +549,10 @@ void main() {
       expect(id('overview-nutrients-period'), findsNothing);
       // Logging flows replace MainScreen; they must retain the chosen day.
       await tester.pumpWidget(app(const MainScreen(key: ValueKey('reopened'))));
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      await tester.pump();
+      await pumpUntil(
+        tester,
+        () => find.byType(DayInfoWidget).evaluate().isNotEmpty,
       );
       await tester.pump();
       expect(h.selection.state.day, DateTime(2026, 9, 20));
@@ -554,8 +570,13 @@ void main() {
       );
       await tester.tap(id('selected-day-today'));
       await tester.pump(const Duration(milliseconds: 500));
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 60)),
+      await tester.pump();
+      await pumpUntil(
+        tester,
+        () =>
+            h.calendar!.state is CalendarDayLoaded &&
+            (h.calendar!.state as CalendarDayLoaded).day ==
+                h.selection.state.day,
       );
       await tester.pump();
       expect(h.selection.state.isToday, isTrue);

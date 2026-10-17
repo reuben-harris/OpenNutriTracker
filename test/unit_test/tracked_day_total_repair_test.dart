@@ -84,6 +84,7 @@ TrackedDayDBO _day(
 );
 
 void main() {
+  useTestHive();
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('hasNonFiniteTrackedTotal', () {
@@ -126,11 +127,6 @@ void main() {
 
     final broken = DateTime(2026, 9, 24);
     final nextDay = DateTime(2026, 9, 25);
-
-    setUpAll(() {
-      Hive.init('.');
-      registerHiveAdaptersOnce();
-    });
 
     setUp(() async {
       final tag = DateTime.now().microsecondsSinceEpoch;

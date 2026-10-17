@@ -21,14 +21,14 @@ void main() {
     test('coherent product has a small relative error and is consistent', () {
       // 4*10 + 4*5 + 9*5 = 105 vs declared 100 -> 5% error.
       final n = _n(energy: 100, carbs: 10, fat: 5, protein: 5);
-      expect(atwaterEnergyRelativeError(n)! < 0.10, isTrue);
+      expect(atwaterEnergyRelativeError(n), closeTo(0.05, 1e-12));
       expect(isAtwaterConsistent(n), isTrue);
     });
 
     test('declared kcal far above macro-implied energy is inconsistent', () {
       // macros imply 4*5 + 4*1 + 9*1 = 33 vs declared 100 -> 67% error.
       final n = _n(energy: 100, carbs: 5, fat: 1, protein: 1);
-      expect(atwaterEnergyRelativeError(n)! > atwaterEnergyTolerance, isTrue);
+      expect(atwaterEnergyRelativeError(n), closeTo(0.67, 1e-12));
       expect(isAtwaterConsistent(n), isFalse);
     });
 
@@ -56,11 +56,23 @@ void main() {
       expect(isAtwaterConsistent(n), isTrue);
     });
 
-    test('boundary just under 25% stays consistent', () {
-      // declared 100, macros imply 4*15+4*5+9*5 = 125 -> 25% over; nudge under.
-      final n = _n(energy: 100, carbs: 14, fat: 5, protein: 5);
-      // 4*14+4*5+9*5 = 121 -> 21% -> consistent.
-      expect(isAtwaterConsistent(n), isTrue);
-    });
+    for (final (name, carbs, error, consistent) in [
+      ('below tolerance', 19.99, 0.2496, true),
+      ('exact tolerance', 20.0, 0.25, true),
+      ('above tolerance', 20.01, 0.2504, false),
+    ]) {
+      test(name, () {
+        final nutrients = _n(energy: 100, carbs: carbs, fat: 5, protein: 0);
+        expect(atwaterEnergyRelativeError(nutrients), closeTo(error, 1e-12));
+        expect(isAtwaterConsistent(nutrients), consistent);
+      });
+    }
+    for (final energy in [0.0, -1.0]) {
+      test('unusable declared energy $energy gives no verdict', () {
+        final nutrients = _n(energy: energy, carbs: 10, fat: 5, protein: 5);
+        expect(atwaterEnergyRelativeError(nutrients), isNull);
+        expect(isAtwaterConsistent(nutrients), isTrue);
+      });
+    }
   });
 }

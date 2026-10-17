@@ -27,54 +27,73 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late Directory tempRoot;
+  late PathProviderPlatform originalPathProvider;
 
   setUp(() async {
+    originalPathProvider = PathProviderPlatform.instance;
     tempRoot = await Directory.systemTemp.createTemp('ont_demo_photo_test_');
     PathProviderPlatform.instance = _FakePathProvider(tempRoot.path);
   });
 
   tearDown(() async {
+    PathProviderPlatform.instance = originalPathProvider;
     if (await tempRoot.exists()) {
       await tempRoot.delete(recursive: true);
     }
   });
 
   group('demo meal photos', () {
-    test('every food resolves to a bundled photo and never a remote URL',
-        () async {
-      final foods = await buildDemoFoods();
-      final all = <(String, dynamic)>[
-        ('oatmeal', foods.oatmeal),
-        ('brownRice', foods.brownRice),
-        ('wholegrainBread', foods.wholegrainBread),
-        ('chickenBreast', foods.chickenBreast),
-        ('greekYogurt', foods.greekYogurt),
-        ('salmon', foods.salmon),
-        ('oliveOil', foods.oliveOil),
-        ('almonds', foods.almonds),
-        ('banana', foods.banana),
-        ('apple', foods.apple),
-        ('broccoli', foods.broccoli),
-      ];
+    test(
+      'every food resolves to a bundled photo and never a remote URL',
+      () async {
+        final foods = await buildDemoFoods();
+        final all = <(String, dynamic)>[
+          ('oatmeal', foods.oatmeal),
+          ('brownRice', foods.brownRice),
+          ('wholegrainBread', foods.wholegrainBread),
+          ('chickenBreast', foods.chickenBreast),
+          ('greekYogurt', foods.greekYogurt),
+          ('salmon', foods.salmon),
+          ('oliveOil', foods.oliveOil),
+          ('almonds', foods.almonds),
+          ('banana', foods.banana),
+          ('apple', foods.apple),
+          ('broccoli', foods.broccoli),
+        ];
 
-      for (final (label, meal) in all) {
-        // The whole point of bundling: a seeded demo meal must never carry
-        // a CDN URL, because CachedNetworkImage would fetch it at render
-        // time and put Unsplash back on the list of hosts the app talks to.
-        expect(meal.thumbnailImageUrl, isNull,
-            reason: '$label must not hotlink a thumbnail');
-        expect(meal.mainImageUrl, isNull,
-            reason: '$label must not hotlink a main image');
+        for (final (label, meal) in all) {
+          // The whole point of bundling: a seeded demo meal must never carry
+          // a CDN URL, because CachedNetworkImage would fetch it at render
+          // time and put Unsplash back on the list of hosts the app talks to.
+          expect(
+            meal.thumbnailImageUrl,
+            isNull,
+            reason: '$label must not hotlink a thumbnail',
+          );
+          expect(
+            meal.mainImageUrl,
+            isNull,
+            reason: '$label must not hotlink a main image',
+          );
 
-        expect(meal.localImagePath, isNotNull,
-            reason: '$label lost its bundled photo — check that its photoId '
-                'has a matching file in assets/demo/meals/');
+          expect(
+            meal.localImagePath,
+            isNotNull,
+            reason:
+                '$label lost its bundled photo — check that its photoId '
+                'has a matching file in assets/demo/meals/',
+          );
 
-        final absolute =
-            await UserImageStorage.absolutePath(meal.localImagePath as String);
-        expect(File(absolute).existsSync(), isTrue,
-            reason: '$label points at $absolute, which was never written');
-      }
-    });
+          final absolute = await UserImageStorage.absolutePath(
+            meal.localImagePath as String,
+          );
+          expect(
+            File(absolute).existsSync(),
+            isTrue,
+            reason: '$label points at $absolute, which was never written',
+          );
+        }
+      },
+    );
   });
 }

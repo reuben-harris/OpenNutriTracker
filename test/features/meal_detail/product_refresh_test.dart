@@ -10,6 +10,7 @@ import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_det
 import 'package:opennutritracker/features/meal_detail/presentation/widgets/meal_detail_nutriments_table.dart';
 
 import '../../helpers/product_refresh_fixture.dart';
+import '../../helpers/pump_until.dart';
 
 void main() {
   late ProductRefreshFixture fixture;
