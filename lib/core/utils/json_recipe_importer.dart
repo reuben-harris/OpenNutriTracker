@@ -9,26 +9,12 @@ import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dar
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 
 class JsonRecipeImportResult {
-  final List<ImportedRecipe> recipes;
+  final List<RecipeEntity> recipes;
   final List<String> errors;
 
   const JsonRecipeImportResult({required this.recipes, required this.errors});
 
   bool get hasErrors => errors.isNotEmpty;
-}
-
-/// A recipe read from the JSON blob, plus whether the JSON explicitly set a
-/// `totalWeight` for it. The flag has to travel to `SaveRecipeUseCase` so the
-/// save-time recompute keeps the imported override instead of falling back to
-/// the ingredient sum (#1139).
-class ImportedRecipe {
-  final RecipeEntity recipe;
-  final bool totalWeightOverridden;
-
-  const ImportedRecipe({
-    required this.recipe,
-    required this.totalWeightOverridden,
-  });
 }
 
 /// Lenient JSON-paste importer for full custom recipes. Accepts either a
@@ -128,7 +114,7 @@ class JsonRecipeImporter {
     }
 
     final compute = ComputeRecipeNutritionUseCase();
-    final recipes = <ImportedRecipe>[];
+    final recipes = <RecipeEntity>[];
     final errors = <String>[];
     final now = DateTime.now();
 
@@ -248,8 +234,10 @@ class JsonRecipeImporter {
       final description = _asString(entry[_kDescription])?.trim();
       final servingsCount = _asInt(entry[_kServings]);
       final totalWeightOverride = _asDouble(entry[_kTotalWeight]);
-      if (totalWeightOverride != null &&
-          !(totalWeightOverride > 0 && totalWeightOverride.isFinite)) {
+      if (entry.containsKey(_kTotalWeight) &&
+          (totalWeightOverride == null ||
+              !totalWeightOverride.isFinite ||
+              totalWeightOverride <= 0)) {
         errors.add(
           'Recipe $entryNum ($name): "totalWeight" must be a positive finite number',
         );
@@ -267,26 +255,24 @@ class JsonRecipeImporter {
 
       final result = compute.compute(
         ingredients,
-        totalWeightOverride: totalWeightOverride,
+        cookedWeightG: totalWeightOverride,
       );
 
       recipes.add(
-        ImportedRecipe(
-          recipe: RecipeEntity(
-            id: IdGenerator.getUniqueID(),
-            name: name,
-            description: (description != null && description.isNotEmpty)
-                ? description
-                : null,
-            ingredients: ingredients,
-            totalWeightG: result.totalWeightG,
-            aggregatedNutrimentsPer100: result.perHundredG,
-            createdAt: now,
-            updatedAt: now,
-            servingsCount: servingsCount,
-            tags: List.unmodifiable(tags),
-          ),
-          totalWeightOverridden: totalWeightOverride != null,
+        RecipeEntity(
+          id: IdGenerator.getUniqueID(),
+          name: name,
+          description: (description != null && description.isNotEmpty)
+              ? description
+              : null,
+          ingredients: ingredients,
+          totalWeightG: result.totalWeightG,
+          cookedWeightG: totalWeightOverride,
+          aggregatedNutrimentsPer100: result.perHundredG,
+          createdAt: now,
+          updatedAt: now,
+          servingsCount: servingsCount,
+          tags: List.unmodifiable(tags),
         ),
       );
     }

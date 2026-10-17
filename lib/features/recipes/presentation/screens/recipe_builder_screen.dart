@@ -23,7 +23,7 @@ import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount_sheet.dart';
 import 'package:opennutritracker/core/search/food_search_engine.dart';
 import 'package:opennutritracker/features/add_meal/presentation/bloc/food_search_controller.dart';
-import 'package:opennutritracker/features/recipes/presentation/widgets/recipe_nutrition_summary.dart';
+import 'package:opennutritracker/features/recipes/presentation/widgets/recipe_weight_editor.dart';
 import 'package:opennutritracker/features/scanner/scanner_screen.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
@@ -44,7 +44,6 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   late TextEditingController _servingsController;
-  late TextEditingController _totalWeightController;
   late TextEditingController _tagsController;
 
   bool _initialized = false;
@@ -56,7 +55,6 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
     _nameController = TextEditingController();
     _descriptionController = TextEditingController();
     _servingsController = TextEditingController();
-    _totalWeightController = TextEditingController();
     _tagsController = TextEditingController();
   }
 
@@ -73,7 +71,6 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
         _nameController.text = r.name;
         _descriptionController.text = r.description ?? '';
         _servingsController.text = r.servingsCount?.toString() ?? '';
-        _totalWeightController.text = r.totalWeightG.toStringAsFixed(0);
         _tagsController.text = r.tags.join(', ');
       }
     }
@@ -84,7 +81,6 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _servingsController.dispose();
-    _totalWeightController.dispose();
     _tagsController.dispose();
     _bloc.close();
     super.dispose();
@@ -108,14 +104,6 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
         if (state.didSave) {
           Navigator.of(context).pop();
           return;
-        }
-        // Sync the auto-computed total weight into the controller so the
-        // user sees the running sum until they manually override it.
-        if (!state.totalWeightOverridden) {
-          final newText = state.totalWeightG.toStringAsFixed(0);
-          if (_totalWeightController.text != newText) {
-            _totalWeightController.text = newText;
-          }
         }
         if (state.saveError != null) {
           _showSaveError(context, state.saveError!);
@@ -236,6 +224,18 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
                   },
                 ),
                 const SizedBox(height: Dimens.spacing24),
+                RecipeWeightEditor(
+                  mode: state.weightMode,
+                  fieldBorder: fieldBorder,
+                  showError: state.saveError == SaveError.invalidTotalWeight,
+                  totalWeightG: state.totalWeightG,
+                  cookedWeightG: state.cookedWeightG,
+                  onModeChanged: (mode) =>
+                      _bloc.add(UpdateWeightModeEvent(mode)),
+                  onCookedWeightChanged: (weight) =>
+                      _bloc.add(UpdateCookedWeightEvent(weight)),
+                ),
+                const SizedBox(height: Dimens.spacing24),
                 Text(
                   S.of(context).recipeIngredientsLabel,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -283,36 +283,6 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
                   label: Text(S.of(context).recipeAddIngredientLabel),
                 ),
                 const SizedBox(height: Dimens.spacing24),
-                TextField(
-                  controller: _totalWeightController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                      RegExp(r'^\d+([.,]\d{0,2})?$'),
-                    ),
-                  ],
-                  decoration: InputDecoration(
-                    labelText: S.of(context).recipeTotalWeightLabel,
-                    helperText: S.of(context).recipeTotalWeightHelper,
-                    helperMaxLines: 3,
-                    border: fieldBorder,
-                    enabledBorder: fieldBorder,
-                  ),
-                  onChanged: (v) {
-                    final raw = v.replaceAll(',', '.');
-                    final parsed = double.tryParse(raw);
-                    if (parsed != null && parsed > 0) {
-                      _bloc.add(UpdateTotalWeightEvent(parsed));
-                    }
-                  },
-                ),
-                const SizedBox(height: Dimens.spacing16),
-                RecipeNutritionSummary(
-                  nutrimentsPer100: state.aggregatedNutrimentsPer100,
-                  totalWeightG: state.totalWeightG,
-                ),
                 const SizedBox(height: Dimens.spacing32),
               ],
             ),
@@ -324,7 +294,8 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
 
   bool _hasUnsavedChanges(RecipeBuilderState state) {
     if (state.didSave || state.isSaving) return false;
-    return state.name.trim().isNotEmpty ||
+    return state.weightMode == RecipeWeightMode.custom ||
+        state.name.trim().isNotEmpty ||
         (state.description?.trim().isNotEmpty ?? false) ||
         state.ingredients.isNotEmpty ||
         state.servingsCount != null ||

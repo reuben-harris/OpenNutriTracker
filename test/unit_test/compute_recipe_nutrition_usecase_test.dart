@@ -72,6 +72,18 @@ void main() {
     useCase = ComputeRecipeNutritionUseCase();
   });
 
+  for (final invalid in [0.0, -1.0, double.nan, double.infinity]) {
+    test('invalid cooked weight $invalid is rejected rather than replaced', () {
+      final flour = _meal(nutriments: _nutr(kcal: 200));
+      expect(
+        () => useCase.compute([
+          _ingredient(flour, 100, 'g', 100),
+        ], cookedWeightG: invalid),
+        throwsFormatException,
+      );
+    });
+  }
+
   group('compute', () {
     test('empty ingredient list returns empty + zero weight', () {
       final result = useCase.compute([]);
@@ -120,13 +132,13 @@ void main() {
       expect(result.perHundredG.energyKcal100, closeTo(200, 0.001));
     });
 
-    test('totalWeightOverride rescales per-100g', () {
+    test('cookedWeightG rescales per-100g', () {
       // 800 g of dough at 200 kcal/100g (1600 kcal total) baked down to 720 g
       // → per-100g = 1600 × 100 / 720 ≈ 222.22
       final dough = _meal(nutriments: _nutr(kcal: 200));
       final result = useCase.compute([
         _ingredient(dough, 800, 'g', 800),
-      ], totalWeightOverride: 720);
+      ], cookedWeightG: 720);
 
       expect(result.totalWeightG, 720);
       expect(result.perHundredG.energyKcal100, closeTo(222.22, 0.01));
@@ -160,16 +172,6 @@ void main() {
       // not 0 (preserves "hide unknown micros" UI behaviour).
       expect(result.perHundredG.iron100, isNull);
       expect(result.perHundredG.vitaminA100, isNull);
-    });
-
-    test('zero total weight yields empty nutriments', () {
-      final a = _meal(nutriments: _nutr(kcal: 100));
-      final result = useCase.compute([
-        _ingredient(a, 50, 'g', 50),
-      ], totalWeightOverride: 0);
-
-      expect(result.totalWeightG, 0);
-      expect(result.perHundredG.energyKcal100, isNull);
     });
 
     test(

@@ -9,13 +9,6 @@ import 'package:opennutritracker/core/domain/usecase/compute_recipe_nutrition_us
 import 'package:opennutritracker/core/domain/usecase/save_recipe_usecase.dart';
 import 'package:opennutritracker/features/settings/domain/usecase/import_recipes_csv_usecase.dart';
 
-// #1194: driving importFromPickedFile end to end against the real
-// SaveRecipeUseCase pins the wire the parse-side tests can't reach —
-// that `imported.totalWeightOverridden` is threaded into
-// SaveRecipeUseCase.save, so an explicit recipe_total_weight_g survives
-// the save-time recompute instead of collapsing back to the ingredient sum.
-// Same shape as the JSON counterpart added in #1169.
-
 class _FakeRecipeRepository implements RecipeRepository {
   final List<RecipeEntity> saved = [];
 
@@ -31,7 +24,7 @@ class _FakeRecipeRepository implements RecipeRepository {
 
 base class _StubPlatformFile extends PlatformFile {
   _StubPlatformFile({required this.name, required String path})
-      : uri = Uri.file(path);
+    : uri = Uri.file(path);
 
   @override
   final String name;
@@ -61,10 +54,8 @@ base class _StubPlatformFile extends PlatformFile {
 }
 
 Future<PlatformFile?> Function() _pickerReturning(File file) {
-  return () async => _StubPlatformFile(
-        name: file.uri.pathSegments.last,
-        path: file.path,
-      );
+  return () async =>
+      _StubPlatformFile(name: file.uri.pathSegments.last, path: file.path);
 }
 
 ImportRecipesCsvUsecase _buildUsecase(
@@ -89,7 +80,8 @@ File _writeTempCsv(String contents) {
   return file;
 }
 
-const _header = 'recipe_name,recipe_description,recipe_servings,'
+const _header =
+    'recipe_name,recipe_description,recipe_servings,'
     'recipe_total_weight_g,recipe_tags,ingredient_name,'
     'ingredient_brands,ingredient_amount,ingredient_unit,'
     'ingredient_kcal_100,ingredient_carbs_100,ingredient_fat_100,'
@@ -98,53 +90,45 @@ const _header = 'recipe_name,recipe_description,recipe_servings,'
 
 void main() {
   group('ImportRecipesCsvUsecase.importFromPickedFile', () {
-    test(
-      'preserves an explicit recipe_total_weight_g through save '
-      '(issue #1194 numbers)',
-      () async {
-        final file = _writeTempCsv(
-          '${_header}Test,,,300,,Flour,,110,g,360,,,,,,\n',
-        );
-        final repo = _FakeRecipeRepository();
-        final usecase = _buildUsecase(repo, file);
+    test('preserves an explicit recipe_total_weight_g through save '
+        '(issue #1194 numbers)', () async {
+      final file = _writeTempCsv(
+        '${_header}Test,,,300,,Flour,,110,g,360,,,,,,\n',
+      );
+      final repo = _FakeRecipeRepository();
+      final usecase = _buildUsecase(repo, file);
 
-        final result = await usecase.importFromPickedFile();
+      final result = await usecase.importFromPickedFile();
 
-        expect(result, isNotNull);
-        expect(result!.imported, 1);
-        expect(result.skippedRows, 0);
-        expect(repo.saved, hasLength(1));
-        final saved = repo.saved.single;
-        expect(saved.name, 'Test');
-        expect(saved.totalWeightG, 300);
-        expect(
-          saved.aggregatedNutrimentsPer100.energyKcal100,
-          closeTo(132, 1e-9),
-        );
-      },
-    );
+      expect(result, isNotNull);
+      expect(result!.imported, 1);
+      expect(result.skippedRows, 0);
+      expect(repo.saved, hasLength(1));
+      final saved = repo.saved.single;
+      expect(saved.name, 'Test');
+      expect(saved.totalWeightG, 300);
+      expect(
+        saved.aggregatedNutrimentsPer100.energyKcal100,
+        closeTo(132, 1e-9),
+      );
+    });
 
-    test(
-      'without recipe_total_weight_g, save-time recompute falls back to '
-      'the ingredient sum',
-      () async {
-        final file = _writeTempCsv(
-          '${_header}Test,,,,,Flour,,110,g,360,,,,,,\n',
-        );
-        final repo = _FakeRecipeRepository();
-        final usecase = _buildUsecase(repo, file);
+    test('without recipe_total_weight_g, automatic mode uses '
+        'the ingredient sum', () async {
+      final file = _writeTempCsv('${_header}Test,,,,,Flour,,110,g,360,,,,,,\n');
+      final repo = _FakeRecipeRepository();
+      final usecase = _buildUsecase(repo, file);
 
-        final result = await usecase.importFromPickedFile();
+      final result = await usecase.importFromPickedFile();
 
-        expect(result!.imported, 1);
-        final saved = repo.saved.single;
-        expect(saved.totalWeightG, 110);
-        expect(
-          saved.aggregatedNutrimentsPer100.energyKcal100,
-          closeTo(360, 1e-9),
-        );
-      },
-    );
+      expect(result!.imported, 1);
+      final saved = repo.saved.single;
+      expect(saved.totalWeightG, 110);
+      expect(
+        saved.aggregatedNutrimentsPer100.energyKcal100,
+        closeTo(360, 1e-9),
+      );
+    });
 
     test('returns null when the picker is cancelled', () async {
       final repo = _FakeRecipeRepository();
@@ -174,9 +158,7 @@ void main() {
         expect(result.skippedRows, 1);
         expect(
           result.errorMessages.single,
-          contains(
-            'recipe_total_weight_g must be a positive finite number',
-          ),
+          contains('recipe_total_weight_g must be a positive finite number'),
         );
         expect(repo.saved, isEmpty);
       },

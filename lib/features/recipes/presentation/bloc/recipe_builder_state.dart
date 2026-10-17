@@ -1,11 +1,8 @@
 part of 'recipe_builder_bloc.dart';
 
-enum SaveError {
-  nameRequired,
-  needsIngredients,
-  invalidTotalWeight,
-  unknown,
-}
+enum SaveError { nameRequired, needsIngredients, invalidTotalWeight, unknown }
+
+enum RecipeWeightMode { automatic, custom }
 
 class RecipeBuilderState extends Equatable {
   final String? id;
@@ -13,9 +10,10 @@ class RecipeBuilderState extends Equatable {
   final String? description;
   final int? servingsCount;
   final List<RecipeIngredientEntity> ingredients;
-  final double totalWeightG;
-  final bool totalWeightOverridden;
-  final MealNutrimentsEntity aggregatedNutrimentsPer100;
+  final double? totalWeightG;
+  final RecipeWeightMode weightMode;
+  final double? cookedWeightG;
+  final MealNutrimentsEntity? aggregatedNutrimentsPer100;
   final List<String> tags;
   final String? imagePath;
   final bool isExistingRecipe;
@@ -31,7 +29,8 @@ class RecipeBuilderState extends Equatable {
     required this.servingsCount,
     required this.ingredients,
     required this.totalWeightG,
-    required this.totalWeightOverridden,
+    required this.weightMode,
+    required this.cookedWeightG,
     required this.aggregatedNutrimentsPer100,
     required this.tags,
     required this.imagePath,
@@ -43,22 +42,23 @@ class RecipeBuilderState extends Equatable {
   });
 
   factory RecipeBuilderState.initial() => RecipeBuilderState(
-        id: null,
-        name: '',
-        description: null,
-        servingsCount: null,
-        ingredients: const [],
-        totalWeightG: 0,
-        totalWeightOverridden: false,
-        aggregatedNutrimentsPer100: MealNutrimentsEntity.empty(),
-        tags: const [],
-        imagePath: null,
-        isExistingRecipe: false,
-        isSaving: false,
-        didSave: false,
-        saveError: null,
-        errorMessage: null,
-      );
+    id: null,
+    name: '',
+    description: null,
+    servingsCount: null,
+    ingredients: const [],
+    totalWeightG: 0,
+    weightMode: RecipeWeightMode.automatic,
+    cookedWeightG: null,
+    aggregatedNutrimentsPer100: MealNutrimentsEntity.empty(),
+    tags: const [],
+    imagePath: null,
+    isExistingRecipe: false,
+    isSaving: false,
+    didSave: false,
+    saveError: null,
+    errorMessage: null,
+  );
 
   RecipeBuilderState copyWith({
     String? id,
@@ -67,7 +67,10 @@ class RecipeBuilderState extends Equatable {
     int? servingsCount,
     List<RecipeIngredientEntity>? ingredients,
     double? totalWeightG,
-    bool? totalWeightOverridden,
+    RecipeWeightMode? weightMode,
+    double? cookedWeightG,
+    bool clearCookedWeight = false,
+    bool clearNutrition = false,
     MealNutrimentsEntity? aggregatedNutrimentsPer100,
     List<String>? tags,
     String? imagePath,
@@ -84,14 +87,18 @@ class RecipeBuilderState extends Equatable {
       id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,
-      servingsCount:
-          clearServingsCount ? null : (servingsCount ?? this.servingsCount),
+      servingsCount: clearServingsCount
+          ? null
+          : (servingsCount ?? this.servingsCount),
       ingredients: ingredients ?? this.ingredients,
-      totalWeightG: totalWeightG ?? this.totalWeightG,
-      totalWeightOverridden:
-          totalWeightOverridden ?? this.totalWeightOverridden,
-      aggregatedNutrimentsPer100:
-          aggregatedNutrimentsPer100 ?? this.aggregatedNutrimentsPer100,
+      totalWeightG: clearNutrition ? null : (totalWeightG ?? this.totalWeightG),
+      weightMode: weightMode ?? this.weightMode,
+      cookedWeightG: clearCookedWeight
+          ? null
+          : (cookedWeightG ?? this.cookedWeightG),
+      aggregatedNutrimentsPer100: clearNutrition
+          ? null
+          : (aggregatedNutrimentsPer100 ?? this.aggregatedNutrimentsPer100),
       tags: tags ?? this.tags,
       imagePath: clearImagePath ? null : (imagePath ?? this.imagePath),
       isExistingRecipe: isExistingRecipe ?? this.isExistingRecipe,
@@ -102,22 +109,26 @@ class RecipeBuilderState extends Equatable {
     );
   }
 
+  bool get hasValidWeight =>
+      totalWeightG != null && totalWeightG!.isFinite && totalWeightG! > 0;
+
   @override
   List<Object?> get props => [
-        id,
-        name,
-        description,
-        servingsCount,
-        ingredients,
-        totalWeightG,
-        totalWeightOverridden,
-        aggregatedNutrimentsPer100,
-        tags,
-        imagePath,
-        isExistingRecipe,
-        isSaving,
-        didSave,
-        saveError,
-        errorMessage,
-      ];
+    id,
+    name,
+    description,
+    servingsCount,
+    ingredients,
+    totalWeightG,
+    weightMode,
+    cookedWeightG,
+    aggregatedNutrimentsPer100,
+    tags,
+    imagePath,
+    isExistingRecipe,
+    isSaving,
+    didSave,
+    saveError,
+    errorMessage,
+  ];
 }

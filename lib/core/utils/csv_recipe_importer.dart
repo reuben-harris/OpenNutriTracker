@@ -7,28 +7,8 @@ import 'package:opennutritracker/core/utils/id_generator.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 
-/// One recipe pulled out of the CSV. [totalWeightOverridden] is true when
-/// the user supplied an explicit `recipe_total_weight_g` for this recipe;
-/// [ImportRecipesCsvUsecase] threads it into [SaveRecipeUseCase.save] so
-/// the override survives the save-time recompute instead of collapsing
-/// back to the ingredient sum (#1139 / #1194).
-class ImportedCsvRecipe {
-  final RecipeEntity recipe;
-  final bool totalWeightOverridden;
-
-  const ImportedCsvRecipe({
-    required this.recipe,
-    required this.totalWeightOverridden,
-  });
-}
-
-/// Parsed result. [recipes] hold successfully grouped + assembled recipes,
-/// each wrapped in [ImportedCsvRecipe] so the save-side knows whether an
-/// explicit total weight was supplied; [errors] hold one entry per skipped
-/// row (with the 1-based row number from the user's perspective and a
-/// short reason).
 class CsvRecipeImportResult {
-  final List<ImportedCsvRecipe> recipes;
+  final List<RecipeEntity> recipes;
   final List<String> errors;
 
   const CsvRecipeImportResult({required this.recipes, required this.errors});
@@ -263,7 +243,7 @@ class CsvRecipeImporter {
     // will recompute again on save, but having values populated here lets
     // tests and downstream callers see correct totals immediately).
     final compute = ComputeRecipeNutritionUseCase();
-    final recipes = <ImportedCsvRecipe>[];
+    final recipes = <RecipeEntity>[];
     for (final group in groups.values) {
       if (group.ingredients.isEmpty) continue;
       if (group.totalWeightRejected || group.ingredientRejected) continue;
@@ -271,25 +251,23 @@ class CsvRecipeImporter {
 
       final result = compute.compute(
         ingredients,
-        totalWeightOverride: group.totalWeightOverride,
+        cookedWeightG: group.totalWeightOverride,
       );
 
       final now = DateTime.now();
       recipes.add(
-        ImportedCsvRecipe(
-          recipe: RecipeEntity(
-            id: IdGenerator.getUniqueID(),
-            name: group.name,
-            description: group.description,
-            ingredients: ingredients,
-            totalWeightG: result.totalWeightG,
-            aggregatedNutrimentsPer100: result.perHundredG,
-            createdAt: now,
-            updatedAt: now,
-            servingsCount: group.servingsCount,
-            tags: List.unmodifiable(group.tags),
-          ),
-          totalWeightOverridden: group.totalWeightOverride != null,
+        RecipeEntity(
+          id: IdGenerator.getUniqueID(),
+          name: group.name,
+          description: group.description,
+          ingredients: ingredients,
+          totalWeightG: result.totalWeightG,
+          cookedWeightG: group.totalWeightOverride,
+          aggregatedNutrimentsPer100: result.perHundredG,
+          createdAt: now,
+          updatedAt: now,
+          servingsCount: group.servingsCount,
+          tags: List.unmodifiable(group.tags),
         ),
       );
     }

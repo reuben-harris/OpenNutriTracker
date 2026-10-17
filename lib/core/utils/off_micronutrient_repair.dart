@@ -103,9 +103,8 @@ class OffMicronutrientRepair {
   /// The same [recipe] when no ingredient needs repairing, otherwise a copy
   /// with those snapshots repaired and the per-100 g aggregate recomputed
   /// from the repaired list, the way `SaveRecipeUseCase` computes it. The
-  /// stored total weight is passed back in as the override so a recipe
-  /// whose weight the user had set by hand keeps it; for the others it
-  /// equals the ingredient sum anyway. Timestamps are left alone — this is
+  /// saved cooked weight is preserved; automatic weight is recalculated
+  /// from the ingredient sum. Timestamps are left alone — this is
   /// a repair, not an edit.
   static RecipeDBO repairRecipe(RecipeDBO recipe) {
     var changed = false;
@@ -132,14 +131,15 @@ class OffMicronutrientRepair {
 
     final aggregate = _computeRecipeNutrition.compute(
       ingredients.map(RecipeIngredientEntity.fromDBO).toList(),
-      totalWeightOverride: recipe.totalWeightG,
+      cookedWeightG: recipe.cookedWeightG,
     );
     return RecipeDBO(
       id: recipe.id,
       name: recipe.name,
       description: recipe.description,
       ingredients: ingredients,
-      totalWeightG: recipe.totalWeightG,
+      totalWeightG: aggregate.totalWeightG,
+      cookedWeightG: recipe.cookedWeightG,
       aggregatedNutrimentsPer100: MealNutrimentsDBO.fromProductNutrimentsEntity(
         aggregate.perHundredG,
       ),

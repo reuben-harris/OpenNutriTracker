@@ -145,9 +145,9 @@ class SharedRecipeIngredient {
 /// Wire format (top-level array — compact, version-stamped):
 ///   [version, name, description, servingsCount, totalWeightG,
 ///    [aggregated kcal, c, f, p, sg, sf, fb],
-///    [ingredients...]]
+///    [ingredients...], cookedWeightG]
 class SharedRecipePayload {
-  static const int _currentVersion = 2;
+  static const int _currentVersion = 3;
 
   // Cap the post-decompression payload size to make zip-bomb-style QR
   // codes a clean parse failure rather than an OOM. 64 KiB comfortably
@@ -161,6 +161,7 @@ class SharedRecipePayload {
   final String? description;
   final int? servingsCount;
   final double totalWeightG;
+  final double? cookedWeightG;
   final double? energyKcal100;
   final double? carbohydrates100;
   final double? fat100;
@@ -176,6 +177,7 @@ class SharedRecipePayload {
     required this.description,
     required this.servingsCount,
     required this.totalWeightG,
+    required this.cookedWeightG,
     required this.energyKcal100,
     required this.carbohydrates100,
     required this.fat100,
@@ -194,6 +196,7 @@ class SharedRecipePayload {
       description: recipe.description,
       servingsCount: recipe.servingsCount,
       totalWeightG: recipe.totalWeightG,
+      cookedWeightG: recipe.cookedWeightG,
       energyKcal100: n.energyKcal100,
       carbohydrates100: n.carbohydrates100,
       fat100: n.fat100,
@@ -248,6 +251,13 @@ class SharedRecipePayload {
       throw SharedRecipeParseException('Unsupported version: $version');
     }
 
+    final cookedWeightG = _toDouble(decoded[7]);
+    if (cookedWeightG != null &&
+        (!cookedWeightG.isFinite || cookedWeightG <= 0)) {
+      throw SharedRecipeParseException(
+        'Cooked weight must be positive and finite',
+      );
+    }
     final aggregated = decoded[5] as List<dynamic>;
     final rawIngredients = decoded[6] as List<dynamic>;
 
@@ -257,6 +267,7 @@ class SharedRecipePayload {
       description: decoded[2] as String?,
       servingsCount: (decoded[3] as num?)?.toInt(),
       totalWeightG: (decoded[4] as num).toDouble(),
+      cookedWeightG: cookedWeightG,
       energyKcal100: _toDouble(aggregated[0]),
       carbohydrates100: _toDouble(aggregated[1]),
       fat100: _toDouble(aggregated[2]),
@@ -278,7 +289,7 @@ class SharedRecipePayload {
       name,
       description,
       servingsCount,
-      _compact(totalWeightG),
+      totalWeightG,
       [
         _compact(energyKcal100),
         _compact(carbohydrates100),
@@ -289,6 +300,7 @@ class SharedRecipePayload {
         _compact(fiber100),
       ],
       ingredients.map((i) => i.toArray()).toList(),
+      cookedWeightG,
     ];
   }
 
@@ -310,6 +322,7 @@ class SharedRecipePayload {
       description: description,
       ingredients: ingredients.map((i) => i.toIngredient()).toList(),
       totalWeightG: totalWeightG,
+      cookedWeightG: cookedWeightG,
       aggregatedNutrimentsPer100: MealNutrimentsEntity(
         energyKcal100: energyKcal100,
         carbohydrates100: carbohydrates100,

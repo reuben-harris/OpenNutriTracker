@@ -46,8 +46,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     super.didChangeDependencies();
     if (!_initialized) {
       _initialized = true;
-      final args = ModalRoute.of(context)?.settings.arguments
-          as RecipeDetailArguments;
+      final args =
+          ModalRoute.of(context)?.settings.arguments as RecipeDetailArguments;
       _bloc.add(LoadRecipeEvent(args.recipeId));
     }
   }
@@ -65,9 +65,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         if (state is RecipeDetailLoaded) {
           return _buildLoaded(context, state.recipe);
         }
-        return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        );
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
       },
     );
   }
@@ -84,7 +82,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             tooltip: S.of(context).shareRecipeLabel,
             icon: const Icon(Icons.share_outlined),
             onPressed: () {
-              final code = SharedRecipePayload.fromRecipe(recipe).toJsonString();
+              final code = SharedRecipePayload.fromRecipe(
+                recipe,
+              ).toJsonString();
               showDialog(
                 context: context,
                 builder: (_) => ShareQrDialog(
@@ -154,9 +154,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: Dimens.spacing8),
-          ...recipe.ingredients.map(
-            (i) => IngredientListItem(ingredient: i),
-          ),
+          ...recipe.ingredients.map((i) => IngredientListItem(ingredient: i)),
           const SizedBox(height: Dimens.spacing24),
           SizedBox(
             width: double.infinity,
@@ -188,10 +186,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
         // user can rename before saving — common workflow is "tweak one
         // ingredient and save as new".
         final suffix = S.of(context).duplicateRecipeNameSuffix;
-        final draft = recipe.copyWith(
-          id: '',
-          name: '${recipe.name} $suffix',
-        );
+        final draft = recipe.copyWith(id: '', name: '${recipe.name} $suffix');
         // copyWith on RecipeEntity always carries the id forward; we want a
         // fresh one. The builder treats an empty id as a "create new"
         // sentinel: it generates a UUID at save time.
@@ -201,6 +196,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
           description: draft.description,
           ingredients: draft.ingredients,
           totalWeightG: draft.totalWeightG,
+          cookedWeightG: draft.cookedWeightG,
           aggregatedNutrimentsPer100: draft.aggregatedNutrimentsPer100,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
@@ -277,7 +273,9 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             ),
             title: Text(
               label,
-              style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(
+                ctx,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             onTap: () => Navigator.of(ctx).pop(type),
           );

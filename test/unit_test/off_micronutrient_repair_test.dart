@@ -147,7 +147,11 @@ IntakeDBO _intake(String id, MealDBO meal, {double amount = 100}) => IntakeDBO(
   dateTime: DateTime.utc(2026, 8, 20, 8, 15),
 );
 
-RecipeDBO _recipe(String id, List<RecipeIngredientDBO> ingredients) {
+RecipeDBO _recipe(
+  String id,
+  List<RecipeIngredientDBO> ingredients, {
+  double? cookedWeightG,
+}) {
   final total = ingredients.fold<double>(
     0,
     (s, i) => s + i.quantity.baseAmount,
@@ -157,7 +161,8 @@ RecipeDBO _recipe(String id, List<RecipeIngredientDBO> ingredients) {
     name: 'Recipe $id',
     description: null,
     ingredients: ingredients,
-    totalWeightG: total,
+    totalWeightG: cookedWeightG ?? total,
+    cookedWeightG: cookedWeightG,
     // Whatever the old build aggregated; the repair recomputes it.
     aggregatedNutrimentsPer100: MealNutrimentsDBO(
       energyKcal100: 0,
@@ -408,6 +413,24 @@ void main() {
         expect(byName['fdc']!.dataVersion, isNull);
         expect(byName['Muesli']!.nutriments.sodium100, 42.8);
         expect(await OffMicronutrientRepair.repairMealBox(cacheBox), 0);
+      },
+    );
+
+    test(
+      'repair retains explicit cooked weight and scales nutrition with it',
+      () {
+        final recipe = _recipe('cooked', [
+          _ingredient(_meal(source: MealSourceDBO.off), 100),
+        ], cookedWeightG: 75.123456789);
+        final repaired = OffMicronutrientRepair.repairRecipe(recipe);
+        expect(repaired.cookedWeightG, recipe.cookedWeightG);
+        expect(repaired.totalWeightG, recipe.cookedWeightG);
+        expect(
+          repaired.aggregatedNutrimentsPer100.energyKcal100! *
+              repaired.totalWeightG /
+              100,
+          closeTo(250, 1e-9),
+        );
       },
     );
 

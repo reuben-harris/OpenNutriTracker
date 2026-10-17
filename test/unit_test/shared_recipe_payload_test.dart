@@ -96,6 +96,43 @@ RecipeEntity _testRecipe() {
 // Note: RecipeEntity tags default to const [], so we don't pass them above.
 
 void main() {
+  for (final cookedWeight in [null, 0.0123456789, 250.123456789, 300.0]) {
+    test('sharing preserves explicit cooked weight $cookedWeight', () {
+      final recipe = _testRecipe().copyWith(
+        cookedWeightG: cookedWeight,
+        totalWeightG: cookedWeight ?? 300,
+      );
+      final payload = SharedRecipePayload.fromRecipe(recipe);
+      final restored = SharedRecipePayload.fromJsonString(
+        payload.toJsonString(),
+      ).toRecipeEntity();
+      expect(restored.cookedWeightG, cookedWeight);
+      expect(restored.totalWeightG, recipe.totalWeightG);
+    });
+  }
+
+  test(
+    'invalid cooked weights and the previous sharing version are rejected',
+    () {
+      final payload = SharedRecipePayload.fromRecipe(
+        _testRecipe(),
+      ).toJsonArray();
+      payload[0] = 2;
+      expect(
+        () => SharedRecipePayload.fromJsonArray(payload),
+        throwsA(isA<SharedRecipeParseException>()),
+      );
+      payload[0] = 3;
+      for (final invalid in [0.0, -1.0, double.nan, double.infinity]) {
+        payload[7] = invalid;
+        expect(
+          () => SharedRecipePayload.fromJsonArray(payload),
+          throwsA(isA<SharedRecipeParseException>()),
+        );
+      }
+    },
+  );
+
   test('portion snapshots survive sharing at full precision', () {
     const quantity = FoodAmountSelection(
       2.123456789,

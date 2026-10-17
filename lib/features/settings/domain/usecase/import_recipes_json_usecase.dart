@@ -19,10 +19,8 @@ class ImportRecipesJsonResult {
   });
 }
 
-Future<PlatformFile?> _pickJsonFile() => FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-    );
+Future<PlatformFile?> _pickJsonFile() =>
+    FilePicker.pickFile(type: FileType.custom, allowedExtensions: ['json']);
 
 /// Picks a `.json` file from disk, validates the content via
 /// [JsonRecipeImporter.parse], and persists each successfully-parsed
@@ -32,9 +30,7 @@ Future<PlatformFile?> _pickJsonFile() => FilePicker.pickFile(
 class ImportRecipesJsonUsecase {
   final SaveRecipeUseCase _saveRecipeUseCase;
 
-  /// Seam for tests: `FilePicker.pickFile` is static and needs a platform
-  /// channel, so the picker outcomes plus the save-side wiring (#1139:
-  /// `totalWeightOverridden` threading) can only be driven from here.
+  /// Allows file selection to be supplied in tests.
   final PickImportFile _pickFile;
 
   ImportRecipesJsonUsecase(
@@ -54,16 +50,8 @@ class ImportRecipesJsonUsecase {
 
     final parseResult = JsonRecipeImporter.parse(content);
 
-    for (final imported in parseResult.recipes) {
-      // SaveRecipeUseCase recomputes nutrition on save, matching the CSV
-      // and recipe-builder paths so values land identical regardless of
-      // entry point. `totalWeightOverridden` is threaded through so an
-      // explicit `totalWeight` in the JSON survives the recompute instead
-      // of collapsing back to the ingredient sum (#1139).
-      await _saveRecipeUseCase.save(
-        imported.recipe,
-        totalWeightOverridden: imported.totalWeightOverridden,
-      );
+    for (final recipe in parseResult.recipes) {
+      await _saveRecipeUseCase.save(recipe);
     }
 
     return ImportRecipesJsonResult(

@@ -8,8 +8,8 @@ void main() {
       final result = CsvRecipeImporter.parse(
         'recipe_name,ingredient_name,ingredient_amount,ingredient_unit,ingredient_kcal_100\nBad,Bread,$amount,$unit,100\nBad,Sugar,50,g,400\nGood,Milk,2,cl,50\n',
       );
-      expect(result.recipes.map((r) => r.recipe.name), ['Good']);
-      expect(result.recipes.single.recipe.totalWeightG, 20);
+      expect(result.recipes.map((r) => r.name), ['Good']);
+      expect(result.recipes.single.totalWeightG, 20);
       expect(result.errors, isNotEmpty);
     });
   }
@@ -32,9 +32,8 @@ void main() {
 
       expect(result.errors, isEmpty);
       expect(result.recipes, hasLength(1));
-      final imported = result.recipes.single;
-      expect(imported.totalWeightOverridden, isTrue);
-      final cake = imported.recipe;
+      final cake = result.recipes.single;
+      expect(cake.cookedWeightG, 1500);
       expect(cake.name, 'Vanilla Cake');
       expect(cake.description, 'Classic');
       expect(cake.servingsCount, 8);
@@ -61,12 +60,9 @@ void main() {
 
       expect(result.errors, isEmpty);
       expect(result.recipes, hasLength(2));
-      expect(result.recipes.map((r) => r.recipe.name).toSet(), {
-        'Cake',
-        'Smoothie',
-      });
+      expect(result.recipes.map((r) => r.name).toSet(), {'Cake', 'Smoothie'});
       // No `recipe_total_weight_g` in either row.
-      expect(result.recipes.every((r) => !r.totalWeightOverridden), isTrue);
+      expect(result.recipes.every((r) => r.cookedWeightG == null), isTrue);
     });
 
     test('a malformed ingredient rejects its whole recipe', () {
@@ -104,9 +100,9 @@ void main() {
       final result = CsvRecipeImporter.parse(csv);
 
       // 100 g @ 200 + 100 g @ 300 = 500 kcal in 200 g → 250 kcal/100 g
-      expect(result.recipes.single.recipe.totalWeightG, 200);
+      expect(result.recipes.single.totalWeightG, 200);
       expect(
-        result.recipes.single.recipe.aggregatedNutrimentsPer100.energyKcal100,
+        result.recipes.single.aggregatedNutrimentsPer100.energyKcal100,
         closeTo(250, 0.001),
       );
     });
@@ -124,7 +120,7 @@ void main() {
 
       expect(result.errors, isEmpty);
       expect(result.recipes, hasLength(1));
-      final ingredients = result.recipes.single.recipe.ingredients;
+      final ingredients = result.recipes.single.ingredients;
       expect(ingredients, hasLength(2));
       expect(ingredients[0].quantity.amount, 1.5);
       expect(ingredients[0].quantity.option.unit, 'g');
@@ -133,7 +129,7 @@ void main() {
     });
 
     // #1194: keeps the CSV importer symmetric with #1169's JSON fix.
-    test('totalWeightOverridden reflects whether recipe_total_weight_g '
+    test('cookedWeightG reflects whether recipe_total_weight_g '
         'was supplied per recipe', () {
       const csv =
           'recipe_name,recipe_description,recipe_servings,'
@@ -149,9 +145,9 @@ void main() {
 
       expect(result.errors, isEmpty);
       expect(result.recipes, hasLength(2));
-      final byName = {for (final r in result.recipes) r.recipe.name: r};
-      expect(byName['Cake']!.totalWeightOverridden, isTrue);
-      expect(byName['Smoothie']!.totalWeightOverridden, isFalse);
+      final byName = {for (final r in result.recipes) r.name: r};
+      expect(byName['Cake']!.cookedWeightG, 1500);
+      expect(byName['Smoothie']!.cookedWeightG, isNull);
     });
 
     test('rejects recipe_total_weight_g of 0, negative or NaN and drops '
@@ -171,7 +167,7 @@ void main() {
       final result = CsvRecipeImporter.parse(csv);
 
       expect(result.recipes, hasLength(1));
-      expect(result.recipes.single.recipe.name, 'Good');
+      expect(result.recipes.single.name, 'Good');
       expect(result.errors, hasLength(3));
       for (final message in result.errors) {
         expect(

@@ -88,6 +88,7 @@ RecipeEntity _recipe({double kcal100 = 190}) => RecipeEntity(
   ],
   // The recipe yield was overridden from the 180 g ingredient sum.
   totalWeightG: 200,
+  cookedWeightG: 200,
   aggregatedNutrimentsPer100: MealNutrimentsEntity(
     energyKcal100: kcal100,
     carbohydrates100: 9,
@@ -269,7 +270,7 @@ void main() {
     final initial = _recipe();
     final computed = ComputeRecipeNutritionUseCase().compute(
       initial.ingredients,
-      totalWeightOverride: initial.totalWeightG,
+      cookedWeightG: initial.cookedWeightG,
     );
     final saved = initial.copyWith(
       aggregatedNutrimentsPer100: computed.perHundredG,

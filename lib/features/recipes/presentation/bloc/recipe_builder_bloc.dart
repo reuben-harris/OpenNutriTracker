@@ -36,7 +36,8 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
     on<AddIngredientEvent>(_onAddIngredient);
     on<UpdateIngredientEvent>(_onUpdateIngredient);
     on<RemoveIngredientEvent>(_onRemoveIngredient);
-    on<UpdateTotalWeightEvent>(_onUpdateTotalWeight);
+    on<UpdateWeightModeEvent>(_onUpdateWeightMode);
+    on<UpdateCookedWeightEvent>(_onUpdateCookedWeight);
     on<SaveRecipeEvent>(_onSave);
   }
 
@@ -58,14 +59,17 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
       // assigns a new uuid.
       final isDuplicate = r.id.isEmpty;
       emit(
-        state.copyWith(
+        RecipeBuilderState.initial().copyWith(
           id: isDuplicate ? null : r.id,
           name: r.name,
           description: r.description,
           servingsCount: r.servingsCount,
           ingredients: r.ingredients,
           totalWeightG: r.totalWeightG,
-          totalWeightOverridden: false,
+          weightMode: r.cookedWeightG == null
+              ? RecipeWeightMode.automatic
+              : RecipeWeightMode.custom,
+          cookedWeightG: r.cookedWeightG,
           aggregatedNutrimentsPer100: r.aggregatedNutrimentsPer100,
           isExistingRecipe: !isDuplicate,
           tags: r.tags,
@@ -139,25 +143,47 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
     _recompute(emit);
   }
 
-  void _onUpdateTotalWeight(
-    UpdateTotalWeightEvent event,
+  void _onUpdateWeightMode(
+    UpdateWeightModeEvent event,
     Emitter<RecipeBuilderState> emit,
   ) {
+    if (event.mode == state.weightMode) return;
     emit(
       state.copyWith(
-        totalWeightG: event.totalWeightG,
-        totalWeightOverridden: true,
+        weightMode: event.mode,
+        clearCookedWeight: true,
+        clearSaveError: true,
+      ),
+    );
+    _recompute(emit);
+  }
+
+  void _onUpdateCookedWeight(
+    UpdateCookedWeightEvent event,
+    Emitter<RecipeBuilderState> emit,
+  ) {
+    if (state.weightMode != RecipeWeightMode.custom) return;
+    final value = event.cookedWeightG;
+    final valid = value != null && value.isFinite && value > 0;
+    emit(
+      state.copyWith(
+        cookedWeightG: valid ? value : null,
+        clearCookedWeight: !valid,
+        clearSaveError: true,
       ),
     );
     _recompute(emit);
   }
 
   void _recompute(Emitter<RecipeBuilderState> emit) {
+    if (state.weightMode == RecipeWeightMode.custom &&
+        state.cookedWeightG == null) {
+      emit(state.copyWith(clearNutrition: true));
+      return;
+    }
     final result = _computeUseCase.compute(
       state.ingredients,
-      totalWeightOverride: state.totalWeightOverridden
-          ? state.totalWeightG
-          : null,
+      cookedWeightG: state.cookedWeightG,
     );
     emit(
       state.copyWith(
@@ -180,7 +206,7 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
       emit(state.copyWith(saveError: SaveError.needsIngredients));
       return;
     }
-    if (state.totalWeightG <= 0) {
+    if (!state.hasValidWeight) {
       emit(state.copyWith(saveError: SaveError.invalidTotalWeight));
       return;
     }
@@ -195,18 +221,16 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
             ? null
             : state.description?.trim(),
         ingredients: state.ingredients,
-        totalWeightG: state.totalWeightG,
-        aggregatedNutrimentsPer100: state.aggregatedNutrimentsPer100,
+        totalWeightG: state.totalWeightG!,
+        cookedWeightG: state.cookedWeightG,
+        aggregatedNutrimentsPer100: state.aggregatedNutrimentsPer100!,
         createdAt: state.isExistingRecipe ? now : now,
         updatedAt: now,
         servingsCount: state.servingsCount,
         tags: state.tags,
         imagePath: state.imagePath,
       );
-      await _saveUseCase.save(
-        recipe,
-        totalWeightOverridden: state.totalWeightOverridden,
-      );
+      await _saveUseCase.save(recipe);
       emit(state.copyWith(isSaving: false, didSave: true));
     } catch (e) {
       emit(

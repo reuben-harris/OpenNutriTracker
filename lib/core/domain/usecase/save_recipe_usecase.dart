@@ -11,13 +11,10 @@ class SaveRecipeUseCase {
   // Always re-aggregates from the current ingredient list before persisting.
   // Past IntakeDBO rows already snapshot the meal, so this never changes
   // historical entries — it only affects future logs of the recipe.
-  Future<RecipeEntity> save(
-    RecipeEntity recipe, {
-    bool totalWeightOverridden = false,
-  }) async {
+  Future<RecipeEntity> save(RecipeEntity recipe) async {
     final result = _computeUseCase.compute(
       recipe.ingredients,
-      totalWeightOverride: totalWeightOverridden ? recipe.totalWeightG : null,
+      cookedWeightG: recipe.cookedWeightG,
     );
 
     final updated = recipe.copyWith(

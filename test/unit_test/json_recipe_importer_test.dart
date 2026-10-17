@@ -1,30 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/utils/json_recipe_importer.dart';
 
-// #1139: a JSON recipe carrying an explicit `totalWeight` lost that override
-// on save, because the JSON import use case called SaveRecipeUseCase without
-// passing `totalWeightOverridden`. The importer now hands each recipe back
-// wrapped in `ImportedRecipe`, so the use case can tell save whether the
-// original JSON supplied a total weight or not.
-
 void main() {
   for (final unit in ['serving', 'tablespoon', 'portion:missing']) {
     test('unresolved $unit rejects only its recipe', () {
       final result = JsonRecipeImporter.parse(
         '[{"name":"Bad","ingredients":[{"name":"Bread","amount":2,"unit":"$unit","kcalPer100":100}]},{"name":"Good","ingredients":[{"name":"Milk","amount":2,"unit":"cl","kcalPer100":50}]}]',
       );
-      expect(result.recipes.map((r) => r.recipe.name), ['Good']);
-      expect(result.recipes.single.recipe.totalWeightG, 20);
+      expect(result.recipes.map((r) => r.name), ['Good']);
+      expect(result.recipes.single.totalWeightG, 20);
       expect(
-        result
-            .recipes
-            .single
-            .recipe
-            .ingredients
-            .single
-            .quantity
-            .option
-            .baseUnit,
+        result.recipes.single.ingredients.single.quantity.option.baseUnit,
         'ml',
       );
       expect(result.errors.single, contains('Bread'));
@@ -41,8 +27,8 @@ void main() {
     }
   });
 
-  group('JsonRecipeImporter.parse totalWeight override flag', () {
-    test('sets totalWeightOverridden when the JSON supplies totalWeight', () {
+  group('JsonRecipeImporter.parse cooked weight', () {
+    test('sets cookedWeightG when the JSON supplies totalWeight', () {
       const json = '''{
   "name": "Vanilla Cake",
   "totalWeight": 1500,
@@ -55,11 +41,11 @@ void main() {
 
       expect(result.errors, isEmpty);
       expect(result.recipes, hasLength(1));
-      expect(result.recipes.single.totalWeightOverridden, isTrue);
-      expect(result.recipes.single.recipe.name, 'Vanilla Cake');
+      expect(result.recipes.single.cookedWeightG, 1500);
+      expect(result.recipes.single.name, 'Vanilla Cake');
     });
 
-    test('leaves totalWeightOverridden false when totalWeight is absent', () {
+    test('leaves cookedWeightG null when totalWeight is absent', () {
       const json = '''{
   "name": "Smoothie",
   "ingredients": [
@@ -70,7 +56,7 @@ void main() {
       final result = JsonRecipeImporter.parse(json);
 
       expect(result.errors, isEmpty);
-      expect(result.recipes.single.totalWeightOverridden, isFalse);
+      expect(result.recipes.single.cookedWeightG, isNull);
     });
 
     test('rejects a non-positive totalWeight instead of persisting it', () {
@@ -110,7 +96,21 @@ void main() {
       }
     });
 
-    test('sets the flag per recipe when a batch mixes both shapes', () {
+    for (final invalid in ['null', '""', '"unknown"']) {
+      test(
+        'explicit unusable totalWeight $invalid cannot select automatic mode',
+        () {
+          final result = JsonRecipeImporter.parse(
+            '{"name":"Bread","totalWeight":$invalid,"ingredients":'
+            '[{"name":"Flour","amount":100,"unit":"g","kcalPer100":200}]}',
+          );
+          expect(result.recipes, isEmpty);
+          expect(result.errors.single, contains('totalWeight'));
+        },
+      );
+    }
+
+    test('sets cooked weight per recipe when a batch mixes both shapes', () {
       const json = '''[
   {
     "name": "Cake",
@@ -130,9 +130,9 @@ void main() {
       final result = JsonRecipeImporter.parse(json);
 
       expect(result.recipes, hasLength(2));
-      final byName = {for (final r in result.recipes) r.recipe.name: r};
-      expect(byName['Cake']!.totalWeightOverridden, isTrue);
-      expect(byName['Smoothie']!.totalWeightOverridden, isFalse);
+      final byName = {for (final r in result.recipes) r.name: r};
+      expect(byName['Cake']!.cookedWeightG, 1500);
+      expect(byName['Smoothie']!.cookedWeightG, isNull);
     });
   });
 }
