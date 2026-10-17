@@ -1,24 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:opennutritracker/core/styles/dimens.dart';
 
 const diaryCopyColor = Color(0xFF70BDF0);
 const diaryCopyButtonColor = Color(0xFF0277BD);
-
-BoxDecoration diaryTransferDecoration(
-  Color color, {
-  Color foreground = Colors.white,
-  bool hovering = false,
-}) {
-  return BoxDecoration(
-    // Material's hover state layer uses the content color at 8% opacity.
-    // Keep the original drag target's solid fill and contrasting content.
-    color: hovering
-        ? Color.alphaBlend(foreground.withValues(alpha: 0.08), color)
-        : color,
-    borderRadius: Dimens.borderRadiusL,
-  );
-}
 
 class DiaryDottedBorder extends CustomPainter {
   final Color color;
