@@ -1,4 +1,8 @@
 import 'package:opennutritracker/core/domain/usecase/refresh_diary_intake_usecase.dart';
+import 'package:opennutritracker/core/presentation/widgets/delete_dialog.dart';
+import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
+import 'package:opennutritracker/features/diary/presentation/widgets/diary_transfer_style.dart';
+import 'package:opennutritracker/features/diary/presentation/widgets/explode_diary_recipe.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/quick_add_bottom_sheet.dart';
 import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
 import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
@@ -17,26 +21,28 @@ import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dar
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
-/// Entry swipes reveal Info on the right and Refresh on the left.
-class ExplodableIntakeRow extends StatefulWidget {
+/// Entry swipes reveal Info on the right and diary actions on the left.
+class DiaryIntakeRow extends StatefulWidget {
   final IntakeEntity intake;
+  final VoidCallback onDelete;
   final bool usesImperialUnits;
   final Function(BuildContext, IntakeEntity)? onItemLongPressed;
   final Function(BuildContext, IntakeEntity, bool)? onItemTapped;
 
-  const ExplodableIntakeRow({
+  const DiaryIntakeRow({
     super.key,
     required this.intake,
+    required this.onDelete,
     required this.usesImperialUnits,
     this.onItemLongPressed,
     this.onItemTapped,
   });
 
   @override
-  State<ExplodableIntakeRow> createState() => _ExplodableIntakeRowState();
+  State<DiaryIntakeRow> createState() => _DiaryIntakeRowState();
 }
 
-class _ExplodableIntakeRowState extends State<ExplodableIntakeRow> {
+class _DiaryIntakeRowState extends State<DiaryIntakeRow> {
   bool _busy = false;
   bool get _isRecipe => widget.intake.meal.source == MealSourceEntity.recipe;
 
@@ -60,12 +66,42 @@ class _ExplodableIntakeRowState extends State<ExplodableIntakeRow> {
         // The recognizer consumes touch slop before reporting drag updates.
         revealThreshold: 32,
       ),
-      rightAction: SwipeRevealAction(
-        icon: Icons.refresh_rounded,
-        label: S.of(context).diaryRefreshLabel,
-        semanticsIdentifier: 'diary-intake-refresh',
-        onTap: _onRefresh,
-      ),
+      rightActionWidth: 64,
+      rightActions: [
+        SwipeRevealAction(
+          icon: Icons.refresh_rounded,
+          iconSize: 24,
+          label: S.of(context).diaryRefreshLabel,
+          semanticsIdentifier: 'diary-intake-refresh',
+          onTap: _onRefresh,
+        ),
+        SwipeRevealAction(
+          icon: Icons.copy_rounded,
+          iconSize: 24,
+          label: S.of(context).copyActionLabel,
+          semanticsIdentifier: 'diary-intake-copy',
+          color: diaryCopyButtonColor,
+          foregroundColor: Colors.white,
+          onTap: () => locator<DiaryClipboardCubit>().copy([widget.intake]),
+        ),
+        if (_isRecipe)
+          SwipeRevealAction(
+            icon: Icons.call_split_rounded,
+            iconSize: 24,
+            label: S.of(context).explodeRecipeLabel,
+            semanticsIdentifier: 'diary-intake-explode',
+            onTap: () => explodeDiaryRecipe(context, widget.intake),
+          ),
+        SwipeRevealAction(
+          icon: Icons.delete_rounded,
+          iconSize: 24,
+          label: S.of(context).dialogDeleteLabel,
+          semanticsIdentifier: 'diary-intake-delete',
+          color: Theme.of(context).colorScheme.error,
+          foregroundColor: Theme.of(context).colorScheme.onError,
+          onTap: _onDelete,
+        ),
+      ],
       child: IntakeCard(
         key: ValueKey('card-${widget.intake.id}'),
         intake: widget.intake,
@@ -82,6 +118,14 @@ class _ExplodableIntakeRowState extends State<ExplodableIntakeRow> {
       ),
     ),
   );
+
+  Future<void> _onDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => const DeleteDialog(),
+    );
+    if (confirmed == true && mounted) widget.onDelete();
+  }
 
   void _onInfo() {
     final intake = widget.intake;

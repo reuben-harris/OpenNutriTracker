@@ -33,14 +33,16 @@ void main() {
             onTap: () => leftActions++,
             revealThreshold: threshold ?? 52,
           ),
-    rightAction: !right
-        ? null
-        : SwipeRevealAction(
-            icon: Icons.refresh,
-            label: 'Refresh',
-            semanticsIdentifier: '$id-refresh',
-            onTap: () => rightActions++,
-          ),
+    rightActions: !right
+        ? const []
+        : [
+            SwipeRevealAction(
+              icon: Icons.refresh,
+              label: 'Refresh',
+              semanticsIdentifier: '$id-refresh',
+              onTap: () => rightActions++,
+            ),
+          ],
     child: SizedBox(
       height: 100,
       width: double.infinity,
