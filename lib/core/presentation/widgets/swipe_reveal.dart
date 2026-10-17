@@ -292,6 +292,7 @@ class _SwipeRevealState extends State<SwipeReveal>
           style: TextButton.styleFrom(
             backgroundColor: action.color ?? scheme.primary,
             foregroundColor: foreground,
+            disabledForegroundColor: foreground,
             padding: const EdgeInsets.symmetric(horizontal: 4),
             minimumSize: Size.zero,
             shape: RoundedRectangleBorder(
