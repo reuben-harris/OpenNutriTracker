@@ -297,6 +297,40 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                 ),
                 UnsplashCreditLine(imageUrl: _meal.mainImageUrl),
                 const SizedBox(height: 16),
+                if (_serving == null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      s.servingWeightUnavailableLabel,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                Semantics(
+                  identifier: 'meal-detail-nutrition-basis',
+                  child: SegmentedButton<bool>(
+                    segments: [
+                      ButtonSegment(
+                        value: false,
+                        enabled: _serving != null,
+                        label: Text(
+                          _serving == null
+                              ? s.oneServingLabel
+                              : s.oneServingWeightLabel(
+                                  '${formatFoodAmount(_serving!.factor)} ${_serving!.baseUnit}',
+                                ),
+                        ),
+                      ),
+                      ButtonSegment(value: true, label: Text(s.per100gmlLabel)),
+                    ],
+                    selected: {_reference},
+                    onSelectionChanged: (value) => setState(() {
+                      _basisChosen = true;
+                      _reference = value.single;
+                      _updatePreview();
+                    }),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 AppCard(
                   key: const ValueKey('meal-detail-macro-summary'),
                   color: palette.surfaceMuted,
@@ -372,45 +406,6 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                 const SizedBox(height: 12),
                 if (state.isHydrating)
                   const LinearProgressIndicator(minHeight: 2),
-                Text(
-                  s.nutritionInfoLabel,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                if (_serving == null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      s.servingWeightUnavailableLabel,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                Semantics(
-                  identifier: 'meal-detail-nutrition-basis',
-                  child: SegmentedButton<bool>(
-                    segments: [
-                      ButtonSegment(
-                        value: false,
-                        enabled: _serving != null,
-                        label: Text(
-                          _serving == null
-                              ? s.oneServingLabel
-                              : s.oneServingWeightLabel(
-                                  '${formatFoodAmount(_serving!.factor)} ${_serving!.baseUnit}',
-                                ),
-                        ),
-                      ),
-                      ButtonSegment(value: true, label: Text(s.per100gmlLabel)),
-                    ],
-                    selected: {_reference},
-                    onSelectionChanged: (value) => setState(() {
-                      _basisChosen = true;
-                      _reference = value.single;
-                      _updatePreview();
-                    }),
-                  ),
-                ),
-                const SizedBox(height: 8),
                 MealDetailNutrimentsTable(
                   product: _meal,
                   baseAmount: _selection?.baseAmount ?? 0,
