@@ -76,8 +76,13 @@ void main() {
     locator.registerSingleton<ExplodeRecipeIntakeUsecase>(explode);
     await mount(tester, fixtures.recipeIntake());
     await tester.pumpAndSettle();
-    await selectExplode(tester);
+    await tester.drag(find.byType(IntakeCard), const Offset(-140, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Explode'));
+    await tester.pump();
     expect(find.byType(AlertDialog), findsOneWidget);
+    expect(tester.getTopLeft(find.byType(IntakeCard)).dx, -274);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('CANCEL'));
     await tester.pumpAndSettle();
     expect(explode.ids, isEmpty);
