@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:hive_ce/hive.dart';
@@ -16,10 +17,14 @@ import 'package:opennutritracker/features/recipes/presentation/bloc/recipe_build
 
 class _FakeRecipeRepository implements RecipeRepository {
   final List<RecipeEntity> saved = [];
+  Completer<void>? blockNextSave;
 
   @override
   Future<void> saveRecipe(RecipeEntity recipe) async {
     saved.add(recipe);
+    final block = blockNextSave;
+    blockNextSave = null;
+    await block?.future;
   }
 
   @override
@@ -76,6 +81,94 @@ void main() {
     bloc.add(event);
     await changed;
   }
+
+  test(
+    'live saves serialize writes and retain edits made during a pending save',
+    () async {
+      await dispatch(InitializeBuilderEvent());
+      await dispatch(const UpdateNameEvent('First name'));
+      await dispatch(
+        AddIngredientEvent(
+          meal: _meal('oats'),
+          quantity: FoodAmountSelection(
+            100,
+            FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+          ),
+        ),
+      );
+      final block = Completer<void>();
+      repo.blockNextSave = block;
+      final first = Completer<bool>();
+      bloc.add(
+        SaveRecipeEvent(closeAfterSave: false, onCompleted: first.complete),
+      );
+      await bloc.stream.firstWhere((state) => state.isSaving);
+      await dispatch(const UpdateNameEvent('Second name'));
+      final second = Completer<bool>();
+      bloc.add(
+        SaveRecipeEvent(closeAfterSave: false, onCompleted: second.complete),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(repo.saved, hasLength(1));
+      expect(repo.saved.single.name, 'First name');
+      block.complete();
+      expect(await first.future, true);
+      expect(await second.future, true);
+      expect(repo.saved.last.name, 'Second name');
+      expect(bloc.state.name, 'Second name');
+      expect(bloc.state.didSave, false);
+      expect(bloc.state.isSaving, false);
+    },
+  );
+
+  test('live editing can persist removal of the last ingredient', () async {
+    await dispatch(InitializeBuilderEvent());
+    await dispatch(const UpdateNameEvent('Empty recipe'));
+    final completed = Completer<bool>();
+    bloc.add(
+      SaveRecipeEvent(closeAfterSave: false, onCompleted: completed.complete),
+    );
+    expect(await completed.future, true);
+    expect(repo.saved.single.ingredients, isEmpty);
+    expect(repo.saved.single.totalWeightG, 0);
+    expect(bloc.state.didSave, false);
+  });
+
+  test(
+    'exploding a nested recipe scales its ingredients to the selected quantity',
+    () async {
+      await dispatch(InitializeBuilderEvent());
+      await dispatch(const UpdateNameEvent('Nested'));
+      await dispatch(
+        AddIngredientEvent(
+          meal: _meal('flour'),
+          quantity: FoodAmountSelection(
+            200,
+            FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+          ),
+        ),
+      );
+      await dispatch(const SaveRecipeEvent());
+      final nested = repo.saved.single;
+      await dispatch(InitializeBuilderEvent());
+      await dispatch(
+        AddIngredientEvent(
+          meal: nested.toMealEntity(),
+          quantity: FoodAmountSelection(
+            50,
+            FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+          ),
+        ),
+      );
+      await dispatch(ExplodeIngredientEvent(index: 0, recipe: nested));
+      expect(
+        bloc.state.ingredients.single.snapshotMeal.source,
+        isNot(MealSourceEntity.recipe),
+      );
+      expect(bloc.state.ingredients.single.quantity.baseAmount, 50);
+      expect(bloc.state.totalWeightG, 50);
+    },
+  );
 
   test(
     'builder preserves portions through editing, saving and reopening',
