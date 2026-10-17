@@ -169,8 +169,9 @@ void main() {
   ) async {
     await mount(tester);
     final gesture = await hold(tester);
-    expect(control('diary-copy-target'), findsOneWidget);
-    expect(control('diary-delete-target'), findsOneWidget);
+    expect(find.byKey(const ValueKey('fb-source')), findsOneWidget);
+    expect(control('diary-copy-target'), findsNothing);
+    expect(control('diary-delete-target'), findsNothing);
     expect(find.byType(AlertDialog), findsNothing);
     await gesture.cancel();
     await tester.pumpAndSettle();
@@ -180,7 +181,7 @@ void main() {
   });
 
   testWidgets(
-    'drag preserves group geometry and hover visibly changes each target',
+    'drag preserves group geometry and highlights destination groups',
     (tester) async {
       await mount(tester, scale: 1.8);
       final breakfast = tester.getRect(control('diary-breakfast-group'));
@@ -209,27 +210,22 @@ void main() {
       expect(tester.getRect(control('diary-dinner-group')), dinner);
       Color background(String id) =>
           (tester
-                      .widget<AnimatedContainer>(
-                        find.descendant(
-                          of: control(id),
-                          matching: find.byType(AnimatedContainer),
-                        ),
+                      .widget<DecoratedBox>(
+                        find
+                            .descendant(
+                              of: control(id),
+                              matching: find.byType(DecoratedBox),
+                            )
+                            .first,
                       )
-                      .decoration!
+                      .decoration
                   as BoxDecoration)
               .color!;
-      for (final target in ['diary-copy-target', 'diary-delete-target']) {
-        final idleColor = background(target);
-        expect(idleColor.a, 1);
-        await drag.moveTo(tester.getCenter(control(target)));
-        await tester.pump(const Duration(milliseconds: 200));
-        expect(
-          tester.getCenter(find.byKey(const ValueKey('fb-source'))),
-          tester.getCenter(control(target)),
-        );
-        expect(background(target), isNot(idleColor));
-        expect(background(target).a, 1);
-      }
+      final idleColor = background('diary-lunch-group');
+      await drag.moveTo(tester.getCenter(find.text('Lunch')));
+      await tester.pump();
+      expect(background('diary-lunch-group'), isNot(idleColor));
+      expect(tester.getRect(control('diary-lunch-group')), lunch);
       await drag.cancel();
       await tester.pumpAndSettle();
       expect(await h.intakes.getAllIntakesDBO(), hasLength(1));
@@ -238,22 +234,13 @@ void main() {
   );
 
   testWidgets(
-    'drop Copy preserves source, pastes into empty groups repeatedly and clears',
+    'swipe Copy preserves source, pastes into empty groups repeatedly and clears',
     (tester) async {
       final semantics = tester.ensureSemantics();
       await mount(tester);
-      final gesture = await hold(tester);
-      final copy = tester.getRect(control('diary-copy-target'));
-      final delete = tester.getRect(control('diary-delete-target'));
-      expect(copy.width, delete.width);
-      expect(copy.left, greaterThan(delete.right));
-      expect(
-        copy.bottom,
-        lessThan(tester.getTopLeft(find.text('Navigation')).dy),
-      );
-      await gesture.moveTo(copy.center);
-      await tester.pump();
-      await tester.runAsync(gesture.up);
+      await tester.drag(find.byType(IntakeCard).first, const Offset(-140, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(control('diary-intake-copy'));
       await tester.pumpAndSettle();
       expect(clipboard.state.single.id, 'source');
       expect(await h.intakes.getAllIntakesDBO(), hasLength(1));
@@ -298,14 +285,25 @@ void main() {
   );
 
   testWidgets(
-    'Delete drop confirms, cancellation retains source, confirmation deletes',
+    'swipe Delete confirms once, cancellation retains source, confirmation deletes',
     (tester) async {
+      final entry = diaryEntry();
+      final day = h.selection.state.day;
+      await tester.runAsync(() async {
+        await h.tracked.addNewTrackedDay(day, 2000, 250, 60, 100);
+        await h.tracked.addDayTrackedCalories(day, entry.totalKcal);
+        await h.tracked.addDayMacrosTracked(
+          day,
+          carbsTracked: entry.totalCarbsGram,
+          fatTracked: entry.totalFatsGram,
+          proteinTracked: entry.totalProteinsGram,
+        );
+      });
       await mount(tester);
       for (final confirm in [false, true]) {
-        final gesture = await hold(tester);
-        await gesture.moveTo(tester.getCenter(control('diary-delete-target')));
-        await tester.pump();
-        await tester.runAsync(gesture.up);
+        await tester.drag(find.byType(IntakeCard).first, const Offset(-140, 0));
+        await tester.pumpAndSettle();
+        await tester.runAsync(() => tester.tap(control('diary-intake-delete')));
         await tester.pumpAndSettle();
         expect(find.byType(AlertDialog), findsOneWidget);
         var reloaded = !confirm;
@@ -321,6 +319,19 @@ void main() {
         await loaded;
         await settleStorage(tester);
         expect(await h.intakes.getAllIntakesDBO(), hasLength(confirm ? 0 : 1));
+        final totals = (await h.tracked.getTrackedDay(day))!;
+        expect(totals.caloriesTracked, confirm ? 0 : entry.totalKcal);
+        expect(totals.carbsTracked, confirm ? 0 : entry.totalCarbsGram);
+        expect(totals.fatTracked, confirm ? 0 : entry.totalFatsGram);
+        expect(totals.proteinTracked, confirm ? 0 : entry.totalProteinsGram);
+        expect(find.byType(AlertDialog), findsNothing);
+        if (confirm) {
+          expect(find.text('Item deleted'), findsOneWidget);
+          expect(
+            (h.calendar!.state as CalendarDayLoaded).breakfastIntakeList,
+            isEmpty,
+          );
+        }
       }
     },
   );
@@ -390,7 +401,7 @@ void main() {
     final gesture = await hold(tester);
     expect(control('diary-clear-clipboard'), findsNothing);
     final viewport = tester.getRect(find.byType(ListView).first);
-    await gesture.moveTo(Offset(viewport.center.dx, viewport.bottom - 110));
+    await gesture.moveTo(Offset(viewport.center.dx, viewport.bottom - 30));
     await tester.pump(const Duration(seconds: 2));
     final scroll = tester
         .state<ScrollableState>(find.byType(Scrollable).first)
