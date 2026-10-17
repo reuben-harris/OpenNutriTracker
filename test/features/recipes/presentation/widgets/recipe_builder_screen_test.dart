@@ -1,3 +1,6 @@
+import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
+import 'package:opennutritracker/core/domain/entity/config_entity.dart';
+import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import '../../../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,7 +13,7 @@ import 'package:opennutritracker/core/domain/usecase/save_recipe_usecase.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/recipes/presentation/bloc/recipe_builder_bloc.dart';
 import 'package:opennutritracker/features/recipes/presentation/screens/recipe_builder_screen.dart';
-import 'package:opennutritracker/features/recipes/presentation/widgets/recipe_nutrition_summary.dart';
+import 'package:opennutritracker/features/meal_detail/presentation/widgets/food_nutrition_information.dart';
 import 'package:opennutritracker/features/recipes/presentation/widgets/recipe_weight_editor.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import '../../../../fixture/diary_entry_fixtures.dart';
@@ -39,6 +42,7 @@ void main() {
       final compute = ComputeRecipeNutritionUseCase();
       final bloc = RecipeBuilderBloc(compute, SaveRecipeUseCase(repo, compute));
       locator.registerFactory<RecipeBuilderBloc>(() => bloc);
+      locator.registerSingleton<GetConfigUsecase>(_Config());
       addTearDown(() => locator.resetScope());
       final recipe = diaryEntry(recipe: true).recipeSnapshot!;
       await tester.pumpWidget(
@@ -65,7 +69,7 @@ void main() {
         tester.getTopLeft(find.byType(RecipeWeightEditor)).dy,
         lessThan(tester.getTopLeft(find.text('Ingredients')).dy),
       );
-      expect(find.byType(RecipeNutritionSummary), findsNothing);
+      expect(find.byType(FoodNutritionInformation), findsNothing);
       await tester.tap(find.text('Cooked weight'));
       await tester.pumpAndSettle();
       final cookedField = find.descendant(
@@ -96,4 +100,12 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+}
+
+class _Config implements GetConfigUsecase {
+  @override
+  Future<ConfigEntity> getConfig() async =>
+      ConfigEntity(true, true, false, AppThemeEntity.system);
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
