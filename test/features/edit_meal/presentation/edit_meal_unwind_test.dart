@@ -1,86 +1,88 @@
-import '../../../helpers/pump_until.dart';
 import '../../../helpers/locator_test_setup.dart';
+import '../../../helpers/pump_until.dart';
+import '../../../helpers/test_l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
-import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
 import 'package:opennutritracker/core/data/data_source/remote_search_cache_data_source.dart';
-import 'package:opennutritracker/core/data/repository/config_repository.dart';
+import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/config_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
+import 'package:opennutritracker/core/domain/entity/recipe_ingredient_entity.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/add_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/add_tracked_day_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/compute_recipe_nutrition_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_intake_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_kcal_goal_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_macro_goal_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/get_recipe_by_id_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_tracked_day_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/save_recipe_usecase.dart';
+import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/add_meal/data/repository/products_repository.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
-import 'package:opennutritracker/features/edit_meal/presentation/bloc/edit_meal_bloc.dart';
-import 'package:opennutritracker/features/edit_meal/presentation/edit_meal_screen.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/features/meal_detail/meal_detail_screen.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
+import 'package:opennutritracker/features/recipes/presentation/bloc/recipe_builder_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
 
-import '../../../helpers/test_l10n.dart';
-
-/// End-to-end cover for the black screen after logging a recipe.
-///
-/// The Edit Meal save unwind names `addMealRoute` and the intake sheet's
-/// unwind names `mainRoute`, but both screens are reachable on stacks that
-/// have neither. Recipes tab → recipe → Log → intake type pushes
-/// `mealDetailRoute` straight onto the main screen
-/// (`recipe_detail_screen.dart` `_onLogPressed`), so nothing below it is an
-/// Add Meal route.
-///
-/// From there this test drives the real screens: the real
-/// [MealDetailScreen]'s edit pencil, [EditMealScreen]'s save, and the food detail footer's Add. With
-/// `ModalRoute.withName(addMealRoute)` the save removes every route beneath
-/// the new meal detail — `main` included — and Add's `popUntil(mainRoute)`
-/// then finds no match either and empties the navigator: a black screen,
-/// with the intake already written to the database.
-///
-/// Only the main screen is stubbed, because all these unwinds want from it
-/// is a route named `main` to survive.
+// Keep main alive when a recipe is edited and logged from a stack without
+// an Add Meal route. Emptying that stack used to leave a black screen after
+// successfully writing the intake.
 void main() {
   useTestLocator();
   final getIt = GetIt.instance;
   final loggedIntakes = <IntakeEntity>[];
+  late _RecipeRepository recipes;
 
+  const nutriments = MealNutrimentsEntity(
+    energyKcal100: 120,
+    carbohydrates100: 10,
+    fat100: 5,
+    proteins100: 8,
+    sugars100: null,
+    saturatedFat100: null,
+    fiber100: null,
+  );
   final recipe = RecipeEntity(
     id: 'a3f1c0de-0000-4000-8000-000000000001',
     name: 'Chicken curry',
     description: null,
-    ingredients: const [],
+    ingredients: [
+      RecipeIngredientEntity(
+        snapshotMeal: const MealEntity(
+          code: 'curry',
+          name: 'Curry ingredients',
+          url: null,
+          mealQuantity: '800',
+          mealUnit: 'g',
+          servingQuantity: null,
+          servingUnit: null,
+          servingSize: null,
+          nutriments: nutriments,
+          source: MealSourceEntity.custom,
+        ),
+        quantity: const FoodAmountSelection(
+          800,
+          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+      ),
+    ],
     totalWeightG: 800,
-    aggregatedNutrimentsPer100: const MealNutrimentsEntity(
-      energyKcal100: 120,
-      carbohydrates100: 10,
-      fat100: 5,
-      proteins100: 8,
-      sugars100: null,
-      saturatedFat100: null,
-      fiber100: null,
-      sodium100: null,
-      calcium100: null,
-      iron100: null,
-      potassium100: null,
-      magnesium100: null,
-      vitaminD100: null,
-      vitaminB12100: null,
-    ),
+    aggregatedNutrimentsPer100: nutriments,
     createdAt: DateTime(2026, 8, 1),
     updatedAt: DateTime(2026, 8, 1),
     servingsCount: 4,
@@ -89,6 +91,14 @@ void main() {
 
   setUp(() {
     loggedIntakes.clear();
+    recipes = _RecipeRepository(recipe);
+    final compute = ComputeRecipeNutritionUseCase();
+    getIt.registerSingleton<GetRecipeByIdUseCase>(
+      GetRecipeByIdUseCase(recipes),
+    );
+    getIt.registerFactory<RecipeBuilderBloc>(
+      () => RecipeBuilderBloc(compute, SaveRecipeUseCase(recipes, compute)),
+    );
     getIt.registerFactory<MealDetailBloc>(
       () => MealDetailBloc(
         _FakeAddIntakeUsecase(loggedIntakes),
@@ -98,13 +108,7 @@ void main() {
         _FakeGetTrackedDayUsecase(),
         _FakeProductsRepository(),
         _FakeRemoteSearchCacheDataSource(),
-      ),
-    );
-    getIt.registerFactory<EditMealBloc>(
-      () => EditMealBloc(
-        _FakeGetConfigUsecase(),
-        _FakeCustomMealDataSource(),
-        _FakeConfigRepository(),
+        recipeRepository: recipes,
       ),
     );
     getIt.registerLazySingleton<GetConfigUsecase>(_FakeGetConfigUsecase.new);
@@ -119,8 +123,8 @@ void main() {
     await getIt.resetScope();
   });
 
-  /// Pumps `[main, mealDetail]` — the stack a recipe Log leaves behind —
-  /// with the real meal-detail screen on top, and returns its navigator.
+  // Recipe results use the shared meal-information route with their logging
+  // context. No Add Meal route is present to serve as an unwind destination.
   Future<NavigatorState> pumpRecipeLogStack(WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -131,7 +135,6 @@ void main() {
     Route<void> routeFor(RouteSettings settings) {
       final WidgetBuilder builder = switch (settings.name) {
         NavigationOptions.mealDetailRoute => (_) => const MealDetailScreen(),
-        NavigationOptions.editMealRoute => (_) => const EditMealScreen(),
         _ => (_) => Scaffold(body: Text('${settings.name}-stub')),
       };
       return MaterialPageRoute<void>(settings: settings, builder: builder);
@@ -147,7 +150,6 @@ void main() {
           initialRoute: NavigationOptions.mainRoute,
           onGenerateInitialRoutes: (_) => [
             routeFor(const RouteSettings(name: NavigationOptions.mainRoute)),
-            // What `recipe_detail_screen.dart` `_onLogPressed` pushes.
             routeFor(
               RouteSettings(
                 name: NavigationOptions.mealDetailRoute,
@@ -169,57 +171,57 @@ void main() {
     return navigatorKey.currentState!;
   }
 
-  testWidgets(
-    'logging a recipe through Edit Meal leaves the main screen standing',
-    (tester) async {
-      final navigator = await pumpRecipeLogStack(tester);
-      expect(find.text(recipe.name), findsWidgets);
+  testWidgets('editing and logging a recipe leaves the main screen standing', (
+    tester,
+  ) async {
+    final navigator = await pumpRecipeLogStack(tester);
+    expect(find.text(recipe.name), findsWidgets);
 
-      // Recipe editing retains the create-and-log path through Edit Meal.
-      await tester.tap(find.byIcon(Icons.edit_rounded));
-      await tester.pumpAndSettle();
-      expect(find.text(l10nEn.editMealLabel), findsOneWidget);
+    await tester.tap(find.text(l10nEn.recipeDetailsTabLabel));
+    await tester.pumpAndSettle();
+    final name = find.descendant(
+      of: find.bySemanticsIdentifier('recipe-name'),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(name, 'Updated curry');
+    await tester.pump();
+    expect(
+      navigator.canPop(),
+      isTrue,
+      reason: 'main must remain below the recipe',
+    );
 
-      await tester.tap(
-        find.widgetWithText(FilledButton, l10nEn.buttonSaveLabel),
-      );
-      await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsIdentifier('recipe-log-item'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, '50');
+    await tester.tap(find.bySemanticsIdentifier('food-amount-confirm'));
+    await tester.pumpAndSettle();
+    await pumpUntil(
+      tester,
+      () => find
+          .text('${NavigationOptions.mainRoute}-stub')
+          .evaluate()
+          .isNotEmpty,
+    );
+    await tester.pumpAndSettle();
 
-      // The save lands on a fresh meal detail either way — the regression is
-      // what it leaves underneath.
-      expect(find.text(l10nEn.editMealLabel), findsNothing);
-      expect(
-        navigator.canPop(),
-        isTrue,
-        reason: 'main must survive the Edit Meal unwind',
-      );
+    // The intake is written whatever the navigator does — that is why the
+    // bug reads as "my food was logged and then the app went black".
+    expect(loggedIntakes, hasLength(1));
+    expect(loggedIntakes.single.type, IntakeTypeEntity.dinner);
+    expect(loggedIntakes.single.dateTime, day);
+    expect(loggedIntakes.single.baseAmount, 50);
+    expect(loggedIntakes.single.meal.name, 'Updated curry');
+    expect(loggedIntakes.single.recipeSnapshot?.name, 'Updated curry');
+    expect(recipes.recipe.name, 'Updated curry');
 
-      await tester.tap(find.bySemanticsIdentifier('meal-detail-log-food'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, l10nEn.addLabel));
-      await tester.pumpAndSettle();
-      await pumpUntil(
-        tester,
-        () => find
-            .text('${NavigationOptions.mainRoute}-stub')
-            .evaluate()
-            .isNotEmpty,
-      );
-      await tester.pumpAndSettle();
-
-      // The intake is written whatever the navigator does — that is why the
-      // bug reads as "my food was logged and then the app went black".
-      expect(loggedIntakes, hasLength(1));
-      expect(loggedIntakes.single.type, IntakeTypeEntity.dinner);
-
-      expect(find.text('${NavigationOptions.mainRoute}-stub'), findsOneWidget);
-      expect(
-        find.byType(Scaffold),
-        findsWidgets,
-        reason: 'an empty navigator renders as a black screen',
-      );
-    },
-  );
+    expect(find.text('${NavigationOptions.mainRoute}-stub'), findsOneWidget);
+    expect(
+      find.byType(Scaffold),
+      findsWidgets,
+      reason: 'an empty navigator renders as a black screen',
+    );
+  });
 }
 
 class _FakeGetConfigUsecase implements GetConfigUsecase {
@@ -232,17 +234,16 @@ class _FakeGetConfigUsecase implements GetConfigUsecase {
       throw UnimplementedError('Unexpected call: ${invocation.memberName}');
 }
 
-class _FakeConfigRepository implements ConfigRepository {
+class _RecipeRepository implements RecipeRepository {
+  RecipeEntity recipe;
+  _RecipeRepository(this.recipe);
   @override
-  Future<String?> getCustomMealFormMode() async =>
-      CustomMealFormMode.simple.name;
-
+  RecipeEntity? getRecipeById(String id) => recipe.id == id ? recipe : null;
   @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw UnimplementedError('Unexpected call: ${invocation.memberName}');
-}
+  Future<void> saveRecipe(RecipeEntity recipe) async {
+    this.recipe = recipe;
+  }
 
-class _FakeCustomMealDataSource implements CustomMealDataSource {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('Unexpected call: ${invocation.memberName}');

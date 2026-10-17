@@ -1,3 +1,4 @@
+import 'package:opennutritracker/features/diary/presentation/widgets/create_recipe_from_diary.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_section_header.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/core/data/repository/intake_repository.dart';
@@ -34,7 +35,14 @@ import 'package:opennutritracker/features/home/presentation/screens/import_meal_
 import 'package:opennutritracker/core/domain/usecase/update_intake_usecase.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
-enum DiaryMealAction { copyDay, copyClipboard, delete, share, import }
+enum DiaryMealAction {
+  copyDay,
+  copyClipboard,
+  createRecipe,
+  delete,
+  share,
+  import,
+}
 
 class IntakeVerticalList extends StatefulWidget {
   final DateTime day;
@@ -93,6 +101,7 @@ class IntakeVerticalList extends StatefulWidget {
 }
 
 class _IntakeVerticalListState extends State<IntakeVerticalList> {
+  bool _creatingRecipe = false;
   double get totalKcal {
     return widget.intakeList.fold(
       0,
@@ -304,6 +313,13 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
             ),
           if (hasEntries) ...[
             PopupMenuItem(
+              value: DiaryMealAction.createRecipe,
+              child: Semantics(
+                identifier: 'diary-create-recipe',
+                child: Text(s.createRecipeTitle),
+              ),
+            ),
+            PopupMenuItem(
               value: DiaryMealAction.copyClipboard,
               child: Semantics(
                 identifier: 'diary-copy-to-clipboard',
@@ -338,6 +354,18 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
     final group = widget.addMealType;
     final today = locator<SelectedDayCubit>().state.today;
     switch (action) {
+      case DiaryMealAction.createRecipe:
+        if (_creatingRecipe) return;
+        _creatingRecipe = true;
+        try {
+          await createRecipeFromDiary(
+            context,
+            groupName: widget.title,
+            entries: source,
+          );
+        } finally {
+          _creatingRecipe = false;
+        }
       case DiaryMealAction.copyClipboard:
         locator<DiaryClipboardCubit>().copy(source);
       case DiaryMealAction.copyDay:
