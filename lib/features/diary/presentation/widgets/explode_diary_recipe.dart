@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/presentation/widgets/explode_recipe_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/explode_recipe_intake_usecase.dart';
@@ -19,26 +20,7 @@ Future<void> explodeDiaryRecipe(
     );
     return;
   }
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (context) {
-      final s = S.of(context);
-      return AlertDialog(
-        title: Text(s.explodeRecipeConfirmTitle),
-        content: Text(s.explodeRecipeOneWayHint),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(s.dialogCancelLabel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(s.explodeRecipeLabel),
-          ),
-        ],
-      );
-    },
-  );
+  final confirmed = await confirmRecipeExplosion(context);
   if (confirmed != true || !context.mounted) return;
   try {
     await locator<ExplodeRecipeIntakeUsecase>().explode(entry.id);
