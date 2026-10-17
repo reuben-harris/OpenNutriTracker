@@ -187,7 +187,7 @@ class _FoodAmountEditorState extends State<FoodAmountEditor> {
   Future<void> _confirm() async {
     if (_saving || _initializing) return;
     if (!_isCurrent) {
-      setState(() => _error = S.of(context).quickAddReuseFailed);
+      setState(() => _error = S.of(context).foodAmountSaveErrorLabel);
       return;
     }
     double? value;
@@ -224,7 +224,9 @@ class _FoodAmountEditorState extends State<FoodAmountEditor> {
         return;
       }
     } catch (_) {
-      if (mounted) setState(() => _error = S.of(context).quickAddReuseFailed);
+      if (mounted) {
+        setState(() => _error = S.of(context).foodAmountSaveErrorLabel);
+      }
     }
     if (mounted) setState(() => _saving = false);
   }
@@ -474,7 +476,7 @@ class _FoodAmountEditorState extends State<FoodAmountEditor> {
                             )
                           : Text(
                               widget.editing
-                                  ? S.of(context).recipeSaveLabel
+                                  ? S.of(context).buttonSaveLabel
                                   : S.of(context).addLabel,
                             ),
                     ),

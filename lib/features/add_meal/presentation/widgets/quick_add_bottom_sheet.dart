@@ -479,8 +479,8 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
                       )
                     : Text(
                         widget.editingIntake == null
-                            ? s.quickAddSubmitLabel
-                            : s.quickAddSaveChanges,
+                            ? s.addLabel
+                            : s.buttonSaveLabel,
                       ),
               ),
             ),

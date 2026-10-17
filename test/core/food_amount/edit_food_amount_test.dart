@@ -50,11 +50,11 @@ void main() {
       expect(field.controller!.text, '2');
       expect(field.focusNode!.hasFocus, true);
       expect(find.text('1 slice'), findsOneWidget);
-      await tester.tap(find.byType(FilledButton));
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pumpAndSettle();
       expect(saved, entry.quantity);
       await tester.enterText(find.byType(TextField), '3');
-      await tester.tap(find.byType(FilledButton));
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pumpAndSettle();
       expect(saved!.amount, 3);
       expect(saved!.option, entry.quantity!.option);

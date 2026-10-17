@@ -243,7 +243,7 @@ void main() {
           .editingIntake,
       intake,
     );
-    expect(find.text('Save changes'), findsOneWidget);
+    expect(find.text('Save'), findsOneWidget);
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
     await tester.tapAt(tester.getCenter(_card()));
