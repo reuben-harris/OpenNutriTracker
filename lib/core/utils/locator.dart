@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/usecase/create_recipe_from_intakes_usecase.dart';
 import 'package:opennutritracker/core/utils/food_cache_maintenance.dart';
 import 'package:opennutritracker/core/utils/food_image_loader.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
@@ -616,6 +617,9 @@ Future<void> initLocator() async {
   // Recipe use cases
   locator.registerLazySingleton(() => ComputeRecipeNutritionUseCase());
   locator.registerLazySingleton(() => SaveRecipeUseCase(locator(), locator()));
+  locator.registerLazySingleton(
+    () => CreateRecipeFromIntakesUsecase(locator(), locator()),
+  );
   locator.registerLazySingleton(() => GetAllRecipesUseCase(locator()));
   locator.registerLazySingleton(() => GetRecipeByIdUseCase(locator()));
   locator.registerLazySingleton(() => DeleteRecipeUseCase(locator()));
