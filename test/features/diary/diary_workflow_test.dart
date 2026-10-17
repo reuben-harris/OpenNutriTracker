@@ -1,3 +1,11 @@
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
+import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
+import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
+import 'package:opennutritracker/core/domain/usecase/create_recipe_from_intakes_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/compute_recipe_nutrition_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/save_recipe_usecase.dart';
+import 'package:opennutritracker/core/utils/navigation_options.dart';
+import 'package:opennutritracker/features/recipes/presentation/screens/recipe_detail_screen.dart';
 import '../../helpers/pump_until.dart';
 import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
@@ -96,6 +104,7 @@ void main() {
     WidgetTester tester, {
     List<IntakeEntity>? entries,
     double scale = 1,
+    RouteFactory? onGenerateRoute,
   }) async {
     tester.view.resetPhysicalSize();
     await tester.binding.setSurfaceSize(const Size(390, 780));
@@ -119,6 +128,7 @@ void main() {
       ChangeNotifierProvider(
         create: (_) => EnergyUnitProvider(),
         child: MaterialApp(
+          onGenerateRoute: onGenerateRoute,
           localizationsDelegates: const [S.delegate],
           supportedLocales: S.supportedLocales,
           builder: (context, child) => MediaQuery(
@@ -139,6 +149,130 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    'meal menu creates a saved recipe and opens it without changing diary entries',
+    (tester) async {
+      final store = _RecipeStore();
+      final compute = ComputeRecipeNutritionUseCase();
+      locator.registerSingleton<CreateRecipeFromIntakesUsecase>(
+        CreateRecipeFromIntakesUsecase(
+          compute,
+          SaveRecipeUseCase(store, compute),
+        ),
+      );
+      RecipeDetailArguments? opened;
+      final source = [diaryEntry(), diaryEntry(id: 'second', amount: 50)];
+      await mount(
+        tester,
+        entries: source,
+        onGenerateRoute: (settings) {
+          expect(settings.name, NavigationOptions.recipeDetailRoute);
+          opened = settings.arguments as RecipeDetailArguments;
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const Scaffold(body: Text('Created recipe')),
+          );
+        },
+      );
+      await tester.ensureVisible(menu(IntakeTypeEntity.breakfast));
+      await tester.tap(menu(IntakeTypeEntity.breakfast));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsIdentifier('diary-create-recipe'));
+      await tester.pumpAndSettle();
+      expect(find.text('Created recipe'), findsOneWidget);
+      expect(store.saved, hasLength(1));
+      final recipe = store.saved.single;
+      expect(opened!.recipeId, recipe.id);
+      expect(recipe.name, 'Breakfast recipe');
+      expect(
+        recipe.ingredients.map((i) => i.quantity),
+        source.map((e) => e.quantity),
+      );
+      expect(recipe.totalWeightG, 175);
+      final entries = await h.intakes.getIntakeByDateAndType(
+        IntakeTypeEntity.breakfast,
+        h.selection.state.day,
+      );
+      expect(entries.map((e) => e.id), source.map((e) => e.id));
+      expect(entries.map((e) => e.quantity), source.map((e) => e.quantity));
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'creating a recipe asks for missing weight and preserves Quick Add totals',
+    (tester) async {
+      final store = _RecipeStore();
+      final compute = ComputeRecipeNutritionUseCase();
+      locator.registerSingleton<CreateRecipeFromIntakesUsecase>(
+        CreateRecipeFromIntakesUsecase(
+          compute,
+          SaveRecipeUseCase(store, compute),
+        ),
+      );
+      final base = diaryEntry();
+      final quick = IntakeEntity(
+        id: 'quick',
+        type: base.type,
+        dateTime: base.dateTime,
+        quantity: null,
+        meal: MealEntity(
+          code: 'quick',
+          name: 'Sauce',
+          url: null,
+          mealQuantity: null,
+          mealUnit: 'gml',
+          servingQuantity: null,
+          servingUnit: null,
+          servingSize: null,
+          nutriments: base.meal.nutriments,
+          source: MealSourceEntity.custom,
+          isQuickAdd: true,
+        ),
+      );
+      await mount(
+        tester,
+        entries: [quick],
+        onGenerateRoute: (settings) => MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const Scaffold(body: Text('Created recipe')),
+        ),
+      );
+      await tester.ensureVisible(menu(IntakeTypeEntity.breakfast));
+      await tester.tap(menu(IntakeTypeEntity.breakfast));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsIdentifier('diary-create-recipe'));
+      await tester.pumpAndSettle();
+      expect(store.saved, isEmpty);
+      await tester.enterText(
+        find.descendant(
+          of: find.bySemanticsIdentifier('quick-add-weight'),
+          matching: find.byType(TextField),
+        ),
+        '20',
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.bySemanticsIdentifier('quick-add-submit'),
+      );
+      await tester.tap(find.bySemanticsIdentifier('quick-add-submit'));
+      await tester.pumpAndSettle();
+      expect(find.text('Created recipe'), findsOneWidget);
+      expect(store.saved.single.totalWeightG, 20);
+      expect(
+        store.saved.single.aggregatedNutrimentsPer100.energyKcal100! * .2,
+        quick.totalKcal,
+      );
+      final original = await h.intakes.getIntakeByDateAndType(
+        IntakeTypeEntity.breakfast,
+        h.selection.state.day,
+      );
+      expect(original.single.quantity, isNull);
+      expect(original.single.totalKcal, quick.totalKcal);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   Future<void> settleStorage(WidgetTester tester) async {
     await tester.runAsync(() async {
@@ -552,4 +686,12 @@ void main() {
       expect(control('diary-intake-refresh'), findsOneWidget);
     },
   );
+}
+
+class _RecipeStore extends Fake implements RecipeRepository {
+  final saved = <RecipeEntity>[];
+  @override
+  Future<void> saveRecipe(RecipeEntity recipe) async {
+    saved.add(recipe);
+  }
 }
