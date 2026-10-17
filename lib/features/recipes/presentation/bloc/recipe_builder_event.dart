@@ -73,12 +73,20 @@ class RemoveIngredientEvent extends RecipeBuilderEvent {
   List<Object?> get props => [index];
 }
 
-class UpdateTotalWeightEvent extends RecipeBuilderEvent {
-  final double totalWeightG;
-  const UpdateTotalWeightEvent(this.totalWeightG);
+class UpdateWeightModeEvent extends RecipeBuilderEvent {
+  final RecipeWeightMode mode;
+  const UpdateWeightModeEvent(this.mode);
 
   @override
-  List<Object?> get props => [totalWeightG];
+  List<Object?> get props => [mode];
+}
+
+class UpdateCookedWeightEvent extends RecipeBuilderEvent {
+  final double? cookedWeightG;
+  const UpdateCookedWeightEvent(this.cookedWeightG);
+
+  @override
+  List<Object?> get props => [cookedWeightG];
 }
 
 class SaveRecipeEvent extends RecipeBuilderEvent {

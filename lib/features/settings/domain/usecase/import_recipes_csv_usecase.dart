@@ -19,10 +19,8 @@ class ImportRecipesCsvResult {
   });
 }
 
-Future<PlatformFile?> _pickCsvFile() => FilePicker.pickFile(
-      type: FileType.custom,
-      allowedExtensions: ['csv'],
-    );
+Future<PlatformFile?> _pickCsvFile() =>
+    FilePicker.pickFile(type: FileType.custom, allowedExtensions: ['csv']);
 
 /// Picks a CSV file from disk, parses it via [CsvRecipeImporter], and
 /// persists each recipe via [SaveRecipeUseCase] (which re-aggregates
@@ -30,9 +28,7 @@ Future<PlatformFile?> _pickCsvFile() => FilePicker.pickFile(
 class ImportRecipesCsvUsecase {
   final SaveRecipeUseCase _saveRecipeUseCase;
 
-  /// Seam for tests: `FilePicker.pickFile` is static and needs a platform
-  /// channel, so the picker outcomes plus the save-side wiring
-  /// (`totalWeightOverridden`, #1194) can only be driven from here.
+  /// Allows file selection to be supplied in tests.
   final PickImportFile _pickFile;
 
   ImportRecipesCsvUsecase(
@@ -52,17 +48,8 @@ class ImportRecipesCsvUsecase {
 
     final parseResult = CsvRecipeImporter.parse(content);
 
-    for (final imported in parseResult.recipes) {
-      // The CSV importer pre-computes nutrition, but SaveRecipeUseCase
-      // recomputes on save anyway — that's intentional, so the same code
-      // path runs whether the recipe came from CSV import, the builder,
-      // or QR import. `totalWeightOverridden` is threaded through so an
-      // explicit `recipe_total_weight_g` survives the recompute instead
-      // of collapsing back to the ingredient sum (#1139 / #1194).
-      await _saveRecipeUseCase.save(
-        imported.recipe,
-        totalWeightOverridden: imported.totalWeightOverridden,
-      );
+    for (final recipe in parseResult.recipes) {
+      await _saveRecipeUseCase.save(recipe);
     }
 
     return ImportRecipesCsvResult(

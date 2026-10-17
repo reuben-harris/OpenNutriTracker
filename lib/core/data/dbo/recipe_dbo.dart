@@ -55,12 +55,17 @@ class RecipeDBO extends HiveObject {
   @HiveField(11)
   final String? imagePath;
 
+  /// Null selects automatic ingredient-sum weight.
+  @HiveField(12)
+  final double? cookedWeightG;
+
   RecipeDBO({
     required this.id,
     required this.name,
     required this.description,
     required this.ingredients,
     required this.totalWeightG,
+    this.cookedWeightG,
     required this.aggregatedNutrimentsPer100,
     required this.createdAt,
     required this.updatedAt,

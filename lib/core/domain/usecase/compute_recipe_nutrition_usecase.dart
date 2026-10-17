@@ -14,8 +14,12 @@ class ComputeRecipeNutritionResult {
 class ComputeRecipeNutritionUseCase {
   ComputeRecipeNutritionResult compute(
     List<RecipeIngredientEntity> ingredients, {
-    double? totalWeightOverride,
+    double? cookedWeightG,
   }) {
+    if (cookedWeightG != null &&
+        (!cookedWeightG.isFinite || cookedWeightG <= 0)) {
+      throw const FormatException('Cooked weight must be positive and finite');
+    }
     if (ingredients.isEmpty) {
       return ComputeRecipeNutritionResult(
         perHundredG: MealNutrimentsEntity.empty(),
@@ -28,14 +32,11 @@ class ComputeRecipeNutritionUseCase {
     }
     // Recipe weight retains the explicit approximation 1 ml ≈ 1 g.
     final totalWeightG =
-        totalWeightOverride ??
+        cookedWeightG ??
         ingredients.fold<double>(0, (sum, i) => sum + i.quantity.baseAmount);
 
-    if (totalWeightG <= 0) {
-      return ComputeRecipeNutritionResult(
-        perHundredG: MealNutrimentsEntity.empty(),
-        totalWeightG: 0,
-      );
+    if (!totalWeightG.isFinite || totalWeightG <= 0) {
+      throw const FormatException('Recipe weight must be positive and finite');
     }
 
     // For every nutrient field: sum (value100 ?? 0) × baseAmount / 100

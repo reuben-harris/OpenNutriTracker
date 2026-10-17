@@ -11,6 +11,9 @@ class RecipeEntity extends Equatable {
   final String? description;
   final List<RecipeIngredientEntity> ingredients;
   final double totalWeightG;
+
+  /// Null selects automatic ingredient-sum weight.
+  final double? cookedWeightG;
   final MealNutrimentsEntity aggregatedNutrimentsPer100;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -31,6 +34,7 @@ class RecipeEntity extends Equatable {
     required this.description,
     required this.ingredients,
     required this.totalWeightG,
+    this.cookedWeightG,
     required this.aggregatedNutrimentsPer100,
     required this.createdAt,
     required this.updatedAt,
@@ -46,6 +50,7 @@ class RecipeEntity extends Equatable {
       description: dbo.description,
       ingredients: dbo.ingredients.map(RecipeIngredientEntity.fromDBO).toList(),
       totalWeightG: dbo.totalWeightG,
+      cookedWeightG: dbo.cookedWeightG,
       aggregatedNutrimentsPer100: MealNutrimentsEntity.fromMealNutrimentsDBO(
         dbo.aggregatedNutrimentsPer100,
       ),
@@ -64,6 +69,7 @@ class RecipeEntity extends Equatable {
       description: description,
       ingredients: ingredients.map((i) => i.toDBO()).toList(),
       totalWeightG: totalWeightG,
+      cookedWeightG: cookedWeightG,
       aggregatedNutrimentsPer100: MealNutrimentsDBO.fromProductNutrimentsEntity(
         aggregatedNutrimentsPer100,
       ),
@@ -109,6 +115,8 @@ class RecipeEntity extends Equatable {
     String? description,
     List<RecipeIngredientEntity>? ingredients,
     double? totalWeightG,
+    double? cookedWeightG,
+    bool clearCookedWeight = false,
     MealNutrimentsEntity? aggregatedNutrimentsPer100,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -125,6 +133,9 @@ class RecipeEntity extends Equatable {
       description: clearDescription ? null : (description ?? this.description),
       ingredients: ingredients ?? this.ingredients,
       totalWeightG: totalWeightG ?? this.totalWeightG,
+      cookedWeightG: clearCookedWeight
+          ? null
+          : (cookedWeightG ?? this.cookedWeightG),
       aggregatedNutrimentsPer100:
           aggregatedNutrimentsPer100 ?? this.aggregatedNutrimentsPer100,
       createdAt: createdAt ?? this.createdAt,
@@ -144,6 +155,7 @@ class RecipeEntity extends Equatable {
     description,
     ingredients,
     totalWeightG,
+    cookedWeightG,
     aggregatedNutrimentsPer100,
     createdAt,
     updatedAt,

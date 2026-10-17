@@ -80,6 +80,33 @@ RecipeEntity _recipe() {
 }
 
 void main() {
+  test(
+    'meal-nested recipes retain cooked weight through sharing and import',
+    () {
+      final recipe = _recipe().copyWith(
+        cookedWeightG: 150.123456789,
+        totalWeightG: 150.123456789,
+      );
+      final intake = IntakeEntity(
+        id: 'recipe-entry',
+        quantity: const FoodAmountSelection(
+          100,
+          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+        meal: recipe.toMealEntity(),
+        dateTime: DateTime(2026, 4, 27),
+        type: IntakeTypeEntity.breakfast,
+        recipeSnapshot: recipe,
+      );
+      final payload = SharedMealPayload.fromIntakeList([intake]);
+      final restored = SharedMealPayload.fromJsonString(payload.toJsonString());
+      expect(
+        restored.recipes.single.recipe.toRecipeEntity().cookedWeightG,
+        recipe.cookedWeightG,
+      );
+    },
+  );
+
   group('classifySharedPayload', () {
     test('classifies an encoded meal payload as meal', () {
       final code = SharedMealPayload.fromIntakeList([
