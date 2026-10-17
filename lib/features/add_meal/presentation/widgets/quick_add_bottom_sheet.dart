@@ -33,6 +33,7 @@ class QuickAddBottomSheet extends StatefulWidget {
   final DateTime day;
   final MealEntity? initialMeal;
   final IntakeEntity? editingIntake;
+  final Future<bool> Function(MealEntity, FoodAmountSelection)? onConfirm;
 
   const QuickAddBottomSheet({
     super.key,
@@ -40,6 +41,7 @@ class QuickAddBottomSheet extends StatefulWidget {
     required this.day,
     this.initialMeal,
     this.editingIntake,
+    this.onConfirm,
   });
 
   @override
@@ -162,7 +164,8 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
 
   bool get _canSubmit {
     final weight = _parsed(_weightController);
-    return (_weightController.text.trim().isEmpty ||
+    return (widget.onConfirm == null || weight != null && weight > 0) &&
+        (_weightController.text.trim().isEmpty ||
             (weight != null &&
                 weight > 0 &&
                 _weightUnit.toBase(weight).isFinite)) &&
@@ -181,7 +184,9 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
     setState(() => _saving = true);
 
     final usesKj = context.read<EnergyUnitProvider>().usesKilojoules;
-    final profileBox = locator<HiveDBProvider>().intakeBox;
+    final profileBox = widget.onConfirm == null
+        ? locator<HiveDBProvider>().intakeBox
+        : null;
     final enteredEnergy = _parsed(_energyController);
     final kcal = enteredEnergy == null
         ? null
@@ -199,6 +204,16 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
         protein: protein,
         title: title,
       );
+      if (widget.onConfirm != null) {
+        final saved = await widget.onConfirm!(intake.meal, intake.quantity!);
+        if (!mounted) return;
+        if (saved) {
+          Navigator.of(context).pop();
+        } else {
+          setState(() => _saving = false);
+        }
+        return;
+      }
       if (!identical(profileBox, locator<HiveDBProvider>().intakeBox)) return;
       final editing = widget.editingIntake;
       if (editing != null) {
@@ -437,7 +452,9 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
                   ),
                   inputFormatters: CustomTextInputFormatter.doubleOnly(),
                   decoration: InputDecoration(
-                    labelText: s.quickAddWeightLabel,
+                    labelText: widget.onConfirm == null
+                        ? s.quickAddWeightLabel
+                        : s.foodAmountWeightLabel,
                     border: const OutlineInputBorder(),
                     suffixIcon: Semantics(
                       identifier: 'quick-add-weight-unit',

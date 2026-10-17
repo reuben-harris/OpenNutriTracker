@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/presentation/widgets/food_section_header.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/core/data/repository/intake_repository.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
@@ -6,7 +7,6 @@ import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboar
 import 'package:opennutritracker/features/diary/presentation/widgets/diary_copy.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/diary_paste_preview.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/diary_transfer_style.dart';
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
@@ -151,11 +151,6 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = Theme.of(context).brightness == Brightness.dark
-        ? AppPalette.dark
-        : AppPalette.light;
-    final accent = Theme.of(context).colorScheme.primary;
-    final textTheme = Theme.of(context).textTheme;
     final accepts =
         widget.draggingType != null &&
         widget.draggingType != widget.addMealType.getIntakeType();
@@ -186,53 +181,22 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
               ),
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 12, 8),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: accent.withValues(alpha: 0.12),
-                            borderRadius: Dimens.borderRadiusS,
-                          ),
-                          child: Icon(widget.listIcon, size: 20, color: accent),
+                  FoodSectionHeader(
+                    title: widget.title,
+                    icon: widget.listIcon,
+                    summary: _shouldShowHeaderSummary
+                        ? _buildHeaderSummary(context)
+                        : null,
+                    actions: [
+                      if (widget.onSortTypeChanged != null &&
+                          widget.intakeList.isNotEmpty)
+                        FoodSectionSortMenu(
+                          identifier: 'diary-section-sort-menu',
+                          value: widget.sortType ?? DiarySortType.timeAdded,
+                          onChanged: widget.onSortTypeChanged!,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AutoSizeText(
-                            widget.title,
-                            maxLines: 1,
-                            minFontSize: 14,
-                            overflow: TextOverflow.ellipsis,
-                            style: textTheme.titleLarge?.copyWith(
-                              color: palette.textStrong,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        if (_shouldShowHeaderSummary)
-                          Flexible(
-                            fit: FlexFit.tight,
-                            child: Text(
-                              _buildHeaderSummary(context),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: textTheme.labelMedium?.copyWith(
-                                color: palette.textMuted,
-                                fontWeight: FontWeight.w700,
-                                height: 1.3,
-                              ),
-                              textAlign: TextAlign.end,
-                            ),
-                          ),
-                        if (widget.onSortTypeChanged != null &&
-                            widget.intakeList.isNotEmpty)
-                          _buildSortMenu(context),
-                        _buildMenu(context),
-                      ],
-                    ),
+                      _buildMenu(context),
+                    ],
                   ),
                   for (final entry in widget.intakeList)
                     Semantics(
@@ -435,49 +399,6 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
           ),
         );
     }
-  }
-
-  Widget _buildSortMenu(BuildContext context) {
-    final current = widget.sortType ?? DiarySortType.timeAdded;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final palette = isDark ? AppPalette.dark : AppPalette.light;
-    return Semantics(
-      identifier: 'diary-section-sort-menu',
-      child: PopupMenuButton<DiarySortType>(
-        tooltip: S.of(context).diarySortByLabel,
-        icon: Icon(Icons.sort_rounded, color: palette.textMuted),
-        shape: Dimens.shapeM,
-        initialValue: current,
-        onSelected: (sort) => widget.onSortTypeChanged?.call(sort),
-        itemBuilder: (context) => <PopupMenuEntry<DiarySortType>>[
-          CheckedPopupMenuItem<DiarySortType>(
-            value: DiarySortType.timeAdded,
-            checked: current == DiarySortType.timeAdded,
-            child: Text(S.of(context).diarySortByTime),
-          ),
-          CheckedPopupMenuItem<DiarySortType>(
-            value: DiarySortType.kcal,
-            checked: current == DiarySortType.kcal,
-            child: Text(S.of(context).diarySortByKcal),
-          ),
-          CheckedPopupMenuItem<DiarySortType>(
-            value: DiarySortType.protein,
-            checked: current == DiarySortType.protein,
-            child: Text(S.of(context).diarySortByProtein),
-          ),
-          CheckedPopupMenuItem<DiarySortType>(
-            value: DiarySortType.carbs,
-            checked: current == DiarySortType.carbs,
-            child: Text(S.of(context).diarySortByCarbs),
-          ),
-          CheckedPopupMenuItem<DiarySortType>(
-            value: DiarySortType.fat,
-            checked: current == DiarySortType.fat,
-            child: Text(S.of(context).diarySortByFat),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _onItemDropped(IntakeEntity entity) async {

@@ -90,7 +90,12 @@ class UpdateCookedWeightEvent extends RecipeBuilderEvent {
 }
 
 class SaveRecipeEvent extends RecipeBuilderEvent {
-  const SaveRecipeEvent();
+  final bool closeAfterSave;
+  final void Function(bool)? onCompleted;
+  const SaveRecipeEvent({this.closeAfterSave = true, this.onCompleted});
+
+  @override
+  List<Object?> get props => [closeAfterSave, onCompleted];
 }
 
 class UpdateImagePathEvent extends RecipeBuilderEvent {
@@ -100,4 +105,12 @@ class UpdateImagePathEvent extends RecipeBuilderEvent {
 
   @override
   List<Object?> get props => [imagePath];
+}
+
+class ExplodeIngredientEvent extends RecipeBuilderEvent {
+  final int index;
+  final RecipeEntity recipe;
+  const ExplodeIngredientEvent({required this.index, required this.recipe});
+  @override
+  List<Object?> get props => [index, recipe];
 }
