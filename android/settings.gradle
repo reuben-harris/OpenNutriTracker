@@ -26,7 +26,7 @@ buildscript {
         // AGP is loaded here, so override its Kotlin runtime on this classpath.
         // This dependency does not apply the legacy kotlin-android plugin.
         // https://developer.android.com/build/releases/agp-9-0-0-release-notes#runtime-dependency-on-kotlin-gradle-plugin
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.20'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21'
     }
 }
 
