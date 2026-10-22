@@ -13,6 +13,9 @@ class FoodSearchController extends Cubit<FoodSearchSnapshot> {
         ),
       ) {
     _cacheSubscription = engine.cache.cleared.listen((_) => _cacheCleared());
+    _catalogueSubscription = engine.cataloguePreferences?.changes.listen(
+      (_) => resetContext(),
+    );
   }
   final FoodSearchEngine engine;
   final query = ValueNotifier<String>('');
@@ -39,6 +42,7 @@ class FoodSearchController extends Cubit<FoodSearchSnapshot> {
     },
   );
   late final StreamSubscription<void> _cacheSubscription;
+  StreamSubscription<void>? _catalogueSubscription;
   FoodSearchSession? _session;
   StreamSubscription<FoodSearchSnapshot>? _subscription;
   Future<List<MealEntity>>? _recent;
@@ -105,6 +109,7 @@ class FoodSearchController extends Cubit<FoodSearchSnapshot> {
     _session?.cancel();
     await _subscription?.cancel();
     await _cacheSubscription.cancel();
+    await _catalogueSubscription?.cancel();
     return super.close();
   }
 }

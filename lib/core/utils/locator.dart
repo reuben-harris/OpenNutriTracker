@@ -13,6 +13,7 @@ import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboar
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_copy_cubit.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:get_it/get_it.dart';
+import 'package:opennutritracker/core/search/catalogue_preferences.dart';
 import 'package:opennutritracker/core/data/data_source/config_data_source.dart';
 import 'package:opennutritracker/core/data/data_source/custom_activity_template_data_source.dart';
 import 'package:opennutritracker/core/data/data_source/health/health_service.dart';
@@ -373,12 +374,23 @@ Future<void> initLocator() async {
     () => BulkAddBloc(locator(), locator(), locator()),
   );
   locator.registerLazySingleton<FoodCatalogue>(() => SQLiteFoodCatalogue());
+  locator.registerLazySingleton<CataloguePreferences>(
+    () => CataloguePreferences(
+      catalogue: locator(),
+      read: () async => (await locator<GetConfigUsecase>().getConfig())
+          .catalogueSourceOverrides,
+      write: (overrides) =>
+          locator<AddConfigUsecase>().setCatalogueSourceOverrides(overrides),
+    ),
+    dispose: (preferences) => preferences.dispose(),
+  );
   locator.registerLazySingleton<OffFoodSearchSource>(
     () => OffFoodSearchSource(),
   );
   locator.registerLazySingleton<FoodSearchEngine>(
     () => FoodSearchEngine(
       catalogue: locator(),
+      cataloguePreferences: locator(),
       cache: locator(),
       online: locator(),
       contextIdentity: () =>

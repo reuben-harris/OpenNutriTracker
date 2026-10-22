@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:opennutritracker/features/settings/presentation/widgets/databases_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
@@ -494,6 +495,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: _aiAssistSubtitle(context),
                   badge: S.of(context).aiAssistExperimentalLabel,
                   onTap: () => _openAiAssistDialog(context),
+                ),
+                _SettingsTile(
+                  identifier: 'settings-databases',
+                  palette: palette,
+                  icon: Icons.storage_rounded,
+                  title: S.of(context).settingsDatabasesLabel,
+                  showChevron: true,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const DatabasesScreen(),
+                    ),
+                  ),
                 ),
                 _SettingsTile(
                   identifier: 'settings-import-custom-food',

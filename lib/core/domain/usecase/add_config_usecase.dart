@@ -8,6 +8,9 @@ class AddConfigUsecase {
 
   AddConfigUsecase(this._configRepository);
 
+  Future<void> setCatalogueSourceOverrides(Map<String, bool> overrides) =>
+      _configRepository.setCatalogueSourceOverrides(overrides);
+
   Future<void> addConfig(ConfigEntity configEntity) async {
     await _configRepository.updateConfig(configEntity);
   }
