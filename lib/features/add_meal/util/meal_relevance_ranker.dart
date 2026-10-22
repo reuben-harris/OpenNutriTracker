@@ -55,7 +55,7 @@ List<MealEntity> _deduplicateAcrossSources(List<MealEntity> meals) {
   final seenKeys = <String>{};
   final uniqueMeals = <MealEntity>[];
   for (final meal in meals) {
-    final key = meal.source == MealSourceEntity.fdc
+    final key = meal.source == MealSourceEntity.catalogue
         ? '${meal.source.name}:${meal.code ?? identityHashCode(meal)}'
         : '${meal.source.name}:${meal.code ?? meal.name ?? ''}';
     if (seenKeys.add(key)) uniqueMeals.add(meal);

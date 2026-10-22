@@ -208,7 +208,6 @@
   "addLabel": "Add",
   "additionalInfoLabelCompendium2011": "Information provided\n by the \n'2024 Compendium\n of Physical Activities'",
   "additionalInfoLabelCustom": "Custom Meal Item",
-  "additionalInfoLabelFDC": "More Information at\nFoodData Central",
   "measureUnitBar": "{count, plural, one{bar} other{bars}}",
   "@measureUnitBar": {"placeholders": {"count": {"type": "num"}}},
   "measureUnitBottle": "{count, plural, one{bottle} other{bottles}}",
@@ -1422,7 +1421,6 @@
   "foodAmountSaveErrorLabel": "Could not save this amount. Try again.",
   "foodAmountLoadingSavedLabel": "Loading saved amount",
   "foodSourceCustomLabel": "Custom",
-  "foodSourceFdcLabel": "FoodData Central",
   "unknownBrandLabel": "Unknown Brand",
   "foodSourceUnknownLabel": "Unknown",
   "settingsAmountArithmeticLabel": "Calculate food amounts",
@@ -1442,5 +1440,8 @@
   "recipeDetailsTabLabel": "Details",
   "foodAmountWeightLabel": "Weight / volume",
   "diaryRecipeName": "{mealName} recipe",
-  "@diaryRecipeName": {"placeholders": {"mealName": {"type": "String"}}}
+  "@diaryRecipeName": {"placeholders": {"mealName": {"type": "String"}}},
+  "foodSourceCatalogueLabel": "Food database",
+  "additionalInfoLabelCatalogue": "More information from {database}",
+  "@additionalInfoLabelCatalogue": {"placeholders": {"database": {"type": "String"}}}
 }

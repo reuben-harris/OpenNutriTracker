@@ -321,7 +321,7 @@ class _ImportMealScannerScreenState extends State<ImportMealScannerScreen>
       if (!mounted) return;
       if (entry.recipe != null) {
         await saveRecipeUseCase.save(entry.recipe!);
-      } else if (entry.meal.source == MealSourceEntity.fdc) {
+      } else if (entry.meal.source == MealSourceEntity.catalogue) {
         await remoteCache.cache(MealDBO.fromMealEntity(entry.meal));
       } else if (entry.meal.source == MealSourceEntity.custom) {
         await customMealDataSource.saveCustomMeal(

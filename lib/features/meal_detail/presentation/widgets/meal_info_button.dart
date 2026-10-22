@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:opennutritracker/core/presentation/sources_screen.dart';
 import 'package:opennutritracker/core/utils/off_const.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_const.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -18,7 +18,9 @@ class MealInfoButton extends StatelessWidget {
       MealSourceEntity.unknown => s.additionalInfoLabelUnknown,
       MealSourceEntity.custom => s.additionalInfoLabelCustom,
       MealSourceEntity.off => s.additionalInfoLabelOFF,
-      MealSourceEntity.fdc => s.additionalInfoLabelFDC,
+      MealSourceEntity.catalogue => s.additionalInfoLabelCatalogue(
+        meal.catalogueSourceName ?? s.foodSourceCatalogueLabel,
+      ),
       MealSourceEntity.recipe => s.additionalInfoLabelRecipe,
     };
     if (meal.source == MealSourceEntity.unknown) return Text(label);
@@ -46,13 +48,13 @@ class MealInfoButton extends StatelessWidget {
         supplied != null &&
         (supplied.scheme == 'http' || supplied.scheme == 'https') &&
         supplied.host.isNotEmpty;
-    final uri = valid
-        ? supplied
-        : Uri.parse(
-            meal.source == MealSourceEntity.off
-                ? OFFConst.offWebsiteUrl
-                : FDCConst.fdcWebsiteUrl,
-          );
+    if (!valid && meal.source == MealSourceEntity.catalogue) {
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const SourcesScreen()));
+      return;
+    }
+    final uri = valid ? supplied : Uri.parse(OFFConst.offWebsiteUrl);
     try {
       if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
     } catch (_) {

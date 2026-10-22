@@ -30,10 +30,12 @@ MealEntity food(
 );
 
 class Catalogue implements FoodCatalogue {
+  @override
+  Future<List<CatalogueSource>> sources() async => const [];
   Future<List<MealEntity>> Function(String) results = (_) async => [];
   final queries = <String>[];
   @override
-  Future<List<MealEntity>> search(String query) {
+  Future<List<MealEntity>> search(String query, {Set<String>? sourceIds}) {
     queries.add(query);
     return results(query);
   }
@@ -149,7 +151,7 @@ void main() {
     'catalogue, cache and saved results appear while OFF remains pending',
     () async {
       catalogue.results = (_) async => [
-        food('usda:1', 'Orange, raw', source: MealSourceEntity.fdc),
+        food('usda:1', 'Orange, raw', source: MealSourceEntity.catalogue),
       ];
       cache.meals = [food('cached', 'Orange chocolate')];
       engine = FoodSearchEngine(

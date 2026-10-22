@@ -24,6 +24,9 @@ void main() {
     servingSize: null,
     nutriments: food('x', 'Apple').nutriments,
     source: source,
+    catalogueSourceName: source == MealSourceEntity.catalogue
+        ? 'FoodData Central'
+        : null,
   );
 
   Future<void> mount(WidgetTester tester, MealEntity meal) async {
@@ -77,7 +80,10 @@ void main() {
   });
 
   testWidgets('FDC shows its datasource in the brand position', (tester) async {
-    await mount(tester, result(source: MealSourceEntity.fdc, brand: 'Ignored'));
+    await mount(
+      tester,
+      result(source: MealSourceEntity.catalogue, brand: 'Ignored'),
+    );
     final source = find.text('FoodData Central', findRichText: true);
     expect(source, findsOneWidget);
     expect(

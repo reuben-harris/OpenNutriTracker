@@ -429,7 +429,7 @@ void main() {
           servingSize: null,
           mealUnit: 'g',
           nutriments: _thin(_seabrookCrispsSearchHit).nutriments,
-          source: MealSourceEntity.fdc,
+          source: MealSourceEntity.catalogue,
           detailed: true,
         );
         final local = MealEntity(
@@ -610,6 +610,8 @@ void main() {
 }
 
 class _FakeCatalogue extends Fake implements FoodCatalogue {
+  @override
+  Future<List<CatalogueSource>> sources() async => const [];
   _FakeCatalogue(this.result);
   final Future<MealEntity?> result;
   @override

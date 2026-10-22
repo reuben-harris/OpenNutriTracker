@@ -1,4 +1,5 @@
 import 'package:opennutritracker/core/search/food_search_ranker.dart';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
@@ -7,8 +8,6 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_const.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_food_nutriment_dto.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_portion_entity.dart';
@@ -17,45 +16,100 @@ import 'package:opennutritracker/features/add_meal/domain/entity/meal_portion_en
 /// Punctuation (including FTS operators) is treated as a word separator.
 String? catalogueMatch(String query) => foodSearchMatch(query);
 
+class CatalogueSource {
+  const CatalogueSource({
+    required this.id,
+    required this.name,
+    required this.releases,
+    required this.attribution,
+    required this.website,
+    required this.termsUrl,
+    required this.termsRequired,
+  });
+  final String id;
+  final String name;
+  final Map<String, String> releases;
+  final String attribution;
+  final String website;
+  final String termsUrl;
+  final bool termsRequired;
+
+  factory CatalogueSource.fromRow(Row row) => CatalogueSource(
+    id: row['id'] as String,
+    name: row['name'] as String,
+    releases: Map<String, String>.from(
+      jsonDecode(row['releases'] as String) as Map,
+    ),
+    attribution: row['attribution'] as String,
+    website: row['website'] as String,
+    termsUrl: row['terms_url'] as String,
+    termsRequired: row['terms_required'] == 1,
+  );
+}
+
 abstract class FoodCatalogue {
-  Future<List<MealEntity>> search(String query);
+  Future<List<CatalogueSource>> sources();
+  Future<List<MealEntity>> search(String query, {Set<String>? sourceIds});
   Future<MealEntity?> getById(String catalogueId);
 }
 
-/// Public, unencrypted catalogue, separate from the personal Hive databases.
-/// Queries and conversion run in short-lived background isolates. Connections
-/// are read-only and closed before the isolate returns.
+/// Public catalogue connections are read-only and confined to background isolates.
 class SQLiteFoodCatalogue implements FoodCatalogue {
   SQLiteFoodCatalogue({CatalogueInstaller? installer})
     : _installer = installer ?? CatalogueInstaller();
   final CatalogueInstaller _installer;
 
   @override
-  Future<List<MealEntity>> search(String query) async {
+  Future<List<CatalogueSource>> sources() async {
+    final path = await _installer.install();
+    return Isolate.run(() {
+      final db = sqlite3.open(path, mode: OpenMode.readOnly);
+      try {
+        return db
+            .select('SELECT * FROM catalogue_source ORDER BY name, id')
+            .map(CatalogueSource.fromRow)
+            .toList();
+      } finally {
+        db.close();
+      }
+    });
+  }
+
+  @override
+  Future<List<MealEntity>> search(
+    String query, {
+    Set<String>? sourceIds,
+  }) async {
     final match = catalogueMatch(query);
-    if (match == null) return const [];
+    if (match == null || (sourceIds != null && sourceIds.isEmpty)) {
+      return const [];
+    }
     final path = await _installer.install();
     return Isolate.run(
       () => searchCatalogueFile(
         path,
         match,
         exactName: normalizeFoodSearchText(query),
+        sourceIds: sourceIds,
       ),
     );
   }
 
   @override
   Future<MealEntity?> getById(String catalogueId) async {
-    final match = RegExp(r'^usda:([1-9][0-9]*)$').firstMatch(catalogueId);
-    final id = match == null ? null : int.tryParse(match.group(1)!);
-    if (id == null) return null;
+    if (!RegExp(
+      r'^[a-z][a-z0-9-]*:[A-Za-z0-9][A-Za-z0-9._-]*$',
+    ).hasMatch(catalogueId)) {
+      return null;
+    }
     final path = await _installer.install();
     return Isolate.run(() {
       final db = sqlite3.open(path, mode: OpenMode.readOnly);
       try {
         final rows = db.select(
-          "SELECT fdc_id, description FROM food_name WHERE fdc_id = ? AND locale = 'en'",
-          [id],
+          'SELECT f.*, s.name AS source_name FROM food f '
+          'JOIN catalogue_source s ON s.id=f.source WHERE code=?',
+          [catalogueId],
         );
         return rows.isEmpty ? null : catalogueMeal(db, rows.single);
       } finally {
@@ -130,7 +184,9 @@ List<MealEntity> searchCatalogueFile(
   String path,
   String match, {
   String exactName = '',
+  Set<String>? sourceIds,
 }) {
+  if (sourceIds != null && sourceIds.isEmpty) return const [];
   final db = sqlite3.open(path, mode: OpenMode.readOnly);
   try {
     db.createFunction(
@@ -139,11 +195,16 @@ List<MealEntity> searchCatalogueFile(
       function: (args) =>
           normalizeFoodSearchText((args.single as String).split(',').first),
     );
+    final sources = sourceIds == null ? null : (sourceIds.toList()..sort());
+    final filter = sources == null
+        ? ''
+        : ' AND food_search.source IN (${List.filled(sources.length, '?').join(',')})';
     final rows = db.select(
-      "SELECT fdc_id, description FROM food_search "
-      "WHERE food_search MATCH ? AND locale = 'en' "
-      'ORDER BY CASE WHEN primary_name(description) = ? THEN 0 ELSE 1 END, rank, CAST(fdc_id AS INTEGER) LIMIT 25',
-      [match, exactName],
+      "SELECT f.*, s.name AS source_name FROM food_search JOIN food f ON f.code=food_search.code "
+      "JOIN catalogue_source s ON s.id=f.source WHERE food_search MATCH ? AND food_search.locale='en'$filter "
+      'ORDER BY CASE WHEN primary_name(f.name)=? THEN 0 ELSE 1 END, rank, '
+      'f.source, CAST(f.source_id AS INTEGER), f.code LIMIT 25',
+      [match, ...?sources, exactName],
     );
     return [for (final row in rows) catalogueMeal(db, row)];
   } finally {
@@ -152,66 +213,34 @@ List<MealEntity> searchCatalogueFile(
 }
 
 MealEntity catalogueMeal(Database db, Row row) {
-  final id = row['fdc_id'] as int;
-  final nutrients = db.select(
-    'SELECT nutrient_id, amount FROM food_nutrient WHERE fdc_id = ? ORDER BY nutrient_id, id',
-    [id],
-  );
-  final portions = <MealPortionEntity>[];
-  for (final portion in db.select(
-    'SELECT p.dataset, p.id, p.amount, p.portion_description, p.modifier, p.gram_weight, m.name AS unit_name '
-    'FROM food_portion p LEFT JOIN measure_unit m '
-    'ON m.dataset = p.dataset AND m.id = p.measure_unit_id '
-    'WHERE p.fdc_id = ? ORDER BY p.seq_num, p.id',
-    [id],
-  )) {
-    final weight = double.tryParse(portion['gram_weight']?.toString() ?? '');
-    if (weight == null || !weight.isFinite || weight <= 0) continue;
-    final description = (portion['portion_description'] as String?)?.trim();
-    final modifier = (portion['modifier'] as String?)?.trim();
-    final unit = portion['unit_name'] as String?;
-    final amount = double.tryParse(portion['amount']?.toString() ?? '');
-    final count = amount == null || !amount.isFinite || amount <= 0
-        ? 1.0
-        : amount;
-    final measure = unit == null || unit == 'undetermined' ? modifier : unit;
-    final label = description != null && description.isNotEmpty
-        ? (RegExp(r'^\d').hasMatch(description)
-              ? description
-              : '${_number(count)} $description')
-        : '${_number(count)} ${measure == null || measure.isEmpty ? 'portion' : measure}';
-    portions.add(
-      MealPortionEntity(
-        id: '${portion['dataset']}:${portion['id']}',
-        label: label,
-        englishLabel: label,
-        gramWeight: weight,
-        localized: false,
-      ),
-    );
-  }
+  final code = row['code'] as String;
   return MealEntity(
-    code: 'usda:$id',
-    name: row['description'] as String,
-    url: FDCConst.getFoodDetailUrlString('$id'),
+    code: code,
+    name: row['name'] as String,
+    url: row['url'] as String,
+    catalogueSourceName: row['source_name'] as String,
     mealQuantity: null,
     mealUnit: 'g',
     servingQuantity: null,
     servingUnit: 'g',
     servingSize: null,
-    nutriments: MealNutrimentsEntity.fromFDCNutriments([
-      for (final nutrient in nutrients)
-        FDCFoodNutrimentDTO(
-          nutrientId: nutrient['nutrient_id'] as int,
-          amount: double.tryParse(nutrient['amount']?.toString() ?? ''),
-        ),
-    ]),
-    source: MealSourceEntity.fdc,
+    nutriments: MealNutrimentsEntity.fromCatalogue(
+      jsonDecode(row['nutrition'] as String) as Map<String, dynamic>,
+    ),
+    source: MealSourceEntity.catalogue,
     detailed: true,
-    portions: portions,
+    portions: [
+      for (final portion in db.select(
+        'SELECT * FROM food_portion WHERE code=? ORDER BY position, id',
+        [code],
+      ))
+        MealPortionEntity(
+          id: portion['id'] as String,
+          label: portion['label'] as String,
+          englishLabel: portion['label'] as String,
+          gramWeight: double.parse(portion['gram_weight'] as String),
+          localized: false,
+        ),
+    ],
   );
 }
-
-String _number(double value) => value == value.roundToDouble()
-    ? value.toInt().toString()
-    : value.toString();

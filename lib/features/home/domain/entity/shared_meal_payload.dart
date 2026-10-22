@@ -73,9 +73,9 @@ class SharedMealOffRef {
 // Array field order: [name, brands, unit, amount, ec, cb, ft, pr, sg, sf, fb,
 //                     thumbUrl, imgUrl, source, code]
 //
-// `source` is 'custom' or 'fdc' — added in v2. Null/absent means 'custom' so
+// `source` is 'custom' or 'catalogue' — added in v2. Null/absent means 'custom' so
 // v1 payloads still parse correctly. `code` (added in v2) lets cached FDC
-// items round-trip with their fdcId so the receiver can dedupe future
+// items round-trip with their namespaced code so the receiver can dedupe future
 // searches against the same id.
 class SharedMealItem {
   final String? name;
@@ -92,6 +92,7 @@ class SharedMealItem {
   final String? thumbnailImageUrl;
   final String? mainImageUrl;
   final MealSourceEntity source;
+  final String? catalogueSourceName;
   final String? code;
   final bool isQuickAdd;
   final bool hasQuickAddWeight;
@@ -112,6 +113,7 @@ class SharedMealItem {
     required this.thumbnailImageUrl,
     required this.mainImageUrl,
     required this.source,
+    this.catalogueSourceName,
     required this.code,
     this.isQuickAdd = false,
     this.hasQuickAddWeight = false,
@@ -134,6 +136,7 @@ class SharedMealItem {
       thumbnailImageUrl: intake.meal.thumbnailImageUrl,
       mainImageUrl: intake.meal.mainImageUrl,
       source: intake.meal.source,
+      catalogueSourceName: intake.meal.catalogueSourceName,
       code: intake.meal.code,
       isQuickAdd: intake.meal.isQuickAdd,
       hasQuickAddWeight: intake.meal.hasQuickAddWeight,
@@ -145,8 +148,8 @@ class SharedMealItem {
     num? atNum(int i) => a.length > i ? a[i] as num? : null;
     String? atStr(int i) => a.length > i ? a[i] as String? : null;
     final sourceStr = atStr(13);
-    final source = sourceStr == 'fdc'
-        ? MealSourceEntity.fdc
+    final source = sourceStr == 'catalogue'
+        ? MealSourceEntity.catalogue
         : MealSourceEntity.custom;
     return SharedMealItem(
       name: a[0] as String?,
@@ -167,6 +170,7 @@ class SharedMealItem {
       isQuickAdd: a.length > 15 && a[15] == true,
       hasQuickAddWeight: a.length > 16 && a[16] == true,
       quickAddInputUnit: atStr(17),
+      catalogueSourceName: atStr(18),
     );
   }
 
@@ -185,11 +189,12 @@ class SharedMealItem {
       _compact(fiber100),
       thumbnailImageUrl,
       mainImageUrl,
-      source == MealSourceEntity.fdc ? 'fdc' : 'custom',
+      source == MealSourceEntity.catalogue ? 'catalogue' : 'custom',
       code,
       isQuickAdd,
       hasQuickAddWeight,
       quickAddInputUnit,
+      catalogueSourceName,
     ];
   }
 
@@ -198,7 +203,7 @@ class SharedMealItem {
       // FDC items keep their original code so the receiver's cache can dedupe
       // future searches; custom items get a fresh UUID since they're a new
       // entry in the receiver's library.
-      code: source == MealSourceEntity.fdc && code != null
+      code: source == MealSourceEntity.catalogue && code != null
           ? code
           : IdGenerator.getUniqueID(),
       name: name,
@@ -222,6 +227,7 @@ class SharedMealItem {
         fiber100: fiber100,
       ),
       source: source,
+      catalogueSourceName: catalogueSourceName,
     );
   }
 }
@@ -253,7 +259,7 @@ class SharedMealRecipeItem {
 
 class SharedMealPayload {
   // v1: [version, offRefs, items]                — no source on items, no recipes
-  // v2: [version, offRefs, items, recipes]       — items carry source ('custom'|'fdc'),
+  // v2: [version, offRefs, items, recipes]       — items carry source ('custom'|'catalogue'),
   //                                                 recipes are full embedded recipe payloads
   static const int _currentVersion = 2;
   static const int _minSupportedVersion = 1;
@@ -282,7 +288,7 @@ class SharedMealPayload {
   /// Build a payload from a list of diary intakes. Each intake routes by
   /// `meal.source`:
   ///   - off + code      → offRef (barcode-only; receiver fetches + caches)
-  ///   - fdc             → SharedMealItem with source='fdc' (snapshot;
+  ///   - fdc             → SharedMealItem with source='catalogue' (snapshot;
   ///                       receiver caches in RemoteSearchCacheDataSource)
   ///   - recipe + code   → recipes bucket (the logged ingredient snapshot
   ///                       when present, otherwise a legacy lookup via
