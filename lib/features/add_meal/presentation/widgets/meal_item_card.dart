@@ -26,9 +26,7 @@ class MealItemCard extends StatelessWidget {
     final brand = foodBrandSpan(context, mealEntity);
     final subtitle = switch (mealEntity.source) {
       MealSourceEntity.off => brand!,
-      MealSourceEntity.catalogue => TextSpan(
-        text: mealEntity.catalogueSourceName ?? s.foodSourceCatalogueLabel,
-      ),
+      MealSourceEntity.catalogue => brand!,
       MealSourceEntity.custom =>
         brand ?? TextSpan(text: s.foodSourceCustomLabel),
       MealSourceEntity.recipe => TextSpan(text: s.recipesLabel),
