@@ -34,6 +34,9 @@ class CatalogueSource {
   final String termsUrl;
   final bool termsRequired;
 
+  String get releaseSummary =>
+      (releases.values.toSet().toList()..sort()).join(', ');
+
   factory CatalogueSource.fromRow(Row row) => CatalogueSource(
     id: row['id'] as String,
     name: row['name'] as String,

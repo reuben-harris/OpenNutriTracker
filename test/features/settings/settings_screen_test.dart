@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/search/catalogue_preferences.dart';
+import '../../helpers/fake_food_catalogue.dart';
 import '../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -82,6 +84,16 @@ void _register() {
   getIt.registerSingleton<DiaryBloc>(_FakeDiaryBloc());
   getIt.registerSingleton<CalendarDayBloc>(_FakeCalendarDayBloc());
   getIt.registerSingleton<TrendsBloc>(_FakeTrendsBloc());
+  getIt.registerSingleton<CataloguePreferences>(
+    CataloguePreferences(
+      catalogue: FakeFoodCatalogue([
+        catalogueSource('usda', 'FoodData Central'),
+      ]),
+      read: () async => {},
+      write: (_) async {},
+    ),
+    dispose: (preferences) => preferences.dispose(),
+  );
   final credentials = AiCredentialStorage(_EmptyStorage());
   getIt.registerSingleton<AiCredentialStorage>(credentials);
   getIt.registerSingleton<AiEndpointProbeRunner>(
@@ -111,6 +123,21 @@ void main() {
   // A handset, because the point of #852 is where the AI row sits on one.
   setUp(() => _register());
   tearDown(() async => locator.resetScope());
+
+  testWidgets('Databases opens the bundled-source toggle screen', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.bySemanticsIdentifier('settings-databases'),
+      400,
+    );
+    await tester.tap(find.bySemanticsIdentifier('settings-databases'));
+    await tester.pumpAndSettle();
+    expect(find.text('FoodData Central'), findsOneWidget);
+    expect(find.byType(SwitchListTile), findsOneWidget);
+  });
 
   group('the embedded form is not a scrollable (#974)', () {
     /// The You tab hosts the screen inside its own scrollable, so anything

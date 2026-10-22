@@ -10,6 +10,9 @@ class ConfigRepository {
 
   ConfigRepository(this._configDataSource);
 
+  Future<void> setCatalogueSourceOverrides(Map<String, bool> overrides) =>
+      _configDataSource.setCatalogueSourceOverrides(overrides);
+
   Future<void> updateConfig(ConfigEntity configEntity) async {
     final configDBO = ConfigDBO.fromConfigEntity(configEntity);
     await _configDataSource.addConfig(configDBO);

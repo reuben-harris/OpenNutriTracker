@@ -176,6 +176,9 @@ class ConfigDBO extends HiveObject {
   @HiveField(42)
   bool? amountArithmeticEnabled;
 
+  @HiveField(43)
+  Map<String, bool>? catalogueSourceOverrides;
+
   ConfigDBO(
     this.hasAcceptedDisclaimer,
     this.hasAcceptedPolicy,
@@ -212,6 +215,7 @@ class ConfigDBO extends HiveObject {
     this.policyNoticeRevisionSeen,
     this.healthDeletedWorkouts,
     this.amountArithmeticEnabled,
+    this.catalogueSourceOverrides,
     this.overviewMacrosAsPercent,
     this.overviewNutrientsAsPercent,
   });
@@ -225,6 +229,9 @@ class ConfigDBO extends HiveObject {
     entity.hasAcceptedSendAnonymousData,
     AppThemeDBO.fromAppThemeEntity(entity.appTheme),
     amountArithmeticEnabled: entity.amountArithmeticEnabled,
+    catalogueSourceOverrides: Map<String, bool>.from(
+      entity.catalogueSourceOverrides,
+    ),
     overviewMacrosAsPercent: entity.overviewMacrosAsPercent,
     overviewNutrientsAsPercent: entity.overviewNutrientsAsPercent,
     usesImperialUnits: entity.usesImperialUnits,
