@@ -412,6 +412,22 @@ void main() {
     expect(tester.getRect(find.byType(TextField)), fieldRect);
     await tester.pumpWidget(const SizedBox());
   });
+  testWidgets('instant recipe results still show a complete loading cycle', (
+    tester,
+  ) async {
+    await open(tester);
+    await tester.tap(chip('recipes'));
+    await tester.pump();
+    expect(find.text('Apple cake'), findsOneWidget);
+    expect(loadingOutline(), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1599));
+    expect(loadingOutline(), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1));
+    // Flutter reports animation completion on a frame after its duration.
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(loadingOutline(), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
     'Recipes shows loading, a recipe error with retry, and an empty library',
     (tester) async {

@@ -79,6 +79,9 @@ class _FoodSearchViewState extends State<FoodSearchView> {
                 showClearButton: true,
                 isLoading: state.pending.isNotEmpty,
                 hasLoadingError: state.failures.isNotEmpty,
+                loadingOperationKey: _search.loadingSequence == 0
+                    ? null
+                    : _search.loadingSequence,
               ),
             ),
             const SizedBox(height: Dimens.spacing12),

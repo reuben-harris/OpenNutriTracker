@@ -11,10 +11,14 @@ class LoadingOutline extends StatefulWidget {
     required this.semanticIdentifier,
     required this.builder,
     this.hasError = false,
+    this.operationKey,
   });
 
   final bool isLoading;
   final bool hasError;
+
+  /// Changes trigger a complete cycle even if work finished between frames.
+  final Object? operationKey;
   final Color color;
   final BorderRadius borderRadius;
   final String semanticIdentifier;
@@ -32,6 +36,8 @@ class _LoadingOutlineState extends State<LoadingOutline>
     animationBehavior: AnimationBehavior.preserve,
   )..addStatusListener(_onStatus);
   bool _visible = false;
+  bool _repeatForNewOperation = false;
+  Object? _lastOperation;
 
   @override
   void initState() {
@@ -46,10 +52,18 @@ class _LoadingOutlineState extends State<LoadingOutline>
   }
 
   void _syncLoading() {
+    final newOperation =
+        widget.operationKey != null && widget.operationKey != _lastOperation;
+    _lastOperation = widget.operationKey;
     if (widget.hasError) {
       _controller.stop();
       _visible = false;
-    } else if (widget.isLoading && !_visible) {
+      _repeatForNewOperation = false;
+    } else if (newOperation && _visible) {
+      // Finish the current cycle, then cover the latest operation with a full
+      // cycle of its own. Rapid edits coalesce instead of building a backlog.
+      _repeatForNewOperation = true;
+    } else if ((widget.isLoading || newOperation) && !_visible) {
       _visible = true;
       _controller.forward(from: 0);
     }
@@ -57,7 +71,8 @@ class _LoadingOutlineState extends State<LoadingOutline>
 
   void _onStatus(AnimationStatus status) {
     if (status != AnimationStatus.completed) return;
-    if (widget.isLoading && !widget.hasError) {
+    if ((widget.isLoading || _repeatForNewOperation) && !widget.hasError) {
+      _repeatForNewOperation = false;
       _controller.forward(from: 0);
     } else {
       setState(() => _visible = false);
