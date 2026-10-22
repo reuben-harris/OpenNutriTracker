@@ -15,6 +15,7 @@ MealEntity food(
   String name, {
   MealSourceEntity source = MealSourceEntity.off,
   bool detailed = false,
+  String? searchAliases,
 }) => MealEntity(
   code: id,
   name: name,
@@ -27,13 +28,16 @@ MealEntity food(
   nutriments: MealNutrimentsEntity.empty(),
   source: source,
   detailed: detailed,
+  searchAliases: searchAliases,
 );
 
 class Catalogue implements FoodCatalogue {
+  @override
+  Future<List<CatalogueSource>> sources() async => const [];
   Future<List<MealEntity>> Function(String) results = (_) async => [];
   final queries = <String>[];
   @override
-  Future<List<MealEntity>> search(String query) {
+  Future<List<MealEntity>> search(String query, {Set<String>? sourceIds}) {
     queries.add(query);
     return results(query);
   }
@@ -145,11 +149,30 @@ void main() {
     return session;
   }
 
+  test('catalogue alternate names survive shared search ranking', () async {
+    catalogue.results = (_) async => [
+      food(
+        'nzfoodfiles:Q1',
+        'Kūmara, boiled',
+        source: MealSourceEntity.catalogue,
+        searchAliases: 'Sweet potato Māori food',
+      ),
+    ];
+    final session = search('sweet potato', filter: FoodSearchFilter.food);
+    final result = await until(session, (snapshot) => snapshot.pending.isEmpty);
+    expect(result.meals.single.code, 'nzfoodfiles:Q1');
+    expect(result.meals.single.name, 'Kūmara, boiled');
+    expect(
+      result.meals.single.withPortions([]).scoringQualifiers,
+      contains('Sweet potato'),
+    );
+  });
+
   test(
     'catalogue, cache and saved results appear while OFF remains pending',
     () async {
       catalogue.results = (_) async => [
-        food('usda:1', 'Orange, raw', source: MealSourceEntity.fdc),
+        food('usda:1', 'Orange, raw', source: MealSourceEntity.catalogue),
       ];
       cache.meals = [food('cached', 'Orange chocolate')];
       engine = FoodSearchEngine(

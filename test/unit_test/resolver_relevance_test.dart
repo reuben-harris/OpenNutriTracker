@@ -174,8 +174,8 @@ void main() {
     // then the input order.
     test('the record with the shortest description comes first', () {
       final rows = [
-        meal('Apple, dried', source: MealSourceEntity.fdc, portions: 2),
-        meal('Apple, raw', source: MealSourceEntity.fdc, portions: 7),
+        meal('Apple, dried', source: MealSourceEntity.catalogue, portions: 2),
+        meal('Apple, raw', source: MealSourceEntity.catalogue, portions: 7),
       ];
 
       expect(names(rankForResolution(rows, 'apple')).first, 'Apple, raw');
@@ -185,8 +185,8 @@ void main() {
       // "Milk, whole" and "Milk, human" are eleven characters each, and
       // the backend gives whole three deliverable portions to human's two.
       final rows = [
-        meal('Milk, human', source: MealSourceEntity.fdc, portions: 2),
-        meal('Milk, whole', source: MealSourceEntity.fdc, portions: 3),
+        meal('Milk, human', source: MealSourceEntity.catalogue, portions: 2),
+        meal('Milk, whole', source: MealSourceEntity.catalogue, portions: 3),
       ];
 
       expect(names(rankForResolution(rows, 'milk')).first, 'Milk, whole');
@@ -199,8 +199,8 @@ void main() {
       // dish over its ingredient — FDC counts french fries in more ways
       // than a potato.
       final rows = [
-        meal('Apple, baked', source: MealSourceEntity.fdc, portions: 7),
-        meal('Apple, raw', source: MealSourceEntity.fdc, portions: 2),
+        meal('Apple, baked', source: MealSourceEntity.catalogue, portions: 7),
+        meal('Apple, raw', source: MealSourceEntity.catalogue, portions: 2),
       ];
 
       expect(names(rankForResolution(rows, 'apple')).first, 'Apple, raw');
@@ -211,10 +211,10 @@ void main() {
       // one; a description sixteen characters shorter with nine portions
       // to one does not bridge that.
       final rows = [
-        meal('Eggplant, raw', source: MealSourceEntity.fdc, portions: 9),
+        meal('Eggplant, raw', source: MealSourceEntity.catalogue, portions: 9),
         meal(
           'Egg, whole, boiled or poached',
-          source: MealSourceEntity.fdc,
+          source: MealSourceEntity.catalogue,
           portions: 1,
         ),
       ];
@@ -230,13 +230,13 @@ void main() {
         meal(
           'Bread, rice',
           code: 'a',
-          source: MealSourceEntity.fdc,
+          source: MealSourceEntity.catalogue,
           portions: 5,
         ),
         meal(
           'Chips, rice',
           code: 'b',
-          source: MealSourceEntity.fdc,
+          source: MealSourceEntity.catalogue,
           portions: 5,
         ),
       ];
@@ -263,7 +263,7 @@ void main() {
           meal(
             'Bread, rice',
             code: 'r$i',
-            source: MealSourceEntity.fdc,
+            source: MealSourceEntity.catalogue,
             portions: 5,
           ),
       ];
@@ -285,7 +285,7 @@ void main() {
         servingQuantity: null,
         servingUnit: null,
         servingSize: null,
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         nutriments: MealNutrimentsEntity.empty(),
       );
 
@@ -308,10 +308,14 @@ void main() {
     test('a backend record scores as a record named by its title', () {
       final titled = meal(
         'Egg, whole, raw',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portions: 2,
       );
-      final named = meal('Egg', source: MealSourceEntity.fdc, portions: 2);
+      final named = meal(
+        'Egg',
+        source: MealSourceEntity.catalogue,
+        portions: 2,
+      );
 
       expect(titled.scoringName, 'Egg');
       expect(
@@ -328,7 +332,7 @@ void main() {
       // where the description scored whole would pay for it (0.667).
       final breadRice = meal(
         'Bread, rice',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portions: 5,
       );
 
@@ -366,12 +370,12 @@ void main() {
       // reason, and a reason that reaches the whole family.
       final creamed = meal(
         'Egg, creamed',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portions: 1,
       );
       final boiled = meal(
         'Egg, whole, boiled or poached',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portions: 3,
       );
 
@@ -389,8 +393,8 @@ void main() {
       // differ: "Milk, NFS" is the less qualified record and comes first
       // although it is listed second.
       final rows = [
-        meal('Milk, whole', source: MealSourceEntity.fdc, portions: 3),
-        meal('Milk, NFS', source: MealSourceEntity.fdc, portions: 3),
+        meal('Milk, whole', source: MealSourceEntity.catalogue, portions: 3),
+        meal('Milk, NFS', source: MealSourceEntity.catalogue, portions: 3),
       ];
 
       expect(names(rankForResolution(rows, 'milk')), [
@@ -409,10 +413,14 @@ void main() {
     test('the named qualifier scores with the title', () {
       final dried = meal(
         'Apple, dried',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portions: 2,
       );
-      final raw = meal('Apple, raw', source: MealSourceEntity.fdc, portions: 7);
+      final raw = meal(
+        'Apple, raw',
+        source: MealSourceEntity.catalogue,
+        portions: 7,
+      );
 
       // As a record called "Apple dried" scores: every token matched.
       expect(scoreMealForResolution(dried, 'dried apple'), 1.0);
@@ -428,8 +436,8 @@ void main() {
       // The shorter description, seven portions to two, and listed first:
       // the keys that pick "Apple, raw" on `apple` never see `dried apple`.
       final rows = [
-        meal('Apple, raw', source: MealSourceEntity.fdc, portions: 7),
-        meal('Apple, dried', source: MealSourceEntity.fdc, portions: 2),
+        meal('Apple, raw', source: MealSourceEntity.catalogue, portions: 7),
+        meal('Apple, dried', source: MealSourceEntity.catalogue, portions: 2),
       ];
 
       expect(
@@ -445,12 +453,12 @@ void main() {
       // record.
       final yolk = meal(
         'Egg, yolk only, raw',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portions: 2,
       );
       final whole = meal(
         'Egg, whole, raw',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portions: 2,
       );
 
@@ -466,12 +474,12 @@ void main() {
       // sibling on the title, as siblings should.
       final variant = meal(
         'Rice, white, cooked with fat, Puerto Rican style',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portions: 1,
       );
       final plain = meal(
         'Rice, cooked, NFS',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portions: 1,
       );
 
@@ -488,7 +496,7 @@ void main() {
       // product called "Bread rice" gets, and under a plain "Rice" title.
       final breadRice = meal(
         'Bread, rice',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portions: 5,
       );
 
@@ -516,10 +524,10 @@ void main() {
     test('a backend record with no labelled portion loses 0.15', () {
       final withPortions = meal(
         'Orange juice',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portions: 1,
       );
-      final without = meal('Orange juice', source: MealSourceEntity.fdc);
+      final without = meal('Orange juice', source: MealSourceEntity.catalogue);
 
       expect(scoreMealForResolution(withPortions, 'orange juice'), 1.0);
       expect(
@@ -543,12 +551,12 @@ void main() {
       final byBrand = meal(
         'Instant Coffee Refill',
         brands: 'Nescafe',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
       );
       final byBrandWithPortions = meal(
         'Instant Coffee Refill',
         brands: 'Nescafe',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portions: 1,
       );
 
@@ -562,7 +570,7 @@ void main() {
     });
 
     test('the penalty is resolver-only: the shared ranker does not see it', () {
-      final without = meal('Orange juice', source: MealSourceEntity.fdc);
+      final without = meal('Orange juice', source: MealSourceEntity.catalogue);
 
       expect(scoreMealRelevance(without, 'orange juice'), 1.0);
     });
@@ -576,12 +584,12 @@ void main() {
       // on its text alone, as if the question had not been asked.
       final unavailable = meal(
         'Orange juice, 100%, NFS',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portionsUnavailable: true,
       );
       final bare = meal(
         'Orange juice, 100%, NFS',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
       );
 
       expect(scoreMealForResolution(unavailable, 'orange juice'), 1.0);
@@ -590,10 +598,13 @@ void main() {
       // 0.5, and 0.35 is a guess where 0.5 is not.
       final eggUnavailable = meal(
         'Egg, whole, raw',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portionsUnavailable: true,
       );
-      final eggBare = meal('Egg, whole, raw', source: MealSourceEntity.fdc);
+      final eggBare = meal(
+        'Egg, whole, raw',
+        source: MealSourceEntity.catalogue,
+      );
       expect(
         scoreMealForResolution(eggUnavailable, 'scrambled egg toast'),
         closeTo(0.5, 1e-9),
@@ -614,12 +625,12 @@ void main() {
       final off = meal('Orange juices');
       final unavailable = meal(
         'Orange juice, 100%, NFS',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         portionsUnavailable: true,
       );
       final bare = meal(
         'Orange juice, 100%, NFS',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
       );
 
       expect(scoreMealForResolution(off, 'orange juice'), closeTo(0.917, 1e-3));
@@ -642,10 +653,10 @@ void main() {
       // the confidence floor is calibrated on.
       final detailedExact = meal(
         'Orange juice',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
         detailed: true,
       );
-      final noMatch = meal('Orange juice', source: MealSourceEntity.fdc);
+      final noMatch = meal('Orange juice', source: MealSourceEntity.catalogue);
 
       expect(
         scoreMealForResolution(detailedExact, 'orange juice'),

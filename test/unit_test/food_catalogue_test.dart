@@ -19,14 +19,10 @@ void main() {
     temporary = await Directory.systemTemp.createTemp('food-catalogue-test-');
     final file = File('${temporary.path}/fixture.sqlite');
     final db = sqlite3.open(file.path);
-    db.execute('''
-      CREATE TABLE food_name(fdc_id INTEGER, locale TEXT, description TEXT);
-      CREATE VIRTUAL TABLE food_search USING fts5(fdc_id UNINDEXED, locale UNINDEXED, description);
-      CREATE TABLE food_nutrient(fdc_id INTEGER, nutrient_id INTEGER, amount TEXT, id INTEGER);
-      CREATE TABLE measure_unit(dataset TEXT, id INTEGER, name TEXT);
-      CREATE TABLE food_portion(dataset TEXT, id INTEGER, fdc_id INTEGER, seq_num INTEGER,
-        amount TEXT, portion_description TEXT, modifier TEXT, gram_weight TEXT, measure_unit_id INTEGER);
-    ''');
+    db.execute(File('nix/food-data/schema.sql').readAsStringSync());
+    db.execute(
+      "INSERT INTO catalogue_source VALUES ('usda', 'FoodData Central', '{}', 'USDA', 'https://fdc.nal.usda.gov/', 'https://fdc.nal.usda.gov/', 0)",
+    );
     for (final (id, name) in [
       (2, 'Apple raw'),
       (1, 'Apple raw'),
@@ -34,15 +30,13 @@ void main() {
       (4, 'Pineapple'),
       (5, 'Raw apples'),
     ]) {
-      db.execute('INSERT INTO food_name VALUES (?, ?, ?)', [id, 'en', name]);
-      db.execute('INSERT INTO food_search VALUES (?, ?, ?)', [id, 'en', name]);
+      insertFood(db, id, name);
     }
+    db.execute("UPDATE food SET nutrition=? WHERE code='usda:1'", [
+      '{"energyKcal100":"52","fat100":"0","proteins100":null,"sodium100":"2"}',
+    ]);
     db.execute(
-      "INSERT INTO food_nutrient VALUES (1, 1008, '52', 1), (1, 1004, '0', 2), (1, 1003, NULL, 3), (1, 1093, '2', 4)",
-    );
-    db.execute("INSERT INTO measure_unit VALUES ('survey', 1, 'cup')");
-    db.execute(
-      "INSERT INTO food_portion VALUES ('survey', 1, 1, 1, '1', NULL, NULL, '140', 1), ('survey', 2, 1, 2, '1', 'bad', NULL, '0', 1)",
+      "INSERT INTO food_portion VALUES ('usda:survey:1', 'usda:1', 1, '1 cup', '140')",
     );
     db.close();
     bytes = await file.readAsBytes();
@@ -85,8 +79,7 @@ void main() {
   test('built-in relevance precedes numeric ID', () async {
     final path = await installer.install();
     final db = sqlite3.open(path);
-    db.execute("INSERT INTO food_name VALUES (10, 'en', 'Apple')");
-    db.execute("INSERT INTO food_search VALUES (10, 'en', 'Apple')");
+    insertFood(db, 10, 'Apple');
     db.close();
     expect((await catalogue.search('apple')).first.code, 'usda:10');
   });
@@ -97,20 +90,57 @@ void main() {
       final path = await installer.install();
       final db = sqlite3.open(path);
       for (var id = 10; id < 50; id++) {
-        db.execute("INSERT INTO food_name VALUES (?, 'en', 'Orange chicken')", [
-          id,
-        ]);
-        db.execute(
-          "INSERT INTO food_search VALUES (?, 'en', 'Orange chicken')",
-          [id],
-        );
+        insertFood(db, id, 'Orange chicken');
       }
-      db.execute("INSERT INTO food_name VALUES (999, 'en', 'Orange, raw')");
-      db.execute("INSERT INTO food_search VALUES (999, 'en', 'Orange, raw')");
+      insertFood(db, 999, 'Orange, raw');
       db.close();
       expect((await catalogue.search('ORANGE')).first.code, 'usda:999');
     },
   );
+
+  test('source discovery and filtering retain independent food identities', () async {
+    final path = await installer.install();
+    final db = sqlite3.open(path);
+    db.execute(
+      "INSERT INTO catalogue_source VALUES ('other', 'Another database', '{\"main\":\"2024\"}', 'Publisher', 'https://example.org/', 'https://example.org/terms', 1)",
+    );
+    db.execute(
+      "INSERT INTO food VALUES ('other:A1', 'other', 'A1', 'en', 'Apple raw', 'Kūmara', 'https://example.org/', '{}')",
+    );
+    db.execute(
+      "INSERT INTO food_search VALUES ('other:A1', 'other', 'en', 'Apple raw', 'Kūmara')",
+    );
+    db.close();
+    final sources = await catalogue.sources();
+    expect(sources.map((s) => s.id), ['other', 'usda']);
+    expect(sources.first.termsRequired, isTrue);
+    expect(sources.first.releases, {'main': '2024'});
+    expect(
+      (await catalogue.search(
+        'apple',
+        sourceIds: {'other'},
+      )).map((m) => m.code),
+      ['other:A1'],
+    );
+    expect(
+      (await catalogue.search('kumara')).single.catalogueSourceName,
+      'Another database',
+    );
+    expect(
+      await catalogue.search('apple', sourceIds: {"other') OR 1=1 --"}),
+      isEmpty,
+    );
+    expect((await catalogue.getById('other:A1'))!.name, 'Apple raw');
+    expect(
+      (await catalogue.getById('other:A1'))!.scoringQualifiers,
+      contains('Kūmara'),
+    );
+  });
+
+  test('no enabled sources returns immediately without installation', () async {
+    expect(await catalogue.search('apple', sourceIds: {}), isEmpty);
+    expect(reads, isEmpty);
+  });
 
   test('empty and punctuation clear without installing or querying', () async {
     expect(await catalogue.search(''), isEmpty);
@@ -126,7 +156,6 @@ void main() {
       for (final id in ['1', 'other:1', 'usda:-1', 'usda:1 OR 2', 'usda:01']) {
         expect(await catalogue.getById(id), isNull);
       }
-      expect(reads, isEmpty);
       expect(await catalogue.getById('usda:999'), isNull);
       final meal = (await catalogue.getById('usda:1'))!;
       expect(meal.code, 'usda:1');
@@ -161,7 +190,7 @@ void main() {
       expect(reads.where((s) => s.endsWith('.sqlite')), hasLength(1));
       final db = sqlite3.open(paths.first, mode: OpenMode.readOnly);
       expect(
-        () => db.execute("DELETE FROM food_name"),
+        () => db.execute("DELETE FROM food"),
         throwsA(isA<SqliteException>()),
       );
       db.close();
@@ -179,7 +208,7 @@ void main() {
       await secondFile.writeAsBytes(bytes);
       final changed = sqlite3.open(secondFile.path);
       changed.execute(
-        "UPDATE food_name SET description = 'Updated apple' WHERE fdc_id = 1",
+        "UPDATE food SET name = 'Updated apple' WHERE code = 'usda:1'",
       );
       changed.close();
       bytes = await secondFile.readAsBytes();
@@ -229,16 +258,7 @@ void main() {
     // Mutate the test fixture, never the production connection.
     final db = sqlite3.open(path);
     for (var id = 10; id < 40; id++) {
-      db.execute('INSERT INTO food_name VALUES (?, ?, ?)', [
-        id,
-        'en',
-        'Banana',
-      ]);
-      db.execute('INSERT INTO food_search VALUES (?, ?, ?)', [
-        id,
-        'en',
-        'Banana',
-      ]);
+      insertFood(db, id, 'Banana');
     }
     db.close();
     final matches = await catalogue.search('b');
@@ -246,4 +266,24 @@ void main() {
     expect(matches.first.code, 'usda:10');
     expect(matches.last.code, 'usda:34');
   });
+}
+
+void insertFood(Database db, int id, String name) {
+  db.execute('INSERT INTO food VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
+    'usda:$id',
+    'usda',
+    '$id',
+    'en',
+    name,
+    '',
+    'https://fdc.nal.usda.gov/fdc-app.html#/food-details/$id/nutrients',
+    '{}',
+  ]);
+  db.execute('INSERT INTO food_search VALUES (?, ?, ?, ?, ?)', [
+    'usda:$id',
+    'usda',
+    'en',
+    name,
+    '',
+  ]);
 }

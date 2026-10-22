@@ -1,3 +1,11 @@
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
+import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
+import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
+import 'package:opennutritracker/core/domain/usecase/create_recipe_from_intakes_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/compute_recipe_nutrition_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/save_recipe_usecase.dart';
+import 'package:opennutritracker/core/utils/navigation_options.dart';
+import 'package:opennutritracker/features/recipes/presentation/screens/recipe_detail_screen.dart';
 import '../../helpers/pump_until.dart';
 import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
@@ -96,6 +104,7 @@ void main() {
     WidgetTester tester, {
     List<IntakeEntity>? entries,
     double scale = 1,
+    RouteFactory? onGenerateRoute,
   }) async {
     tester.view.resetPhysicalSize();
     await tester.binding.setSurfaceSize(const Size(390, 780));
@@ -119,6 +128,7 @@ void main() {
       ChangeNotifierProvider(
         create: (_) => EnergyUnitProvider(),
         child: MaterialApp(
+          onGenerateRoute: onGenerateRoute,
           localizationsDelegates: const [S.delegate],
           supportedLocales: S.supportedLocales,
           builder: (context, child) => MediaQuery(
@@ -139,6 +149,130 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    'meal menu creates a saved recipe and opens it without changing diary entries',
+    (tester) async {
+      final store = _RecipeStore();
+      final compute = ComputeRecipeNutritionUseCase();
+      locator.registerSingleton<CreateRecipeFromIntakesUsecase>(
+        CreateRecipeFromIntakesUsecase(
+          compute,
+          SaveRecipeUseCase(store, compute),
+        ),
+      );
+      RecipeDetailArguments? opened;
+      final source = [diaryEntry(), diaryEntry(id: 'second', amount: 50)];
+      await mount(
+        tester,
+        entries: source,
+        onGenerateRoute: (settings) {
+          expect(settings.name, NavigationOptions.recipeDetailRoute);
+          opened = settings.arguments as RecipeDetailArguments;
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const Scaffold(body: Text('Created recipe')),
+          );
+        },
+      );
+      await tester.ensureVisible(menu(IntakeTypeEntity.breakfast));
+      await tester.tap(menu(IntakeTypeEntity.breakfast));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsIdentifier('diary-create-recipe'));
+      await tester.pumpAndSettle();
+      expect(find.text('Created recipe'), findsOneWidget);
+      expect(store.saved, hasLength(1));
+      final recipe = store.saved.single;
+      expect(opened!.recipeId, recipe.id);
+      expect(recipe.name, 'Breakfast recipe');
+      expect(
+        recipe.ingredients.map((i) => i.quantity),
+        source.map((e) => e.quantity),
+      );
+      expect(recipe.totalWeightG, 175);
+      final entries = await h.intakes.getIntakeByDateAndType(
+        IntakeTypeEntity.breakfast,
+        h.selection.state.day,
+      );
+      expect(entries.map((e) => e.id), source.map((e) => e.id));
+      expect(entries.map((e) => e.quantity), source.map((e) => e.quantity));
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'creating a recipe asks for missing weight and preserves Quick Add totals',
+    (tester) async {
+      final store = _RecipeStore();
+      final compute = ComputeRecipeNutritionUseCase();
+      locator.registerSingleton<CreateRecipeFromIntakesUsecase>(
+        CreateRecipeFromIntakesUsecase(
+          compute,
+          SaveRecipeUseCase(store, compute),
+        ),
+      );
+      final base = diaryEntry();
+      final quick = IntakeEntity(
+        id: 'quick',
+        type: base.type,
+        dateTime: base.dateTime,
+        quantity: null,
+        meal: MealEntity(
+          code: 'quick',
+          name: 'Sauce',
+          url: null,
+          mealQuantity: null,
+          mealUnit: 'gml',
+          servingQuantity: null,
+          servingUnit: null,
+          servingSize: null,
+          nutriments: base.meal.nutriments,
+          source: MealSourceEntity.custom,
+          isQuickAdd: true,
+        ),
+      );
+      await mount(
+        tester,
+        entries: [quick],
+        onGenerateRoute: (settings) => MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const Scaffold(body: Text('Created recipe')),
+        ),
+      );
+      await tester.ensureVisible(menu(IntakeTypeEntity.breakfast));
+      await tester.tap(menu(IntakeTypeEntity.breakfast));
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsIdentifier('diary-create-recipe'));
+      await tester.pumpAndSettle();
+      expect(store.saved, isEmpty);
+      await tester.enterText(
+        find.descendant(
+          of: find.bySemanticsIdentifier('quick-add-weight'),
+          matching: find.byType(TextField),
+        ),
+        '20',
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.bySemanticsIdentifier('quick-add-submit'),
+      );
+      await tester.tap(find.bySemanticsIdentifier('quick-add-submit'));
+      await tester.pumpAndSettle();
+      expect(find.text('Created recipe'), findsOneWidget);
+      expect(store.saved.single.totalWeightG, 20);
+      expect(
+        store.saved.single.aggregatedNutrimentsPer100.energyKcal100! * .2,
+        quick.totalKcal,
+      );
+      final original = await h.intakes.getIntakeByDateAndType(
+        IntakeTypeEntity.breakfast,
+        h.selection.state.day,
+      );
+      expect(original.single.quantity, isNull);
+      expect(original.single.totalKcal, quick.totalKcal);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   Future<void> settleStorage(WidgetTester tester) async {
     await tester.runAsync(() async {
@@ -169,8 +303,9 @@ void main() {
   ) async {
     await mount(tester);
     final gesture = await hold(tester);
-    expect(control('diary-copy-target'), findsOneWidget);
-    expect(control('diary-delete-target'), findsOneWidget);
+    expect(find.byKey(const ValueKey('fb-source')), findsOneWidget);
+    expect(control('diary-copy-target'), findsNothing);
+    expect(control('diary-delete-target'), findsNothing);
     expect(find.byType(AlertDialog), findsNothing);
     await gesture.cancel();
     await tester.pumpAndSettle();
@@ -180,7 +315,7 @@ void main() {
   });
 
   testWidgets(
-    'drag preserves group geometry and hover visibly changes each target',
+    'drag preserves group geometry and highlights destination groups',
     (tester) async {
       await mount(tester, scale: 1.8);
       final breakfast = tester.getRect(control('diary-breakfast-group'));
@@ -209,27 +344,22 @@ void main() {
       expect(tester.getRect(control('diary-dinner-group')), dinner);
       Color background(String id) =>
           (tester
-                      .widget<AnimatedContainer>(
-                        find.descendant(
-                          of: control(id),
-                          matching: find.byType(AnimatedContainer),
-                        ),
+                      .widget<DecoratedBox>(
+                        find
+                            .descendant(
+                              of: control(id),
+                              matching: find.byType(DecoratedBox),
+                            )
+                            .first,
                       )
-                      .decoration!
+                      .decoration
                   as BoxDecoration)
               .color!;
-      for (final target in ['diary-copy-target', 'diary-delete-target']) {
-        final idleColor = background(target);
-        expect(idleColor.a, 1);
-        await drag.moveTo(tester.getCenter(control(target)));
-        await tester.pump(const Duration(milliseconds: 200));
-        expect(
-          tester.getCenter(find.byKey(const ValueKey('fb-source'))),
-          tester.getCenter(control(target)),
-        );
-        expect(background(target), isNot(idleColor));
-        expect(background(target).a, 1);
-      }
+      final idleColor = background('diary-lunch-group');
+      await drag.moveTo(tester.getCenter(find.text('Lunch')));
+      await tester.pump();
+      expect(background('diary-lunch-group'), isNot(idleColor));
+      expect(tester.getRect(control('diary-lunch-group')), lunch);
       await drag.cancel();
       await tester.pumpAndSettle();
       expect(await h.intakes.getAllIntakesDBO(), hasLength(1));
@@ -238,22 +368,13 @@ void main() {
   );
 
   testWidgets(
-    'drop Copy preserves source, pastes into empty groups repeatedly and clears',
+    'swipe Copy preserves source, pastes into empty groups repeatedly and clears',
     (tester) async {
       final semantics = tester.ensureSemantics();
       await mount(tester);
-      final gesture = await hold(tester);
-      final copy = tester.getRect(control('diary-copy-target'));
-      final delete = tester.getRect(control('diary-delete-target'));
-      expect(copy.width, delete.width);
-      expect(copy.left, greaterThan(delete.right));
-      expect(
-        copy.bottom,
-        lessThan(tester.getTopLeft(find.text('Navigation')).dy),
-      );
-      await gesture.moveTo(copy.center);
-      await tester.pump();
-      await tester.runAsync(gesture.up);
+      await tester.drag(find.byType(IntakeCard).first, const Offset(-140, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(control('diary-intake-copy'));
       await tester.pumpAndSettle();
       expect(clipboard.state.single.id, 'source');
       expect(await h.intakes.getAllIntakesDBO(), hasLength(1));
@@ -298,14 +419,25 @@ void main() {
   );
 
   testWidgets(
-    'Delete drop confirms, cancellation retains source, confirmation deletes',
+    'swipe Delete confirms once, cancellation retains source, confirmation deletes',
     (tester) async {
+      final entry = diaryEntry();
+      final day = h.selection.state.day;
+      await tester.runAsync(() async {
+        await h.tracked.addNewTrackedDay(day, 2000, 250, 60, 100);
+        await h.tracked.addDayTrackedCalories(day, entry.totalKcal);
+        await h.tracked.addDayMacrosTracked(
+          day,
+          carbsTracked: entry.totalCarbsGram,
+          fatTracked: entry.totalFatsGram,
+          proteinTracked: entry.totalProteinsGram,
+        );
+      });
       await mount(tester);
       for (final confirm in [false, true]) {
-        final gesture = await hold(tester);
-        await gesture.moveTo(tester.getCenter(control('diary-delete-target')));
-        await tester.pump();
-        await tester.runAsync(gesture.up);
+        await tester.drag(find.byType(IntakeCard).first, const Offset(-140, 0));
+        await tester.pumpAndSettle();
+        await tester.runAsync(() => tester.tap(control('diary-intake-delete')));
         await tester.pumpAndSettle();
         expect(find.byType(AlertDialog), findsOneWidget);
         var reloaded = !confirm;
@@ -321,6 +453,19 @@ void main() {
         await loaded;
         await settleStorage(tester);
         expect(await h.intakes.getAllIntakesDBO(), hasLength(confirm ? 0 : 1));
+        final totals = (await h.tracked.getTrackedDay(day))!;
+        expect(totals.caloriesTracked, confirm ? 0 : entry.totalKcal);
+        expect(totals.carbsTracked, confirm ? 0 : entry.totalCarbsGram);
+        expect(totals.fatTracked, confirm ? 0 : entry.totalFatsGram);
+        expect(totals.proteinTracked, confirm ? 0 : entry.totalProteinsGram);
+        expect(find.byType(AlertDialog), findsNothing);
+        if (confirm) {
+          expect(find.text('Item deleted'), findsOneWidget);
+          expect(
+            (h.calendar!.state as CalendarDayLoaded).breakfastIntakeList,
+            isEmpty,
+          );
+        }
       }
     },
   );
@@ -390,7 +535,7 @@ void main() {
     final gesture = await hold(tester);
     expect(control('diary-clear-clipboard'), findsNothing);
     final viewport = tester.getRect(find.byType(ListView).first);
-    await gesture.moveTo(Offset(viewport.center.dx, viewport.bottom - 110));
+    await gesture.moveTo(Offset(viewport.center.dx, viewport.bottom - 30));
     await tester.pump(const Duration(seconds: 2));
     final scroll = tester
         .state<ScrollableState>(find.byType(Scrollable).first)
@@ -445,11 +590,161 @@ void main() {
       await tester.runAsync(() => tester.tap(menu(IntakeTypeEntity.lunch)));
       await tester.pumpAndSettle();
       await tester.runAsync(() => tester.tap(find.text('Copy from yesterday')));
+      await pumpUntil(
+        tester,
+        () => find.byType(AlertDialog).evaluate().isNotEmpty,
+        reason: 'copy source dialog after loading yesterday’s meal groups',
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.runAsync(() => tester.tap(find.text('OK')));
+      await tester.pumpAndSettle();
+      expect(find.text('No entries in Lunch yesterday.'), findsOneWidget);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.runAsync(() => tester.tap(find.text('CANCEL')));
       await settleStorage(tester);
-      expect(find.text('No entries in this group yesterday.'), findsOneWidget);
       expect(find.byType(AlertDialog), findsNothing);
     },
   );
+
+  for (final hasYesterdayLunch in [false, true]) {
+    testWidgets(
+      'copy yesterday dinner into today lunch when yesterday lunch exists: $hasYesterdayLunch',
+      (tester) async {
+        final recipe = diaryEntry(recipe: true);
+        final dinner = IntakeEntity(
+          id: 'yesterday-dinner',
+          quantity: recipe.quantity,
+          type: IntakeTypeEntity.dinner,
+          meal: recipe.meal,
+          recipeSnapshot: recipe.recipeSnapshot,
+          dateTime: DateTime(2026, 9, 28, 20),
+        );
+        final food = diaryEntry(amount: 50);
+        final lunch = IntakeEntity(
+          id: 'today-lunch',
+          quantity: food.quantity,
+          type: IntakeTypeEntity.lunch,
+          meal: food.meal,
+          dateTime: DateTime(2026, 9, 29, 12),
+        );
+        await mount(
+          tester,
+          entries: [
+            dinner,
+            lunch,
+            if (hasYesterdayLunch)
+              IntakeEntity(
+                id: 'yesterday-lunch',
+                quantity: food.quantity,
+                type: IntakeTypeEntity.lunch,
+                meal: food.meal,
+                dateTime: DateTime(2026, 9, 28, 12),
+              ),
+          ],
+        );
+        await tester.ensureVisible(menu(IntakeTypeEntity.lunch));
+        await tester.runAsync(() => tester.tap(menu(IntakeTypeEntity.lunch)));
+        await tester.pumpAndSettle();
+        await tester.runAsync(
+          () => tester.tap(find.text('Copy from yesterday')),
+        );
+        await pumpUntil(
+          tester,
+          () => find.byType(AlertDialog).evaluate().isNotEmpty,
+          reason: 'copy source dialog after loading yesterday’s meal groups',
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.text(
+            'Which meal group do you want to copy from?',
+            findRichText: true,
+          ),
+          findsOneWidget,
+        );
+        await tester.tap(find.byType(DropdownButton<AddMealType>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Dinner').last);
+        await tester.pumpAndSettle();
+        await tester.runAsync(() => tester.tap(find.text('OK')));
+        await settleStorage(tester);
+
+        final entries = await h.intakes.getIntakeByDateAndType(
+          IntakeTypeEntity.lunch,
+          h.selection.state.today,
+        );
+        expect(entries, hasLength(2));
+        expect(entries, contains(lunch));
+        final copied = entries.singleWhere((entry) => entry.id != lunch.id);
+        expect(copied.id, isNot(dinner.id));
+        expect(copied.quantity, dinner.quantity);
+        expect(copied.recipeSnapshot, dinner.recipeSnapshot);
+        expect(await h.intakes.getIntakeById(dinner.id), dinner);
+        expect(
+          await h.intakes.getIntakeByDateAndType(
+            IntakeTypeEntity.dinner,
+            h.selection.state.today,
+          ),
+          isEmpty,
+        );
+      },
+    );
+  }
+
+  testWidgets(
+    'copy to today keeps the menu source and chooses the destination',
+    (tester) async {
+      final source = diaryEntry(recipe: true);
+      final dinner = IntakeEntity(
+        id: 'past-dinner',
+        quantity: source.quantity,
+        type: IntakeTypeEntity.dinner,
+        meal: source.meal,
+        recipeSnapshot: source.recipeSnapshot,
+        dateTime: DateTime(2026, 9, 28, 20),
+      );
+      await tester.runAsync(() async {
+        h.selection.select(DateTime(2026, 9, 28));
+      });
+      await mount(tester, entries: [dinner]);
+      await tester.ensureVisible(menu(IntakeTypeEntity.dinner));
+      await tester.runAsync(() => tester.tap(menu(IntakeTypeEntity.dinner)));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => tester.tap(find.text('Copy to today')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Which meal group do you want to copy to?',
+          findRichText: true,
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.byType(DropdownButton<AddMealType>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lunch').last);
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => tester.tap(find.text('OK')));
+      await settleStorage(tester);
+
+      final copied = (await h.intakes.getIntakeByDateAndType(
+        IntakeTypeEntity.lunch,
+        h.selection.state.today,
+      )).single;
+      expect(copied.id, isNot(dinner.id));
+      expect(copied.quantity, dinner.quantity);
+      expect(copied.recipeSnapshot, dinner.recipeSnapshot);
+      expect(await h.intakes.getIntakeById(dinner.id), dinner);
+      expect(
+        await h.intakes.getIntakeByDateAndType(
+          IntakeTypeEntity.dinner,
+          h.selection.state.today,
+        ),
+        isEmpty,
+      );
+      expect(h.selection.state.day, DateTime(2026, 9, 28));
+    },
+  );
+
   testWidgets(
     'group clipboard uses a collection preview and pastes every entry',
     (tester) async {
@@ -541,4 +836,12 @@ void main() {
       expect(control('diary-intake-refresh'), findsOneWidget);
     },
   );
+}
+
+class _RecipeStore extends Fake implements RecipeRepository {
+  final saved = <RecipeEntity>[];
+  @override
+  Future<void> saveRecipe(RecipeEntity recipe) async {
+    saved.add(recipe);
+  }
 }

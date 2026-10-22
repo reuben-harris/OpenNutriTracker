@@ -74,7 +74,7 @@ class RefreshDiaryIntakeUsecase {
             throw DiarySourceUnavailable();
           }
         }
-      case MealSourceEntity.fdc:
+      case MealSourceEntity.catalogue:
         if (code != null) meal = await _catalogue?.getById(code);
       case MealSourceEntity.custom:
         final saved = _custom.getAllCustomMeals().firstWhereOrNull(

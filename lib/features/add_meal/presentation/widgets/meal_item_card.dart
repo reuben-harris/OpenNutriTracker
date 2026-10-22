@@ -1,5 +1,6 @@
 import 'package:flutter/semantics.dart';
 import 'package:flutter/material.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_brand_span.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_card.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_card_geometry.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_card_text.dart';
@@ -22,15 +23,15 @@ class MealItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    final brand = mealEntity.brands?.trim();
-    final hasBrand = brand != null && brand.isNotEmpty;
-    final unknownBrand = mealEntity.source == MealSourceEntity.off && !hasBrand;
+    final brand = foodBrandSpan(context, mealEntity);
     final subtitle = switch (mealEntity.source) {
-      MealSourceEntity.off => hasBrand ? brand : s.unknownBrandLabel,
-      MealSourceEntity.fdc => s.foodSourceFdcLabel,
-      MealSourceEntity.custom => hasBrand ? brand : s.foodSourceCustomLabel,
-      MealSourceEntity.recipe => s.recipesLabel,
-      MealSourceEntity.unknown => hasBrand ? brand : s.foodSourceUnknownLabel,
+      MealSourceEntity.off => brand!,
+      MealSourceEntity.catalogue => brand!,
+      MealSourceEntity.custom =>
+        brand ?? TextSpan(text: s.foodSourceCustomLabel),
+      MealSourceEntity.recipe => TextSpan(text: s.recipesLabel),
+      MealSourceEntity.unknown =>
+        brand ?? TextSpan(text: s.foodSourceUnknownLabel),
     };
     final energy = mealEntity.nutriments.energyKcal100;
     final reference = mealEntity.isLiquid ? '100 ml' : '100 g';
@@ -47,6 +48,7 @@ class MealItemCard extends StatelessWidget {
           icon: Icons.info_outline_rounded,
           label: S.of(context).diaryInfoLabel,
           semanticsIdentifier: 'meal-item-info',
+          animateClose: false,
           revealThreshold: 32,
           onTap: onInfo,
         ),
@@ -55,12 +57,7 @@ class MealItemCard extends StatelessWidget {
           onTap: () => onSelected(mealEntity),
           content: FoodCardText(
             title: mealEntity.name ?? '?',
-            subtitle: TextSpan(
-              text: subtitle,
-              style: unknownBrand
-                  ? const TextStyle(fontStyle: FontStyle.italic)
-                  : null,
-            ),
+            subtitle: subtitle,
             trailingTitle: energy == null
                 ? '—'
                 : EnergyDisplay.formatWithUnit(context, energy),

@@ -4,8 +4,6 @@ import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
 import 'package:opennutritracker/core/utils/id_generator.dart';
 import 'package:opennutritracker/core/utils/app_locale.dart';
 import 'package:opennutritracker/core/utils/supported_language.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_const.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_food_dto.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/off/off_product_dto.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:opennutritracker/features/add_meal/util/food_title.dart';
@@ -72,6 +70,11 @@ class MealEntity extends Equatable {
 
   final MealSourceEntity source;
 
+  final String? catalogueSourceName;
+
+  /// Catalogue synonyms used while ranking search results, not logged snapshots.
+  final String? searchAliases;
+
   /// Optional household measures with a known gram weight. Not persisted.
   final List<MealPortionEntity> portions;
 
@@ -103,7 +106,7 @@ class MealEntity extends Equatable {
       (double.tryParse(mealQuantity ?? '') ?? 0) > 0;
 
   bool get isCatalogueFood =>
-      source == MealSourceEntity.fdc && (code?.startsWith('usda:') ?? false);
+      source == MealSourceEntity.catalogue && (code?.contains(':') ?? false);
 
   bool get isLiquid => liquidUnits.contains(mealUnit);
 
@@ -111,14 +114,17 @@ class MealEntity extends Equatable {
 
   String? get scoringName {
     final text = name;
-    if (text == null || source != MealSourceEntity.fdc) return text;
+    if (text == null || source != MealSourceEntity.catalogue) return text;
     return deriveTitle(text);
   }
 
   String? get scoringQualifiers {
     final text = name;
-    if (text == null || source != MealSourceEntity.fdc) return null;
-    return deriveQualifiers(text);
+    if (text == null || source != MealSourceEntity.catalogue) return null;
+    final qualifiers = deriveQualifiers(text);
+    final aliases = searchAliases?.trim();
+    if (aliases == null || aliases.isEmpty) return qualifiers;
+    return qualifiers == null ? aliases : '$qualifiers $aliases';
   }
 
   const MealEntity({
@@ -135,6 +141,8 @@ class MealEntity extends Equatable {
     required this.servingSize,
     required this.nutriments,
     required this.source,
+    this.catalogueSourceName,
+    this.searchAliases,
     this.portions = const [],
     this.portionsUnavailable = false,
     this.localImagePath,
@@ -156,6 +164,8 @@ class MealEntity extends Equatable {
     servingSize: servingSize,
     nutriments: nutriments,
     source: source,
+    catalogueSourceName: catalogueSourceName,
+    searchAliases: searchAliases,
     portions: found,
     portionsUnavailable: portionsUnavailable,
     localImagePath: localImagePath,
@@ -182,6 +192,8 @@ class MealEntity extends Equatable {
     servingSize: servingSize,
     nutriments: nutriments,
     source: source,
+    catalogueSourceName: catalogueSourceName,
+    searchAliases: searchAliases,
     portions: portions,
     portionsUnavailable: true,
     localImagePath: localImagePath,
@@ -204,6 +216,7 @@ class MealEntity extends Equatable {
 
   factory MealEntity.fromMealDBO(MealDBO mealDBO) => MealEntity(
     code: mealDBO.code,
+    catalogueSourceName: mealDBO.catalogueSourceName,
     name: mealDBO.name,
     brands: mealDBO.brands,
     thumbnailImageUrl: mealDBO.thumbnailImageUrl,
@@ -288,24 +301,6 @@ class MealEntity extends Equatable {
     }
   }
 
-  factory MealEntity.fromFDCFood(FDCFoodDTO fdcFood) {
-    final fdcId = fdcFood.fdcId?.toInt().toString();
-
-    return MealEntity(
-      code: fdcId,
-      name: fdcFood.description,
-      brands: fdcFood.brandName,
-      url: FDCConst.getFoodDetailUrlString(fdcId),
-      mealQuantity: fdcFood.packageWeight,
-      mealUnit: fdcFood.servingSizeUnit,
-      servingQuantity: fdcFood.servingSize,
-      servingUnit: fdcFood.servingSizeUnit,
-      servingSize: fdcFood.servingSizeUnit,
-      nutriments: MealNutrimentsEntity.fromFDCNutriments(fdcFood.foodNutrients),
-      source: MealSourceEntity.fdc,
-    );
-  }
-
   /// Value returned from OFF can either be String, int or double.
   /// Try casting it to a double value for calculation
   static double? _tryQuantityCast(dynamic value) {
@@ -370,6 +365,7 @@ class MealEntity extends Equatable {
     servingQuantity,
     servingSize,
     localImagePath,
+    catalogueSourceName,
   ];
 }
 
@@ -377,7 +373,7 @@ enum MealSourceEntity {
   unknown,
   custom,
   off,
-  fdc,
+  catalogue,
   recipe;
 
   factory MealSourceEntity.fromMealSourceDBO(MealSourceDBO mealSourceDBO) {
@@ -392,8 +388,8 @@ enum MealSourceEntity {
       case MealSourceDBO.off:
         mealSourceEntity = MealSourceEntity.off;
         break;
-      case MealSourceDBO.fdc:
-        mealSourceEntity = MealSourceEntity.fdc;
+      case MealSourceDBO.catalogue:
+        mealSourceEntity = MealSourceEntity.catalogue;
         break;
       case MealSourceDBO.recipe:
         mealSourceEntity = MealSourceEntity.recipe;

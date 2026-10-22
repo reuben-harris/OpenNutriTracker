@@ -15,6 +15,7 @@ part 'recipe_builder_state.dart';
 class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
   final ComputeRecipeNutritionUseCase _computeUseCase;
   final SaveRecipeUseCase _saveUseCase;
+  DateTime _createdAt = DateTime.now();
 
   RecipeBuilderBloc(this._computeUseCase, this._saveUseCase)
     : super(RecipeBuilderState.initial()) {
@@ -23,7 +24,7 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
     on<UpdateDescriptionEvent>(_onUpdateDescription);
     on<UpdateServingsCountEvent>(_onUpdateServings);
     on<UpdateTagsEvent>((event, emit) {
-      emit(state.copyWith(tags: event.tags));
+      emit(state.copyWith(tags: event.tags, clearSaveError: true));
     });
     on<UpdateImagePathEvent>((event, emit) {
       emit(
@@ -36,9 +37,41 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
     on<AddIngredientEvent>(_onAddIngredient);
     on<UpdateIngredientEvent>(_onUpdateIngredient);
     on<RemoveIngredientEvent>(_onRemoveIngredient);
+    on<ExplodeIngredientEvent>((event, emit) {
+      if (event.index < 0 ||
+          event.index >= state.ingredients.length ||
+          event.recipe.ingredients.isEmpty ||
+          !event.recipe.totalWeightG.isFinite ||
+          event.recipe.totalWeightG <= 0) {
+        return;
+      }
+      final parent = state.ingredients[event.index];
+      if (parent.snapshotMeal.source != MealSourceEntity.recipe ||
+          parent.snapshotMeal.code != event.recipe.id) {
+        return;
+      }
+      final scale = parent.quantity.baseAmount / event.recipe.totalWeightG;
+      final children = event.recipe.ingredients
+          .map(
+            (ingredient) => ingredient.copyWith(
+              quantity: FoodAmountSelection(
+                ingredient.quantity.amount * scale,
+                ingredient.quantity.option,
+              ),
+            ),
+          )
+          .toList();
+      final ingredients = [...state.ingredients]
+        ..replaceRange(event.index, event.index + 1, children);
+      emit(state.copyWith(ingredients: ingredients));
+      _recompute(emit);
+    });
     on<UpdateWeightModeEvent>(_onUpdateWeightMode);
     on<UpdateCookedWeightEvent>(_onUpdateCookedWeight);
-    on<SaveRecipeEvent>(_onSave);
+    on<SaveRecipeEvent>(
+      _onSave,
+      transformer: (events, mapper) => events.asyncExpand(mapper),
+    );
   }
 
   void _onInitialize(
@@ -54,6 +87,7 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
       );
     } else {
       final r = event.existing!;
+      _createdAt = r.id.isEmpty ? DateTime.now() : r.createdAt;
       // Empty id is the sentinel used by the duplicate-recipe action: keep
       // the field values but treat the builder as a fresh create so save()
       // assigns a new uuid.
@@ -85,14 +119,14 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
   }
 
   void _onUpdateName(UpdateNameEvent event, Emitter<RecipeBuilderState> emit) {
-    emit(state.copyWith(name: event.name));
+    emit(state.copyWith(name: event.name, clearSaveError: true));
   }
 
   void _onUpdateDescription(
     UpdateDescriptionEvent event,
     Emitter<RecipeBuilderState> emit,
   ) {
-    emit(state.copyWith(description: event.description));
+    emit(state.copyWith(description: event.description, clearSaveError: true));
   }
 
   void _onUpdateServings(
@@ -103,6 +137,7 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
       state.copyWith(
         servingsCount: event.servingsCount,
         clearServingsCount: event.servingsCount == null,
+        clearSaveError: true,
       ),
     );
   }
@@ -189,6 +224,7 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
       state.copyWith(
         totalWeightG: result.totalWeightG,
         aggregatedNutrimentsPer100: result.perHundredG,
+        clearSaveError: true,
       ),
     );
   }
@@ -200,14 +236,19 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
     final trimmedName = state.name.trim();
     if (trimmedName.isEmpty) {
       emit(state.copyWith(saveError: SaveError.nameRequired));
+      event.onCompleted?.call(false);
       return;
     }
-    if (state.ingredients.isEmpty) {
+    if (state.ingredients.isEmpty && event.closeAfterSave) {
       emit(state.copyWith(saveError: SaveError.needsIngredients));
+      event.onCompleted?.call(false);
       return;
     }
-    if (!state.hasValidWeight) {
+    if ((state.weightMode == RecipeWeightMode.custom &&
+            state.cookedWeightG == null) ||
+        (state.ingredients.isNotEmpty && !state.hasValidWeight)) {
       emit(state.copyWith(saveError: SaveError.invalidTotalWeight));
+      event.onCompleted?.call(false);
       return;
     }
 
@@ -224,15 +265,17 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
         totalWeightG: state.totalWeightG!,
         cookedWeightG: state.cookedWeightG,
         aggregatedNutrimentsPer100: state.aggregatedNutrimentsPer100!,
-        createdAt: state.isExistingRecipe ? now : now,
+        createdAt: _createdAt,
         updatedAt: now,
         servingsCount: state.servingsCount,
         tags: state.tags,
         imagePath: state.imagePath,
       );
       await _saveUseCase.save(recipe);
-      emit(state.copyWith(isSaving: false, didSave: true));
+      emit(state.copyWith(isSaving: false, didSave: event.closeAfterSave));
+      event.onCompleted?.call(true);
     } catch (e) {
+      event.onCompleted?.call(false);
       emit(
         state.copyWith(
           isSaving: false,

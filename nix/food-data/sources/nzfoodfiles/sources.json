@@ -1,0 +1,11 @@
+{
+  "lock_version": 1,
+  "sources": {
+    "foodfiles": {
+      "format": "msi",
+      "release": "2024-v1",
+      "sha256": "fad47d11c97814b1d7be5a9d538f0b32cd4807b7d231e516e57c939c75a18a5f",
+      "url": "https://www.foodcomposition.co.nz/downloads/foodfiles-2024-v1.msi"
+    }
+  }
+}

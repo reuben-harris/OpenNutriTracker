@@ -30,7 +30,7 @@ MealEntity _meal({
 /// its id — and which the dedup keys therefore have to fall back on.
 MealEntity _codeless(
   String name, {
-  MealSourceEntity source = MealSourceEntity.fdc,
+  MealSourceEntity source = MealSourceEntity.catalogue,
   String? brands,
 }) => MealEntity(
   code: null,
@@ -169,9 +169,9 @@ void main() {
     test('scores a backend record on its title, not its description', () {
       final titled = _meal(
         name: 'Egg, whole, raw',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
       );
-      final named = _meal(name: 'Egg', source: MealSourceEntity.fdc);
+      final named = _meal(name: 'Egg', source: MealSourceEntity.catalogue);
       // The same text as an OFF product name is scored whole.
       final byDescription = _meal(
         name: 'Egg, whole, raw',
@@ -204,8 +204,11 @@ void main() {
     // qualifier the query names joins the title; one it does not is never
     // read.
     test('scores a qualifier the query names with the title', () {
-      final whole = _meal(name: 'Milk, whole', source: MealSourceEntity.fdc);
-      final nfs = _meal(name: 'Milk, NFS', source: MealSourceEntity.fdc);
+      final whole = _meal(
+        name: 'Milk, whole',
+        source: MealSourceEntity.catalogue,
+      );
+      final nfs = _meal(name: 'Milk, NFS', source: MealSourceEntity.catalogue);
 
       expect(whole.scoringQualifiers, 'whole');
       // As "Milk whole": dice 1.0, no contains or prefix on the title, so
@@ -229,7 +232,7 @@ void main() {
       // the two of them (`namedQualifiers` in soft_text_score.dart).
       final yolk = _meal(
         name: 'Egg, yolk only, raw',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
       );
 
       expect(scoreMealRelevance(yolk, 'egg yolk'), closeTo(0.9, 1e-9));
@@ -239,7 +242,7 @@ void main() {
 
   group('rankMealsByRelevance', () {
     test('sorts the most relevant meal first regardless of source order', () {
-      final exact = _meal(name: 'Milk', source: MealSourceEntity.fdc);
+      final exact = _meal(name: 'Milk', source: MealSourceEntity.catalogue);
       final loose = _meal(
         name: 'Milk Chocolate Spread',
         source: MealSourceEntity.off,
@@ -260,12 +263,12 @@ void main() {
 
     test('keeps the original relative order for equally-scored meals', () {
       final first = _meal(name: 'Milk', source: MealSourceEntity.off);
-      final second = _meal(name: 'Milk', source: MealSourceEntity.fdc);
+      final second = _meal(name: 'Milk', source: MealSourceEntity.catalogue);
 
       final ranked = rankMealsByRelevance([first, second], 'milk');
 
       expect(ranked[0].source, MealSourceEntity.off);
-      expect(ranked[1].source, MealSourceEntity.fdc);
+      expect(ranked[1].source, MealSourceEntity.catalogue);
     });
 
     test('does not mutate the input list', () {
@@ -286,7 +289,7 @@ void main() {
       final wholeRaw = _meal(
         name: 'Egg, whole, raw',
         code: '2707152',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
       );
 
       final ranked = rankMealsByRelevance([noodles, wholeRaw], 'egg');
@@ -300,12 +303,12 @@ void main() {
       final nfs = _meal(
         name: 'Milk, NFS',
         code: '2705384',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
       );
       final whole = _meal(
         name: 'Milk, whole',
         code: '2705385',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
       );
 
       final ranked = rankMealsByRelevance([nfs, whole], 'whole milk');
@@ -375,7 +378,10 @@ void main() {
     // into "Egg" beside "Egg, whole, raw" and was gone from the list.
     test('never collapses a backend record into a same-named OFF product', () {
       final offMilk = _meal(name: 'Whole Milk', source: MealSourceEntity.off);
-      final fdcMilk = _meal(name: 'Whole Milk', source: MealSourceEntity.fdc);
+      final fdcMilk = _meal(
+        name: 'Whole Milk',
+        source: MealSourceEntity.catalogue,
+      );
 
       final merged = mergeAndRankMeals([offMilk], [fdcMilk], 'milk');
 
@@ -387,12 +393,12 @@ void main() {
       final wholeRaw = _meal(
         name: 'Egg',
         code: '2707152',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
       );
       final yolkOnly = _meal(
         name: 'Egg',
         code: '2707172',
-        source: MealSourceEntity.fdc,
+        source: MealSourceEntity.catalogue,
       );
 
       final merged = mergeAndRankMeals([], [wholeRaw, yolkOnly], 'egg');
@@ -481,14 +487,17 @@ void main() {
           detailed: true,
         );
 
-        final translatedFdc = _meal(name: 'Milk', source: MealSourceEntity.fdc);
+        final translatedFdc = _meal(
+          name: 'Milk',
+          source: MealSourceEntity.catalogue,
+        );
         final merged = mergeAndRankMeals(
           [detailedOff],
           [translatedFdc],
           'milk',
         );
 
-      expect(merged, unorderedEquals([detailedOff, translatedFdc]));
+        expect(merged, unorderedEquals([detailedOff, translatedFdc]));
       },
     );
 
@@ -618,7 +627,10 @@ void main() {
           name: 'Milk Chocolate Spread',
           source: MealSourceEntity.off,
         );
-        final exactFdc = _meal(name: 'Milk', source: MealSourceEntity.fdc);
+        final exactFdc = _meal(
+          name: 'Milk',
+          source: MealSourceEntity.catalogue,
+        );
 
         final merged = mergeAndRankMeals([looseOff], [exactFdc], 'milk');
 

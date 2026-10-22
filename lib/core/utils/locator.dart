@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/usecase/create_recipe_from_intakes_usecase.dart';
 import 'package:opennutritracker/core/utils/food_cache_maintenance.dart';
 import 'package:opennutritracker/core/utils/food_image_loader.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
@@ -12,6 +13,7 @@ import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboar
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_copy_cubit.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:get_it/get_it.dart';
+import 'package:opennutritracker/core/search/catalogue_preferences.dart';
 import 'package:opennutritracker/core/data/data_source/config_data_source.dart';
 import 'package:opennutritracker/core/data/data_source/custom_activity_template_data_source.dart';
 import 'package:opennutritracker/core/data/data_source/health/health_service.dart';
@@ -126,7 +128,6 @@ import 'package:opennutritracker/features/onboarding/presentation/bloc/onboardin
 import 'package:opennutritracker/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:opennutritracker/features/profile/presentation/utils/profile_switch_coordinator.dart';
 import 'package:opennutritracker/features/recipes/presentation/bloc/recipe_builder_bloc.dart';
-import 'package:opennutritracker/features/recipes/presentation/bloc/recipe_detail_bloc.dart';
 import 'package:opennutritracker/features/recipes/presentation/bloc/recipes_bloc.dart';
 import 'package:opennutritracker/features/scanner/domain/usecase/search_product_by_barcode_usecase.dart';
 import 'package:opennutritracker/features/scanner/presentation/scanner_bloc.dart';
@@ -304,9 +305,6 @@ Future<void> initLocator() async {
   locator.registerFactory<RecipeBuilderBloc>(
     () => RecipeBuilderBloc(locator(), locator()),
   );
-  locator.registerFactory<RecipeDetailBloc>(
-    () => RecipeDetailBloc(locator(), locator()),
-  );
   locator.registerLazySingleton(
     () => SettingsBloc(
       locator(),
@@ -376,12 +374,23 @@ Future<void> initLocator() async {
     () => BulkAddBloc(locator(), locator(), locator()),
   );
   locator.registerLazySingleton<FoodCatalogue>(() => SQLiteFoodCatalogue());
+  locator.registerLazySingleton<CataloguePreferences>(
+    () => CataloguePreferences(
+      catalogue: locator(),
+      read: () async => (await locator<GetConfigUsecase>().getConfig())
+          .catalogueSourceOverrides,
+      write: (overrides) =>
+          locator<AddConfigUsecase>().setCatalogueSourceOverrides(overrides),
+    ),
+    dispose: (preferences) => preferences.dispose(),
+  );
   locator.registerLazySingleton<OffFoodSearchSource>(
     () => OffFoodSearchSource(),
   );
   locator.registerLazySingleton<FoodSearchEngine>(
     () => FoodSearchEngine(
       catalogue: locator(),
+      cataloguePreferences: locator(),
       cache: locator(),
       online: locator(),
       contextIdentity: () =>
@@ -620,6 +629,9 @@ Future<void> initLocator() async {
   // Recipe use cases
   locator.registerLazySingleton(() => ComputeRecipeNutritionUseCase());
   locator.registerLazySingleton(() => SaveRecipeUseCase(locator(), locator()));
+  locator.registerLazySingleton(
+    () => CreateRecipeFromIntakesUsecase(locator(), locator()),
+  );
   locator.registerLazySingleton(() => GetAllRecipesUseCase(locator()));
   locator.registerLazySingleton(() => GetRecipeByIdUseCase(locator()));
   locator.registerLazySingleton(() => DeleteRecipeUseCase(locator()));

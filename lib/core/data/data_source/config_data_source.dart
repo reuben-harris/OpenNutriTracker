@@ -96,6 +96,11 @@ class ConfigDataSource {
   /// switch to land between them, writing the two halves of one config into
   /// two different profiles (#944). Resolving and starting both in the same
   /// synchronous step closes it.
+  Future<void> setCatalogueSourceOverrides(Map<String, bool> overrides) =>
+      _update(
+        (c) => c.catalogueSourceOverrides = Map<String, bool>.from(overrides),
+      );
+
   Future<void> _writeBoth(ConfigDBO config) async {
     final app = _appBox.put(_configKey, ConfigDBO.fromJson(config.toJson()));
     final profile = _profileBox.put(

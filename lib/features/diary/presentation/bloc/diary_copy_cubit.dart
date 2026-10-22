@@ -13,7 +13,7 @@ import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_det
 
 enum DiaryCopyResult { copied, cancelled, busy, empty, failed }
 
-/// Serializes whole batches, including destination dialogs, across meal groups.
+/// Serializes whole batches, including meal selection dialogs, across groups.
 class DiaryCopyCubit extends Cubit<bool> {
   final MealDetailBloc _logger;
   final GetIntakeUsecase _intakes;
@@ -47,10 +47,13 @@ class DiaryCopyCubit extends Cubit<bool> {
     BuildContext context,
     List<IntakeEntity> entries,
     DateTime destinationDay,
-    IntakeTypeEntity initialType, {
+    IntakeTypeEntity destinationType, {
+    Future<IntakeTypeEntity?> Function(Set<IntakeTypeEntity>)? selectSource,
     Future<IntakeTypeEntity?> Function()? selectDestination,
-    Future<List<IntakeEntity>> Function()? loadSource,
+    Future<List<IntakeEntity>> Function(IntakeTypeEntity)? loadSource,
   }) async {
+    assert(selectSource == null || selectDestination == null);
+    assert((selectSource == null) == (loadSource == null));
     if (state) return DiaryCopyResult.busy;
     final day = DateTime(
       destinationDay.year,
@@ -63,15 +66,38 @@ class DiaryCopyCubit extends Cubit<bool> {
     emit(true);
     var wrote = false;
     try {
-      final source = snapshotDiaryEntries(
-        loadSource == null ? entries : await loadSource(),
-      );
+      var source = snapshotDiaryEntries(entries);
+      if (selectSource != null) {
+        final sources = <IntakeTypeEntity, List<IntakeEntity>>{};
+        for (final type in IntakeTypeEntity.values) {
+          if (generation != _generation || !context.mounted) {
+            return DiaryCopyResult.cancelled;
+          }
+          sources[type] = snapshotDiaryEntries(await loadSource!(type));
+        }
+        if (generation != _generation || !context.mounted) {
+          return DiaryCopyResult.cancelled;
+        }
+        final sourceType = await Future.any([
+          selectSource({
+            for (final entry in sources.entries)
+              if (entry.value.isNotEmpty) entry.key,
+          }),
+          _cancel!.future.then<IntakeTypeEntity?>((_) => null),
+        ]);
+        if (sourceType == null ||
+            generation != _generation ||
+            !context.mounted) {
+          return DiaryCopyResult.cancelled;
+        }
+        source = sources[sourceType]!;
+      }
       if (generation != _generation || !context.mounted) {
         return DiaryCopyResult.cancelled;
       }
       if (source.isEmpty) return DiaryCopyResult.empty;
       final type = selectDestination == null
-          ? initialType
+          ? destinationType
           : await Future.any([
               selectDestination(),
               _cancel!.future.then<IntakeTypeEntity?>((_) => null),

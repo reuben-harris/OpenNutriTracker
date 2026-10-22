@@ -42,7 +42,7 @@ void main() {
               saturatedFat100: null,
               fiber100: null,
             ),
-            source: MealSourceEntity.fdc,
+            source: MealSourceEntity.catalogue,
           );
           final day = DateTime(2026, 10, 1);
           await tester.pumpWidget(
@@ -86,7 +86,7 @@ void main() {
                           mealEntity: food(
                             'usda:2',
                             'Pear',
-                            source: MealSourceEntity.fdc,
+                            source: MealSourceEntity.catalogue,
                           ),
                           onSelected: (_) {},
                           onInfo: () {},

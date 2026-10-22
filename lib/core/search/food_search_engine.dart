@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:opennutritracker/core/search/catalogue_preferences.dart';
 import 'package:logging/logging.dart';
 import 'package:opennutritracker/core/data/data_source/remote_search_cache_data_source.dart';
 import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
@@ -41,6 +42,7 @@ class FoodSearchSnapshot {
 class FoodSearchEngine {
   FoodSearchEngine({
     required this.catalogue,
+    this.cataloguePreferences,
     required this.cache,
     required this.savedMeals,
     required this.savedRecipes,
@@ -50,6 +52,7 @@ class FoodSearchEngine {
     this.debounce = const Duration(milliseconds: 500),
   });
   final FoodCatalogue catalogue;
+  final CataloguePreferences? cataloguePreferences;
   final RemoteSearchCacheDataSource cache;
   final Future<List<MealEntity>> Function() savedMeals;
   final Future<List<MealEntity>> Function() savedRecipes;
@@ -73,7 +76,8 @@ class FoodSearchSession {
     bool immediate,
     this._recentSnapshot,
   ) : _context = _engine.contextIdentity(),
-      _cacheGeneration = _engine.cache.generation {
+      _cacheGeneration = _engine.cache.generation,
+      _catalogueRevision = _engine.cataloguePreferences?.revision {
     final nonblank = foodSearchMatch(request.query) != null;
     if (request.filter == FoodSearchFilter.recent) {
       _pending.add(FoodSearchSource.recent);
@@ -101,6 +105,7 @@ class FoodSearchSession {
   final FoodSearchEngine _engine;
   final FoodSearchRequest request;
   final String _context;
+  final int? _catalogueRevision;
   final int _cacheGeneration;
   final Future<List<MealEntity>>? _recentSnapshot;
   final _updates = StreamController<FoodSearchSnapshot>.broadcast();
@@ -120,7 +125,8 @@ class FoodSearchSession {
   bool get _active =>
       !_cancelled &&
       _engine.contextIdentity() == _context &&
-      _engine.cache.generation == _cacheGeneration;
+      _engine.cache.generation == _cacheGeneration &&
+      _engine.cataloguePreferences?.revision == _catalogueRevision;
   FoodSearchSnapshot _snapshot() => FoodSearchSnapshot(
     request: request,
     meals: List.unmodifiable(_results),
@@ -150,6 +156,7 @@ class FoodSearchSession {
       final meals = switch (source) {
         FoodSearchSource.catalogue => await _engine.catalogue.search(
           request.query,
+          sourceIds: await _engine.cataloguePreferences?.enabledSourceIds(),
         ),
         FoodSearchSource.cache => (await _engine.cache.search(
           request.query,

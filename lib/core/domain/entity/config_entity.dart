@@ -164,6 +164,8 @@ class ConfigEntity extends Equatable {
 
   final bool amountArithmeticEnabled;
 
+  final Map<String, bool> catalogueSourceOverrides;
+
   /// Which revision of the privacy policy the user has been shown a *notice*
   /// about. Zero for every install that predates the field, which is exactly
   /// who the notice is for.
@@ -262,6 +264,7 @@ class ConfigEntity extends Equatable {
     this.legacyHealthDeletedExternalIds = const <String>{},
     this.policyNoticeRevisionSeen = 0,
     this.amountArithmeticEnabled = false,
+    this.catalogueSourceOverrides = const {},
   });
 
   /// The multiplier the importer actually applies. Falls back to crediting
@@ -375,6 +378,9 @@ class ConfigEntity extends Equatable {
         ? Set<String>.from(dbo.healthDeletedExternalIds!)
         : const <String>{},
     amountArithmeticEnabled: dbo.amountArithmeticEnabled ?? false,
+    catalogueSourceOverrides: Map.unmodifiable(
+      dbo.catalogueSourceOverrides ?? const <String, bool>{},
+    ),
   );
 
   /// Returns the recommended kcal target for [mealKey] given a daily goal.
@@ -480,5 +486,6 @@ class ConfigEntity extends Equatable {
     legacyHealthDeletedExternalIds,
     policyNoticeRevisionSeen,
     amountArithmeticEnabled,
+    catalogueSourceOverrides,
   ];
 }

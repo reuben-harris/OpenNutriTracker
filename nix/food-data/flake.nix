@@ -1,5 +1,5 @@
 {
-  description = "Pinned USDA food-level SQLite catalogue generator";
+  description = "Independent pinned food database catalogue generators";
 
   # The parent supplies its pinned pkgs; this local flake has no Nix inputs.
   outputs = _: {

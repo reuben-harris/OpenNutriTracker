@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/utils/off_const.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_const.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/widgets/meal_info_button.dart';
@@ -37,7 +36,6 @@ void main() {
     WidgetTester tester,
     MealSourceEntity source, {
     String? url,
-    VoidCallback? onRecipe,
     VoidCallback? onCustom,
   }) => tester.pumpWidget(
     MaterialApp(
@@ -57,13 +55,12 @@ void main() {
             nutriments: MealNutrimentsEntity.empty(),
             source: source,
           ),
-          onRecipe: onRecipe ?? () {},
           onCustom: onCustom ?? () {},
         ),
       ),
     ),
   );
-  for (final source in [MealSourceEntity.off, MealSourceEntity.fdc]) {
+  for (final source in [MealSourceEntity.off, MealSourceEntity.catalogue]) {
     testWidgets('$source uses valid source URLs and website fallback', (
       tester,
     ) async {
@@ -77,14 +74,16 @@ void main() {
         await mount(tester, source, url: url);
         await tester.tap(find.byType(TextButton));
         await tester.pumpAndSettle();
-        expect(
-          urls.last,
-          url.startsWith('https')
-              ? url
-              : source == MealSourceEntity.off
-              ? OFFConst.offWebsiteUrl
-              : FDCConst.fdcWebsiteUrl,
-        );
+        if (source == MealSourceEntity.catalogue && !url.startsWith('https')) {
+          expect(find.text('Sources & References'), findsOneWidget);
+          await tester.pageBack();
+          await tester.pumpAndSettle();
+        } else {
+          expect(
+            urls.last,
+            url.startsWith('https') ? url : OFFConst.offWebsiteUrl,
+          );
+        }
       }
     });
   }
@@ -104,27 +103,21 @@ void main() {
     });
   }
   testWidgets(
-    'recipe and custom actions use their supplied navigation; unknown is plain text',
+    'recipes have no self-link, custom opens editing, and unknown is plain text',
     (tester) async {
-      var recipes = 0, custom = 0;
+      var custom = 0;
       for (final source in [
         MealSourceEntity.recipe,
         MealSourceEntity.custom,
         MealSourceEntity.unknown,
       ]) {
-        await mount(
-          tester,
-          source,
-          onRecipe: () => recipes++,
-          onCustom: () => custom++,
-        );
-        if (source == MealSourceEntity.unknown) {
+        await mount(tester, source, onCustom: () => custom++);
+        if (source != MealSourceEntity.custom) {
           expect(find.byType(TextButton), findsNothing);
         } else {
           await tester.tap(find.byType(TextButton));
         }
       }
-      expect(recipes, 1);
       expect(custom, 1);
       expect(urls, isEmpty);
     },

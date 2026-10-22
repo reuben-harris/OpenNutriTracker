@@ -7,7 +7,7 @@ import 'package:opennutritracker/features/add_meal/util/resolver_relevance.dart'
 
 MealEntity meal(
   String? name, {
-  MealSourceEntity source = MealSourceEntity.fdc,
+  MealSourceEntity source = MealSourceEntity.catalogue,
 }) => MealEntity(
   code: name ?? 'nameless',
   name: name,
