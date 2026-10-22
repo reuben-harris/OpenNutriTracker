@@ -34,13 +34,14 @@ class MealDBOAdapter extends TypeAdapter<MealDBO> {
       detailed: fields[14] as bool?,
       dataVersion: (fields[17] as num?)?.toInt(),
       isQuickAdd: fields[18] as bool?,
+      catalogueSourceName: fields[19] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, MealDBO obj) {
     writer
-      ..writeByte(17)
+      ..writeByte(18)
       ..writeByte(0)
       ..write(obj.code)
       ..writeByte(1)
@@ -74,7 +75,9 @@ class MealDBOAdapter extends TypeAdapter<MealDBO> {
       ..writeByte(17)
       ..write(obj.dataVersion)
       ..writeByte(18)
-      ..write(obj.isQuickAdd);
+      ..write(obj.isQuickAdd)
+      ..writeByte(19)
+      ..write(obj.catalogueSourceName);
   }
 
   @override
@@ -102,7 +105,7 @@ class MealSourceDBOAdapter extends TypeAdapter<MealSourceDBO> {
       case 2:
         return MealSourceDBO.off;
       case 3:
-        return MealSourceDBO.fdc;
+        return MealSourceDBO.catalogue;
       case 4:
         return MealSourceDBO.recipe;
       default:
@@ -119,7 +122,7 @@ class MealSourceDBOAdapter extends TypeAdapter<MealSourceDBO> {
         writer.writeByte(1);
       case MealSourceDBO.off:
         writer.writeByte(2);
-      case MealSourceDBO.fdc:
+      case MealSourceDBO.catalogue:
         writer.writeByte(3);
       case MealSourceDBO.recipe:
         writer.writeByte(4);
@@ -161,6 +164,7 @@ MealDBO _$MealDBOFromJson(Map<String, dynamic> json) => MealDBO(
   detailed: json['detailed'] as bool?,
   dataVersion: (json['dataVersion'] as num?)?.toInt(),
   isQuickAdd: json['isQuickAdd'] as bool?,
+  catalogueSourceName: json['catalogueSourceName'] as String?,
 );
 
 Map<String, dynamic> _$MealDBOToJson(MealDBO instance) => <String, dynamic>{
@@ -180,6 +184,7 @@ Map<String, dynamic> _$MealDBOToJson(MealDBO instance) => <String, dynamic>{
   'localImagePath': instance.localImagePath,
   'detailed': instance.detailed,
   'dataVersion': instance.dataVersion,
+  'catalogueSourceName': instance.catalogueSourceName,
   'isQuickAdd': instance.isQuickAdd,
 };
 
@@ -187,6 +192,6 @@ const _$MealSourceDBOEnumMap = {
   MealSourceDBO.unknown: 'unknown',
   MealSourceDBO.custom: 'custom',
   MealSourceDBO.off: 'off',
-  MealSourceDBO.fdc: 'fdc',
+  MealSourceDBO.catalogue: 'catalogue',
   MealSourceDBO.recipe: 'recipe',
 };

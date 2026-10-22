@@ -13,7 +13,7 @@ MealEntity _meal() => MealEntity(
   servingQuantity: 38,
   servingUnit: 'g',
   servingSize: '1 slice (38 g)',
-  source: MealSourceEntity.fdc,
+  source: MealSourceEntity.catalogue,
   nutriments: MealNutrimentsEntity.empty(),
 );
 

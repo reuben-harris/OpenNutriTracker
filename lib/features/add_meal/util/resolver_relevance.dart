@@ -24,7 +24,7 @@ double scoreMealForResolution(MealEntity meal, String query) {
 
   if (meal.detailed) score += _detailedBonus;
 
-  if (meal.source == MealSourceEntity.fdc &&
+  if (meal.source == MealSourceEntity.catalogue &&
       meal.portions.isEmpty &&
       !meal.portionsUnavailable) {
     score -= noPortionsPenalty;

@@ -1,9 +1,6 @@
-import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:opennutritracker/core/data/dbo/meal_nutriments_dbo.dart';
 import 'package:opennutritracker/core/utils/extensions.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_const.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_food_nutriment_dto.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/off/off_product_nutriments_dto.dart';
 
 class MealNutrimentsEntity extends Equatable {
@@ -219,49 +216,38 @@ class MealNutrimentsEntity extends Equatable {
   static double? _gToUg(double? grams) =>
       grams == null ? null : grams * 1000000;
 
-  factory MealNutrimentsEntity.fromFDCNutriments(
-    List<FDCFoodNutrimentDTO> fdcNutriment,
-  ) {
-    double? fdcAmount(int nutrientId) => fdcNutriment
-        .firstWhereOrNull((nutriment) => nutriment.nutrientId == nutrientId)
-        ?.amount;
-
-    // FDC Food nutriments can have different values for Energy [Energy,
-    // Energy (Atwater General Factors), Energy (Atwater Specific Factors)].
-    // Prefer the most-precise Atwater value; fall back to raw total last.
-    final energyTotal =
-        fdcAmount(FDCConst.fdcKcalAtwaterSpecificId) ??
-        fdcAmount(FDCConst.fdcKcalAtwaterGeneralId) ??
-        fdcAmount(FDCConst.fdcTotalKcalId);
+  /// The catalogue build has already selected nutrients and converted units.
+  factory MealNutrimentsEntity.fromCatalogue(Map<String, dynamic> values) {
+    double? amount(String key) {
+      final value = double.tryParse(values[key]?.toString() ?? '');
+      return value != null && value.isFinite ? value : null;
+    }
 
     return MealNutrimentsEntity(
-      energyKcal100: energyTotal,
-      carbohydrates100: fdcAmount(FDCConst.fdcTotalCarbsId),
-      fat100: fdcAmount(FDCConst.fdcTotalFatId),
-      proteins100: fdcAmount(FDCConst.fdcTotalProteinsId),
-      sugars100: fdcAmount(FDCConst.fdcTotalSugarId),
-      saturatedFat100: fdcAmount(FDCConst.fdcTotalSaturatedFatId),
-      fiber100: fdcAmount(FDCConst.fdcTotalDietaryFiberId),
-      // #237: Extended lipid profile
-      monounsaturatedFat100: fdcAmount(FDCConst.fdcMonounsaturatedFatId),
-      polyunsaturatedFat100: fdcAmount(FDCConst.fdcPolyunsaturatedFatId),
-      transFat100: fdcAmount(FDCConst.fdcTransFatId),
-      cholesterol100: fdcAmount(FDCConst.fdcCholesterolId),
-      // #237: Minerals
-      sodium100: fdcAmount(FDCConst.fdcSodiumId),
-      potassium100: fdcAmount(FDCConst.fdcPotassiumId),
-      magnesium100: fdcAmount(FDCConst.fdcMagnesiumId),
-      calcium100: fdcAmount(FDCConst.fdcCalciumId),
-      iron100: fdcAmount(FDCConst.fdcIronId),
-      zinc100: fdcAmount(FDCConst.fdcZincId),
-      phosphorus100: fdcAmount(FDCConst.fdcPhosphorusId),
-      // #237: Vitamins
-      vitaminA100: fdcAmount(FDCConst.fdcVitaminAId),
-      vitaminC100: fdcAmount(FDCConst.fdcVitaminCId),
-      vitaminD100: fdcAmount(FDCConst.fdcVitaminDId),
-      vitaminB6100: fdcAmount(FDCConst.fdcVitaminB6Id),
-      vitaminB12100: fdcAmount(FDCConst.fdcVitaminB12Id),
-      niacin100: fdcAmount(FDCConst.fdcNiacinId),
+      energyKcal100: amount('energyKcal100'),
+      carbohydrates100: amount('carbohydrates100'),
+      fat100: amount('fat100'),
+      proteins100: amount('proteins100'),
+      sugars100: amount('sugars100'),
+      saturatedFat100: amount('saturatedFat100'),
+      fiber100: amount('fiber100'),
+      monounsaturatedFat100: amount('monounsaturatedFat100'),
+      polyunsaturatedFat100: amount('polyunsaturatedFat100'),
+      transFat100: amount('transFat100'),
+      cholesterol100: amount('cholesterol100'),
+      sodium100: amount('sodium100'),
+      potassium100: amount('potassium100'),
+      magnesium100: amount('magnesium100'),
+      calcium100: amount('calcium100'),
+      iron100: amount('iron100'),
+      zinc100: amount('zinc100'),
+      phosphorus100: amount('phosphorus100'),
+      vitaminA100: amount('vitaminA100'),
+      vitaminC100: amount('vitaminC100'),
+      vitaminD100: amount('vitaminD100'),
+      vitaminB6100: amount('vitaminB6100'),
+      vitaminB12100: amount('vitaminB12100'),
+      niacin100: amount('niacin100'),
     );
   }
 

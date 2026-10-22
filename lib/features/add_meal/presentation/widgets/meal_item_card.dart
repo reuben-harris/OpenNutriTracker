@@ -27,7 +27,8 @@ class MealItemCard extends StatelessWidget {
     final unknownBrand = mealEntity.source == MealSourceEntity.off && !hasBrand;
     final subtitle = switch (mealEntity.source) {
       MealSourceEntity.off => hasBrand ? brand : s.unknownBrandLabel,
-      MealSourceEntity.fdc => s.foodSourceFdcLabel,
+      MealSourceEntity.catalogue =>
+        mealEntity.catalogueSourceName ?? s.foodSourceCatalogueLabel,
       MealSourceEntity.custom => hasBrand ? brand : s.foodSourceCustomLabel,
       MealSourceEntity.recipe => s.recipesLabel,
       MealSourceEntity.unknown => hasBrand ? brand : s.foodSourceUnknownLabel,

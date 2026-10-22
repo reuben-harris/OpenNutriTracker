@@ -59,7 +59,7 @@ void main() {
       food('recipe', 'Apple cake', source: MealSourceEntity.recipe),
     ];
     catalogue.results = (_) async => [
-      food('usda:1', 'Apple, raw', source: MealSourceEntity.fdc),
+      food('usda:1', 'Apple, raw', source: MealSourceEntity.catalogue),
     ];
     final engine = FoodSearchEngine(
       catalogue: catalogue,
@@ -258,7 +258,7 @@ void main() {
       (tester) async {
         catalogue.results = (query) async => [
           for (var i = 0; i < 50; i++)
-            food('usda:$i', '$query $i', source: MealSourceEntity.fdc),
+            food('usda:$i', '$query $i', source: MealSourceEntity.catalogue),
         ];
         recipes = () async => [
           for (var i = 0; i < 50; i++)

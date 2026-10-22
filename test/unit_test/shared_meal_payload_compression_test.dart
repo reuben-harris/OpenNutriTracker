@@ -417,19 +417,19 @@ void main() {
           createMeal(
             code: 'fdc-1234',
             name: 'Banana',
-            source: MealSourceEntity.fdc,
+            source: MealSourceEntity.catalogue,
           ),
         ),
       ];
       final encoded = SharedMealPayload.fromIntakeList(intakes).toJsonString();
       final decoded = SharedMealPayload.fromJsonString(encoded);
 
-      expect(decoded.items.single.source, MealSourceEntity.fdc);
+      expect(decoded.items.single.source, MealSourceEntity.catalogue);
       expect(decoded.items.single.code, 'fdc-1234');
       // The rebuilt MealEntity preserves the FDC source so the receiver
       // routes it to the remote-search cache rather than the custom box.
       final meal = decoded.items.single.toMealEntity();
-      expect(meal.source, MealSourceEntity.fdc);
+      expect(meal.source, MealSourceEntity.catalogue);
       expect(meal.code, 'fdc-1234');
     });
 

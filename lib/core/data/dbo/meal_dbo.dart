@@ -82,6 +82,9 @@ class MealDBO extends HiveObject {
   /// field changes again.
   static const currentDataVersion = dataVersionOffMicronutrientsInAppUnits;
 
+  @HiveField(19)
+  final String? catalogueSourceName;
+
   @HiveField(18)
   final bool? isQuickAdd;
 
@@ -103,12 +106,14 @@ class MealDBO extends HiveObject {
     this.detailed,
     this.dataVersion,
     this.isQuickAdd,
+    this.catalogueSourceName,
   });
 
   /// Entities always carry app units — every remote mapping converts on
   /// the way in — so a row built from one is stamped current.
   factory MealDBO.fromMealEntity(MealEntity mealEntity) => MealDBO(
     code: mealEntity.code,
+    catalogueSourceName: mealEntity.catalogueSourceName,
     name: mealEntity.name,
     brands: mealEntity.brands,
     thumbnailImageUrl: mealEntity.thumbnailImageUrl,
@@ -144,7 +149,7 @@ enum MealSourceDBO {
   @HiveField(2)
   off,
   @HiveField(3)
-  fdc,
+  catalogue,
   @HiveField(4)
   recipe;
 
@@ -160,8 +165,8 @@ enum MealSourceDBO {
       case MealSourceEntity.off:
         mealSourceDBO = MealSourceDBO.off;
         break;
-      case MealSourceEntity.fdc:
-        mealSourceDBO = MealSourceDBO.fdc;
+      case MealSourceEntity.catalogue:
+        mealSourceDBO = MealSourceDBO.catalogue;
         break;
       case MealSourceEntity.recipe:
         mealSourceDBO = MealSourceDBO.recipe;

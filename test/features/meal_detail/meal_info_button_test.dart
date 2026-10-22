@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/utils/off_const.dart';
-import 'package:opennutritracker/features/add_meal/data/dto/fdc/fdc_const.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/widgets/meal_info_button.dart';
@@ -61,7 +60,7 @@ void main() {
       ),
     ),
   );
-  for (final source in [MealSourceEntity.off, MealSourceEntity.fdc]) {
+  for (final source in [MealSourceEntity.off, MealSourceEntity.catalogue]) {
     testWidgets('$source uses valid source URLs and website fallback', (
       tester,
     ) async {
@@ -75,14 +74,16 @@ void main() {
         await mount(tester, source, url: url);
         await tester.tap(find.byType(TextButton));
         await tester.pumpAndSettle();
-        expect(
-          urls.last,
-          url.startsWith('https')
-              ? url
-              : source == MealSourceEntity.off
-              ? OFFConst.offWebsiteUrl
-              : FDCConst.fdcWebsiteUrl,
-        );
+        if (source == MealSourceEntity.catalogue && !url.startsWith('https')) {
+          expect(find.text('Sources & References'), findsOneWidget);
+          await tester.pageBack();
+          await tester.pumpAndSettle();
+        } else {
+          expect(
+            urls.last,
+            url.startsWith('https') ? url : OFFConst.offWebsiteUrl,
+          );
+        }
       }
     });
   }

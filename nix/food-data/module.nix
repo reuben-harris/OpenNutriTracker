@@ -3,25 +3,41 @@
   perSystem =
     { pkgs, lib, ... }:
     let
-      lock = lib.importJSON ./sources.json;
-      archives = lib.mapAttrs (
-        name: pin:
-        pkgs.fetchurl {
-          name = "usda-${name}-${pin.release}.zip";
-          inherit (pin) url sha256;
-        }
-      ) (lock.sources // (lock.auxiliary or { }));
-      archiveArgs = lib.concatStringsSep " " (
-        lib.mapAttrsToList (name: archive: "--archive ${name}=${archive}") archives
-      );
-      importer = pkgs.runCommand "ont-food-data-importer" { } ''
+      registered = lib.importJSON ./registry.json;
+      shared = pkgs.runCommand "ont-catalogue-builder" { } ''
         mkdir -p "$out"
-        cp ${./importer.py} "$out/importer.py"
-        cp ${./source_fixes.py} "$out/source_fixes.py"
+        cp ${./catalogue.py} "$out/catalogue.py"
+        cp ${./schema.sql} "$out/schema.sql"
+        cp ${./values.py} "$out/values.py"
       '';
+      sources = lib.genAttrs registered (
+        name:
+        import (./sources + "/${name}/default.nix") {
+          inherit pkgs lib shared;
+        }
+      );
+      databases = lib.mapAttrs (
+        name: source:
+        pkgs.runCommand "ont-food-data-${name}"
+          {
+            inherit (source) nativeBuildInputs;
+          }
+          ''
+            mkdir -p "$out/archives"
+            ${lib.concatStringsSep "\n" (
+              lib.mapAttrsToList (key: archive: ''ln -s ${archive} "$out/archives/${key}"'') source.archives
+            )}
+            ${source.generate ''"$out/food-data.sqlite"''}
+          ''
+      ) sources;
       generate = output: ''
-        python3 ${importer}/importer.py --schema ${./schema.sql} --lock ${./sources.json} \
-          ${archiveArgs} --output ${output}
+        python3 ${shared}/catalogue.py \
+          ${
+            lib.concatStringsSep " " (
+              lib.mapAttrsToList (_: database: "--source ${database}/food-data.sqlite") databases
+            )
+          } \
+          --output ${output}
       '';
       database = pkgs.runCommand "ont-food-database" { nativeBuildInputs = [ pkgs.python3 ]; } ''
         mkdir -p "$out"
@@ -33,21 +49,18 @@
           pkgs.python3
           pkgs.nix
         ];
-        text = ''
-          if (( $# != 0 )); then
-            echo 'Run update-food-data without arguments from the repository root.' >&2
-            exit 2
-          fi
-          exec python3 ${./.}/updater.py --root "$PWD"
-        '';
+        text = ''exec python3 ${./.}/updater.py --root "$PWD" "$@"'';
       };
     in
     {
-      packages.food-database = database;
+      packages = {
+        food-database = database;
+      }
+      // lib.mapAttrs' (name: value: lib.nameValuePair "food-data-${name}" value) databases;
       apps.update-food-data = {
         type = "app";
         program = lib.getExe update;
-        meta.description = "Validate and pin the latest official USDA food releases";
+        meta.description = "Validate and pin explicitly selected food database releases";
       };
       checks = {
         food-data = pkgs.runCommand "ont-food-data-tests" { nativeBuildInputs = [ pkgs.python3 ]; } ''
@@ -68,6 +81,20 @@
               cmp ${database}/food-data.sqlite second.sqlite
               touch "$out"
             '';
-      };
+      }
+      // lib.mapAttrs' (
+        name: source:
+        lib.nameValuePair "food-data-${name}" (
+          pkgs.runCommand "ont-${name}-determinism"
+            {
+              nativeBuildInputs = source.nativeBuildInputs ++ [ pkgs.coreutils ];
+            }
+            ''
+              ${source.generate "second.sqlite"}
+              cmp ${databases.${name}}/food-data.sqlite second.sqlite
+              touch "$out"
+            ''
+        )
+      ) sources;
     };
 }

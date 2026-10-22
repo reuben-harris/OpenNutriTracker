@@ -77,6 +77,8 @@ class _Products extends Fake implements ProductsRepository {
 }
 
 class _Catalogue implements FoodCatalogue {
+  @override
+  Future<List<CatalogueSource>> sources() async => const [];
   final ids = <String>[];
   Completer<MealEntity?>? pending;
 
@@ -87,7 +89,8 @@ class _Catalogue implements FoodCatalogue {
   }
 
   @override
-  Future<List<MealEntity>> search(String query) => throw UnimplementedError();
+  Future<List<MealEntity>> search(String query, {Set<String>? sourceIds}) =>
+      throw UnimplementedError();
 }
 
 void main() {
@@ -238,7 +241,7 @@ void main() {
     'catalogue portion IDs survive weight, label and ordering changes',
     () async {
       await log(
-        food(source: MealSourceEntity.fdc, code: 'usda:1', basis: 'g'),
+        food(source: MealSourceEntity.catalogue, code: 'usda:1', basis: 'g'),
         quantity: const FoodAmountSelection(
           2,
           FoodAmountOption(
@@ -253,7 +256,7 @@ void main() {
       final run = refresh.refresh('entry');
       catalogue.pending!.complete(
         food(
-          source: MealSourceEntity.fdc,
+          source: MealSourceEntity.catalogue,
           code: 'usda:1',
           basis: 'g',
           portions: const [
@@ -283,7 +286,7 @@ void main() {
     'a removed portion is not replaced by another portion with the same label',
     () async {
       await log(
-        food(source: MealSourceEntity.fdc, code: 'usda:1', basis: 'g'),
+        food(source: MealSourceEntity.catalogue, code: 'usda:1', basis: 'g'),
         quantity: const FoodAmountSelection(
           2,
           FoodAmountOption(
@@ -299,7 +302,7 @@ void main() {
       final run = refresh.refresh('entry');
       catalogue.pending!.complete(
         food(
-          source: MealSourceEntity.fdc,
+          source: MealSourceEntity.catalogue,
           code: 'usda:1',
           basis: 'g',
           kcal: 200,
@@ -461,9 +464,9 @@ void main() {
   test(
     'catalogue refresh uses exact ID, preserves grams and bypasses search cache',
     () async {
-      await log(food(source: MealSourceEntity.fdc, code: 'usda:1'));
+      await log(food(source: MealSourceEntity.catalogue, code: 'usda:1'));
       await log(
-        food(source: MealSourceEntity.fdc, code: 'usda:1'),
+        food(source: MealSourceEntity.catalogue, code: 'usda:1'),
         id: 'other',
       );
       catalogue.pending = Completer<MealEntity?>();
@@ -478,7 +481,7 @@ void main() {
       });
       catalogue.pending!.complete(
         food(
-          source: MealSourceEntity.fdc,
+          source: MealSourceEntity.catalogue,
           code: 'usda:1',
           kcal: 250,
           carbs: null,
