@@ -19,6 +19,10 @@ class FoodSearchController extends Cubit<FoodSearchSnapshot> {
   }
   final FoodSearchEngine engine;
   final query = ValueNotifier<String>('');
+  // Presentation observes operation starts even when pending and completion
+  // snapshots arrive before Flutter paints another frame.
+  int _loadingSequence = 0;
+  int get loadingSequence => _loadingSequence;
   String get _scrollKey =>
       '${state.request.filter.name}:${state.request.query}';
   final _offsets = <String, double>{};
@@ -71,6 +75,7 @@ class FoodSearchController extends Cubit<FoodSearchSnapshot> {
       recentSnapshot: _recent,
     );
     _session = session;
+    if (session.state.pending.isNotEmpty) _loadingSequence++;
     emit(session.state);
     _subscription = session.updates.listen((snapshot) {
       if (!isClosed && identical(_session, session)) emit(snapshot);
@@ -94,8 +99,22 @@ class FoodSearchController extends Cubit<FoodSearchSnapshot> {
     );
   }
 
-  void retry() => _session?.retry();
-  void loadMore() => _session?.loadMore();
+  void retry() {
+    if (_session == null || state.failures.isEmpty) return;
+    _loadingSequence++;
+    _session!.retry();
+  }
+
+  void loadMore() {
+    if (_session == null ||
+        !state.hasMore ||
+        state.pending.contains(FoodSearchSource.online)) {
+      return;
+    }
+    _loadingSequence++;
+    _session!.loadMore();
+  }
+
   void resetContext() {
     _offsets.clear();
     _recent = null;

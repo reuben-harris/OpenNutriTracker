@@ -18,6 +18,7 @@ class MealSearchBar extends StatefulWidget {
   final bool showClearButton;
   final bool isLoading;
   final bool hasLoadingError;
+  final Object? loadingOperationKey;
 
   const MealSearchBar({
     super.key,
@@ -29,6 +30,7 @@ class MealSearchBar extends StatefulWidget {
     this.showClearButton = false,
     this.isLoading = false,
     this.hasLoadingError = false,
+    this.loadingOperationKey,
   });
 
   @override
@@ -70,6 +72,7 @@ class _MealSearchBarState extends State<MealSearchBar> {
           child: LoadingOutline(
             isLoading: widget.isLoading,
             hasError: widget.hasLoadingError,
+            operationKey: widget.loadingOperationKey,
             color: accent,
             borderRadius: Dimens.borderRadiusL,
             semanticIdentifier: 'diary-search-pending',
