@@ -181,7 +181,6 @@ class _FoodNutritionInformationState extends State<FoodNutritionInformation> {
             currentSelectionKcal: n.energyKcal100 == null ? 0 : state.totalKcal,
           ),
           const SizedBox(height: 12),
-          if (state.isHydrating) const LinearProgressIndicator(minHeight: 2),
           MealDetailNutrimentsTable(
             product: _meal,
             baseAmount: _selection?.baseAmount ?? 0,

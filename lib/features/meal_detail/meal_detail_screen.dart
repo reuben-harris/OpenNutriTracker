@@ -156,6 +156,8 @@ class _MealDetailScreenState extends State<_FoodInformationScreen> {
       return ItemInformationScaffold(
         meal: _meal,
         isRefreshing: state.isRefreshing,
+        isLoading: state.isLoadingInformation,
+        hasLoadingError: state.hasInformationLoadError,
         actions: [
           if ((_meal.source == MealSourceEntity.off || _meal.isCatalogueFood) &&
               (_meal.code?.isNotEmpty ?? false))
