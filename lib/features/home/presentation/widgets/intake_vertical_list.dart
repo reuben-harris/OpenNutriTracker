@@ -376,12 +376,13 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
           source,
           today,
           group,
-          chooseDestination: true,
+          chooseSource: isToday,
+          chooseDestination: !isToday,
           loadSource: isToday
-              ? () async {
+              ? (sourceType) async {
                   final config = await locator<GetConfigUsecase>().getConfig();
                   return locator<IntakeRepository>().getIntakeByDateAndType(
-                    group.getIntakeType(),
+                    sourceType,
                     yesterday,
                     dayStartOffsetHours: config.dayStartOffsetHours,
                     dayStartOffsetMinutes: config.dayStartOffsetMinutes,

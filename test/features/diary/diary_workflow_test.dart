@@ -590,11 +590,161 @@ void main() {
       await tester.runAsync(() => tester.tap(menu(IntakeTypeEntity.lunch)));
       await tester.pumpAndSettle();
       await tester.runAsync(() => tester.tap(find.text('Copy from yesterday')));
+      await pumpUntil(
+        tester,
+        () => find.byType(AlertDialog).evaluate().isNotEmpty,
+        reason: 'copy source dialog after loading yesterday’s meal groups',
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.runAsync(() => tester.tap(find.text('OK')));
+      await tester.pumpAndSettle();
+      expect(find.text('No entries in Lunch yesterday.'), findsOneWidget);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.runAsync(() => tester.tap(find.text('CANCEL')));
       await settleStorage(tester);
-      expect(find.text('No entries in this group yesterday.'), findsOneWidget);
       expect(find.byType(AlertDialog), findsNothing);
     },
   );
+
+  for (final hasYesterdayLunch in [false, true]) {
+    testWidgets(
+      'copy yesterday dinner into today lunch when yesterday lunch exists: $hasYesterdayLunch',
+      (tester) async {
+        final recipe = diaryEntry(recipe: true);
+        final dinner = IntakeEntity(
+          id: 'yesterday-dinner',
+          quantity: recipe.quantity,
+          type: IntakeTypeEntity.dinner,
+          meal: recipe.meal,
+          recipeSnapshot: recipe.recipeSnapshot,
+          dateTime: DateTime(2026, 9, 28, 20),
+        );
+        final food = diaryEntry(amount: 50);
+        final lunch = IntakeEntity(
+          id: 'today-lunch',
+          quantity: food.quantity,
+          type: IntakeTypeEntity.lunch,
+          meal: food.meal,
+          dateTime: DateTime(2026, 9, 29, 12),
+        );
+        await mount(
+          tester,
+          entries: [
+            dinner,
+            lunch,
+            if (hasYesterdayLunch)
+              IntakeEntity(
+                id: 'yesterday-lunch',
+                quantity: food.quantity,
+                type: IntakeTypeEntity.lunch,
+                meal: food.meal,
+                dateTime: DateTime(2026, 9, 28, 12),
+              ),
+          ],
+        );
+        await tester.ensureVisible(menu(IntakeTypeEntity.lunch));
+        await tester.runAsync(() => tester.tap(menu(IntakeTypeEntity.lunch)));
+        await tester.pumpAndSettle();
+        await tester.runAsync(
+          () => tester.tap(find.text('Copy from yesterday')),
+        );
+        await pumpUntil(
+          tester,
+          () => find.byType(AlertDialog).evaluate().isNotEmpty,
+          reason: 'copy source dialog after loading yesterday’s meal groups',
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.text(
+            'Which meal group do you want to copy from?',
+            findRichText: true,
+          ),
+          findsOneWidget,
+        );
+        await tester.tap(find.byType(DropdownButton<AddMealType>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Dinner').last);
+        await tester.pumpAndSettle();
+        await tester.runAsync(() => tester.tap(find.text('OK')));
+        await settleStorage(tester);
+
+        final entries = await h.intakes.getIntakeByDateAndType(
+          IntakeTypeEntity.lunch,
+          h.selection.state.today,
+        );
+        expect(entries, hasLength(2));
+        expect(entries, contains(lunch));
+        final copied = entries.singleWhere((entry) => entry.id != lunch.id);
+        expect(copied.id, isNot(dinner.id));
+        expect(copied.quantity, dinner.quantity);
+        expect(copied.recipeSnapshot, dinner.recipeSnapshot);
+        expect(await h.intakes.getIntakeById(dinner.id), dinner);
+        expect(
+          await h.intakes.getIntakeByDateAndType(
+            IntakeTypeEntity.dinner,
+            h.selection.state.today,
+          ),
+          isEmpty,
+        );
+      },
+    );
+  }
+
+  testWidgets(
+    'copy to today keeps the menu source and chooses the destination',
+    (tester) async {
+      final source = diaryEntry(recipe: true);
+      final dinner = IntakeEntity(
+        id: 'past-dinner',
+        quantity: source.quantity,
+        type: IntakeTypeEntity.dinner,
+        meal: source.meal,
+        recipeSnapshot: source.recipeSnapshot,
+        dateTime: DateTime(2026, 9, 28, 20),
+      );
+      await tester.runAsync(() async {
+        h.selection.select(DateTime(2026, 9, 28));
+      });
+      await mount(tester, entries: [dinner]);
+      await tester.ensureVisible(menu(IntakeTypeEntity.dinner));
+      await tester.runAsync(() => tester.tap(menu(IntakeTypeEntity.dinner)));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => tester.tap(find.text('Copy to today')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'Which meal group do you want to copy to?',
+          findRichText: true,
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.byType(DropdownButton<AddMealType>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lunch').last);
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => tester.tap(find.text('OK')));
+      await settleStorage(tester);
+
+      final copied = (await h.intakes.getIntakeByDateAndType(
+        IntakeTypeEntity.lunch,
+        h.selection.state.today,
+      )).single;
+      expect(copied.id, isNot(dinner.id));
+      expect(copied.quantity, dinner.quantity);
+      expect(copied.recipeSnapshot, dinner.recipeSnapshot);
+      expect(await h.intakes.getIntakeById(dinner.id), dinner);
+      expect(
+        await h.intakes.getIntakeByDateAndType(
+          IntakeTypeEntity.dinner,
+          h.selection.state.today,
+        ),
+        isEmpty,
+      );
+      expect(h.selection.state.day, DateTime(2026, 9, 28));
+    },
+  );
+
   testWidgets(
     'group clipboard uses a collection preview and pastes every entry',
     (tester) async {
