@@ -1,9 +1,10 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_card_geometry.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
 
-/// The same two-line text layout for search results and logged foods.
+/// Shared food names, details, and nutrition for search results and logged foods.
 class FoodCardText extends StatelessWidget {
   const FoodCardText({
     super.key,
@@ -27,7 +28,7 @@ class FoodCardText extends StatelessWidget {
     final titleStyle = text.titleSmall?.copyWith(color: palette.textStrong);
     final subtitleStyle = text.bodySmall?.copyWith(color: palette.textMuted);
     final scale = MediaQuery.textScalerOf(context);
-    final titleHeight =
+    final singleTitleHeight =
         (scale.scale(titleStyle?.fontSize ?? 14) * (titleStyle?.height ?? 1.3) +
                 2)
             .ceilToDouble();
@@ -36,6 +37,10 @@ class FoodCardText extends StatelessWidget {
                     (subtitleStyle?.height ?? 1.3) +
                 2)
             .ceilToDouble();
+    // Use the thumbnail's spare height for a second, smaller title line.
+    final titleHeight =
+        (scale.scale(FoodCardGeometry.thumbnailSize) - subtitleHeight - 2)
+            .clamp(singleTitleHeight, double.infinity);
 
     Widget line(double height, Widget child) =>
         SizedBox(height: height, width: double.infinity, child: child);
@@ -43,6 +48,7 @@ class FoodCardText extends StatelessWidget {
     return Row(
       children: [
         Expanded(
+          flex: 2,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,7 +58,7 @@ class FoodCardText extends StatelessWidget {
                 AutoSizeText(
                   title,
                   style: titleStyle,
-                  maxLines: 1,
+                  maxLines: 2,
                   minFontSize: 11,
                   overflow: TextOverflow.ellipsis,
                 ),
