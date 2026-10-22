@@ -240,7 +240,7 @@ void main() {
     test('never touches a row from another source, stamped or not', () {
       for (final source in [
         MealSourceDBO.custom,
-        MealSourceDBO.fdc,
+        MealSourceDBO.catalogue,
         MealSourceDBO.recipe,
         MealSourceDBO.unknown,
       ]) {
@@ -317,7 +317,7 @@ void main() {
         _intake('old-off', _meal(source: MealSourceDBO.off)),
         _intake('new-off', _mealWrittenAfter775()),
         _intake('custom', _meal(source: MealSourceDBO.custom)),
-        _intake('fdc', _meal(source: MealSourceDBO.fdc)),
+        _intake('fdc', _meal(source: MealSourceDBO.catalogue)),
         _intake('recipe', _meal(source: MealSourceDBO.recipe)),
         _intake('old-off-2', _meal(source: MealSourceDBO.off), amount: 42),
       ]);
@@ -393,7 +393,7 @@ void main() {
             name: 'thin',
             detailed: false,
           ),
-          _meal(source: MealSourceDBO.fdc, code: '2', name: 'fdc'),
+          _meal(source: MealSourceDBO.catalogue, code: '2', name: 'fdc'),
           _mealWrittenAfter775(),
         ]);
 
@@ -442,7 +442,7 @@ void main() {
         _meal(source: MealSourceDBO.off),
         _mealWrittenAfter775(),
         _meal(source: MealSourceDBO.custom, code: null, name: 'Homemade'),
-        _meal(source: MealSourceDBO.fdc, code: '2', name: 'fdc'),
+        _meal(source: MealSourceDBO.catalogue, code: '2', name: 'fdc'),
       ]);
       final before = {
         for (final m in customMealBox.values) m.name: _json(m.toJson()),
@@ -598,7 +598,9 @@ void main() {
 
       // The watcher is live: a real put is seen, so the empty list above
       // was not a subscription that never delivered.
-      await intakeBox.add(_intake('control', _meal(source: MealSourceDBO.fdc)));
+      await intakeBox.add(
+        _intake('control', _meal(source: MealSourceDBO.catalogue)),
+      );
       await pumpEventQueue();
       expect(events.map((e) => (e.value as IntakeDBO).id), ['control']);
     });

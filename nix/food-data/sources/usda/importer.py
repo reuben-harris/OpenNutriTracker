@@ -14,7 +14,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from zipfile import BadZipFile, ZipFile
 
-from source_fixes import SourceFixes, required_auxiliary
+from .source_fixes import SourceFixes, required_auxiliary
 
 SCHEMA_VERSION = 1
 DATASETS = {
@@ -28,20 +28,7 @@ CATALOGUE_TABLES = (
 )
 
 
-class ValidationError(ValueError):
-    pass
-
-
-def canonical(value):
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-
-
-def sha256(path):
-    digest = hashlib.sha256()
-    with Path(path).open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+from values import ValidationError, canonical, sha256
 
 
 def load_lock(path):

@@ -19,7 +19,7 @@ MealEntity _meal({
   servingQuantity: servingQuantity,
   servingUnit: 'g',
   servingSize: null,
-  source: MealSourceEntity.fdc,
+  source: MealSourceEntity.catalogue,
   nutriments: MealNutrimentsEntity.empty(),
   portions: portions,
 );

@@ -14,9 +14,7 @@ from unittest.mock import Mock, patch
 from zipfile import ZIP_DEFLATED, ZipFile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import importer
-import updater
-import source_fixes
+from sources.usda import importer, releases as updater, source_fixes
 
 FIXTURE = Path(__file__).with_name("fixtures") / "catalogue.json"
 
@@ -260,7 +258,7 @@ class CatalogueTest(FixtureCase):
 class UpdaterTest(FixtureCase):
     def setUp(self):
         super().setUp()
-        self.lock_path = self.root / "nix/food-data/sources.json"
+        self.lock_path = self.root / "nix/food-data/sources/usda/sources.json"
         self.lock_path.parent.mkdir(parents=True)
         self.lock_path.write_text(json.dumps(self.lock, indent=2) + "\n")
         (self.root / "flake.nix").write_text("{}")
@@ -562,7 +560,7 @@ class SourceFixTest(FixtureCase):
             self.build()
 
     def test_auxiliary_failure_keeps_updater_locks(self):
-        lock_path = self.root / 'nix/food-data/sources.json'
+        lock_path = self.root / 'nix/food-data/sources/usda/sources.json'
         lock_path.parent.mkdir(parents=True)
         original = json.dumps(self.lock).encode()
         lock_path.write_bytes(original)

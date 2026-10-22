@@ -979,6 +979,8 @@ class _FakeCacheManager implements CacheManager {
 }
 
 class _FakeCatalogue implements FoodCatalogue {
+  @override
+  Future<List<CatalogueSource>> sources() async => const [];
   final ids = <String>[];
   final meal = MealEntity(
     code: 'usda:123',
@@ -990,7 +992,7 @@ class _FakeCatalogue implements FoodCatalogue {
     servingUnit: 'g',
     servingSize: null,
     nutriments: _nutriments,
-    source: MealSourceEntity.fdc,
+    source: MealSourceEntity.catalogue,
     detailed: true,
     portions: [
       MealPortionEntity(
@@ -1009,7 +1011,8 @@ class _FakeCatalogue implements FoodCatalogue {
   }
 
   @override
-  Future<List<MealEntity>> search(String query) => throw UnimplementedError();
+  Future<List<MealEntity>> search(String query, {Set<String>? sourceIds}) =>
+      throw UnimplementedError();
 }
 
 class _Recipes implements GetRecipeByIdUseCase {
