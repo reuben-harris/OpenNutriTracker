@@ -234,27 +234,146 @@ void main() {
     },
   );
 
-  testWidgets('cancelling a pending dialog releases batch without writes', (
-    tester,
-  ) async {
-    h.createCopier();
-    final context = await contextFor(tester);
-    await tester.runAsync(() async {
-      final dialog = Completer<IntakeTypeEntity?>();
-      final batch = h.copier.copy(
-        context,
-        [diaryEntry()],
-        destination,
-        IntakeTypeEntity.lunch,
-        selectDestination: () => dialog.future,
-      );
-      await h.copier.cancelAndWait();
-      expect(await batch, DiaryCopyResult.cancelled);
-      expect(await h.intakes.getAllIntakesDBO(), isEmpty);
-      expect(h.refreshes, 0);
-      dialog.complete(IntakeTypeEntity.lunch);
-    });
-  });
+  testWidgets(
+    'source availability loads before selection and keeps destination',
+    (tester) async {
+      h.createCopier();
+      final context = await contextFor(tester);
+      await tester.runAsync(() async {
+        final dialog = Completer<IntakeTypeEntity?>();
+        final selecting = Completer<Set<IntakeTypeEntity>>();
+        final loadedTypes = <IntakeTypeEntity>[];
+        final batch = h.copier.copy(
+          context,
+          [],
+          destination,
+          IntakeTypeEntity.lunch,
+          selectSource: (available) {
+            selecting.complete(available);
+            return dialog.future;
+          },
+          loadSource: (type) async {
+            loadedTypes.add(type);
+            return type == IntakeTypeEntity.dinner ? [diaryEntry()] : [];
+          },
+        );
+        expect(await selecting.future, {IntakeTypeEntity.dinner});
+        expect(loadedTypes, IntakeTypeEntity.values);
+        expect(
+          await h.copier.copy(
+            context,
+            [diaryEntry()],
+            destination,
+            IntakeTypeEntity.dinner,
+          ),
+          DiaryCopyResult.busy,
+        );
+        dialog.complete(IntakeTypeEntity.dinner);
+        expect(await batch, DiaryCopyResult.copied);
+        expect(loadedTypes, IntakeTypeEntity.values);
+        expect(
+          await h.intakes.getIntakeByDateAndType(
+            IntakeTypeEntity.lunch,
+            destination,
+          ),
+          hasLength(1),
+        );
+        expect(
+          await h.intakes.getIntakeByDateAndType(
+            IntakeTypeEntity.dinner,
+            destination,
+          ),
+          isEmpty,
+        );
+      });
+    },
+  );
+
+  for (final chooseSource in [false, true]) {
+    testWidgets(
+      'cancels a pending dialog without writes; source: $chooseSource',
+      (tester) async {
+        h.createCopier();
+        final context = await contextFor(tester);
+        await tester.runAsync(() async {
+          final dialog = Completer<IntakeTypeEntity?>();
+          final selecting = Completer<void>();
+          var loaded = false;
+          final batch = h.copier.copy(
+            context,
+            [diaryEntry()],
+            destination,
+            IntakeTypeEntity.lunch,
+            selectSource: chooseSource
+                ? (_) {
+                    selecting.complete();
+                    return dialog.future;
+                  }
+                : null,
+            selectDestination: chooseSource
+                ? null
+                : () {
+                    selecting.complete();
+                    return dialog.future;
+                  },
+            loadSource: chooseSource
+                ? (_) async {
+                    loaded = true;
+                    return [diaryEntry()];
+                  }
+                : null,
+          );
+          await selecting.future;
+          await h.copier.cancelAndWait();
+          expect(await batch, DiaryCopyResult.cancelled);
+          expect(await h.intakes.getAllIntakesDBO(), isEmpty);
+          expect(loaded, chooseSource);
+          expect(h.refreshes, 0);
+          dialog.complete(IntakeTypeEntity.lunch);
+        });
+      },
+    );
+  }
+
+  testWidgets(
+    'cancellation waits for the current source read and stops loading',
+    (tester) async {
+      h.createCopier();
+      final context = await contextFor(tester);
+      await tester.runAsync(() async {
+        final read = Completer<void>();
+        var reads = 0;
+        var selected = false;
+        final batch = h.copier.copy(
+          context,
+          [],
+          destination,
+          IntakeTypeEntity.lunch,
+          selectSource: (_) async {
+            selected = true;
+            return IntakeTypeEntity.dinner;
+          },
+          loadSource: (_) async {
+            reads++;
+            await read.future;
+            return [diaryEntry()];
+          },
+        );
+        var cancelled = false;
+        final cancellation = h.copier.cancelAndWait().then(
+          (_) => cancelled = true,
+        );
+        await Future<void>.value();
+        expect(cancelled, isFalse);
+        read.complete();
+        expect(await batch, DiaryCopyResult.cancelled);
+        await cancellation;
+        expect(reads, 1);
+        expect(selected, isFalse);
+        expect(await h.intakes.getAllIntakesDBO(), isEmpty);
+      });
+    },
+  );
 
   testWidgets('move preserves snapshot, timestamp, identity and daily totals', (
     tester,
