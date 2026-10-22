@@ -5,7 +5,6 @@ import 'package:opennutritracker/core/utils/hive_db_provider.dart';
 import 'package:opennutritracker/core/utils/off_const.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/presentation/widgets/empty_hint.dart';
-import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
@@ -50,6 +49,7 @@ class _FoodSearchViewState extends State<FoodSearchView> {
   }
 
   void _onContextChanged() => _search.resetContext();
+
   @override
   void dispose() {
     _profiles?.removeListener(_onContextChanged);
@@ -59,9 +59,6 @@ class _FoodSearchViewState extends State<FoodSearchView> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = Theme.of(context).brightness == Brightness.dark
-        ? AppPalette.dark
-        : AppPalette.light;
     return BlocBuilder<FoodSearchController, FoodSearchSnapshot>(
       bloc: _search,
       builder: (context, state) => SafeArea(
@@ -80,16 +77,18 @@ class _FoodSearchViewState extends State<FoodSearchView> {
                     : () => widget.onBarcodePressed!(null),
                 showSubmitButton: false,
                 showClearButton: true,
+                isLoading: state.pending.isNotEmpty,
+                hasLoadingError: state.failures.isNotEmpty,
               ),
             ),
             const SizedBox(height: Dimens.spacing12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing16),
-              child: _buildSourceChips(context, palette),
+              child: _buildSourceChips(context),
             ),
             const SizedBox(height: Dimens.spacing12),
             Expanded(
-              child: SwipeRevealScope(child: _buildResults(context, palette)),
+              child: SwipeRevealScope(child: _buildResults(context, state)),
             ),
           ],
         ),
@@ -114,7 +113,7 @@ class _FoodSearchViewState extends State<FoodSearchView> {
     _search.search(_searchStringListener.value, source);
   }
 
-  Widget _buildSourceChips(BuildContext context, AppPalette palette) {
+  Widget _buildSourceChips(BuildContext context) {
     Widget chip(FoodSearchFilter source, String label) => Padding(
       padding: const EdgeInsets.only(right: Dimens.spacing8),
       child: Semantics(
@@ -144,132 +143,105 @@ class _FoodSearchViewState extends State<FoodSearchView> {
     );
   }
 
-  Widget _resultsHeader(BuildContext context, AppPalette palette) => Container(
-    padding: const EdgeInsets.symmetric(
-      horizontal: Dimens.spacing16,
-      vertical: Dimens.spacing4,
-    ),
-    alignment: Alignment.centerLeft,
-    child: Text(
-      S.of(context).searchResultsLabel,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.w700,
-        color: palette.textMuted,
-      ),
-    ),
-  );
-
-  Widget _buildResults(
-    BuildContext context,
-    AppPalette palette,
-  ) => BlocBuilder<FoodSearchController, FoodSearchSnapshot>(
-    bloc: _search,
-    builder: (context, state) {
-      final recipesOnly = state.request.filter == FoodSearchFilter.recipes;
-      final hasQuery = foodSearchMatch(state.request.query) != null;
-      final idle =
-          state.request.filter != FoodSearchFilter.recent &&
-          !recipesOnly &&
-          !hasQuery;
-      return Column(
-        children: [
-          _resultsHeader(context, palette),
-          if (state.pending.isNotEmpty)
-            Semantics(
-              identifier: 'diary-search-pending',
-              child: const LinearProgressIndicator(),
-            ),
-          Expanded(
-            child: idle
-                ? const DefaultsResultsWidget()
-                : state.meals.isEmpty
-                ? (state.pending.isNotEmpty
-                      ? const SizedBox()
-                      : state.failures.isNotEmpty
-                      ? const SizedBox()
-                      : state.request.filter == FoodSearchFilter.recent &&
-                            state.request.query.trim().isEmpty
-                      ? EmptyHint(
-                          icon: Icons.history_rounded,
-                          title: S.of(context).noMealsRecentlyAddedLabel,
-                        )
-                      : recipesOnly && !hasQuery
-                      ? EmptyHint(
-                          icon: Icons.menu_book_rounded,
-                          title: S.of(context).recipesEmptyLabel,
-                        )
-                      : NoResultsWidget(
-                          onScanBarcode: recipesOnly
-                              ? null
-                              : () => widget.onBarcodePressed?.call(null),
-                          onCreateCustomFood: recipesOnly
-                              ? null
-                              : widget.onCreateCustomFood,
-                        ))
-                : Semantics(
-                    identifier: switch (state.request.filter) {
-                      FoodSearchFilter.food => 'diary-food-results',
-                      FoodSearchFilter.recipes => 'diary-recipes-results',
-                      _ => 'diary-search-results',
+  Widget _buildResults(BuildContext context, FoodSearchSnapshot state) {
+    final recipesOnly = state.request.filter == FoodSearchFilter.recipes;
+    final hasQuery = foodSearchMatch(state.request.query) != null;
+    final idle =
+        state.request.filter != FoodSearchFilter.recent &&
+        !recipesOnly &&
+        !hasQuery;
+    return Column(
+      children: [
+        Expanded(
+          child: idle
+              ? const DefaultsResultsWidget()
+              : state.meals.isEmpty
+              ? (state.pending.isNotEmpty
+                    ? const SizedBox()
+                    : state.failures.isNotEmpty
+                    ? const SizedBox()
+                    : state.request.filter == FoodSearchFilter.recent &&
+                          state.request.query.trim().isEmpty
+                    ? EmptyHint(
+                        icon: Icons.history_rounded,
+                        title: S.of(context).noMealsRecentlyAddedLabel,
+                      )
+                    : recipesOnly && !hasQuery
+                    ? EmptyHint(
+                        icon: Icons.menu_book_rounded,
+                        title: S.of(context).recipesEmptyLabel,
+                      )
+                    : NoResultsWidget(
+                        onScanBarcode: recipesOnly
+                            ? null
+                            : () => widget.onBarcodePressed?.call(null),
+                        onCreateCustomFood: recipesOnly
+                            ? null
+                            : widget.onCreateCustomFood,
+                      ))
+              : Semantics(
+                  identifier: switch (state.request.filter) {
+                    FoodSearchFilter.food => 'diary-food-results',
+                    FoodSearchFilter.recipes => 'diary-recipes-results',
+                    _ => 'diary-search-results',
+                  },
+                  label: S.of(context).searchResultsLabel,
+                  child: ListView.builder(
+                    key: ValueKey(
+                      '${state.request.filter.name}:${state.request.query}',
+                    ),
+                    itemCount: state.meals.length,
+                    findChildIndexCallback: (key) {
+                      final index = state.meals.indexWhere(
+                        (meal) => ValueKey(foodIdentity(meal)) == key,
+                      );
+                      return index < 0 ? null : index;
                     },
-                    label: S.of(context).searchResultsLabel,
-                    child: ListView.builder(
-                      key: ValueKey(
-                        '${state.request.filter.name}:${state.request.query}',
-                      ),
-                      itemCount: state.meals.length,
-                      findChildIndexCallback: (key) {
-                        final index = state.meals.indexWhere(
-                          (meal) => ValueKey(foodIdentity(meal)) == key,
-                        );
-                        return index < 0 ? null : index;
-                      },
-                      itemBuilder: (context, index) =>
-                          widget.itemBuilder(context, state.meals[index]),
-                      controller: _search.scroll,
-                    ),
+                    itemBuilder: (context, index) =>
+                        widget.itemBuilder(context, state.meals[index]),
+                    controller: _search.scroll,
                   ),
+                ),
+        ),
+        if (state.failures.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Dimens.spacing16,
+              vertical: Dimens.spacing8,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    recipesOnly
+                        ? S.of(context).recipesLoadErrorLabel
+                        : '${state.failures.containsKey(FoodSearchSource.online) ? OFFConst.offSourceName : S.of(context).searchResultsLabel}: ${S.of(context).errorFetchingProductData}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Semantics(
+                  identifier: 'diary-search-retry',
+                  child: TextButton(
+                    onPressed: _search.retry,
+                    child: Text(S.of(context).retryLabel),
+                  ),
+                ),
+              ],
+            ),
           ),
-          if (state.failures.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Dimens.spacing16,
-                vertical: Dimens.spacing8,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      recipesOnly
-                          ? S.of(context).recipesLoadErrorLabel
-                          : '${state.failures.containsKey(FoodSearchSource.online) ? OFFConst.offSourceName : S.of(context).searchResultsLabel}: ${S.of(context).errorFetchingProductData}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Semantics(
-                    identifier: 'diary-search-retry',
-                    child: TextButton(
-                      onPressed: _search.retry,
-                      child: Text(S.of(context).retryLabel),
-                    ),
-                  ),
-                ],
-              ),
+        if (state.hasMore &&
+            !state.failures.containsKey(FoodSearchSource.online))
+          Semantics(
+            identifier: 'diary-search-load-more',
+            child: TextButton(
+              onPressed: state.pending.contains(FoodSearchSource.online)
+                  ? null
+                  : _search.loadMore,
+              child: Text(S.of(context).loadMoreLabel),
             ),
-          if (state.hasMore &&
-              !state.failures.containsKey(FoodSearchSource.online))
-            Semantics(
-              identifier: 'diary-search-load-more',
-              child: TextButton(
-                onPressed: state.pending.contains(FoodSearchSource.online)
-                    ? null
-                    : _search.loadMore,
-                child: Text(S.of(context).loadMoreLabel),
-              ),
-            ),
-        ],
-      );
-    },
-  );
+          ),
+      ],
+    );
+  }
 }
