@@ -72,6 +72,9 @@ class MealEntity extends Equatable {
 
   final String? catalogueSourceName;
 
+  /// Catalogue synonyms used while ranking search results, not logged snapshots.
+  final String? searchAliases;
+
   /// Optional household measures with a known gram weight. Not persisted.
   final List<MealPortionEntity> portions;
 
@@ -118,7 +121,10 @@ class MealEntity extends Equatable {
   String? get scoringQualifiers {
     final text = name;
     if (text == null || source != MealSourceEntity.catalogue) return null;
-    return deriveQualifiers(text);
+    final qualifiers = deriveQualifiers(text);
+    final aliases = searchAliases?.trim();
+    if (aliases == null || aliases.isEmpty) return qualifiers;
+    return qualifiers == null ? aliases : '$qualifiers $aliases';
   }
 
   const MealEntity({
@@ -136,6 +142,7 @@ class MealEntity extends Equatable {
     required this.nutriments,
     required this.source,
     this.catalogueSourceName,
+    this.searchAliases,
     this.portions = const [],
     this.portionsUnavailable = false,
     this.localImagePath,
@@ -158,6 +165,7 @@ class MealEntity extends Equatable {
     nutriments: nutriments,
     source: source,
     catalogueSourceName: catalogueSourceName,
+    searchAliases: searchAliases,
     portions: found,
     portionsUnavailable: portionsUnavailable,
     localImagePath: localImagePath,
@@ -185,6 +193,7 @@ class MealEntity extends Equatable {
     nutriments: nutriments,
     source: source,
     catalogueSourceName: catalogueSourceName,
+    searchAliases: searchAliases,
     portions: portions,
     portionsUnavailable: true,
     localImagePath: localImagePath,

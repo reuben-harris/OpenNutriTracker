@@ -222,6 +222,7 @@ MealEntity catalogueMeal(Database db, Row row) {
     name: row['name'] as String,
     url: row['url'] as String,
     catalogueSourceName: row['source_name'] as String,
+    searchAliases: row['aliases'] as String,
     mealQuantity: null,
     mealUnit: 'g',
     servingQuantity: null,
