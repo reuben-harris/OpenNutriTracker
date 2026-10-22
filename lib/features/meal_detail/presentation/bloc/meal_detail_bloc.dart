@@ -74,6 +74,9 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
     });
 
     on<LoadDailyTotalsEvent>((event, emit) async {
+      emit(
+        state.copyWith(dailyTotalsStatus: MealInformationLoadStatus.loading),
+      );
       try {
         final tracked = await _getTrackedDayUsecase.getTrackedDay(event.day);
         final goal =
@@ -100,8 +103,10 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
           trackedDay: tracked,
           user: user,
         );
+        if (emit.isDone) return;
         emit(
           state.copyWith(
+            dailyTotalsStatus: MealInformationLoadStatus.ready,
             dayKcalConsumed: tracked?.caloriesTracked ?? 0,
             dayKcalGoal: goal,
             dayCarbsGoal: carbs,
@@ -119,6 +124,13 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
       } catch (e) {
         log.severe('Error loading daily totals: $e');
         Sentry.captureException(e);
+        if (!emit.isDone) {
+          emit(
+            state.copyWith(
+              dailyTotalsStatus: MealInformationLoadStatus.failure,
+            ),
+          );
+        }
       }
     });
 
@@ -128,7 +140,9 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
       if (meal.isCatalogueFood && _catalogue != null) {
         if (state.isRefreshing) return;
         final request = ++_mealRequest;
-        emit(state.copyWith(isHydrating: true));
+        emit(
+          state.copyWith(hydrationStatus: MealInformationLoadStatus.loading),
+        );
         try {
           final full = await _catalogue.getById(code!);
           if (emit.isDone || request != _mealRequest) return;
@@ -137,14 +151,24 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
               state.copyWith(
                 hydratedMeal: full,
                 mealRevision: state.mealRevision + 1,
+                hydrationStatus: MealInformationLoadStatus.ready,
+              ),
+            );
+          } else {
+            emit(
+              state.copyWith(
+                hydrationStatus: MealInformationLoadStatus.failure,
               ),
             );
           }
         } catch (error, stack) {
           log.warning('Catalogue lookup failed for $code', error, stack);
-        } finally {
           if (!emit.isDone && request == _mealRequest) {
-            emit(state.copyWith(isHydrating: false));
+            emit(
+              state.copyWith(
+                hydrationStatus: MealInformationLoadStatus.failure,
+              ),
+            );
           }
         }
         return;
@@ -154,11 +178,16 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
           meal.detailed ||
           code == null ||
           code.isEmpty) {
+        if (state.refreshStatus == ProductRefreshStatus.idle) {
+          emit(
+            state.copyWith(hydrationStatus: MealInformationLoadStatus.ready),
+          );
+        }
         return;
       }
 
       final request = ++_mealRequest;
-      emit(state.copyWith(isHydrating: true));
+      emit(state.copyWith(hydrationStatus: MealInformationLoadStatus.loading));
       try {
         // A full cache entry (from an earlier scan/hydration) lets us skip the
         // network entirely and works offline; otherwise fetch and cache it.
@@ -183,7 +212,7 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
           state.copyWith(
             hydratedMeal: full,
             mealRevision: state.mealRevision + 1,
-            isHydrating: false,
+            hydrationStatus: MealInformationLoadStatus.ready,
           ),
         );
       } catch (e, st) {
@@ -191,7 +220,9 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
         // macros-only. The Add button is never blocked on hydration.
         log.warning('OFF hydration failed for $code', e, st);
         if (request != _mealRequest || emit.isDone) return;
-        emit(state.copyWith(isHydrating: false));
+        emit(
+          state.copyWith(hydrationStatus: MealInformationLoadStatus.failure),
+        );
       }
     });
 
@@ -207,12 +238,7 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
 
       // Invalidate an older hydration before starting the direct OFF request.
       ++_mealRequest;
-      emit(
-        state.copyWith(
-          refreshStatus: ProductRefreshStatus.loading,
-          isHydrating: false,
-        ),
-      );
+      emit(state.copyWith(refreshStatus: ProductRefreshStatus.loading));
       final generation = _remoteSearchCacheDataSource.generation;
       final language = _remoteSearchCacheDataSource.language;
       try {
@@ -240,6 +266,7 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
         emit(
           state.copyWith(
             hydratedMeal: fresh,
+            hydrationStatus: MealInformationLoadStatus.ready,
             mealRevision: state.mealRevision + 1,
             refreshStatus: ProductRefreshStatus.success,
           ),
@@ -247,7 +274,12 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
       } catch (e, st) {
         log.warning('Meal refresh failed for $code', e, st);
         if (emit.isDone) return;
-        emit(state.copyWith(refreshStatus: ProductRefreshStatus.failure));
+        emit(
+          state.copyWith(
+            refreshStatus: ProductRefreshStatus.failure,
+            hydrationStatus: MealInformationLoadStatus.failure,
+          ),
+        );
       }
     });
   }
