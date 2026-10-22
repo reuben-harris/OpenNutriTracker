@@ -131,6 +131,10 @@ void main() {
       isEmpty,
     );
     expect((await catalogue.getById('other:A1'))!.name, 'Apple raw');
+    expect(
+      (await catalogue.getById('other:A1'))!.scoringQualifiers,
+      contains('Kūmara'),
+    );
   });
 
   test('no enabled sources returns immediately without installation', () async {
