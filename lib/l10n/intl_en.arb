@@ -1443,5 +1443,11 @@
   "@diaryRecipeName": {"placeholders": {"mealName": {"type": "String"}}},
   "foodSourceCatalogueLabel": "Food database",
   "additionalInfoLabelCatalogue": "More information from {database}",
-  "@additionalInfoLabelCatalogue": {"placeholders": {"database": {"type": "String"}}}
+  "@additionalInfoLabelCatalogue": {"placeholders": {"database": {"type": "String"}}},
+  "settingsDatabasesLabel": "Databases",
+  "catalogueLoadFailedLabel": "Could not load food databases.",
+  "catalogueReleasesLabel": "Releases: {releases}",
+  "@catalogueReleasesLabel": {"placeholders": {"releases": {"type": "String"}}},
+  "catalogueTermsLabel": "Terms of use",
+  "catalogueTermsNotice": "Use of this data is subject to the publisher’s terms of use."
 }

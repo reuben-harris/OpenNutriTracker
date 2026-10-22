@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:opennutritracker/core/utils/locator.dart';
+import 'package:opennutritracker/core/presentation/widgets/error_dialog.dart';
+import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/utils/url_const.dart';
@@ -10,8 +13,28 @@ import 'package:url_launcher/url_launcher.dart';
 /// the BMI overview on the Profile tab, both gender-selection screens,
 /// and the disclaimer dialog — so anyone scanning the app for citations
 /// (Apple's reviewers included) can find them within one tap.
-class SourcesScreen extends StatelessWidget {
-  const SourcesScreen({super.key});
+class SourcesScreen extends StatefulWidget {
+  const SourcesScreen({super.key, this.catalogue});
+  final FoodCatalogue? catalogue;
+
+  @override
+  State<SourcesScreen> createState() => _SourcesScreenState();
+}
+
+class _SourcesScreenState extends State<SourcesScreen> {
+  late Future<List<CatalogueSource>> _catalogueSources;
+
+  Future<List<CatalogueSource>> _loadSources() =>
+      widget.catalogue?.sources() ??
+      (locator.isRegistered<FoodCatalogue>()
+          ? locator<FoodCatalogue>().sources()
+          : Future.value(const []));
+
+  @override
+  void initState() {
+    super.initState();
+    _catalogueSources = _loadSources();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -135,13 +158,63 @@ class SourcesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsSourcesLabel)),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing16, vertical: Dimens.spacing16),
+        padding: const EdgeInsets.symmetric(
+          horizontal: Dimens.spacing16,
+          vertical: Dimens.spacing16,
+        ),
         children: [
           Text(
             l10n.sourcesScreenIntro,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: Dimens.spacing16),
+          FutureBuilder<List<CatalogueSource>>(
+            future: _catalogueSources,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return ErrorDialog(
+                  errorText: l10n.catalogueLoadFailedLabel,
+                  onRefreshPressed: () => setState(() {
+                    _catalogueSources = _loadSources();
+                  }),
+                );
+              }
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              return Semantics(
+                identifier: 'catalogue-reference-list',
+                child: Column(
+                  children: [
+                    for (final source in snapshot.data!)
+                      _SourceCard(
+                        entry: _SourceEntry(
+                          title: source.name,
+                          description: l10n.catalogueReleasesLabel(
+                            source.releaseSummary,
+                          ),
+                          sources: [
+                            _SourceLink(
+                              citation: source.attribution,
+                              url: source.website,
+                              identifier: 'source-${source.id}-website',
+                            ),
+                            _SourceLink(
+                              citation: source.termsRequired
+                                  ? l10n.catalogueTermsNotice
+                                  : l10n.catalogueTermsLabel,
+                              url: source.termsUrl,
+                              label: l10n.catalogueTermsLabel,
+                              identifier: 'source-${source.id}-terms',
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
           ...entries.map((entry) => _SourceCard(entry: entry)),
         ],
       ),
@@ -167,8 +240,15 @@ class _SourceLink {
   // app language.
   final String citation;
   final String url;
+  final String? label;
+  final String? identifier;
 
-  const _SourceLink({required this.citation, required this.url});
+  const _SourceLink({
+    required this.citation,
+    required this.url,
+    this.label,
+    this.identifier,
+  });
 }
 
 class _SourceCard extends StatelessWidget {
@@ -182,9 +262,9 @@ class _SourceCard extends StatelessWidget {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorOpeningBrowser)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorOpeningBrowser)));
     }
   }
 
@@ -198,15 +278,9 @@ class _SourceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              entry.title,
-              style: theme.textTheme.titleMedium,
-            ),
+            Text(entry.title, style: theme.textTheme.titleMedium),
             const SizedBox(height: Dimens.spacing8),
-            Text(
-              entry.description,
-              style: theme.textTheme.bodyMedium,
-            ),
+            Text(entry.description, style: theme.textTheme.bodyMedium),
             const SizedBox(height: Dimens.spacing12),
             ...entry.sources.map(
               (source) => Padding(
@@ -222,14 +296,22 @@ class _SourceCard extends StatelessWidget {
                     ),
                     Align(
                       alignment: AlignmentDirectional.centerStart,
-                      child: TextButton.icon(
-                        onPressed: () => _launch(context, source.url),
-                        icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                        label: Text(S.of(context).sourcesOpenSourceLabel),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: Dimens.spacing8),
-                          minimumSize: const Size(0, 32),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      child: Semantics(
+                        identifier: source.identifier,
+                        child: TextButton.icon(
+                          onPressed: () => _launch(context, source.url),
+                          icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                          label: Text(
+                            source.label ??
+                                S.of(context).sourcesOpenSourceLabel,
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: Dimens.spacing8,
+                            ),
+                            minimumSize: const Size(0, 32),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                         ),
                       ),
                     ),
