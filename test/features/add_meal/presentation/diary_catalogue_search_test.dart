@@ -113,6 +113,11 @@ void main() {
     ),
     matching: find.byType(ChoiceChip),
   );
+  Finder loadingOutline() => find.byWidgetPredicate(
+    (widget) =>
+        widget is Semantics &&
+        widget.properties.identifier == 'diary-search-pending',
+  );
   Future<void> settle(WidgetTester tester, bool Function() done) =>
       pumpUntil(tester, done);
 
@@ -378,6 +383,35 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+  testWidgets('search outline finishes its cycle without moving controls', (
+    tester,
+  ) async {
+    final gate = Completer<List<MealEntity>>();
+    recipes = () => gate.future;
+    await open(tester);
+    final fieldRect = tester.getRect(find.byType(TextField));
+    final chipsRect = tester.getRect(chip('all'));
+    await tester.tap(chip('recipes'));
+    await tester.pump();
+    expect(tester.getRect(loadingOutline()), fieldRect);
+    expect(find.byIcon(Icons.search_rounded), findsOneWidget);
+    expect(tester.getRect(find.byType(TextField)), fieldRect);
+    expect(tester.getRect(chip('all')), chipsRect);
+
+    gate.complete([
+      food('recipe', 'Apple cake', source: MealSourceEntity.recipe),
+    ]);
+    await tester.pump();
+    expect(find.text('Apple cake'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1599));
+    expect(loadingOutline(), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1));
+    // Flutter reports animation completion on a frame after its duration.
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(loadingOutline(), findsNothing);
+    expect(tester.getRect(find.byType(TextField)), fieldRect);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
     'Recipes shows loading, a recipe error with retry, and an empty library',
     (tester) async {
@@ -386,9 +420,14 @@ void main() {
       await open(tester);
       await tester.tap(chip('recipes'));
       await tester.pump();
-      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      expect(loadingOutline(), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(find.text(strings(tester).searchResultsLabel), findsNothing);
       expect(find.text(strings(tester).recipesEmptyLabel), findsNothing);
       gate.completeError(StateError('unavailable'));
+      await tester.pump();
+      expect(loadingOutline(), findsNothing);
+      expect(find.text(strings(tester).recipesLoadErrorLabel), findsOneWidget);
       await tester.pumpAndSettle();
       expect(find.text(strings(tester).recipesLoadErrorLabel), findsOneWidget);
       expect(find.text(strings(tester).recipesEmptyLabel), findsNothing);

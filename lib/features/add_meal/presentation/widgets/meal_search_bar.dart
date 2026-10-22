@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:opennutritracker/core/presentation/widgets/loading_outline.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/utils/custom_icons.dart';
@@ -15,6 +16,8 @@ class MealSearchBar extends StatefulWidget {
   final Function()? onBarcodePressed;
   final bool showSubmitButton;
   final bool showClearButton;
+  final bool isLoading;
+  final bool hasLoadingError;
 
   const MealSearchBar({
     super.key,
@@ -24,6 +27,8 @@ class MealSearchBar extends StatefulWidget {
     this.onSearchChanged,
     this.showSubmitButton = true,
     this.showClearButton = false,
+    this.isLoading = false,
+    this.hasLoadingError = false,
   });
 
   @override
@@ -62,51 +67,61 @@ class _MealSearchBarState extends State<MealSearchBar> {
       children: [
         Flexible(
           flex: 1,
-          child: Semantics(
-            identifier: 'meal-search-field',
-            child: TextField(
-              controller: _searchTextController,
-              textInputAction: TextInputAction.search,
-              style: Theme.of(context).textTheme.bodyLarge,
-              onChanged: (input) {
-                widget.searchStringListener.value = input;
-                widget.onSearchChanged?.call(input);
-              },
-              onSubmitted: widget.onSearchSubmit,
-              decoration: InputDecoration(
-                hintText: S.of(context).searchLabel,
-                hintStyle: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: palette.textMuted),
-                prefixIcon: Icon(
-                  Icons.search_rounded,
-                  size: 24,
-                  color: palette.textMuted,
-                ),
-                suffixIcon: widget.onBarcodePressed != null
-                    ? Semantics(
-                        identifier: 'meal-search-barcode',
-                        child: IconButton(
-                          icon: Icon(
-                            CustomIcons.barcode_scan,
-                            size: 22,
-                            color: palette.textMuted,
+          child: LoadingOutline(
+            isLoading: widget.isLoading,
+            hasError: widget.hasLoadingError,
+            color: accent,
+            borderRadius: Dimens.borderRadiusL,
+            semanticIdentifier: 'diary-search-pending',
+            builder: (context, isAnimating) => Semantics(
+              identifier: 'meal-search-field',
+              child: TextField(
+                controller: _searchTextController,
+                textInputAction: TextInputAction.search,
+                style: Theme.of(context).textTheme.bodyLarge,
+                onChanged: (input) {
+                  widget.searchStringListener.value = input;
+                  widget.onSearchChanged?.call(input);
+                },
+                onSubmitted: widget.onSearchSubmit,
+                decoration: InputDecoration(
+                  hintText: S.of(context).searchLabel,
+                  hintStyle: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(color: palette.textMuted),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    size: 24,
+                    color: palette.textMuted,
+                  ),
+                  suffixIcon: widget.onBarcodePressed != null
+                      ? Semantics(
+                          identifier: 'meal-search-barcode',
+                          child: IconButton(
+                            icon: Icon(
+                              CustomIcons.barcode_scan,
+                              size: 22,
+                              color: palette.textMuted,
+                            ),
+                            onPressed: widget.onBarcodePressed,
                           ),
-                          onPressed: widget.onBarcodePressed,
-                        ),
-                      )
-                    : null,
-                filled: true,
-                fillColor: palette.surfaceMuted,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: Dimens.spacing16,
-                  horizontal: Dimens.spacing16,
-                ),
-                border: border,
-                enabledBorder: border,
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: Dimens.borderRadiusL,
-                  borderSide: BorderSide(color: accent, width: 1.5),
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: palette.surfaceMuted,
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: Dimens.spacing16,
+                    horizontal: Dimens.spacing16,
+                  ),
+                  border: border,
+                  enabledBorder: border,
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: Dimens.borderRadiusL,
+                    borderSide: BorderSide(
+                      color: isAnimating ? palette.border : accent,
+                      width: isAnimating ? Dimens.hairline : 1.5,
+                    ),
+                  ),
                 ),
               ),
             ),
