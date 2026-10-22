@@ -1,5 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
+import 'package:opennutritracker/core/presentation/widgets/food_brand_span.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_image.dart';
 import 'package:opennutritracker/core/presentation/widgets/image_full_screen.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
@@ -33,6 +34,9 @@ class ItemInformationScaffold extends StatelessWidget {
     final palette = Theme.of(context).brightness == Brightness.dark
         ? AppPalette.dark
         : AppPalette.light;
+    final subtitle = meal.source == MealSourceEntity.recipe
+        ? TextSpan(text: s.additionalInfoLabelRecipe)
+        : foodBrandSpan(context, meal);
     return Scaffold(
       backgroundColor: palette.canvas,
       appBar: AppBar(
@@ -90,13 +94,10 @@ class ItemInformationScaffold extends StatelessWidget {
                                 style: Theme.of(context).textTheme.titleLarge
                                     ?.copyWith(fontWeight: FontWeight.w800),
                               ),
-                              if (meal.source == MealSourceEntity.recipe ||
-                                  meal.brands?.trim().isNotEmpty == true) ...[
+                              if (subtitle != null) ...[
                                 const SizedBox(height: 4),
-                                Text(
-                                  meal.source == MealSourceEntity.recipe
-                                      ? s.additionalInfoLabelRecipe
-                                      : meal.brands!,
+                                Text.rich(
+                                  subtitle,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context).textTheme.bodyMedium
