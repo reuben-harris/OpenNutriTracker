@@ -48,6 +48,7 @@
         runtimeInputs = [
           pkgs.python3
           pkgs.nix
+          pkgs._7zz
         ];
         text = ''exec python3 ${./.}/updater.py --root "$PWD" "$@"'';
       };
