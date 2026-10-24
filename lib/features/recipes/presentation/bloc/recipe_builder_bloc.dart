@@ -160,7 +160,10 @@ class RecipeBuilderBloc extends Bloc<RecipeBuilderEvent, RecipeBuilderState> {
   ) {
     if (event.index < 0 || event.index >= state.ingredients.length) return;
     final old = state.ingredients[event.index];
-    final updated = old.copyWith(quantity: event.quantity);
+    final updated = old.copyWith(
+      snapshotMeal: event.meal,
+      quantity: event.quantity,
+    );
     final newList = List<RecipeIngredientEntity>.from(state.ingredients);
     newList[event.index] = updated;
     emit(state.copyWith(ingredients: newList));
