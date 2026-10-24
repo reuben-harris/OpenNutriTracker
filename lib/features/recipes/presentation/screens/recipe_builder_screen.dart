@@ -363,8 +363,9 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
             _bloc.add(ExplodeIngredientEvent(index: index, recipe: recipe)),
         onEdit: (index) => _onEditIngredient(context, index),
         onRemove: (index) => _bloc.add(RemoveIngredientEvent(index)),
-        onQuantityChanged: (index, quantity) =>
-            _bloc.add(UpdateIngredientEvent(index: index, quantity: quantity)),
+        onIngredientChanged: (index, food, quantity) => _bloc.add(
+          UpdateIngredientEvent(index: index, meal: food, quantity: quantity),
+        ),
         onCopy: (index) {
           final ingredient = state.ingredients[index];
           _bloc.add(
@@ -782,8 +783,10 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
       editing: true,
       hydrate: false,
       initial: ingredient.quantity,
-      onConfirm: (_, selection) async {
-        _bloc.add(UpdateIngredientEvent(index: index, quantity: selection));
+      onConfirm: (food, selection) async {
+        _bloc.add(
+          UpdateIngredientEvent(index: index, meal: food, quantity: selection),
+        );
         return true;
       },
     );

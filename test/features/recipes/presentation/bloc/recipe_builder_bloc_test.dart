@@ -191,6 +191,7 @@ void main() {
       await dispatch(
         UpdateIngredientEvent(
           index: 0,
+          meal: bloc.state.ingredients.single.snapshotMeal,
           quantity: FoodAmountSelection(3, quantity.option),
         ),
       );
@@ -208,6 +209,88 @@ void main() {
       expect(bloc.state.totalWeightG, 114);
     },
   );
+
+  for (final grams in [200.0, 250.0]) {
+    test(
+      'updated ingredient food and quantity survive saving and reopening at $grams g',
+      () async {
+        final original = _meal('yoghurt');
+        final corrected = MealEntity(
+          code: 'corrected-yoghurt',
+          name: 'Corrected yoghurt',
+          brands: 'Updated brand',
+          url: null,
+          mealQuantity: '100',
+          mealUnit: 'g',
+          servingQuantity: 40,
+          servingUnit: 'g',
+          servingSize: '40 g',
+          nutriments: const MealNutrimentsEntity(
+            energyKcal100: 150,
+            carbohydrates100: 0,
+            fat100: 5,
+            proteins100: 12,
+            sugars100: null,
+            saturatedFat100: 1,
+            fiber100: null,
+            calcium100: 120,
+          ),
+          source: MealSourceEntity.custom,
+        );
+        final quantity = FoodAmountSelection(
+          grams,
+          FoodAmountOption.standard(FoodAmountUnit.g),
+        );
+        await dispatch(const UpdateNameEvent('Yoghurt recipe'));
+        await dispatch(
+          AddIngredientEvent(
+            meal: original,
+            quantity: FoodAmountSelection(200, quantity.option),
+          ),
+        );
+        await dispatch(
+          UpdateIngredientEvent(index: 0, meal: corrected, quantity: quantity),
+        );
+        expect(bloc.state.ingredients.single.snapshotMeal, same(corrected));
+        expect(bloc.state.ingredients.single.quantity, quantity);
+        expect(bloc.state.aggregatedNutrimentsPer100, corrected.nutriments);
+        expect(bloc.state.totalWeightG, grams);
+        await dispatch(const SaveRecipeEvent());
+
+        final saved = repo.saved.single;
+        expect(saved.ingredients.single.snapshotMeal, same(corrected));
+        expect(
+          saved.aggregatedNutrimentsPer100.energyKcal100! *
+              saved.totalWeightG /
+              100,
+          grams == 200 ? 300 : 375,
+        );
+
+        final dir = await Directory.systemTemp.createTemp('recipe-ingredient');
+        Hive.init(dir.path);
+        registerHiveAdaptersOnce();
+        var box = await Hive.openBox<RecipeDBO>('recipes');
+        try {
+          await box.put(saved.id, saved.toDBO());
+          await box.close();
+          box = await Hive.openBox<RecipeDBO>('recipes');
+          final restored = RecipeEntity.fromDBO(box.get(saved.id)!);
+          await dispatch(InitializeBuilderEvent(existing: restored));
+
+          final ingredient = bloc.state.ingredients.single;
+          expect(ingredient.snapshotMeal, corrected);
+          expect(ingredient.snapshotMeal.brands, corrected.brands);
+          expect(ingredient.snapshotMeal.source, corrected.source);
+          expect(ingredient.quantity, quantity);
+          expect(bloc.state.aggregatedNutrimentsPer100, corrected.nutriments);
+          expect(bloc.state.totalWeightG, grams);
+        } finally {
+          await Hive.close();
+          await dir.delete(recursive: true);
+        }
+      },
+    );
+  }
 
   Future<void> addFlour(double grams) => dispatch(
     AddIngredientEvent(
@@ -292,6 +375,7 @@ void main() {
       await dispatch(
         UpdateIngredientEvent(
           index: 0,
+          meal: bloc.state.ingredients.first.snapshotMeal,
           quantity: FoodAmountSelection(
             700,
             FoodAmountOption.standard(FoodAmountUnit.g),

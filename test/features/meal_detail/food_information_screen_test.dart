@@ -222,8 +222,11 @@ void main() {
     WidgetTester tester, {
     double textScale = 1,
     bool fromSearch = false,
+    MealEntity? ingredient,
+    double grams = 100,
+    Widget Function(RouteSettings)? editDestination,
   }) async {
-    final food = _solidWithServing();
+    final food = ingredient ?? _solidWithServing();
     savedRecipe = RecipeEntity(
       id: 'recipe-live',
       name: 'My recipe',
@@ -232,12 +235,12 @@ void main() {
         RecipeIngredientEntity(
           snapshotMeal: food,
           quantity: FoodAmountSelection(
-            100,
+            grams,
             foodAmountOptions(food).firstWhere((o) => o.unit == 'g'),
           ),
         ),
       ],
-      totalWeightG: 100,
+      totalWeightG: grams,
       aggregatedNutrimentsPer100: food.nutriments,
       servingsCount: 2,
       createdAt: DateTime(2026, 1, 1),
@@ -258,7 +261,10 @@ void main() {
       recipeDetail: !fromSearch,
       size: const Size(360, 800),
       textScale: textScale,
-      destination: (_) => const RecipeDetailScreen(),
+      destination: (settings) =>
+          settings.name == NavigationOptions.editMealRoute
+          ? editDestination!(settings)
+          : const RecipeDetailScreen(),
     );
     return saves;
   }
@@ -300,6 +306,7 @@ void main() {
     'ingredient swipes copy and delete, quantity edits update nutrition and save',
     (tester) async {
       final saves = await openRecipe(tester);
+      final original = savedRecipe!.ingredients.single.snapshotMeal;
       await tester.tap(find.text('Ingredients').first);
       await tester.pumpAndSettle();
       expect(
@@ -325,6 +332,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 450));
       await tester.pumpAndSettle();
       expect(saves.saved.last.totalWeightG, 150);
+      expect(saves.saved.last.ingredients.first.snapshotMeal, same(original));
       await tester.drag(
         find.byType(FoodAmountCard).last,
         const Offset(-240, 0),
@@ -349,6 +357,108 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+
+  for (final refresh in [false, true]) {
+    for (final grams in <double?>[200, 250, null]) {
+      testWidgets(
+        'recipe ingredient ${refresh ? 'refresh' : 'edit'} '
+        '${grams == null ? 'leaves the recipe unchanged on cancellation' : 'saves updated food at $grams g'}',
+        (tester) async {
+          final source = refresh
+              ? MealSourceEntity.off
+              : MealSourceEntity.custom;
+          final original = _solidWithServing(source: source);
+          final updated = _solidWithServing(
+            source: source,
+            name: 'Updated yoghurt',
+            brands: 'Updated brand',
+            serving: 40,
+            nutriments: const MealNutrimentsEntity(
+              energyKcal100: 150,
+              carbohydrates100: null,
+              fat100: 5,
+              proteins100: 12,
+              sugars100: null,
+              saturatedFat100: 1,
+              fiber100: null,
+              calcium100: 120,
+            ),
+          );
+          hydratedFor = original;
+          final saves = await openRecipe(
+            tester,
+            ingredient: original,
+            grams: 200,
+            editDestination: (_) =>
+                const Scaffold(body: Text('Ingredient editor')),
+          );
+          await tester.tap(find.text('Ingredients').first);
+          await tester.pumpAndSettle();
+          await tester.drag(find.byType(FoodAmountCard), const Offset(150, 0));
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.bySemanticsIdentifier('recipe-ingredient-info'),
+          );
+          await tester.pumpAndSettle();
+          if (refresh) {
+            hydratedFor = updated;
+            await tester.tap(find.bySemanticsIdentifier('meal-detail-refresh'));
+          } else {
+            await tester.tap(find.bySemanticsIdentifier('meal-detail-edit'));
+            await tester.pumpAndSettle();
+            Navigator.of(
+              tester.element(find.text('Ingredient editor')),
+            ).pop(updated);
+          }
+          await tester.pumpAndSettle();
+          await openAmount(tester);
+          if (grams == null) {
+            await tester.tap(find.bySemanticsIdentifier('food-amount-cancel'));
+            await tester.pumpAndSettle();
+            await tester.binding.handlePopRoute();
+          } else {
+            await tester.tap(find.bySemanticsIdentifier('food-amount-unit'));
+            await tester.pumpAndSettle();
+            await tester.tap(find.text('g').last);
+            await tester.pumpAndSettle();
+            await tester.enterText(find.byType(TextField).last, '$grams');
+            await tester.tap(find.bySemanticsIdentifier('food-amount-confirm'));
+          }
+          await tester.pumpAndSettle();
+          await tester.pump(const Duration(milliseconds: 450));
+          await tester.pumpAndSettle();
+
+          final card = tester.widget<FoodAmountCard>(
+            find.byType(FoodAmountCard),
+          );
+          if (grams == null) {
+            expect(card.meal, same(original));
+            expect(card.quantity!.baseAmount, 200);
+            expect(saves.saved, isEmpty);
+          } else {
+            final totalKcal = 150 * grams / 100;
+            expect(card.meal, same(updated));
+            expect(card.quantity!.baseAmount, grams);
+            expect(
+              find.descendant(
+                of: find.byType(FoodAmountCard),
+                matching: find.text('${totalKcal.toStringAsFixed(0)} kcal'),
+              ),
+              findsOneWidget,
+            );
+            final saved = saves.saved.last;
+            expect(saved.ingredients.single.snapshotMeal, same(updated));
+            expect(saved.ingredients.single.quantity.baseAmount, grams);
+            expect(saved.aggregatedNutrimentsPer100, updated.nutriments);
+            expect(saved.totalWeightG, grams);
+          }
+          expect(logged, isEmpty);
+          expect(tester.takeException(), isNull);
+          await tester.pumpWidget(const SizedBox.shrink());
+        },
+      );
+    }
+  }
 
   testWidgets(
     'recipe logging opens the amount sheet and logs the selected quantity',

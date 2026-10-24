@@ -26,7 +26,7 @@ class RecipeIngredientsSection extends StatefulWidget {
   final ValueChanged<int> onEdit;
   final ValueChanged<int> onRemove;
   final ValueChanged<int> onCopy;
-  final void Function(int, FoodAmountSelection) onQuantityChanged;
+  final void Function(int, MealEntity, FoodAmountSelection) onIngredientChanged;
   const RecipeIngredientsSection({
     super.key,
     required this.ingredients,
@@ -37,7 +37,7 @@ class RecipeIngredientsSection extends StatefulWidget {
     required this.onEdit,
     required this.onRemove,
     required this.onCopy,
-    required this.onQuantityChanged,
+    required this.onIngredientChanged,
   });
   @override
   State<RecipeIngredientsSection> createState() =>
@@ -143,8 +143,8 @@ class _RecipeIngredientsSectionState extends State<RecipeIngredientsSection> {
             day: DateTime.now(),
             type: IntakeTypeEntity.snack,
             imperial: _imperial,
-            onConfirm: (_, selection) async {
-              widget.onQuantityChanged(index, selection);
+            onConfirm: (food, selection) async {
+              widget.onIngredientChanged(index, food, selection);
               return true;
             },
           ),
