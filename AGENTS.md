@@ -128,3 +128,26 @@ attribution, assistant names, or AI co-author trailers.
   for these warnings. Track [Flutter #189770](https://github.com/flutter/flutter/issues/189770);
   [PR #190339](https://github.com/flutter/flutter/pull/190339) was closed without
   merging. Recheck this note when Flutter or the affected plugins change.
+
+## Known upstream issues
+
+When a bug appears specific to an upstream dependency or version, investigate whether upstream already resolves it. Prefer retaining an otherwise correct implementation when the upstream fix meets deployment requirements.
+
+Also consider whether a proportionate implementation change would resolve the issue and provide concrete project benefits beyond avoiding the upstream bug. Assess whether those benefits justify the added complexity, maintenance cost and behaviour changes.
+
+Discuss the evidence, options and trade-offs with the user, and obtain explicit agreement before implementing a local change. Keep compatibility workarounds narrowly scoped and document the affected versions and removal conditions in line and as a bullet point in this section of the AGENTS.md file.
+
+- Open Food Facts' production Search-a-licious (Elasticsearch) index can return
+  stale or incomplete nutrition even when a direct `/api/v2/product/<barcode>`
+  lookup returns the missing data. Track
+  [Search-a-licious #469](https://github.com/openfoodfacts/search-a-licious/issues/469),
+  which reports that the production index stopped updating after 2024-12-18.
+  Observed on 2026-10-22: Milfina milk `22130105` and Ideal oats `29019007`
+  returned kilojoules but no kcal field in search, while their direct product
+  records included kcal. Opening the information page fetches and caches the
+  fuller record, so later searches can display the previously missing calories.
+  Keep that normal product lookup and caching behavior. Do not implement local
+  patches or workarounds for this upstream discrepancy, including inferred
+  nutrient replacements, product-specific repairs, or alternate search indices.
+  Wait for the upstream index to be fixed, then recheck search against direct
+  product responses before changing the integration.
