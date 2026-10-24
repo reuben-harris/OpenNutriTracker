@@ -1,14 +1,12 @@
 # Pinned food catalogues
 
 Official source archives are pinned separately under `sources/<database>/`.
-Each source owns its importer, nutrient mappings, release discovery and reviewed
-exceptions. Shared code stores full source records and produces the app's
-nutrition projection and combined SQLite search catalogue.
 
-USDA CSV remains the primary format: a multi-year comparison found it retained
-more published foods, nutrient precision and metadata than bulk JSON.
-Reviewed USDA repairs are guarded by dataset, release and exact archive SHA256.
-They never apply automatically to another pin.
+Each source owns its importer, nutrient mappings, release discovery and reviewed
+exceptions. 
+
+Shared code stores full source records and produces the app's
+nutrition projection and combined SQLite search catalogue.
 
 ## Update
 
@@ -56,11 +54,18 @@ nix flake check -L
 python3 -m unittest discover -s nix/food-data/tests -v
 ```
 
-Checks validate importer behavior and byte-for-byte source and combined catalogue
-determinism. Source packages depend only on their own inputs and shared code.
+Tests check that food imports work correctly and repeated builds produce identical catalogues.
 
-Data attribution: U.S. Department of Agriculture, Agricultural Research Service,
-FoodData Central, https://fdc.nal.usda.gov/.
+# Database Specific Information
+
+## USDA Specific
+
+USDA CSV remains the primary format: a multi-year comparison found it retained
+more published foods, nutrient precision and metadata than bulk JSON.
+Reviewed USDA repairs are guarded by dataset, release and exact archive SHA256.
+They never apply automatically to another pin.
+
+## NZFOODS Specific
 
 NZ FOODfiles uses the official 2024 Version 01 bulk release. The 2026 online
 search update is not a bulk release. The MSI is extracted on Linux; the importer
@@ -70,8 +75,3 @@ unchanged. The exact-pin parser rule for M1144 rejoins an embedded sampling-text
 delimiter and retains the original row. The Ingredients table references M10085,
 which is absent from this published release; that reference is preserved and
 reported rather than replaced. Repeated measure labels retain distinct weights.
-
-NZ data attribution: The New Zealand Institute for Plant & Food Research Limited
-and the Ministry of Health (New Zealand), New Zealand FOODfiles 2024 Version 01.
-Use is subject to https://www.foodcomposition.co.nz/terms/; credits and terms are
-also presented in the app's Sources & References screen.
