@@ -60,10 +60,56 @@ attribution, assistant names, or AI co-author trailers.
   only where layout requires it and verify tight bounds on Android.
 - Constrain Row titles with Expanded, bounded lines, and ellipsis; use AutoSizeText
   for prominent titles. Avoid Flexible titles competing with a Spacer.
-- Prefix catalogue food `code` values with `<datasource>:<id>` when adding new food 
-  databases to prevent ID collisions.
-  Keep `isCatalogueFood` and catalogue lookup parsing in sync with new prefixes.
 - Keep formatting scoped to changed files and exclude generated Dart.
+
+## Food databases
+
+- Preserve the complete datasource: keep original source archives unchanged and
+  retain full published food records, including nutrients the app does not yet
+  display, original values and precision, units, measurement bases, food metadata,
+  portions, and provenance. Retain supporting records as well.
+  We keep this information so future features can expose more of a datasource
+  without reconstructing discarded data or repeating source review. Filtering
+  imports to today's UI adds maintenance work and can discard context needed to
+  interpret values correctly.
+
+- Keep published source records separate from the app's nutrition projection.
+  Make nutrient selection and unit conversions explicit. Missing values are not
+  zero; retain qualifiers such as trace or detection limits. Similarly named
+  nutrients and different measurement bases are not automatically interchangeable.
+  This preserves source fidelity while allowing the app's supported fields to
+  evolve.
+
+- Give each database independently managed pins, import logic, mappings, release
+  discovery, repairs, and tests. Share fetching, catalogue writing, indexing, and
+  validation where behavior is common. A database must be independently
+  updateable or removable without changing another database's pins or rebuilding
+  its source package.
+
+- Use the existing per-source manifests and Nix fetchers for official, pinned
+  releases. Validate candidates before updating pins. Nix makes downloads and
+  builds reproducible; a CSV added as a non-flake input would still require
+  source-specific parsing, nutrient mapping, validation, and reviewed repairs.
+
+- Guard reviewed parsing exceptions and repairs with the exact
+  affected source pin and reviewed record conditions; never carry them
+  automatically to another release. Source defects differ between formats and
+  releases, so broad repair rules can silently corrupt otherwise valid data.
+
+- Prefix catalogue food codes with `<datasource>:<id>` and namespace other
+  source-local identities. Keep catalogue classification and lookup consistent.
+  Do not merge foods from different databases solely because names match: their
+  preparation, sampling, nutrient definitions, and values may differ.
+
+- Register source names, releases, attribution, website, and applicable terms
+  through shared source descriptors. Use them for database settings, result
+  labels, and Sources & References. Check each source's reuse terms; do not assume
+  another database's permissions apply.
+
+- Cover source completeness, precision, units, missing versus zero values,
+  portions, provenance, reviewed exceptions, deterministic output, and independent
+  updates with regression tests. Adding a database should extend the shared
+  catalogue rather than introduce another app-specific search implementation.
 
 ## Documentation
 
