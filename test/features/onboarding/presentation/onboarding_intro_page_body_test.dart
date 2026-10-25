@@ -241,24 +241,6 @@ void main() {
     expect(tester.widget<Checkbox>(policyBox).value, isFalse);
   });
 
-  testWidgets('tapping Try Demo without the policy explains why', (
-    tester,
-  ) async {
-    await pumpIntroPage(tester, onSetPageContent: (_, _) {});
-
-    // Never reaches seedDemoData (which would need Hive); an unaccepted
-    // policy routes the tap to the explanation instead.
-    await tester.tap(find.byType(OutlinedButton));
-    await tester.pump();
-
-    expect(find.text(l10nEn.onboardingBlockedDemoPolicySnack), findsOneWidget);
-    expect(
-      find.byType(CircularProgressIndicator),
-      findsNothing,
-      reason: 'no seeding should have started',
-    );
-  });
-
   testWidgets(
     'tapping the policy ListTile (not just the checkbox) also toggles',
     (tester) async {

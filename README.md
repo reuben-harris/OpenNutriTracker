@@ -38,5 +38,4 @@ uses October 2021 because newer USDA CSVs contain an unresolved nutrient lookup.
 
 ## License
 
-[GPL-3.0](LICENSE). Bundled fonts retain their [font license](fonts/OFL.txt), and
-bundled demo photos retain their in-app Unsplash attribution.
+[GPL-3.0](LICENSE). Bundled fonts retain their [font license](fonts/OFL.txt).
