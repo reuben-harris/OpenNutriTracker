@@ -35,7 +35,7 @@ class _FakeSettingsBloc extends Fake implements SettingsBloc {
 
   @override
   SettingsState get state =>
-      const SettingsLoadedState('1.0.0', false, AppThemeEntity.system, false);
+      const SettingsLoadedState('1.0.0', AppThemeEntity.system, false);
 
   @override
   Stream<SettingsState> get stream => const Stream<SettingsState>.empty();

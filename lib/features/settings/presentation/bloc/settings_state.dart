@@ -16,7 +16,6 @@ class SettingsLoadingState extends SettingsState {
 
 class SettingsLoadedState extends SettingsState {
   final String versionNumber;
-  final bool sendAnonymousData;
   final AppThemeEntity appTheme;
   final bool usesImperialUnits;
   final bool usesImperialFoodUnits;
@@ -35,9 +34,6 @@ class SettingsLoadedState extends SettingsState {
   final int dayStartOffsetMinutes; // #139 follow-up
   final bool useMaterialYou; // #415
   final int? accentColor; // #415 follow-up
-  /// True while the active profile holds Try Demo / dev sample data.
-  /// Privacy settings lock Sentry opt-in for that session.
-  final bool isDemoData;
 
   /// Whether workouts are imported from Health Connect / Apple Health, and
   /// the share of their reported energy that is credited. The multiplier is
@@ -49,7 +45,6 @@ class SettingsLoadedState extends SettingsState {
 
   const SettingsLoadedState(
     this.versionNumber,
-    this.sendAnonymousData,
     this.appTheme,
     this.usesImperialUnits, {
     this.usesImperialFoodUnits = false,
@@ -68,7 +63,6 @@ class SettingsLoadedState extends SettingsState {
     this.dayStartOffsetMinutes = 0,
     this.useMaterialYou = true,
     this.accentColor,
-    this.isDemoData = false,
     this.healthImportEnabled = false,
     this.healthWorkoutKcalMultiplier,
     this.amountArithmeticEnabled = false,
@@ -77,7 +71,6 @@ class SettingsLoadedState extends SettingsState {
   @override
   List<Object?> get props => [
     versionNumber,
-    sendAnonymousData,
     appTheme,
     usesImperialUnits,
     usesImperialFoodUnits,
@@ -96,7 +89,6 @@ class SettingsLoadedState extends SettingsState {
     dayStartOffsetMinutes,
     useMaterialYou,
     accentColor,
-    isDemoData,
     healthImportEnabled,
     healthWorkoutKcalMultiplier,
     amountArithmeticEnabled,
