@@ -372,7 +372,11 @@ void main() {
         RouteSettings? destination;
         await tester.pumpWidget(
           app(
-            MealSectionActions(day: day, mealType: type),
+            MealSectionActions(
+              day: day,
+              mealType: type,
+              usesImperialUnits: false,
+            ),
             onGenerateRoute: (settings) {
               destination = settings;
               return MaterialPageRoute<void>(
