@@ -15,7 +15,6 @@ ConfigDBO _dbo({
 }) => ConfigDBO(
   false,
   false,
-  false,
   AppThemeDBO.system,
   healthImportEnabled: healthImportEnabled,
   healthWorkoutKcalMultiplier: healthWorkoutKcalMultiplier,

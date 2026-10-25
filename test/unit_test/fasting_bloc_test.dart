@@ -62,7 +62,6 @@ class _FakeConfigRepository implements ConfigRepository {
     return ConfigEntity(
       true,
       true,
-      false,
       AppThemeEntity.system,
       fastingWarningAcknowledged: acknowledged,
     );

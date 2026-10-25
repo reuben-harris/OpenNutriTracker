@@ -8,7 +8,7 @@ import 'package:opennutritracker/core/utils/hive_db_provider.dart';
 ///
 /// - the **shared** [HiveDBProvider.appConfigBox] holds everything that is
 ///   a device-wide preference (theme, accent, language, units, energy unit,
-///   notifications, anonymous-data consent, legal acceptances, and the
+///   notifications, legal acceptances, and the
 ///   various view toggles), so it stays consistent whichever profile is
 ///   active;
 /// - the **per-profile** [HiveDBProvider.configBox] holds the personal
@@ -147,14 +147,6 @@ class ConfigDataSource {
 
   Future<void> setConfigDisclaimer(bool hasAcceptedDisclaimer) async {
     await _update((c) => c.hasAcceptedDisclaimer = hasAcceptedDisclaimer);
-  }
-
-  Future<void> setConfigAcceptedAnonymousData(
-    bool hasAcceptedAnonymousData,
-  ) async {
-    await _update(
-      (c) => c.hasAcceptedSendAnonymousData = hasAcceptedAnonymousData,
-    );
   }
 
   Future<void> setConfigAcceptedPolicy(bool hasAcceptedPolicy) async {
@@ -394,7 +386,4 @@ class ConfigDataSource {
   }
 
   Future<ConfigDBO> getConfig() async => _readMerged();
-
-  Future<bool> getHasAcceptedAnonymousData() async =>
-      _readMerged().hasAcceptedSendAnonymousData;
 }

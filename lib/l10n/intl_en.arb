@@ -322,7 +322,6 @@
   "customMealsEmptyLabel": "No custom meals saved yet.",
   "dailyKcalAdjustmentLabel": "Daily Kcal adjustment:",
   "dailyKjAdjustmentLabel": "Daily kJ adjustment:",
-  "dataCollectionLabel": "Send crash reports to help fix bugs. No food log or weight data is included.",
   "deleteAllLabel": "Delete all",
   "settingsDeleteAllDataLabel": "Reset profile data",
   "settingsDeleteAllDataSubtitle": "Profile, meals, activities, weight history and fasting sessions",

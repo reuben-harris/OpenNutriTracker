@@ -20,7 +20,6 @@ void main() {
       const config = ConfigEntity(
         false,
         false,
-        false,
         AppThemeEntity.system,
         dailyWaterGoalMl: 2400,
       );
@@ -28,7 +27,7 @@ void main() {
     });
 
     test('falls back to the sex-based seed when no override is stored', () {
-      const config = ConfigEntity(false, false, false, AppThemeEntity.system);
+      const config = ConfigEntity(false, false, AppThemeEntity.system);
       expect(config.effectiveDailyWaterGoalMl(UserSexEntity.male), 1900);
       expect(config.effectiveDailyWaterGoalMl(UserSexEntity.female), 1500);
     });

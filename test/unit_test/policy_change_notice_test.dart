@@ -34,7 +34,6 @@ void main() {
         ConfigDBO(
           false,
           true,
-          false,
           AppThemeDBO.system,
           policyNoticeRevisionSeen: URLConst.policyRevision,
         ),
@@ -56,7 +55,6 @@ void main() {
         ConfigDBO(
           false,
           true,
-          false,
           AppThemeDBO.system,
           policyNoticeRevisionSeen: URLConst.policyRevision + 1,
         ),
@@ -75,7 +73,6 @@ void main() {
       final dbo = ConfigDBO(
         false,
         true,
-        false,
         AppThemeDBO.system,
         policyNoticeRevisionSeen: 3,
       );
@@ -135,7 +132,6 @@ void main() {
           ConfigDBO(
             false,
             true,
-            false,
             AppThemeDBO.system,
             policyNoticeRevisionSeen: URLConst.policyRevision,
             healthImportEnabled: true,

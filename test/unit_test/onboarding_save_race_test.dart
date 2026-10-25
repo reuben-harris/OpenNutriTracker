@@ -35,23 +35,19 @@ class _FakeUserRepository implements UserRepository {
 
 class _FakeConfigRepository implements ConfigRepository {
   bool writeStarted = false;
-  final Completer<void> anonCompleter = Completer<void>();
+  final Completer<void> unitsCompleter = Completer<void>();
 
-  @override
-  Future<void> setConfigHasAcceptedAnonymousData(bool _) async {
-    writeStarted = true;
-    await anonCompleter.future;
-  }
-
-  // The policy acceptance is written right after the user, before the anon
+  // The policy acceptance is written right after the user, before the unit
   // write; it's not part of the race under test, so it resolves immediately.
   @override
   Future<void> setConfigHasAcceptedPolicy(bool _) async {}
 
-  // The split unit preferences are written after the user and anon writes;
-  // they're not part of the race under test, so they resolve immediately.
+  // Hold the first unit write to verify that onboarding awaits configuration.
   @override
-  Future<void> setConfigUsesImperialHeightUnits(bool _) async {}
+  Future<void> setConfigUsesImperialHeightUnits(bool _) async {
+    writeStarted = true;
+    await unitsCompleter.future;
+  }
 
   @override
   Future<void> setConfigUsesImperialFoodUnits(bool _) async {}
@@ -119,7 +115,6 @@ void main() {
           final saveFuture = bloc.saveOnboardingData(
             makeUser(),
             false,
-            false,
             BodyWeightUnit.kg,
             false,
             appTheme: AppThemeEntity.system,
@@ -140,7 +135,7 @@ void main() {
           expect(configRepo.writeStarted, isTrue);
           expect(resolved, isFalse);
 
-          configRepo.anonCompleter.complete();
+          configRepo.unitsCompleter.complete();
           time.flushMicrotasks();
           expect(resolved, isTrue);
         });

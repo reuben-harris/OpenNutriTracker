@@ -18,24 +18,31 @@ void main() {
       final dbo = ConfigDBO(
         false,
         false,
-        false,
         AppThemeDBO.system,
         usesImperialUnits: true,
         // usesImperialFoodUnits, usesImperialHeightUnits, bodyWeightUnitIndex all null
       );
       final entity = ConfigEntity.fromConfigDBO(dbo);
 
-      expect(entity.usesImperialFoodUnits, isTrue,
-          reason: 'food units should fall back to legacy imperial flag');
-      expect(entity.usesImperialHeightUnits, isTrue,
-          reason: 'height units should fall back to legacy imperial flag');
-      expect(entity.bodyWeightUnit, equals(BodyWeightUnit.lb),
-          reason: 'body weight should fall back to lb when legacy flag is true');
+      expect(
+        entity.usesImperialFoodUnits,
+        isTrue,
+        reason: 'food units should fall back to legacy imperial flag',
+      );
+      expect(
+        entity.usesImperialHeightUnits,
+        isTrue,
+        reason: 'height units should fall back to legacy imperial flag',
+      );
+      expect(
+        entity.bodyWeightUnit,
+        equals(BodyWeightUnit.lb),
+        reason: 'body weight should fall back to lb when legacy flag is true',
+      );
     });
 
     test('legacy usesImperialUnits=false, new fields null -> all metric', () {
       final dbo = ConfigDBO(
-        false,
         false,
         false,
         AppThemeDBO.system,
@@ -54,7 +61,6 @@ void main() {
       final dbo = ConfigDBO(
         false,
         false,
-        false,
         AppThemeDBO.system,
         usesImperialUnits: null,
       );
@@ -65,43 +71,51 @@ void main() {
       expect(entity.bodyWeightUnit, equals(BodyWeightUnit.kg));
     });
 
-    test('explicit usesImperialFoodUnits=false overrides legacy imperial flag', () {
-      final dbo = ConfigDBO(
-        false,
-        false,
-        false,
-        AppThemeDBO.system,
-        usesImperialUnits: true,
-        usesImperialFoodUnits: false, // user explicitly picked metric for food
-      );
-      final entity = ConfigEntity.fromConfigDBO(dbo);
+    test(
+      'explicit usesImperialFoodUnits=false overrides legacy imperial flag',
+      () {
+        final dbo = ConfigDBO(
+          false,
+          false,
+          AppThemeDBO.system,
+          usesImperialUnits: true,
+          usesImperialFoodUnits:
+              false, // user explicitly picked metric for food
+        );
+        final entity = ConfigEntity.fromConfigDBO(dbo);
 
-      expect(entity.usesImperialFoodUnits, isFalse,
-          reason: 'explicit false should override the legacy imperial flag for food');
-      // Height and body weight still inherit the legacy flag because only
-      // food was explicitly set.
-      expect(entity.usesImperialHeightUnits, isTrue);
-      expect(entity.bodyWeightUnit, equals(BodyWeightUnit.lb));
-    });
+        expect(
+          entity.usesImperialFoodUnits,
+          isFalse,
+          reason:
+              'explicit false should override the legacy imperial flag for food',
+        );
+        // Height and body weight still inherit the legacy flag because only
+        // food was explicitly set.
+        expect(entity.usesImperialHeightUnits, isTrue);
+        expect(entity.bodyWeightUnit, equals(BodyWeightUnit.lb));
+      },
+    );
 
-    test('explicit usesImperialHeightUnits=false overrides legacy imperial flag', () {
-      final dbo = ConfigDBO(
-        false,
-        false,
-        false,
-        AppThemeDBO.system,
-        usesImperialUnits: true,
-        usesImperialHeightUnits: false,
-      );
-      final entity = ConfigEntity.fromConfigDBO(dbo);
+    test(
+      'explicit usesImperialHeightUnits=false overrides legacy imperial flag',
+      () {
+        final dbo = ConfigDBO(
+          false,
+          false,
+          AppThemeDBO.system,
+          usesImperialUnits: true,
+          usesImperialHeightUnits: false,
+        );
+        final entity = ConfigEntity.fromConfigDBO(dbo);
 
-      expect(entity.usesImperialHeightUnits, isFalse);
-      expect(entity.usesImperialFoodUnits, isTrue);
-    });
+        expect(entity.usesImperialHeightUnits, isFalse);
+        expect(entity.usesImperialFoodUnits, isTrue);
+      },
+    );
 
     test('explicit bodyWeightUnitIndex=2 (st) overrides legacy flag', () {
       final dbo = ConfigDBO(
-        false,
         false,
         false,
         AppThemeDBO.system,
@@ -110,13 +124,15 @@ void main() {
       );
       final entity = ConfigEntity.fromConfigDBO(dbo);
 
-      expect(entity.bodyWeightUnit, equals(BodyWeightUnit.st),
-          reason: 'explicit index should override the legacy metric default');
+      expect(
+        entity.bodyWeightUnit,
+        equals(BodyWeightUnit.st),
+        reason: 'explicit index should override the legacy metric default',
+      );
     });
 
     test('bodyWeightUnitIndex out of range (99) falls back to kg', () {
       final dbo = ConfigDBO(
-        false,
         false,
         false,
         AppThemeDBO.system,
@@ -124,13 +140,16 @@ void main() {
       );
       final entity = ConfigEntity.fromConfigDBO(dbo);
 
-      expect(entity.bodyWeightUnit, equals(BodyWeightUnit.kg),
-          reason: 'an out-of-range index should be clamped to kg by BodyWeightUnit.fromIndex');
+      expect(
+        entity.bodyWeightUnit,
+        equals(BodyWeightUnit.kg),
+        reason:
+            'an out-of-range index should be clamped to kg by BodyWeightUnit.fromIndex',
+      );
     });
 
     test('bodyWeightUnitIndex negative falls back to kg', () {
       final dbo = ConfigDBO(
-        false,
         false,
         false,
         AppThemeDBO.system,

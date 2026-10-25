@@ -38,15 +38,14 @@ void main() {
   );
 
   group('OnboardingIntroPageBody restoration', () {
-    testWidgets('reflects initialAcceptedPolicy/DataCollection in checkboxes', (
+    testWidgets('reflects initialAcceptedPolicy in the checkbox', (
       tester,
     ) async {
       await tester.pumpWidget(
         wrap(
           OnboardingIntroPageBody(
-            setPageContent: (_, _) {},
+            setPageContent: (_) {},
             initialAcceptedPolicy: true,
-            initialAcceptedDataCollection: true,
           ),
         ),
       );
@@ -54,7 +53,6 @@ void main() {
 
       final boxes = tester.widgetList<Checkbox>(find.byType(Checkbox)).toList();
       expect(boxes[0].value, isTrue);
-      expect(boxes[1].value, isTrue);
     });
   });
 
@@ -211,7 +209,7 @@ void main() {
   group('Default values (no initial* args)', () {
     testWidgets('intro page: both checkboxes start unchecked', (tester) async {
       await tester.pumpWidget(
-        wrap(OnboardingIntroPageBody(setPageContent: (_, _) {})),
+        wrap(OnboardingIntroPageBody(setPageContent: (_) {})),
       );
       await tester.pumpAndSettle();
 

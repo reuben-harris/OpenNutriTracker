@@ -111,7 +111,6 @@ void main() {
         ConfigDBO(
           true,
           true,
-          false,
           AppThemeDBO.dark,
           usesImperialUnits: true,
           notificationsEnabled: true,

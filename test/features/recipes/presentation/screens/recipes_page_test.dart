@@ -39,7 +39,6 @@ class _Config extends Fake implements GetConfigUsecase {
   Future<ConfigEntity> getConfig() async => ConfigEntity(
     true,
     true,
-    false,
     AppThemeEntity.system,
     usesImperialFoodUnits: imperial,
   );

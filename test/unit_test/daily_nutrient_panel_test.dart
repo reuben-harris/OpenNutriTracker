@@ -216,7 +216,6 @@ void main() {
     ConfigEntity withVisibility(Map<String, bool> v) => ConfigEntity(
       false,
       false,
-      false,
       AppThemeEntity.system,
       nutrientPanelVisibility: v,
     );

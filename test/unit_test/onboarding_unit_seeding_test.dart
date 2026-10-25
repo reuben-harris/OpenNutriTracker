@@ -40,13 +40,8 @@ class _FakeUserRepository implements UserRepository {
 void main() {
   /// The freshly-installed shape: the three split unit fields are null and
   /// the legacy flag has never been set either.
-  ConfigDBO freshConfig() => ConfigDBO(
-    false,
-    false,
-    false,
-    AppThemeDBO.system,
-    usesImperialUnits: null,
-  );
+  ConfigDBO freshConfig() =>
+      ConfigDBO(false, false, AppThemeDBO.system, usesImperialUnits: null);
 
   Future<OnboardingBloc> loadedBloc(ConfigDBO config) async {
     final configRepo = _FakeConfigRepository(config);
@@ -81,7 +76,6 @@ void main() {
         ConfigDBO(
           false,
           false,
-          false,
           AppThemeDBO.system,
           usesImperialHeightUnits: true,
           usesImperialFoodUnits: false,
@@ -103,7 +97,6 @@ void main() {
         ConfigDBO(
           false,
           false,
-          false,
           AppThemeDBO.system,
           usesImperialHeightUnits: false,
           usesImperialFoodUnits: false,
@@ -120,13 +113,7 @@ void main() {
     test('the legacy imperial flag alone counts as a choice', () async {
       // Pre-split install: only usesImperialUnits was ever written.
       final bloc = await loadedBloc(
-        ConfigDBO(
-          false,
-          false,
-          false,
-          AppThemeDBO.system,
-          usesImperialUnits: true,
-        ),
+        ConfigDBO(false, false, AppThemeDBO.system, usesImperialUnits: true),
       );
       addTearDown(bloc.close);
 
@@ -148,13 +135,7 @@ void main() {
       // untouched install from a deliberate metric one.
       final usecase = GetConfigUsecase(
         _FakeConfigRepository(
-          ConfigDBO(
-            false,
-            false,
-            false,
-            AppThemeDBO.system,
-            usesImperialUnits: false,
-          ),
+          ConfigDBO(false, false, AppThemeDBO.system, usesImperialUnits: false),
         ),
       );
 
@@ -165,7 +146,6 @@ void main() {
       final usecase = GetConfigUsecase(
         _FakeConfigRepository(
           ConfigDBO(
-            false,
             false,
             false,
             AppThemeDBO.system,
@@ -229,7 +209,6 @@ void main() {
       await bloc.stream.firstWhere((state) => state is OnboardingLoadedState);
 
       configRepo.dbo = ConfigDBO(
-        false,
         false,
         false,
         AppThemeDBO.system,

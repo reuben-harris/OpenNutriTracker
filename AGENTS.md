@@ -120,7 +120,7 @@ attribution, assistant names, or AI co-author trailers.
 ## Known tooling issues
 
 - Flutter 3.47.4's Built-in Kotlin warning detector scans build-file text. It can
-  name `flutter_image_compress_common`, `flutter_timezone`, and `sentry_flutter`
+  name `flutter_image_compress_common` and `flutter_timezone`
   even when their conditional KGP declarations are skipped. These warnings were
   verified as false positives on the migrated toolchain: no Android KGP plugins
   were actually applied. Check Gradle's evaluated plugin containers before

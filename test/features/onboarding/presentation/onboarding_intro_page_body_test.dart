@@ -76,8 +76,7 @@ void main() {
 
   Future<void> pumpIntroPage(
     WidgetTester tester, {
-    required void Function(bool acceptedPolicy, bool acceptedData)
-    onSetPageContent,
+    required ValueChanged<bool> onSetPageContent,
     Locale? locale,
   }) async {
     await tester.pumpWidget(
@@ -107,7 +106,7 @@ void main() {
   /// Driven through the recognizer the widget installed rather than through
   /// `tapOnText`, so the test exercises the policy link directly.
   Future<void> tapPolicyLink(WidgetTester tester, Locale locale) async {
-    await pumpIntroPage(tester, onSetPageContent: (_, _) {}, locale: locale);
+    await pumpIntroPage(tester, onSetPageContent: (_) {}, locale: locale);
 
     final policyTile = find.ancestor(
       of: find.byType(Checkbox).first,
@@ -135,99 +134,27 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('renders both checkboxes unchecked initially', (tester) async {
-    await pumpIntroPage(tester, onSetPageContent: (_, _) {});
-
-    final checkboxes = tester
-        .widgetList<Checkbox>(find.byType(Checkbox))
-        .toList();
-    expect(checkboxes, hasLength(2));
-    expect(
-      checkboxes[0].value,
-      isFalse,
-      reason: 'policy checkbox starts unchecked',
-    );
-    expect(
-      checkboxes[1].value,
-      isFalse,
-      reason: 'data-collection checkbox starts unchecked',
-    );
-  });
-
-  testWidgets(
-    'tapping the policy checkbox reports (true, false) and checks the box',
-    (tester) async {
-      bool? lastPolicy;
-      bool? lastData;
-      await pumpIntroPage(
-        tester,
-        onSetPageContent: (policy, data) {
-          lastPolicy = policy;
-          lastData = data;
-        },
-      );
-
-      await tester.tap(find.byType(Checkbox).first);
-      await tester.pump();
-
-      expect(lastPolicy, isTrue);
-      expect(lastData, isFalse);
-      expect(
-        tester.widget<Checkbox>(find.byType(Checkbox).first).value,
-        isTrue,
-      );
-    },
-  );
-
-  testWidgets('tapping the data-collection checkbox reports (false, true)', (
+  testWidgets('policy checkbox starts unchecked and reports acceptance', (
     tester,
   ) async {
-    bool? lastPolicy;
-    bool? lastData;
-    await pumpIntroPage(
-      tester,
-      onSetPageContent: (policy, data) {
-        lastPolicy = policy;
-        lastData = data;
-      },
-    );
-
-    await tester.tap(find.byType(Checkbox).last);
+    bool? accepted;
+    await pumpIntroPage(tester, onSetPageContent: (value) => accepted = value);
+    expect(find.byType(Checkbox), findsOneWidget);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+    await tester.tap(find.byType(Checkbox));
     await tester.pump();
-
-    expect(lastPolicy, isFalse);
-    expect(lastData, isTrue);
-    expect(tester.widget<Checkbox>(find.byType(Checkbox).last).value, isTrue);
-  });
-
-  testWidgets('tapping both checkboxes reports (true, true)', (tester) async {
-    bool? lastPolicy;
-    bool? lastData;
-    await pumpIntroPage(
-      tester,
-      onSetPageContent: (policy, data) {
-        lastPolicy = policy;
-        lastData = data;
-      },
-    );
-
-    await tester.tap(find.byType(Checkbox).first);
-    await tester.pump();
-    await tester.tap(find.byType(Checkbox).last);
-    await tester.pump();
-
-    expect(lastPolicy, isTrue);
-    expect(lastData, isTrue);
+    expect(accepted, isTrue);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
   });
 
   testWidgets('tapping the policy checkbox twice toggles it back off', (
     tester,
   ) async {
-    final reportedStates = <(bool, bool)>[];
+    final reportedStates = <bool>[];
     await pumpIntroPage(
       tester,
-      onSetPageContent: (policy, data) {
-        reportedStates.add((policy, data));
+      onSetPageContent: (policy) {
+        reportedStates.add(policy);
       },
     );
 
@@ -237,7 +164,7 @@ void main() {
     await tester.tap(policyBox);
     await tester.pump();
 
-    expect(reportedStates, equals([(true, false), (false, false)]));
+    expect(reportedStates, equals([true, false]));
     expect(tester.widget<Checkbox>(policyBox).value, isFalse);
   });
 
@@ -247,7 +174,7 @@ void main() {
       bool? lastPolicy;
       await pumpIntroPage(
         tester,
-        onSetPageContent: (policy, _) {
+        onSetPageContent: (policy) {
           lastPolicy = policy;
         },
       );

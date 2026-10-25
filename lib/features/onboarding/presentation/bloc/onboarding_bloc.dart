@@ -79,7 +79,6 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
 
   Future<void> saveOnboardingData(
     UserEntity userEntity,
-    bool hasAcceptedDataCollection,
     bool heightImperial,
     BodyWeightUnit bodyWeightUnit,
     bool foodImperial, {
@@ -100,9 +99,6 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     // (#887).
     await _addConfigUsecase.setConfigPolicyNoticeRevisionSeen(
       URLConst.policyRevision,
-    );
-    await _addConfigUsecase.setConfigHasAcceptedAnonymousData(
-      hasAcceptedDataCollection,
     );
     await _addConfigUsecase.setConfigUsesImperialHeightUnits(heightImperial);
     await _addConfigUsecase.setConfigBodyWeightUnit(bodyWeightUnit);

@@ -12,8 +12,6 @@ class ConfigDBO extends HiveObject {
   bool hasAcceptedDisclaimer;
   @HiveField(1)
   bool hasAcceptedPolicy;
-  @HiveField(2)
-  bool hasAcceptedSendAnonymousData;
   @HiveField(3)
   AppThemeDBO selectedAppTheme;
   @HiveField(4)
@@ -34,7 +32,7 @@ class ConfigDBO extends HiveObject {
   int? notificationHour;
   @HiveField(12)
   int? notificationMinute;
-  // Fields 13 and 32 are retired; keep all other Hive field IDs stable.
+  // Fields 2, 13 and 32 are retired; keep all other Hive field IDs stable.
   @HiveField(14)
   bool? showMealMacros;
   @HiveField(15)
@@ -179,7 +177,6 @@ class ConfigDBO extends HiveObject {
   ConfigDBO(
     this.hasAcceptedDisclaimer,
     this.hasAcceptedPolicy,
-    this.hasAcceptedSendAnonymousData,
     this.selectedAppTheme, {
     this.usesImperialUnits = false,
     this.userKcalAdjustment,
@@ -216,13 +213,11 @@ class ConfigDBO extends HiveObject {
     this.overviewNutrientsAsPercent,
   });
 
-  factory ConfigDBO.empty() =>
-      ConfigDBO(false, false, false, AppThemeDBO.system);
+  factory ConfigDBO.empty() => ConfigDBO(false, false, AppThemeDBO.system);
 
   factory ConfigDBO.fromConfigEntity(ConfigEntity entity) => ConfigDBO(
     entity.hasAcceptedDisclaimer,
     entity.hasAcceptedPolicy,
-    entity.hasAcceptedSendAnonymousData,
     AppThemeDBO.fromAppThemeEntity(entity.appTheme),
     amountArithmeticEnabled: entity.amountArithmeticEnabled,
     catalogueSourceOverrides: Map<String, bool>.from(
