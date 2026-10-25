@@ -60,7 +60,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final _defaultImageWidget = null;
 
-  bool _introPageButtonActive = false;
   bool _aboutYouPageButtonActive = false;
   bool _bodyMeasurementsPageButtonActive = false;
   bool _activityPageButtonActive = false;
@@ -188,15 +187,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         title: S.of(context).onboardingWelcomeLabel,
         decoration: _pageDecoration,
         image: _defaultImageWidget,
-        bodyWidget: OnboardingIntroPageBody(
-          setPageContent: _setIntroPageData,
-          initialAcceptedPolicy: _introPageButtonActive,
-        ),
+        bodyWidget: const OnboardingIntroPageBody(),
         footer: HighlightButton(
           buttonLabel: S.of(context).buttonStartLabel,
           onButtonPressed: () => _scrollToPage(_OnboardingPage.aboutYou),
-          buttonActive: _introPageButtonActive,
-          inactiveMessage: S.of(context).onboardingBlockedPolicySnack,
+          buttonActive: true,
         ),
       ),
       PageViewModel(
@@ -340,10 +335,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _scrollToPage(_OnboardingPage page) {
     FocusScope.of(context).requestFocus(FocusNode()); // Dismiss Keyboard
     _introKey.currentState?.animateScroll(page.index);
-  }
-
-  void _setIntroPageData(bool active) {
-    setState(() => _introPageButtonActive = active);
   }
 
   void _setAboutYouPageData(

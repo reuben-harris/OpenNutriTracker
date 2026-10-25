@@ -84,11 +84,7 @@ void main() {
 
   ProfileBloc buildProfileBloc(
     UserEntity user, {
-    ConfigEntity config = const ConfigEntity(
-      false,
-      false,
-      AppThemeEntity.system,
-    ),
+    ConfigEntity config = const ConfigEntity(false, AppThemeEntity.system),
   }) {
     return ProfileBloc(
       _FakeGetUserUsecase(user),
@@ -106,7 +102,6 @@ void main() {
       final profileBloc = buildProfileBloc(
         UserEntityFixtures.youngSedentaryMaleWantingToMaintainWeight,
         config: ConfigEntity(
-          false,
           false,
           AppThemeEntity.system,
           healthWorkoutKcalMultiplier: override,

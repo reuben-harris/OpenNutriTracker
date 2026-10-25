@@ -37,11 +37,6 @@ class _FakeConfigRepository implements ConfigRepository {
   bool writeStarted = false;
   final Completer<void> unitsCompleter = Completer<void>();
 
-  // The policy acceptance is written right after the user, before the unit
-  // write; it's not part of the race under test, so it resolves immediately.
-  @override
-  Future<void> setConfigHasAcceptedPolicy(bool _) async {}
-
   // Hold the first unit write to verify that onboarding awaits configuration.
   @override
   Future<void> setConfigUsesImperialHeightUnits(bool _) async {
@@ -68,12 +63,6 @@ class _FakeConfigRepository implements ConfigRepository {
 
   @override
   Future<void> setConfigAccentColor(int? _) async {}
-
-  // Stamped alongside the policy acceptance, so someone onboarding now is
-  // never told the document they just read has changed (#887). Written after
-  // the race under test, resolves immediately.
-  @override
-  Future<void> setConfigPolicyNoticeRevisionSeen(int _) async {}
 
   @override
   noSuchMethod(Invocation invocation) =>

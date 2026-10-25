@@ -106,16 +106,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  // The policy-change notice #887 specified is deliberately **not** shown for
-  // revision 1. #887's reasoning stands on the record and was not refuted —
-  // the corrections name recipients that were always receiving data, so users
-  // were under-informed for the whole time rather than recently — but the call
-  // was made not to spend a first-launch dialog on it. The mechanism itself is
-  // kept, not deleted: `URLConst.policyRevision`, the seeding in
-  // `OnboardingBloc.saveOnboardingData` and `PolicyChangeDialog` are all still
-  // live and tested, so a future revision that does warrant telling people can
-  // restore this by calling the dialog again. What is gone is one call, not
-  // the ability to notify.
   Future<void> _loadConfigDrivenUi() async {
     final config = await locator<GetConfigUsecase>().getConfig();
     if (!mounted) return;
@@ -145,7 +135,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   /// Health Connect starts the app rather than rendering anything itself, so
   /// without this the user is dropped on the diary having asked a question
   /// nothing answered. The screen names the data, says what it is used for,
-  /// and links the privacy policy.
   Future<void> _maybeOpenHealthRationale() async {
     if (_checkingHealthRationale) return;
     _checkingHealthRationale = true;

@@ -93,7 +93,6 @@ void main() {
 
   const config = ConfigEntity(
     false,
-    false,
     AppThemeEntity.system,
     dayStartOffsetHours: 6,
   );

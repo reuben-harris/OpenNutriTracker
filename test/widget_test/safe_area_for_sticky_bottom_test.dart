@@ -75,7 +75,7 @@ class _Calendar extends Fake implements CalendarDayBloc {
 class _Config extends Fake implements GetConfigUsecase {
   @override
   Future<ConfigEntity> getConfig() async =>
-      const ConfigEntity(true, true, AppThemeEntity.system);
+      const ConfigEntity(true, AppThemeEntity.system);
 }
 
 void main() {

@@ -110,7 +110,6 @@ void main() {
       await configDataSource.addConfig(
         ConfigDBO(
           true,
-          true,
           AppThemeDBO.dark,
           usesImperialUnits: true,
           notificationsEnabled: true,

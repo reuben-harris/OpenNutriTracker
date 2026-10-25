@@ -28,14 +28,6 @@ class ConfigRepository {
     await _configDataSource.setConfigDisclaimer(hasAcceptedDisclaimer);
   }
 
-  Future<void> setConfigHasAcceptedPolicy(bool hasAcceptedPolicy) async {
-    await _configDataSource.setConfigAcceptedPolicy(hasAcceptedPolicy);
-  }
-
-  Future<void> setConfigPolicyNoticeRevisionSeen(int revision) async {
-    await _configDataSource.setConfigPolicyNoticeRevisionSeen(revision);
-  }
-
   Future<AppThemeEntity> getConfigAppTheme() async {
     final appThemeDBO = await _configDataSource.getAppTheme();
     return AppThemeEntity.fromAppThemeDBO(appThemeDBO);

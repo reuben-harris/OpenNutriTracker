@@ -911,7 +911,6 @@ class _FakeGetConfigUsecase implements GetConfigUsecase {
   Future<ConfigEntity> getConfig() async {
     return ConfigEntity(
       true,
-      true,
       AppThemeEntity.system,
       usesImperialFoodUnits: imperialProvider(),
     );

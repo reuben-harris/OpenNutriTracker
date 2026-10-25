@@ -18,7 +18,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
     };
     return ConfigDBO(
         fields[0] as bool,
-        fields[1] as bool,
         fields[3] as AppThemeDBO,
         usesImperialUnits: fields[4] == null ? false : fields[4] as bool?,
         userKcalAdjustment: (fields[5] as num?)?.toDouble(),
@@ -47,7 +46,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
         healthWorkoutKcalMultiplier: (fields[34] as num?)?.toDouble(),
         healthLastImportAt: fields[35] as DateTime?,
         healthDeletedExternalIds: (fields[36] as List?)?.cast<String>(),
-        policyNoticeRevisionSeen: (fields[37] as num?)?.toInt(),
         healthDeletedWorkouts: (fields[38] as Map?)?.cast<String, DateTime>(),
         amountArithmeticEnabled: fields[42] as bool?,
         catalogueSourceOverrides: (fields[43] as Map?)?.cast<String, bool>(),
@@ -62,11 +60,9 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
   @override
   void write(BinaryWriter writer, ConfigDBO obj) {
     writer
-      ..writeByte(39)
+      ..writeByte(37)
       ..writeByte(0)
       ..write(obj.hasAcceptedDisclaimer)
-      ..writeByte(1)
-      ..write(obj.hasAcceptedPolicy)
       ..writeByte(3)
       ..write(obj.selectedAppTheme)
       ..writeByte(4)
@@ -129,8 +125,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
       ..write(obj.healthLastImportAt)
       ..writeByte(36)
       ..write(obj.healthDeletedExternalIds)
-      ..writeByte(37)
-      ..write(obj.policyNoticeRevisionSeen)
       ..writeByte(38)
       ..write(obj.healthDeletedWorkouts)
       ..writeByte(40)
@@ -161,7 +155,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
 ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
     ConfigDBO(
         json['hasAcceptedDisclaimer'] as bool,
-        json['hasAcceptedPolicy'] as bool,
         $enumDecode(_$AppThemeDBOEnumMap, json['selectedAppTheme']),
         usesImperialUnits: json['usesImperialUnits'] as bool? ?? false,
         userKcalAdjustment: (json['userKcalAdjustment'] as num?)?.toDouble(),
@@ -203,8 +196,6 @@ ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
             (json['healthDeletedExternalIds'] as List<dynamic>?)
                 ?.map((e) => e as String)
                 .toList(),
-        policyNoticeRevisionSeen: (json['policyNoticeRevisionSeen'] as num?)
-            ?.toInt(),
         healthDeletedWorkouts:
             (json['healthDeletedWorkouts'] as Map<String, dynamic>?)?.map(
               (k, e) => MapEntry(k, DateTime.parse(e as String)),
@@ -223,7 +214,6 @@ ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$ConfigDBOToJson(ConfigDBO instance) => <String, dynamic>{
   'hasAcceptedDisclaimer': instance.hasAcceptedDisclaimer,
-  'hasAcceptedPolicy': instance.hasAcceptedPolicy,
   'selectedAppTheme': _$AppThemeDBOEnumMap[instance.selectedAppTheme]!,
   'usesImperialUnits': instance.usesImperialUnits,
   'userKcalAdjustment': instance.userKcalAdjustment,
@@ -258,7 +248,6 @@ Map<String, dynamic> _$ConfigDBOToJson(ConfigDBO instance) => <String, dynamic>{
   'healthDeletedWorkouts': instance.healthDeletedWorkouts?.map(
     (k, e) => MapEntry(k, e.toIso8601String()),
   ),
-  'policyNoticeRevisionSeen': instance.policyNoticeRevisionSeen,
   'overviewMacrosAsPercent': instance.overviewMacrosAsPercent,
   'overviewNutrientsAsPercent': instance.overviewNutrientsAsPercent,
   'amountArithmeticEnabled': instance.amountArithmeticEnabled,

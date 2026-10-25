@@ -90,7 +90,6 @@ class _FakeGetConfigUsecase implements GetConfigUsecase {
   @override
   Future<ConfigEntity> getConfig() async => ConfigEntity(
     true,
-    true,
     AppThemeEntity.system,
     usesImperialUnits: usesImperialUnits,
     bodyWeightUnit: usesImperialUnits ? BodyWeightUnit.lb : BodyWeightUnit.kg,
