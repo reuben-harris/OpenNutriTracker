@@ -6,7 +6,7 @@ import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/config_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_activity_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/get_kcal_goal_breakdown_usecase.dart';
@@ -83,7 +83,7 @@ void main() {
     birthday: DateTime(1984, 3, 2),
     heightCM: 172.0,
     weightKG: 74.5,
-    gender: UserGenderEntity.female,
+    sex: UserSexEntity.female,
     goal: UserWeightGoalEntity.loseWeight,
     pal: UserPALEntity.lowActive,
     weeklyWeightGoalKg: -0.25,

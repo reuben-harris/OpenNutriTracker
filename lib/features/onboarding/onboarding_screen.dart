@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:introduction_screen/introduction_screen.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
-import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
 import 'package:opennutritracker/core/domain/entity/profile_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/delete_profile_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_profiles_usecase.dart';
@@ -12,7 +11,7 @@ import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/core/utils/notification_service.dart';
 import 'package:opennutritracker/features/profile/presentation/utils/profile_switch_coordinator.dart';
 import 'package:opennutritracker/features/onboarding/domain/entity/user_activity_selection_entity.dart';
-import 'package:opennutritracker/features/onboarding/domain/entity/user_gender_selection_entity.dart';
+import 'package:opennutritracker/features/onboarding/domain/entity/user_sex_selection_entity.dart';
 import 'package:opennutritracker/features/onboarding/domain/entity/user_goal_selection_entity.dart';
 import 'package:opennutritracker/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:opennutritracker/features/onboarding/presentation/onboarding_intro_page_body.dart';
@@ -208,8 +207,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         image: _defaultImageWidget,
         bodyWidget: OnboardingAboutYouPageBody(
           setPageContent: _setAboutYouPageData,
-          initialGender: selection.gender,
-          initialCaloriesProfile: selection.caloriesProfile,
+          initialSex: selection.sex,
           initialBirthday: selection.birthday,
         ),
         footer: HighlightButton(
@@ -356,13 +354,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _setAboutYouPageData(
     bool active,
-    UserGenderSelectionEntity? selectedGender,
-    CaloriesProfileEntity? selectedCaloriesProfile,
+    UserSexSelectionEntity? selectedSex,
     DateTime? selectedBirthday,
   ) {
     setState(() {
-      _onboardingBloc.userSelection.gender = selectedGender;
-      _onboardingBloc.userSelection.caloriesProfile = selectedCaloriesProfile;
+      _onboardingBloc.userSelection.sex = selectedSex;
       _onboardingBloc.userSelection.birthday = selectedBirthday;
 
       _aboutYouPageButtonActive = active;

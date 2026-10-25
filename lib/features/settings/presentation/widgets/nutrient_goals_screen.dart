@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
 import 'package:opennutritracker/core/utils/calc/daily_nutrient_references.dart';
@@ -16,9 +16,7 @@ import 'package:opennutritracker/generated/l10n.dart';
 /// slider, persisted to today's TrackedDayDBO row so the diary panel
 /// can read it back as a reference value.
 ///
-/// Iron and magnesium open at gender-aware defaults — 8 / 18 / 14 mg
-/// and 400 / 310 / 355 mg for male / female / non-binary — matching
-/// the panel's own reference choices so the dialog and panel agree.
+/// Iron and magnesium use sex-specific defaults.
 class NutrientGoalsScreen extends StatefulWidget {
   final SettingsBloc settingsBloc;
   final ProfileBloc profileBloc;
@@ -126,30 +124,25 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
     super.dispose();
   }
 
-  /// Iron RDA splits female 18 / male 8 (mg). 14 mg is the
-  /// gender-neutral midpoint we pick for non-binary / unknown,
-  /// matching the panel's existing fallback.
-  double _ironDefaultForGender() {
-    switch (_user?.gender) {
-      case UserGenderEntity.female:
+  /// Default iron goal; preserves the fallback while no user is loaded.
+  double _ironDefaultForSex() {
+    switch (_user?.sex) {
+      case UserSexEntity.female:
         return 18.0;
-      case UserGenderEntity.male:
+      case UserSexEntity.male:
         return 8.0;
-      case UserGenderEntity.nonBinary:
       case null:
         return 14.0;
     }
   }
 
-  /// Magnesium DRI: 400 mg adult male, 310 mg adult female; 355 mg
-  /// for non-binary / unknown so neither extreme is misled.
-  double _magnesiumDefaultForGender() {
-    switch (_user?.gender) {
-      case UserGenderEntity.female:
+  /// Default magnesium goal; preserves the fallback while no user is loaded.
+  double _magnesiumDefaultForSex() {
+    switch (_user?.sex) {
+      case UserSexEntity.female:
         return 310.0;
-      case UserGenderEntity.male:
+      case UserSexEntity.male:
         return 400.0;
-      case UserGenderEntity.nonBinary:
       case null:
         return 355.0;
     }
@@ -199,13 +192,13 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
         (_calcium ?? DailyNutrientReferences.defaultCalciumRefMg)
             .round()
             .toString();
-    _ironController.text = _formatGoal(_iron ?? _ironDefaultForGender());
+    _ironController.text = _formatGoal(_iron ?? _ironDefaultForSex());
     _potassiumController.text =
         (_potassium ?? DailyNutrientReferences.defaultPotassiumRefMg)
             .round()
             .toString();
     _magnesiumController.text = _formatGoal(
-      _magnesium ?? _magnesiumDefaultForGender(),
+      _magnesium ?? _magnesiumDefaultForSex(),
     );
     _vitaminDController.text = _formatGoal(
       _vitaminD ?? DailyNutrientReferences.defaultVitaminDRefUg,
@@ -394,7 +387,7 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
                 _NutrientRow(
                   label: s.settingsIronGoalLabel,
                   description: s.settingsIronGoalDescription,
-                  value: _iron ?? _ironDefaultForGender(),
+                  value: _iron ?? _ironDefaultForSex(),
                   min: _ironMin,
                   max: _ironMax,
                   divisions: _ironDivisions,
@@ -434,7 +427,7 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
                 _NutrientRow(
                   label: s.settingsMagnesiumGoalLabel,
                   description: s.settingsMagnesiumGoalDescription,
-                  value: _magnesium ?? _magnesiumDefaultForGender(),
+                  value: _magnesium ?? _magnesiumDefaultForSex(),
                   min: _magnesiumMin,
                   max: _magnesiumMax,
                   divisions: _magnesiumDivisions,

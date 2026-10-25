@@ -153,10 +153,7 @@ class TrendsBloc extends Bloc<TrendsEvent, TrendsState> {
             bodyWeightUnit: config.bodyWeightUnit,
             targetWeightKg: user.targetWeightKg,
             waterByDay: waterByDay,
-            waterGoalMl: config.effectiveDailyWaterGoalMl(
-              user.gender,
-              caloriesProfile: user.caloriesProfile,
-            ),
+            waterGoalMl: config.effectiveDailyWaterGoalMl(user.sex),
           ),
         );
       } catch (e) {

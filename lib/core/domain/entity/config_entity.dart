@@ -2,8 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:opennutritracker/core/data/dbo/config_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
-import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 
 class ConfigEntity extends Equatable {
   // #150: keys for the per-meal kcal share map. Kept as plain strings rather
@@ -61,7 +60,7 @@ class ConfigEntity extends Equatable {
   final int
   dayStartOffsetMinutes; // #139 follow-up: 0-59, composes additively with hours
   // #32: nullable so "I haven't picked yet" can fall back to a
-  // gendered default at read time. Once the user has touched the
+  // sex-based default at read time. Once the user has touched the
   // setting, their override is persisted and survives a profile edit.
   final int? dailyWaterGoalMl;
   // #84: whether the user has acknowledged the one-time content warning
@@ -217,16 +216,10 @@ class ConfigEntity extends Equatable {
   ///     Really?", AJP-Reg 2002;283(5):R993–R1004.
   static const int defaultDailyWaterGoalMl = 1500;
 
-  /// Gendered seed defaults applied when [dailyWaterGoalMl] is null —
-  /// derived from EFSA 2010 total-water AI (2.0 L women / 2.5 L men)
-  /// minus the ~20% food-moisture share. Non-binary users fall back to
-  /// the female / male / averaged figure based on their
-  /// [CaloriesProfileEntity], which is the same decoupling the TDEE
-  /// calculator uses so a user only states their reference body
-  /// chemistry once.
+  /// Sex-specific drinking-water seeds, derived from EFSA 2010 total-water
+  /// AI minus the food-moisture share.
   static const int waterGoalFemaleMl = 1500;
   static const int waterGoalMaleMl = 1900;
-  static const int waterGoalAveragedMl = 1700;
 
   const ConfigEntity(
     this.hasAcceptedDisclaimer,
@@ -276,44 +269,15 @@ class ConfigEntity extends Equatable {
   double get effectiveHealthWorkoutKcalMultiplier =>
       healthWorkoutKcalMultiplier ?? defaultHealthWorkoutKcalMultiplier;
 
-  /// Resolves the daily water goal for the home chip. Returns the user's
-  /// stored override if one exists, otherwise the gendered seed default
-  /// derived from EFSA 2010 (see [defaultDailyWaterGoalMl] for the full
-  /// reasoning and citations). Non-binary users fall back to the same
-  /// `CaloriesProfileEntity` they pick for TDEE — averaged sits at the
-  /// midpoint of the female / male figures.
-  int effectiveDailyWaterGoalMl(
-    UserGenderEntity gender, {
-    CaloriesProfileEntity? caloriesProfile,
-  }) {
-    final stored = dailyWaterGoalMl;
-    if (stored != null) return stored;
-    return seedWaterGoalForGender(gender, caloriesProfile: caloriesProfile);
-  }
+  /// Returns the stored override, or the sex-specific seed.
+  int effectiveDailyWaterGoalMl(UserSexEntity sex) =>
+      dailyWaterGoalMl ?? seedWaterGoalForSex(sex);
 
-  /// Gendered seed used when no override is stored. Public so the goal
-  /// dialog can show "reset to the gender-appropriate default" without
-  /// having to recompute the rules itself.
-  static int seedWaterGoalForGender(
-    UserGenderEntity gender, {
-    CaloriesProfileEntity? caloriesProfile,
-  }) {
-    switch (gender) {
-      case UserGenderEntity.male:
-        return waterGoalMaleMl;
-      case UserGenderEntity.female:
-        return waterGoalFemaleMl;
-      case UserGenderEntity.nonBinary:
-        switch (caloriesProfile ?? CaloriesProfileEntity.averaged) {
-          case CaloriesProfileEntity.testosteroneTypical:
-            return waterGoalMaleMl;
-          case CaloriesProfileEntity.estrogenTypical:
-            return waterGoalFemaleMl;
-          case CaloriesProfileEntity.averaged:
-            return waterGoalAveragedMl;
-        }
-    }
-  }
+  /// Seed used when no override is stored.
+  static int seedWaterGoalForSex(UserSexEntity sex) => switch (sex) {
+    UserSexEntity.male => waterGoalMaleMl,
+    UserSexEntity.female => waterGoalFemaleMl,
+  };
 
   /// Whether a particular nutrient on the daily panel should be rendered.
   /// All nutrients default to visible; the user can hide individual ones
@@ -418,8 +382,8 @@ class ConfigEntity extends Equatable {
   }
 
   // Defensive clamp on the persisted water goal. null means "no
-  // override stored" — caller falls back to the gendered seed in
-  // [seedWaterGoalForGender]. A non-null value outside 100–10000 ml is
+  // override stored" — caller falls back to the sex-based seed in
+  // [seedWaterGoalForSex]. A non-null value outside 100–10000 ml is
   // treated as corrupt and dropped to null so the seed kicks in.
   static int? _normaliseWaterGoal(int? raw) {
     if (raw == null) return null;

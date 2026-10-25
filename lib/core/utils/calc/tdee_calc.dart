@@ -1,6 +1,5 @@
-import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/utils/calc/pal_calc.dart';
 
 class TDEECalc {
@@ -14,44 +13,17 @@ class TDEECalc {
   /// https://doi.org/10.17226/10490.
   /// https://nap.nationalacademies.org/catalog/10490/dietary-reference-intakes-for-energy-carbohydrate-fiber-fat-fatty-acids-cholesterol-protein-and-amino-acids
   ///
-  /// For non-binary users without an explicit hormone profile, the result is
-  /// the mean of the male / female reference outputs. This is a comfort and
-  /// privacy choice rather than a statistical claim. The IOM 2005 equations
-  /// are sex-stratified and there isn't a published non-binary baseline; any
-  /// single default we picked would be making a claim the source data doesn't
-  /// support. Averaging produces a neutral midpoint bounded by the two
-  /// reference outputs, and lets a non-binary user use the app without having
-  /// to disclose whether their profile is estrogen- or testosterone-dominant.
-  ///
-  /// Users who want a closer estimate can opt into the estrogenTypical or
-  /// testosteroneTypical reference via the calorie-profile setting; either
-  /// choice routes through the existing male / female formula. The kcal offset
-  /// slider in Settings is available for further fine-tuning regardless of
-  /// which profile is selected.
   static double getTDEEKcalIOM2005(UserEntity userEntity) {
     final palValue = PalCalc.getPALValueFromActivityCategory(userEntity);
-    switch (userEntity.gender) {
-      case UserGenderEntity.male:
-        return iom2005MaleReferenceKcal(userEntity, palValue);
-      case UserGenderEntity.female:
-        return iom2005FemaleReferenceKcal(userEntity, palValue);
-      case UserGenderEntity.nonBinary:
-        switch (userEntity.caloriesProfile ?? CaloriesProfileEntity.averaged) {
-          case CaloriesProfileEntity.averaged:
-            return (iom2005MaleReferenceKcal(userEntity, palValue) +
-                    iom2005FemaleReferenceKcal(userEntity, palValue)) /
-                2;
-          case CaloriesProfileEntity.estrogenTypical:
-            return iom2005FemaleReferenceKcal(userEntity, palValue);
-          case CaloriesProfileEntity.testosteroneTypical:
-            return iom2005MaleReferenceKcal(userEntity, palValue);
-        }
+    switch (userEntity.sex) {
+      case UserSexEntity.male:
+        return _iom2005MaleReferenceKcal(userEntity, palValue);
+      case UserSexEntity.female:
+        return _iom2005FemaleReferenceKcal(userEntity, palValue);
     }
   }
 
-  /// Single-side male reference result for a given PAL value. Public so the
-  /// calorie-goal transparency breakdown can show each reference side of an
-  /// averaged non-binary TDEE without duplicating the coefficients.
+  /// Male reference result for the calorie calculation.
   ///
   /// p. 204, verbatim:
   ///   TEE = 864 - (9.72 x age [y]) + PA x (14.2 x weight [kg]
@@ -61,7 +33,7 @@ class TDEECalc {
   /// costs a non-sedentary user 109-489 kcal/day (#987); the brackets are the
   /// whole content of this expression, so keep them. The published-value tests
   /// verify the grouping against the source tables.
-  static double iom2005MaleReferenceKcal(
+  static double _iom2005MaleReferenceKcal(
     UserEntity userEntity,
     double palValue,
   ) {
@@ -75,14 +47,13 @@ class TDEECalc {
             (14.2 * userEntity.weightKG + 503 * (userEntity.heightCM / 100));
   }
 
-  /// Single-side female reference result for a given PAL value. See
-  /// [iom2005MaleReferenceKcal] for why this is public, and for the bracket
-  /// placement that #987 turned on.
+  /// Female reference result for a given PAL value. See
+  /// [_iom2005MaleReferenceKcal] for the bracket placement.
   ///
   /// p. 204, verbatim:
   ///   TEE = 387 - (7.31 x age [y]) + PA x (10.9 x weight [kg]
   ///         + 660.7 x height [m])
-  static double iom2005FemaleReferenceKcal(
+  static double _iom2005FemaleReferenceKcal(
     UserEntity userEntity,
     double palValue,
   ) {

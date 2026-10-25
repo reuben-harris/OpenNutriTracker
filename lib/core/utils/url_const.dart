@@ -30,12 +30,6 @@ class URLConst {
       "https://iris.who.int/handle/10665/42665";
   static const sourceActivityCompendium2024URL =
       "https://pubmed.ncbi.nlm.nih.gov/38242596/";
-  static const sourceInclusiveDesignLinsenmeyer2021URL =
-      "https://doi.org/10.1186/s12937-021-00662-z";
-  static const sourceTransMetabolismWiik2018URL =
-      "https://pmc.ncbi.nlm.nih.gov/articles/PMC6046513/";
-  static const sourceTransNutritionLinsenmeyer2020URL =
-      "https://link.springer.com/article/10.1186/s12937-020-00590-4";
   static const sourceEnergyCompensationCareau2021URL =
       "https://pubmed.ncbi.nlm.nih.gov/34453886/";
 

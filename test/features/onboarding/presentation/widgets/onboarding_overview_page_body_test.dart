@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/kcal_goal_breakdown_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
@@ -22,7 +22,7 @@ void main() {
     birthday: DateTime(1990, 6, 15),
     heightCM: 180,
     weightKG: 80,
-    gender: UserGenderEntity.male,
+    sex: UserSexEntity.male,
     goal: goal,
     pal: UserPALEntity.lowActive,
   );

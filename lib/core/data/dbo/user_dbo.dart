@@ -1,6 +1,5 @@
 import 'package:hive_ce_flutter/hive_flutter.dart';
-import 'package:opennutritracker/core/data/dbo/calories_profile_dbo.dart';
-import 'package:opennutritracker/core/data/dbo/user_gender_dbo.dart';
+import 'package:opennutritracker/core/data/dbo/user_sex_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/user_pal_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/user_weight_goal_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
@@ -16,15 +15,14 @@ class UserDBO extends HiveObject {
   @HiveField(2)
   double weightKG;
   @HiveField(3)
-  UserGenderDBO gender;
+  UserSexDBO sex;
   @HiveField(4)
   UserWeightGoalDBO goal;
   @HiveField(5)
   UserPALDBO pal;
   @HiveField(6)
   double? weeklyWeightGoalKg;
-  @HiveField(7)
-  CaloriesProfileDBO? caloriesProfile;
+  // Field ID 7 and its former profile type ID 18 are retired.
   @HiveField(8)
   double? targetWeightKg;
   // Opt-in linear taper that scales the daily kcal deficit down as
@@ -39,11 +37,10 @@ class UserDBO extends HiveObject {
     required this.birthday,
     required this.heightCM,
     required this.weightKG,
-    required this.gender,
+    required this.sex,
     required this.goal,
     required this.pal,
     this.weeklyWeightGoalKg,
-    this.caloriesProfile,
     this.targetWeightKg,
     this.caloriesTaperEnabled = false,
   });
@@ -53,13 +50,10 @@ class UserDBO extends HiveObject {
       birthday: entity.birthday,
       heightCM: entity.heightCM,
       weightKG: entity.weightKG,
-      gender: UserGenderDBO.fromUserGenderEntity(entity.gender),
+      sex: UserSexDBO.fromUserSexEntity(entity.sex),
       goal: UserWeightGoalDBO.fromUserWeightGoalEntity(entity.goal),
       pal: UserPALDBO.fromUserPALEntity(entity.pal),
       weeklyWeightGoalKg: entity.weeklyWeightGoalKg,
-      caloriesProfile: entity.caloriesProfile == null
-          ? null
-          : CaloriesProfileDBO.fromEntity(entity.caloriesProfile!),
       targetWeightKg: entity.targetWeightKg,
       caloriesTaperEnabled: entity.caloriesTaperEnabled,
     );

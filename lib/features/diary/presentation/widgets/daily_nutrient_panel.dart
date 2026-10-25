@@ -27,7 +27,7 @@ export 'package:opennutritracker/core/utils/calc/nutrient_totals.dart';
 /// renders each as a "(value?.calculationValue ?? 0) / reference" row with a small progress bar.
 ///
 /// The references are sensible DRIs for an average adult (FDA Daily Values
-/// where applicable). Iron and magnesium are gender-aware because the gap
+/// where applicable). Iron and magnesium are sex-aware because the gap
 /// between female and male DRIs is large enough that a single number would
 /// mislead one group or the other.
 ///
@@ -99,7 +99,7 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
     try {
       user = await locator<GetUserUsecase>().getUserData();
     } catch (_) {
-      // Pre-onboarding / tests: fall back to gender-neutral defaults.
+      // Pre-onboarding / tests: fall back to sex-neutral defaults.
       user = null;
     }
 

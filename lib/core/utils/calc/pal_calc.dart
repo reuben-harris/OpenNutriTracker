@@ -1,5 +1,5 @@
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 
 class PalCalc {
@@ -44,13 +44,7 @@ class PalCalc {
 
   ///
   /// Returns the physical activity coefficient (PA) from the PAL value
-  /// and the formula's gender reference based on IOM recommendation.
-  ///
-  /// `isMaleFormula` decouples the PA constant from the user's stored
-  /// gender — needed so non-binary `averaged` TDEE feeds male PA into the
-  /// male half of the average and female PA into the female half. Picking
-  /// PA from `userEntity.gender` directly would route both halves to the
-  /// female constant for any non-binary user.
+  /// and the formula's sex reference based on IOM recommendation.
   ///
   /// Institute of Medicine. 2005. Dietary Reference Intakes for Energy,
   /// Carbohydrate, Fiber, Fat, Fatty Acids, Cholesterol, Protein,
@@ -68,14 +62,11 @@ class PalCalc {
     return isMaleFormula ? 1.54 : 1.45;
   }
 
-  /// Convenience wrapper that picks the PA constant from the user's stored
-  /// gender. Non-binary users go through the female PA — callers that need
-  /// to compute male and female references separately (e.g. averaged TDEE)
-  /// should call [getPAValueForFormula] directly with explicit flags.
+  /// Picks the PA coefficient from the user's sex.
   static double getPAValueFromPALValue(UserEntity userEntity, double palValue) {
     return getPAValueForFormula(
       palValue: palValue,
-      isMaleFormula: userEntity.gender == UserGenderEntity.male,
+      isMaleFormula: userEntity.sex == UserSexEntity.male,
     );
   }
 }

@@ -976,7 +976,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => KcalAdjustmentDialog(
         settingsBloc: _settingsBloc,
-        profileBloc: _profileBloc,
         homeBloc: _homeBloc,
       ),
     );

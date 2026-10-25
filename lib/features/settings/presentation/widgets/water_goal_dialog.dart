@@ -53,10 +53,7 @@ class _WaterGoalDialogState extends State<WaterGoalDialog> {
   Future<void> _load() async {
     final stored = await widget.settingsBloc.getDailyWaterGoalMl();
     final user = await locator<GetUserUsecase>().getUserData();
-    final seed = ConfigEntity.seedWaterGoalForGender(
-      user.gender,
-      caloriesProfile: user.caloriesProfile,
-    );
+    final seed = ConfigEntity.seedWaterGoalForSex(user.sex);
     if (!mounted) return;
     final initial = stored ?? seed;
     setState(() {

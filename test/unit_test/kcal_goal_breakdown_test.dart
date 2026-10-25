@@ -1,15 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
 import 'package:opennutritracker/core/domain/entity/kcal_goal_breakdown_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 import 'package:opennutritracker/core/utils/calc/calorie_goal_calc.dart';
 import 'package:opennutritracker/core/utils/calc/macro_calc.dart';
 import 'package:opennutritracker/core/utils/calc/tdee_calc.dart';
-
-import '../fixture/user_entity_fixtures.dart';
 
 void main() {
   // Yesterday (not `day - 1`) so the date stays valid on the 1st of the
@@ -17,8 +14,7 @@ void main() {
   final yesterday = DateTime.now().subtract(const Duration(days: 1));
 
   UserEntity buildUser({
-    UserGenderEntity gender = UserGenderEntity.male,
-    CaloriesProfileEntity? caloriesProfile,
+    UserSexEntity sex = UserSexEntity.male,
     UserWeightGoalEntity goal = UserWeightGoalEntity.loseWeight,
     UserPALEntity pal = UserPALEntity.active,
     double? weeklyWeightGoalKg,
@@ -30,10 +26,9 @@ void main() {
       birthday: DateTime(yesterday.year - 30, yesterday.month, yesterday.day),
       heightCM: 180.0,
       weightKG: weightKG,
-      gender: gender,
+      sex: sex,
       goal: goal,
       pal: pal,
-      caloriesProfile: caloriesProfile,
       weeklyWeightGoalKg: weeklyWeightGoalKg,
       targetWeightKg: targetWeightKg,
       caloriesTaperEnabled: taperEnabled,
@@ -81,57 +76,31 @@ void main() {
     expect(breakdown.tdeeKcal, TDEECalc.getTDEEKcalIOM2005(user));
   });
 
-  test('male user exposes only the male reference side', () {
-    final breakdown = KcalGoalBreakdownEntity.compute(
-      user: UserEntityFixtures.youngSedentaryMaleWantingToMaintainWeight,
-      totalKcalActivities: 0,
-    );
-
-    expect(breakdown.paMaleFormula, isNotNull);
-    expect(breakdown.tdeeMaleReferenceKcal, breakdown.tdeeKcal);
-    expect(breakdown.paFemaleFormula, isNull);
-    expect(breakdown.tdeeFemaleReferenceKcal, isNull);
-    expect(breakdown.usesAveragedReference, isFalse);
-  });
-
-  test('non-binary averaged profile exposes both sides and their midpoint', () {
-    final user = buildUser(gender: UserGenderEntity.nonBinary);
-    final breakdown = KcalGoalBreakdownEntity.compute(
-      user: user,
-      totalKcalActivities: 0,
-    );
-
-    expect(breakdown.usesAveragedReference, isTrue);
-    expect(breakdown.tdeeMaleReferenceKcal, isNotNull);
-    expect(breakdown.tdeeFemaleReferenceKcal, isNotNull);
-    expect(
-      breakdown.tdeeKcal,
-      closeTo(
-        (breakdown.tdeeMaleReferenceKcal! +
-                breakdown.tdeeFemaleReferenceKcal!) /
-            2,
-        0.0001,
-      ),
-    );
-    // The averaged midpoint must feed male PA into the male side and
-    // female PA into the female side ("active" differs only above 1.9).
-    expect(breakdown.paMaleFormula, 1.27);
-    expect(breakdown.paFemaleFormula, 1.27);
-  });
-
-  test('estrogen-typical profile routes to the female reference only', () {
-    final user = buildUser(
-      gender: UserGenderEntity.nonBinary,
-      caloriesProfile: CaloriesProfileEntity.estrogenTypical,
-    );
-    final breakdown = KcalGoalBreakdownEntity.compute(
-      user: user,
-      totalKcalActivities: 0,
-    );
-
-    expect(breakdown.tdeeMaleReferenceKcal, isNull);
-    expect(breakdown.tdeeFemaleReferenceKcal, breakdown.tdeeKcal);
-  });
+  for (final sex in UserSexEntity.values) {
+    for (final pal in UserPALEntity.values) {
+      test('${sex.name} ${pal.name} uses the selected formula and PA', () {
+        final user = buildUser(sex: sex, pal: pal);
+        final breakdown = KcalGoalBreakdownEntity.compute(
+          user: user,
+          userKcalAdjustment: 125,
+          totalKcalActivities: 250,
+        );
+        final expectedPa = switch (pal) {
+          UserPALEntity.sedentary => 1.0,
+          UserPALEntity.lowActive => sex == UserSexEntity.male ? 1.12 : 1.14,
+          UserPALEntity.active => 1.27,
+          UserPALEntity.veryActive => sex == UserSexEntity.male ? 1.54 : 1.45,
+        };
+        expect(breakdown.sex, sex);
+        expect(breakdown.paValue, expectedPa);
+        expect(breakdown.tdeeKcal, TDEECalc.getTDEEKcalIOM2005(user));
+        expect(
+          breakdown.totalKcalGoal,
+          CalorieGoalCalc.getTotalKcalGoal(user, 250, kcalUserAdjustment: 125),
+        );
+      });
+    }
+  }
 
   test('weekly rate replaces the flat adjustment', () {
     final breakdown = KcalGoalBreakdownEntity.compute(

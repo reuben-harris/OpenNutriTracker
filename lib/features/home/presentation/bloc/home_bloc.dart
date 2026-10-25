@@ -4,12 +4,11 @@ import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
-import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
 import 'package:opennutritracker/core/domain/entity/config_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_activity_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/water_intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/weight_log_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
@@ -239,13 +238,9 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
               configData.mealKcalSharesPct[ConfigEntity.mealKeyDinner] ?? 0,
           snackSharePct:
               configData.mealKcalSharesPct[ConfigEntity.mealKeySnack] ?? 0,
-          userGender: user.gender,
-          userCaloriesProfile: user.caloriesProfile,
+          userSex: user.sex,
           waterMlToday: totalWaterMl,
-          waterGoalMl: configData.effectiveDailyWaterGoalMl(
-            user.gender,
-            caloriesProfile: user.caloriesProfile,
-          ),
+          waterGoalMl: configData.effectiveDailyWaterGoalMl(user.sex),
           waterIntakes: waterIntakes,
         ),
       );

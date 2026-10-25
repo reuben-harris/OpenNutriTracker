@@ -57,8 +57,7 @@ class HomeLoadedState extends HomeState {
   final int lunchSharePct;
   final int dinnerSharePct;
   final int snackSharePct;
-  final UserGenderEntity userGender;
-  final CaloriesProfileEntity? userCaloriesProfile;
+  final UserSexEntity userSex;
   // #32: hydration totals for the home chip. waterMlToday is summed across
   // every entry that falls within the configured logical day; waterGoalMl
   // is the user-configurable target (Settings → Calculations).
@@ -99,8 +98,7 @@ class HomeLoadedState extends HomeState {
     required this.lunchSharePct,
     required this.dinnerSharePct,
     required this.snackSharePct,
-    required this.userGender,
-    required this.userCaloriesProfile,
+    required this.userSex,
     required this.waterMlToday,
     required this.waterGoalMl,
     required this.waterIntakes,
@@ -127,8 +125,7 @@ class HomeLoadedState extends HomeState {
     userActivityList,
     showDisclaimerDialog,
     showMealMacros,
-    userGender,
-    userCaloriesProfile,
+    userSex,
     breakfastKcalTarget,
     lunchKcalTarget,
     dinnerKcalTarget,

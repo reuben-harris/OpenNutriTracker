@@ -1,7 +1,6 @@
-import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/utils/calc/dri_reference.dart';
 import 'package:opennutritracker/core/utils/calc/nutrient_totals.dart';
 
@@ -10,7 +9,7 @@ class DailyNutrientReferences {
   // ---- Default daily references (#173) ----------------------------------
   // Published DRIs / FDA Daily Values used when the user hasn't set their
   // own target in Settings → Nutrient goals. Iron and magnesium default
-  // to a gender-aware value; the rest are gender-neutral.
+  // to a sex-aware value; the rest are sex-neutral.
   static const double defaultFibreRefG = 30.0;
   static const double defaultSaturatedFatRefG = 20.0;
   static const double defaultSugarRefG = 50.0;
@@ -19,7 +18,8 @@ class DailyNutrientReferences {
   static const double defaultPotassiumRefMg = 3500.0;
   static const double defaultVitaminDRefUg = 15.0;
   static const double defaultVitaminB12RefUg = 2.4;
-  static const double defaultMagnesiumRefMg = 355.0; // non-binary midpoint
+  static const double defaultMagnesiumRefMg =
+      355.0; // fallback when no user is available
 
   /// Pure helpers that prefer the user's [TrackedDayEntity] per-nutrient
   /// goal when set, falling back to the published default otherwise.
@@ -39,13 +39,13 @@ class DailyNutrientReferences {
   static double resolveCalciumReference(TrackedDayEntity? trackedDay) =>
       trackedDay?.calciumGoal ?? defaultCalciumRefMg;
 
-  /// Iron uses a gender-aware default that the caller supplies, since the
-  /// female / male DRIs (18 vs 8 mg) are far enough apart that an averaged
+  /// Iron uses a sex-aware default that the caller supplies, since the
+  /// female / male DRIs (18 vs 8 mg) are far enough apart that a generic fallback
   /// number would mislead one group.
   static double resolveIronReference(
     TrackedDayEntity? trackedDay,
-    double genderDefault,
-  ) => trackedDay?.ironGoal ?? genderDefault;
+    double sexDefault,
+  ) => trackedDay?.ironGoal ?? sexDefault;
 
   static double resolvePotassiumReference(TrackedDayEntity? trackedDay) =>
       trackedDay?.potassiumGoal ?? defaultPotassiumRefMg;
@@ -65,7 +65,7 @@ class DailyNutrientReferences {
   }) {
     final td = trackedDay;
     // Helper: prefer the per-day tracked override, then the IOM age-banded
-    // DRI when a user record is available, then the gender-agnostic default
+    // DRI when a user record is available, then the sex-agnostic default
     // the panel has always used as a last resort. This keeps the existing
     // resolver helpers as the single source of truth for tests, but layers
     // the age-aware IOM lookup (#245) on top for users we know enough about.
@@ -142,59 +142,43 @@ class DailyNutrientReferences {
     };
   }
 
-  // Gender-aware defaults for the two nutrients where female / male DRIs
-  // disagree substantively. Non-binary users route through their chosen
-  // [CaloriesProfileEntity] just like the calorie calculation does
-  // (see [TDEECalc.getTDEEKcalIOM2005]): Estrogen-typical → female value,
-  // Testosterone-typical → male value, Averaged (default) → midpoint.
-  // This keeps a single source of truth for what "non-binary → which
-  // reference" means across the app, rather than the nutrient panel
-  // silently disagreeing with the calorie panel a few sections above.
+  // Sex-specific defaults when a user is available.
   static double _ironRefForUser(UserEntity? user) {
     const female = 18.0;
     const male = 8.0;
-    const averaged = 14.0;
-    return _dispatchGenderReference(
+    const fallback = 14.0;
+    return _dispatchSexReference(
       user,
       female: female,
       male: male,
-      averaged: averaged,
+      fallback: fallback,
     );
   }
 
   static double _magnesiumRefForUser(UserEntity? user) {
     const female = 310.0;
     const male = 400.0;
-    const averaged = 355.0;
-    return _dispatchGenderReference(
+    const fallback = 355.0;
+    return _dispatchSexReference(
       user,
       female: female,
       male: male,
-      averaged: averaged,
+      fallback: fallback,
     );
   }
 
-  static double _dispatchGenderReference(
+  static double _dispatchSexReference(
     UserEntity? user, {
     required double female,
     required double male,
-    required double averaged,
+    required double fallback,
   }) {
-    if (user == null) return averaged;
-    switch (user.gender) {
-      case UserGenderEntity.female:
+    if (user == null) return fallback;
+    switch (user.sex) {
+      case UserSexEntity.female:
         return female;
-      case UserGenderEntity.male:
+      case UserSexEntity.male:
         return male;
-      case UserGenderEntity.nonBinary:
-        switch (user.caloriesProfile ?? CaloriesProfileEntity.averaged) {
-          case CaloriesProfileEntity.averaged:
-            return averaged;
-          case CaloriesProfileEntity.estrogenTypical:
-            return female;
-          case CaloriesProfileEntity.testosteroneTypical:
-            return male;
-        }
     }
   }
 }

@@ -1,30 +1,22 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/presentation/sources_screen.dart';
-import 'package:opennutritracker/core/presentation/widgets/calories_profile_info_dialog.dart';
 import 'package:opennutritracker/core/utils/bounds/validator.dart';
-import 'package:opennutritracker/features/onboarding/domain/entity/user_gender_selection_entity.dart';
+import 'package:opennutritracker/features/onboarding/domain/entity/user_sex_selection_entity.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
 class OnboardingAboutYouPageBody extends StatefulWidget {
-  final Function(
-    bool active,
-    UserGenderSelectionEntity? gender,
-    CaloriesProfileEntity? caloriesProfile,
-    DateTime? birthday,
-  ) setPageContent;
+  final Function(bool active, UserSexSelectionEntity? sex, DateTime? birthday)
+  setPageContent;
 
-  final UserGenderSelectionEntity? initialGender;
-  final CaloriesProfileEntity? initialCaloriesProfile;
+  final UserSexSelectionEntity? initialSex;
   final DateTime? initialBirthday;
 
   const OnboardingAboutYouPageBody({
     super.key,
     required this.setPageContent,
-    this.initialGender,
-    this.initialCaloriesProfile,
+    this.initialSex,
     this.initialBirthday,
   });
 
@@ -38,14 +30,12 @@ class _OnboardingAboutYouPageBodyState
   final _dateInput = TextEditingController();
   DateTime? _selectedDate;
 
-  UserGenderSelectionEntity? _selectedGender;
-  CaloriesProfileEntity? _selectedCaloriesProfile;
+  UserSexSelectionEntity? _selectedSex;
 
   @override
   void initState() {
     super.initState();
-    _selectedGender = widget.initialGender;
-    _selectedCaloriesProfile = widget.initialCaloriesProfile;
+    _selectedSex = widget.initialSex;
     _selectedDate = widget.initialBirthday;
   }
 
@@ -53,51 +43,30 @@ class _OnboardingAboutYouPageBodyState
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_selectedDate != null && _dateInput.text.isEmpty) {
-      _dateInput.text =
-          MaterialLocalizations.of(context).formatCompactDate(_selectedDate!);
+      _dateInput.text = MaterialLocalizations.of(
+        context,
+      ).formatCompactDate(_selectedDate!);
     }
   }
 
-  UserGenderEntity _toEntity(UserGenderSelectionEntity selection) {
+  UserSexEntity _toEntity(UserSexSelectionEntity selection) {
     switch (selection) {
-      case UserGenderSelectionEntity.genderMale:
-        return UserGenderEntity.male;
-      case UserGenderSelectionEntity.genderFemale:
-        return UserGenderEntity.female;
-      case UserGenderSelectionEntity.genderNonBinary:
-        return UserGenderEntity.nonBinary;
+      case UserSexSelectionEntity.sexMale:
+        return UserSexEntity.male;
+      case UserSexSelectionEntity.sexFemale:
+        return UserSexEntity.female;
     }
   }
 
-  void _onGenderSelected(UserGenderSelectionEntity selection) {
+  void _onSexSelected(UserSexSelectionEntity selection) {
     setState(() {
-      _selectedGender = selection;
-      if (selection != UserGenderSelectionEntity.genderNonBinary) {
-        _selectedCaloriesProfile = null;
-      }
-      checkCorrectInput();
-    });
-  }
-
-  Future<void> _openCaloriesProfileDialog() async {
-    final selected = await showDialog<CaloriesProfileEntity>(
-      context: context,
-      builder: (context) => CaloriesProfileInfoDialog(
-        initialProfile:
-            _selectedCaloriesProfile ?? CaloriesProfileEntity.averaged,
-      ),
-    );
-    if (selected == null) return;
-    setState(() {
-      _selectedCaloriesProfile = selected;
+      _selectedSex = selection;
       checkCorrectInput();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final showNonBinaryNotice =
-        _selectedGender == UserGenderSelectionEntity.genderNonBinary;
     final birthday = _selectedDate;
     final showAdultEquationNotice =
         birthday != null && ValueValidator.isUnderAdultAge(birthday);
@@ -111,7 +80,7 @@ class _OnboardingAboutYouPageBodyState
             children: [
               Expanded(
                 child: AutoSizeText(
-                  S.of(context).genderLabel,
+                  S.of(context).sexLabel,
                   maxLines: 1,
                   minFontSize: 16,
                   overflow: TextOverflow.ellipsis,
@@ -129,7 +98,7 @@ class _OnboardingAboutYouPageBodyState
             ],
           ),
           Text(
-            S.of(context).onboardingGenderQuestionSubtitle,
+            S.of(context).onboardingSexQuestionSubtitle,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 16.0),
@@ -137,55 +106,10 @@ class _OnboardingAboutYouPageBodyState
             spacing: 8.0,
             runSpacing: 8.0,
             children: [
-              _buildGenderChip(UserGenderSelectionEntity.genderMale),
-              _buildGenderChip(UserGenderSelectionEntity.genderFemale),
-              _buildGenderChip(UserGenderSelectionEntity.genderNonBinary),
+              _buildSexChip(UserSexSelectionEntity.sexMale),
+              _buildSexChip(UserSexSelectionEntity.sexFemale),
             ],
           ),
-          if (showNonBinaryNotice) ...[
-            const SizedBox(height: 12.0),
-            Container(
-              padding: const EdgeInsets.all(12.0),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        size: 18,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          S.of(context).onboardingNonBinaryDisclaimer,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8.0),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: _openCaloriesProfileDialog,
-                      icon: const Icon(Icons.tune_outlined, size: 18),
-                      label: Text(
-                        (_selectedCaloriesProfile ??
-                                CaloriesProfileEntity.averaged)
-                            .getName(context),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
           const SizedBox(height: 32.0),
           Text(
             S.of(context).ageLabel,
@@ -251,15 +175,15 @@ class _OnboardingAboutYouPageBodyState
     );
   }
 
-  Widget _buildGenderChip(UserGenderSelectionEntity selection) {
+  Widget _buildSexChip(UserSexSelectionEntity selection) {
     final entity = _toEntity(selection);
     return Semantics(
-      identifier: 'onboarding-gender-${selection.name}',
+      identifier: 'onboarding-sex-${entity.name}',
       child: ChoiceChip(
         label: Text(entity.getName(context)),
         avatar: entity.getIcon(size: 18),
-        selected: _selectedGender == selection,
-        onSelected: (_) => _onGenderSelected(selection),
+        selected: _selectedSex == selection,
+        onSelected: (_) => _onSexSelected(selection),
       ),
     );
   }
@@ -288,15 +212,10 @@ class _OnboardingAboutYouPageBodyState
   }
 
   void checkCorrectInput() {
-    if (_selectedGender != null && _selectedDate != null) {
-      widget.setPageContent(
-        true,
-        _selectedGender,
-        _selectedCaloriesProfile,
-        _selectedDate,
-      );
+    if (_selectedSex != null && _selectedDate != null) {
+      widget.setPageContent(true, _selectedSex, _selectedDate);
     } else {
-      widget.setPageContent(false, null, null, null);
+      widget.setPageContent(false, null, null);
     }
   }
 }

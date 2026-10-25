@@ -10,7 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 /// Surfaces the peer-reviewed sources behind every health/medical
 /// calculation OpenNutriTracker shows. Reachable from the Home dashboard,
-/// workout calorie credit, both gender-selection screens,
+/// workout calorie credit, both sex-selection screens,
 /// and the disclaimer dialog — so anyone scanning the app for citations
 /// (Apple's reviewers included) can find them within one tap.
 class SourcesScreen extends StatefulWidget {
@@ -87,36 +87,6 @@ class _SourcesScreenState extends State<SourcesScreen> {
                 'Careau V, et al. (2021). Energy compensation and adiposity '
                 'in humans. Current Biology, 31(20):4659–4666.e2.',
             url: URLConst.sourceEnergyCompensationCareau2021URL,
-          ),
-        ],
-      ),
-      _SourceEntry(
-        title: l10n.sourcesNonBinaryTitle,
-        description: l10n.sourcesNonBinaryDescription,
-        sources: const [
-          _SourceLink(
-            citation:
-                'Linsenmeyer W, Waters J (2021). Sex and gender differences '
-                'in nutrition research: considerations with the transgender '
-                'and gender nonconforming population. Nutrition Journal, '
-                '20:6.',
-            url: URLConst.sourceInclusiveDesignLinsenmeyer2021URL,
-          ),
-          _SourceLink(
-            citation:
-                'Wiik A, et al. (2018). Metabolic and functional changes in '
-                'transgender individuals following cross-sex hormone '
-                'treatment: Design and methods of the GETS study. '
-                'Contemporary Clinical Trials Communications, 10:148–153.',
-            url: URLConst.sourceTransMetabolismWiik2018URL,
-          ),
-          _SourceLink(
-            citation:
-                'Linsenmeyer W, Drallmeier T, Thomure M (2020). Towards '
-                'gender-affirming nutrition assessment: a case series of '
-                'adult transgender men with distinct nutrition '
-                'considerations. Nutrition Journal, 19:74.',
-            url: URLConst.sourceTransNutritionLinsenmeyer2020URL,
           ),
         ],
       ),
