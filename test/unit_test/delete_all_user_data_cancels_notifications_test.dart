@@ -8,7 +8,7 @@ import 'package:opennutritracker/core/data/dbo/fasting_session_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/intake_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/tracked_day_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/user_dbo.dart';
-import 'package:opennutritracker/core/data/dbo/user_gender_dbo.dart';
+import 'package:opennutritracker/core/data/dbo/user_sex_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/user_pal_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/user_weight_goal_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/water_intake_dbo.dart';
@@ -128,7 +128,7 @@ void main() {
           birthday: DateTime(1990, 6, 15),
           heightCM: 165,
           weightKG: 70,
-          gender: UserGenderDBO.female,
+          sex: UserSexDBO.female,
           goal: UserWeightGoalDBO.loseWeight,
           pal: UserPALDBO.sedentary,
         ),

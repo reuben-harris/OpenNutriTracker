@@ -1,5 +1,5 @@
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 
@@ -16,7 +16,7 @@ class UserEntityFixtures {
     birthday: DateTime(_yesterday.year - 25, _yesterday.month, _yesterday.day),
     heightCM: 180.0,
     weightKG: 80.0,
-    gender: UserGenderEntity.male,
+    sex: UserSexEntity.male,
     goal: UserWeightGoalEntity.maintainWeight,
     pal: UserPALEntity.sedentary,
   );
@@ -27,7 +27,7 @@ class UserEntityFixtures {
     birthday: DateTime(_yesterday.year - 54, _yesterday.month, _yesterday.day),
     heightCM: 160.0,
     weightKG: 75.0,
-    gender: UserGenderEntity.female,
+    sex: UserSexEntity.female,
     goal: UserWeightGoalEntity.loseWeight,
     pal: UserPALEntity.active,
   );
@@ -38,7 +38,7 @@ class UserEntityFixtures {
     birthday: DateTime(_yesterday.year - 76, _yesterday.month, _yesterday.day),
     heightCM: 164.0,
     weightKG: 55.0,
-    gender: UserGenderEntity.male,
+    sex: UserSexEntity.male,
     goal: UserWeightGoalEntity.gainWeight,
     pal: UserPALEntity.lowActive,
   );
@@ -54,7 +54,7 @@ class UserEntityFixtures {
         ),
         heightCM: 190.0,
         weightKG: 105.0,
-        gender: UserGenderEntity.female,
+        sex: UserSexEntity.female,
         goal: UserWeightGoalEntity.loseWeight,
         pal: UserPALEntity.veryActive,
       );

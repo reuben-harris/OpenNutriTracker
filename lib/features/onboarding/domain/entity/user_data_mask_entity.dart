@@ -1,17 +1,15 @@
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
-import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 import 'package:opennutritracker/features/onboarding/domain/entity/user_activity_selection_entity.dart';
-import 'package:opennutritracker/features/onboarding/domain/entity/user_gender_selection_entity.dart';
+import 'package:opennutritracker/features/onboarding/domain/entity/user_sex_selection_entity.dart';
 import 'package:opennutritracker/features/onboarding/domain/entity/user_goal_selection_entity.dart';
 
 class UserDataMaskEntity {
-  UserGenderSelectionEntity? gender;
-  CaloriesProfileEntity? caloriesProfile;
+  UserSexSelectionEntity? sex;
   DateTime? birthday;
   double? height;
   double? weight;
@@ -52,8 +50,7 @@ class UserDataMaskEntity {
   int? accentColor;
 
   UserDataMaskEntity({
-    this.gender,
-    this.caloriesProfile,
+    this.sex,
     this.birthday,
     this.height,
     this.weight,
@@ -67,7 +64,7 @@ class UserDataMaskEntity {
   });
 
   bool checkDataProvided() {
-    if (gender != null &&
+    if (sex != null &&
         birthday != null &&
         height != null &&
         weight != null &&
@@ -86,19 +83,16 @@ class UserDataMaskEntity {
     final userBirthday = birthday ?? DateTime.now(); // TODO
     final userHeight = height ?? 180;
     final userWeight = weight ?? 70;
-    UserGenderEntity userGender;
-    switch (gender) {
-      case UserGenderSelectionEntity.genderMale:
-        userGender = UserGenderEntity.male;
+    UserSexEntity userSex;
+    switch (sex) {
+      case UserSexSelectionEntity.sexMale:
+        userSex = UserSexEntity.male;
         break;
-      case UserGenderSelectionEntity.genderFemale:
-        userGender = UserGenderEntity.female;
-        break;
-      case UserGenderSelectionEntity.genderNonBinary:
-        userGender = UserGenderEntity.nonBinary;
+      case UserSexSelectionEntity.sexFemale:
+        userSex = UserSexEntity.female;
         break;
       case null:
-        userGender = UserGenderEntity.female;
+        userSex = UserSexEntity.female;
         break;
     }
     UserWeightGoalEntity userGoal;
@@ -137,12 +131,9 @@ class UserDataMaskEntity {
       birthday: userBirthday,
       heightCM: userHeight,
       weightKG: userWeight,
-      gender: userGender,
+      sex: userSex,
       goal: userGoal,
       pal: userPal,
-      caloriesProfile: userGender == UserGenderEntity.nonBinary
-          ? caloriesProfile
-          : null,
       targetWeightKg: targetWeight,
     );
   }

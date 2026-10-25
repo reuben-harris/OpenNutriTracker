@@ -45,7 +45,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
   ///
   /// Onboarding runs again whenever a profile is added, and this bloc is a
   /// lazy singleton, so without this the second run opens prefilled with the
-  /// first profile's gender, birthday, height and weight.
+  /// first profile's sex, birthday, height and weight.
   ///
   /// Called synchronously as the screen initialises, before the first build,
   /// so no page can render another profile's data even for one frame.
@@ -189,8 +189,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     if (userEntity == null || calorieGoal == null) return false;
     return CalorieGoalCalc.isBelowRecommendedDailyKcalFloor(
       goalKcal: calorieGoal,
-      gender: userEntity.gender,
-      caloriesProfile: userEntity.caloriesProfile,
+      sex: userEntity.sex,
     );
   }
 
@@ -200,9 +199,6 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
   double getOverviewRecommendedKcalFloor() {
     final userEntity = userSelection.toUserEntity();
     if (userEntity == null) return Ranges.minRecommendedDailyKcalFemale;
-    return CalorieGoalCalc.recommendedDailyKcalFloor(
-      gender: userEntity.gender,
-      caloriesProfile: userEntity.caloriesProfile,
-    );
+    return CalorieGoalCalc.recommendedDailyKcalFloor(sex: userEntity.sex);
   }
 }

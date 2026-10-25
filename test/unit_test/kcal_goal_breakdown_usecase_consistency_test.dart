@@ -6,7 +6,7 @@ import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/config_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_activity_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/get_kcal_goal_breakdown_usecase.dart';
@@ -62,7 +62,7 @@ void main() {
     birthday: DateTime(yesterday.year - 42, yesterday.month, yesterday.day),
     heightCM: 172.0,
     weightKG: 74.5,
-    gender: UserGenderEntity.female,
+    sex: UserSexEntity.female,
     goal: UserWeightGoalEntity.loseWeight,
     pal: UserPALEntity.lowActive,
     weeklyWeightGoalKg: -0.25,
@@ -158,7 +158,7 @@ void main() {
     expect(breakdown.age, user.age);
     expect(breakdown.heightCM, 172.0);
     expect(breakdown.weightKG, 74.5);
-    expect(breakdown.gender, UserGenderEntity.female);
+    expect(breakdown.sex, UserSexEntity.female);
     expect(breakdown.palCategory, UserPALEntity.lowActive);
     expect(breakdown.goal, UserWeightGoalEntity.loseWeight);
     expect(breakdown.weeklyWeightGoalKg, -0.25);

@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:opennutritracker/core/data/data_source/user_data_source.dart';
 import 'package:opennutritracker/core/data/dbo/user_dbo.dart';
-import 'package:opennutritracker/core/data/dbo/user_gender_dbo.dart';
+import 'package:opennutritracker/core/data/dbo/user_sex_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/user_pal_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/user_weight_goal_dbo.dart';
 
@@ -36,11 +36,14 @@ void main() {
       TestWidgetsFlutterBinding.ensureInitialized();
     });
 
-    UserDBO buildUser({double weight = 70}) => UserDBO(
+    UserDBO buildUser({
+      double weight = 70,
+      UserSexDBO sex = UserSexDBO.female,
+    }) => UserDBO(
       birthday: DateTime(1990, 6, 15),
       heightCM: 165,
       weightKG: weight,
-      gender: UserGenderDBO.female,
+      sex: sex,
       goal: UserWeightGoalDBO.loseWeight,
       pal: UserPALDBO.sedentary,
     );
@@ -60,22 +63,26 @@ void main() {
       },
     );
 
-    test('saved user survives closing and reopening the box', () async {
-      final box = await Hive.openBox<UserDBO>('user_data_source_test_save');
-      final source = UserDataSource(FakeHiveDBProvider(userBox: box));
+    for (final sex in UserSexDBO.values) {
+      test('${sex.name} user survives closing and reopening the box', () async {
+        final box = await Hive.openBox<UserDBO>(
+          'user_data_source_test_save_${sex.name}',
+        );
+        final source = UserDataSource(FakeHiveDBProvider(userBox: box));
 
-      await source.saveUserData(buildUser());
+        await source.saveUserData(buildUser(sex: sex));
 
-      await box.close();
-      final reopened = await Hive.openBox<UserDBO>(
-        'user_data_source_test_save',
-      );
-      final loaded = await UserDataSource(
-        FakeHiveDBProvider(userBox: reopened),
-      ).getUserData();
-      expect(loaded.weightKG, 70);
-      expect(loaded.gender, UserGenderDBO.female);
-    });
+        await box.close();
+        final reopened = await Hive.openBox<UserDBO>(
+          'user_data_source_test_save_${sex.name}',
+        );
+        final loaded = await UserDataSource(
+          FakeHiveDBProvider(userBox: reopened),
+        ).getUserData();
+        expect(loaded.weightKG, 70);
+        expect(loaded.sex, sex);
+      });
+    }
     test('save remains pending until the underlying write completes', () {
       fakeAsync((time) {
         final box = _BlockedBox();

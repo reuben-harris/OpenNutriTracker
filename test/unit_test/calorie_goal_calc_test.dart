@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 import 'package:opennutritracker/core/utils/calc/calorie_goal_calc.dart';
@@ -6,6 +7,34 @@ import 'package:opennutritracker/core/utils/calc/calorie_goal_calc.dart';
 import '../fixture/user_entity_fixtures.dart';
 
 void main() {
+  for (final sex in UserSexEntity.values) {
+    test('${sex.name} calorie warning respects its floor boundary', () {
+      final floor = sex == UserSexEntity.male ? 1500.0 : 1200.0;
+      expect(CalorieGoalCalc.recommendedDailyKcalFloor(sex: sex), floor);
+      expect(
+        CalorieGoalCalc.isBelowRecommendedDailyKcalFloor(
+          goalKcal: floor - 1,
+          sex: sex,
+        ),
+        isTrue,
+      );
+      expect(
+        CalorieGoalCalc.isBelowRecommendedDailyKcalFloor(
+          goalKcal: floor,
+          sex: sex,
+        ),
+        isFalse,
+      );
+      expect(
+        CalorieGoalCalc.isBelowRecommendedDailyKcalFloor(
+          goalKcal: floor + 1,
+          sex: sex,
+        ),
+        isFalse,
+      );
+    });
+  }
+
   group('Calorie Goal Calc Test', () {
     late UserEntity youngSedentaryMaleWantingToMaintainWeight;
     late UserEntity middleAgedActiveFemaleWantingToLoseWeight;
@@ -80,26 +109,28 @@ void main() {
     });
 
     test(
-        'weekly weight goal in kg overrides the lose/gain default adjustment',
-        () {
-      // -0.5 kg/week → -550 kcal/day (vs -500 default for loseWeight)
-      final base = UserEntityFixtures.middleAgedActiveFemaleWantingToLoseWeight;
-      final user = UserEntity(
-        birthday: base.birthday,
-        heightCM: base.heightCM,
-        weightKG: base.weightKG,
-        gender: base.gender,
-        goal: base.goal,
-        pal: base.pal,
-        weeklyWeightGoalKg: -0.5,
-      );
+      'weekly weight goal in kg overrides the lose/gain default adjustment',
+      () {
+        // -0.5 kg/week → -550 kcal/day (vs -500 default for loseWeight)
+        final base =
+            UserEntityFixtures.middleAgedActiveFemaleWantingToLoseWeight;
+        final user = UserEntity(
+          birthday: base.birthday,
+          heightCM: base.heightCM,
+          weightKG: base.weightKG,
+          sex: base.sex,
+          goal: base.goal,
+          pal: base.pal,
+          weeklyWeightGoalKg: -0.5,
+        );
 
-      final adjustment = CalorieGoalCalc.getKcalGoalAdjustment(
-        user.goal,
-        weeklyWeightGoalKg: user.weeklyWeightGoalKg,
-      );
-      expect(adjustment, equals(-550));
-    });
+        final adjustment = CalorieGoalCalc.getKcalGoalAdjustment(
+          user.goal,
+          weeklyWeightGoalKg: user.weeklyWeightGoalKg,
+        );
+        expect(adjustment, equals(-550));
+      },
+    );
 
     test('positive weekly weight goal yields a positive adjustment', () {
       final adjustment = CalorieGoalCalc.getKcalGoalAdjustment(
@@ -116,7 +147,8 @@ void main() {
       );
       expect(
         CalorieGoalCalc.getKcalGoalAdjustment(
-            UserWeightGoalEntity.maintainWeight),
+          UserWeightGoalEntity.maintainWeight,
+        ),
         equals(0),
       );
       expect(

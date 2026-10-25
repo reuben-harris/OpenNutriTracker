@@ -44,10 +44,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
           userEntity: user,
           bodyWeightUnit: userConfig.bodyWeightUnit,
           usesImperialHeightUnits: userConfig.usesImperialHeightUnits,
-          effectiveWaterGoalMl: userConfig.effectiveDailyWaterGoalMl(
-            user.gender,
-            caloriesProfile: user.caloriesProfile,
-          ),
+          effectiveWaterGoalMl: userConfig.effectiveDailyWaterGoalMl(user.sex),
         ),
       );
     });

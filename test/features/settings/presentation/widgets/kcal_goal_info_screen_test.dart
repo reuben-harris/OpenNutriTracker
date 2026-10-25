@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
 import 'package:opennutritracker/core/domain/entity/kcal_goal_breakdown_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/get_kcal_goal_breakdown_usecase.dart';
@@ -31,8 +30,7 @@ class _FakeBreakdownUsecase extends Fake
 }
 
 UserEntity _buildUser({
-  UserGenderEntity gender = UserGenderEntity.male,
-  CaloriesProfileEntity? caloriesProfile,
+  UserSexEntity sex = UserSexEntity.male,
   UserWeightGoalEntity goal = UserWeightGoalEntity.loseWeight,
   UserPALEntity pal = UserPALEntity.active,
   double? weeklyWeightGoalKg,
@@ -47,10 +45,9 @@ UserEntity _buildUser({
     birthday: DateTime(yesterday.year - 30, yesterday.month, yesterday.day),
     heightCM: 180.0,
     weightKG: weightKG,
-    gender: gender,
+    sex: sex,
     goal: goal,
     pal: pal,
-    caloriesProfile: caloriesProfile,
     weeklyWeightGoalKg: weeklyWeightGoalKg,
     targetWeightKg: targetWeightKg,
     caloriesTaperEnabled: taperEnabled,
@@ -238,36 +235,13 @@ void main() {
       tester,
     ) async {
       final breakdown = KcalGoalBreakdownEntity.compute(
-        user: _buildUser(gender: UserGenderEntity.female),
+        user: _buildUser(sex: UserSexEntity.female),
         totalKcalActivities: 0,
       );
       await _pump(tester, breakdown);
 
       expect(find.textContaining('387 − 7.31 × 30'), findsOneWidget);
       expect(find.textContaining('864 −'), findsNothing);
-      expect(find.text(l10nEn.kcalGoalInfoAveragedNote), findsNothing);
-    });
-
-    testWidgets('non-binary averaged profile shows both reference sides', (
-      tester,
-    ) async {
-      final breakdown = KcalGoalBreakdownEntity.compute(
-        user: _buildUser(gender: UserGenderEntity.nonBinary),
-        totalKcalActivities: 0,
-      );
-      await _pump(tester, breakdown);
-
-      expect(find.textContaining('864 − 9.72 × 30'), findsOneWidget);
-      expect(find.textContaining('387 − 7.31 × 30'), findsOneWidget);
-      expect(find.text(l10nEn.kcalGoalInfoAveragedNote), findsOneWidget);
-      expect(
-        find.textContaining(l10nEn.kcalGoalInfoMaleReferenceLabel),
-        findsWidgets,
-      );
-      expect(
-        find.textContaining(l10nEn.kcalGoalInfoFemaleReferenceLabel),
-        findsWidgets,
-      );
     });
 
     testWidgets('custom macro split is rendered with its own percentages', (

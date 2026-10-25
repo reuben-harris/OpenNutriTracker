@@ -1,16 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 import 'package:opennutritracker/core/utils/calc/pal_calc.dart';
 
-UserEntity _user(UserGenderEntity gender, UserPALEntity pal) {
+UserEntity _user(UserSexEntity sex, UserPALEntity pal) {
   return UserEntity(
     birthday: DateTime(1995, 1, 1),
     heightCM: 170,
     weightKG: 70,
-    gender: gender,
+    sex: sex,
     goal: UserWeightGoalEntity.maintainWeight,
     pal: pal,
   );
@@ -21,29 +21,33 @@ void main() {
     test('maps each category to its IOM PAL band', () {
       expect(
         PalCalc.getPALValueFromActivityCategory(
-            _user(UserGenderEntity.male, UserPALEntity.sedentary)),
+          _user(UserSexEntity.male, UserPALEntity.sedentary),
+        ),
         1.25,
       );
       expect(
         PalCalc.getPALValueFromActivityCategory(
-            _user(UserGenderEntity.male, UserPALEntity.lowActive)),
+          _user(UserSexEntity.male, UserPALEntity.lowActive),
+        ),
         1.5,
       );
       expect(
         PalCalc.getPALValueFromActivityCategory(
-            _user(UserGenderEntity.male, UserPALEntity.active)),
+          _user(UserSexEntity.male, UserPALEntity.active),
+        ),
         1.75,
       );
       expect(
         PalCalc.getPALValueFromActivityCategory(
-            _user(UserGenderEntity.male, UserPALEntity.veryActive)),
+          _user(UserSexEntity.male, UserPALEntity.veryActive),
+        ),
         2.2,
       );
     });
   });
 
   group('PalCalc.getPAValueForFormula', () {
-    test('sedentary: PA = 1.0 regardless of formula gender', () {
+    test('sedentary: PA = 1.0 regardless of formula sex', () {
       expect(
         PalCalc.getPAValueForFormula(palValue: 1.25, isMaleFormula: true),
         1.0,
@@ -65,7 +69,7 @@ void main() {
       );
     });
 
-    test('active: PA = 1.27 regardless of formula gender', () {
+    test('active: PA = 1.27 regardless of formula sex', () {
       expect(
         PalCalc.getPAValueForFormula(palValue: 1.75, isMaleFormula: true),
         1.27,
@@ -88,22 +92,15 @@ void main() {
     });
   });
 
-  group('PalCalc.getPAValueFromPALValue (gender-keyed wrapper)', () {
-    // Regression: before the PR that introduced PA-by-formula-flag, the
-    // ternary `gender == male ? maleConstant : femaleConstant` routed
-    // non-binary users to the female PA constant. That meant a non-binary
-    // averaged TDEE used female PA on both halves of the average. These
-    // tests pin down what the gender-keyed wrapper does today; the
-    // non-binary path for averaged TDEE goes through the explicit-flag
-    // overload via tdee_calc.dart, not this wrapper.
+  group('PalCalc.getPAValueFromPALValue (sex-keyed wrapper)', () {
     test('male user gets male PA at lowActive and veryActive', () {
-      final user = _user(UserGenderEntity.male, UserPALEntity.lowActive);
+      final user = _user(UserSexEntity.male, UserPALEntity.lowActive);
       expect(PalCalc.getPAValueFromPALValue(user, 1.5), 1.12);
       expect(PalCalc.getPAValueFromPALValue(user, 2.2), 1.54);
     });
 
     test('female user gets female PA at lowActive and veryActive', () {
-      final user = _user(UserGenderEntity.female, UserPALEntity.lowActive);
+      final user = _user(UserSexEntity.female, UserPALEntity.lowActive);
       expect(PalCalc.getPAValueFromPALValue(user, 1.5), 1.14);
       expect(PalCalc.getPAValueFromPALValue(user, 2.2), 1.45);
     });

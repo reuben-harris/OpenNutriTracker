@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
 import 'package:opennutritracker/core/domain/entity/kcal_goal_breakdown_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/get_kcal_goal_breakdown_usecase.dart';
 import 'package:opennutritracker/core/presentation/sources_screen.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
@@ -147,10 +146,7 @@ class _InputsCard extends StatelessWidget {
     return _SectionCard(
       title: l10n.kcalGoalInfoInputsSection,
       children: [
-        _ValueRow(
-          label: l10n.ageLabel,
-          value: l10n.yearsLabel(breakdown.age),
-        ),
+        _ValueRow(label: l10n.ageLabel, value: l10n.yearsLabel(breakdown.age)),
         _ValueRow(
           label: l10n.heightLabel,
           value: '${breakdown.heightCM.toStringAsFixed(0)} ${l10n.cmLabel}',
@@ -167,14 +163,6 @@ class _InputsCard extends StatelessWidget {
           label: l10n.goalLabel,
           value: breakdown.goal.getName(context),
         ),
-        if (breakdown.gender == UserGenderEntity.nonBinary)
-          _ValueRow(
-            label: l10n.caloriesProfileInfoTitle,
-            // Null means "not picked yet", which the calc layer treats as
-            // averaged — show the same thing it computes with.
-            value: (breakdown.caloriesProfile ?? CaloriesProfileEntity.averaged)
-                .getName(context),
-          ),
         if (breakdown.weeklyWeightGoalKg != null)
           _ValueRow(
             label: l10n.weeklyWeightGoalLabel,
@@ -214,45 +202,17 @@ class _TdeeCard extends StatelessWidget {
           label: l10n.kcalGoalInfoPalRowLabel,
           value: breakdown.palValue.toStringAsFixed(2),
         ),
-        if (breakdown.paMaleFormula != null)
-          _ValueRow(
-            label: breakdown.usesAveragedReference
-                ? '${l10n.kcalGoalInfoPaRowLabel} · ${l10n.kcalGoalInfoMaleReferenceLabel}'
-                : l10n.kcalGoalInfoPaRowLabel,
-            value: breakdown.paMaleFormula!.toStringAsFixed(2),
-          ),
-        if (breakdown.paFemaleFormula != null)
-          _ValueRow(
-            label: breakdown.usesAveragedReference
-                ? '${l10n.kcalGoalInfoPaRowLabel} · ${l10n.kcalGoalInfoFemaleReferenceLabel}'
-                : l10n.kcalGoalInfoPaRowLabel,
-            value: breakdown.paFemaleFormula!.toStringAsFixed(2),
-          ),
-        if (breakdown.tdeeMaleReferenceKcal != null) ...[
-          const SizedBox(height: Dimens.spacing8),
-          if (breakdown.usesAveragedReference)
-            _FormulaSideLabel(text: l10n.kcalGoalInfoMaleReferenceLabel),
-          _FormulaText(
-            formula: _maleFormulaText(breakdown),
-            resultKcal: breakdown.tdeeMaleReferenceKcal!,
-          ),
-        ],
-        if (breakdown.tdeeFemaleReferenceKcal != null) ...[
-          const SizedBox(height: Dimens.spacing8),
-          if (breakdown.usesAveragedReference)
-            _FormulaSideLabel(text: l10n.kcalGoalInfoFemaleReferenceLabel),
-          _FormulaText(
-            formula: _femaleFormulaText(breakdown),
-            resultKcal: breakdown.tdeeFemaleReferenceKcal!,
-          ),
-        ],
-        if (breakdown.usesAveragedReference) ...[
-          const SizedBox(height: Dimens.spacing8),
-          Text(
-            l10n.kcalGoalInfoAveragedNote,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
+        _ValueRow(
+          label: l10n.kcalGoalInfoPaRowLabel,
+          value: breakdown.paValue.toStringAsFixed(2),
+        ),
+        const SizedBox(height: Dimens.spacing8),
+        _FormulaText(
+          formula: breakdown.sex == UserSexEntity.male
+              ? _maleFormulaText(breakdown)
+              : _femaleFormulaText(breakdown),
+          resultKcal: breakdown.tdeeKcal,
+        ),
         const Divider(height: Dimens.spacing20),
         _ValueRow(
           label: l10n.kcalGoalInfoTdeeResultLabel,
@@ -268,13 +228,13 @@ class _TdeeCard extends StatelessWidget {
   // the calculation uses (#987).
   String _maleFormulaText(KcalGoalBreakdownEntity b) =>
       '864 − 9.72 × ${b.age} '
-      '+ ${b.paMaleFormula!.toStringAsFixed(2)} × '
+      '+ ${b.paValue.toStringAsFixed(2)} × '
       '(14.2 × ${b.weightKG.toStringAsFixed(1)} '
       '+ 503 × ${(b.heightCM / 100).toStringAsFixed(2)})';
 
   String _femaleFormulaText(KcalGoalBreakdownEntity b) =>
       '387 − 7.31 × ${b.age} '
-      '+ ${b.paFemaleFormula!.toStringAsFixed(2)} × '
+      '+ ${b.paValue.toStringAsFixed(2)} × '
       '(10.9 × ${b.weightKG.toStringAsFixed(1)} '
       '+ 660.7 × ${(b.heightCM / 100).toStringAsFixed(2)})';
 }
@@ -447,7 +407,8 @@ class _MacroCard extends StatelessWidget {
         ),
         const SizedBox(height: Dimens.spacing12),
         _FormulaText.raw(
-          text: '${l10n.carbsLabel}: '
+          text:
+              '${l10n.carbsLabel}: '
               '${_macroLine(goalKcal, breakdown.carbsFractionGoal, MacroCalc.carbsKcalPerGram, breakdown.carbsGoalGrams)}\n'
               '${l10n.fatLabel}: '
               '${_macroLine(goalKcal, breakdown.fatsFractionGoal, MacroCalc.fatKcalPerGram, breakdown.fatsGoalGrams)}\n'
@@ -545,20 +506,6 @@ class _ValueRow extends StatelessWidget {
   }
 }
 
-class _FormulaSideLabel extends StatelessWidget {
-  final String text;
-
-  const _FormulaSideLabel({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Dimens.spacing4),
-      child: Text(text, style: Theme.of(context).textTheme.labelMedium),
-    );
-  }
-}
-
 /// The substituted equation, rendered monospace. Formula constants are
 /// defined in kcal by the IOM source, so the equation line always reads
 /// kcal even when the display unit is kJ — the converted result appears in
@@ -569,19 +516,20 @@ class _FormulaText extends StatelessWidget {
   final String? rawText;
 
   const _FormulaText({required this.formula, required this.resultKcal})
-      : rawText = null;
+    : rawText = null;
 
   /// Renders pre-assembled monospace lines (used by the macro card, whose
   /// per-line results are grams rather than a single kcal value).
   const _FormulaText.raw({required String text})
-      : rawText = text,
-        formula = null,
-        resultKcal = null;
+    : rawText = text,
+      formula = null,
+      resultKcal = null;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final text = rawText ??
+    final text =
+        rawText ??
         '$formula\n= ${resultKcal!.toInt()} ${S.of(context).kcalLabel}';
     return Container(
       width: double.infinity,

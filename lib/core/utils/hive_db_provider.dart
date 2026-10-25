@@ -158,10 +158,6 @@ class HiveDBProvider extends ChangeNotifier {
     await Hive.initFlutter();
     // Delegate to the generated registrar so any new DBO type added to
     // the project is registered automatically when the Nix workflow regenerates adapters.
-    // Registering by hand had drifted out of sync — `CaloriesProfileDBO`
-    // (#7 on UserDBO) was missing, causing every save with a non-null
-    // hormone profile to throw, which the previous broken async chains
-    // swallowed silently. Result: profile reset to null on app relaunch.
     if (!_adaptersRegistered) {
       Hive.registerAdapters();
       _adaptersRegistered = true;

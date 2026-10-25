@@ -1,38 +1,34 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'user_gender_dbo.dart';
+part of 'user_sex_dbo.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class UserGenderDBOAdapter extends TypeAdapter<UserGenderDBO> {
+class UserSexDBOAdapter extends TypeAdapter<UserSexDBO> {
   @override
   final typeId = 6;
 
   @override
-  UserGenderDBO read(BinaryReader reader) {
+  UserSexDBO read(BinaryReader reader) {
     switch (reader.readByte()) {
       case 0:
-        return UserGenderDBO.male;
+        return UserSexDBO.male;
       case 1:
-        return UserGenderDBO.female;
-      case 2:
-        return UserGenderDBO.nonBinary;
+        return UserSexDBO.female;
       default:
-        return UserGenderDBO.male;
+        return UserSexDBO.male;
     }
   }
 
   @override
-  void write(BinaryWriter writer, UserGenderDBO obj) {
+  void write(BinaryWriter writer, UserSexDBO obj) {
     switch (obj) {
-      case UserGenderDBO.male:
+      case UserSexDBO.male:
         writer.writeByte(0);
-      case UserGenderDBO.female:
+      case UserSexDBO.female:
         writer.writeByte(1);
-      case UserGenderDBO.nonBinary:
-        writer.writeByte(2);
     }
   }
 
@@ -42,7 +38,7 @@ class UserGenderDBOAdapter extends TypeAdapter<UserGenderDBO> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is UserGenderDBOAdapter &&
+      other is UserSexDBOAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

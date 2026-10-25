@@ -6,7 +6,7 @@ import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart
 import 'package:opennutritracker/core/domain/entity/config_entity.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/water_intake_entity.dart';
@@ -71,7 +71,7 @@ class _FakeGetUserUsecase implements GetUserUsecase {
     birthday: DateTime(1990, 1, 1),
     heightCM: 175,
     weightKG: 75,
-    gender: UserGenderEntity.female,
+    sex: UserSexEntity.female,
     goal: UserWeightGoalEntity.maintainWeight,
     pal: UserPALEntity.active,
     targetWeightKg: targetWeightKg,

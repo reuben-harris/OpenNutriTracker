@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
-import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/weight_log_entity.dart';
@@ -11,7 +10,6 @@ import 'package:opennutritracker/core/domain/usecase/add_weight_log_usecase.dart
 import 'package:opennutritracker/core/domain/usecase/get_user_usecase.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
 import 'package:opennutritracker/core/presentation/widgets/section_group.dart';
-import 'package:opennutritracker/core/presentation/widgets/calories_profile_info_dialog.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/utils/bounds/validator.dart';
@@ -21,7 +19,7 @@ import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:opennutritracker/features/profile/presentation/utils/profile_display_format.dart';
 import 'package:opennutritracker/features/profile/presentation/widgets/profile_switcher_header.dart';
-import 'package:opennutritracker/features/profile/presentation/widgets/set_gender_dialog.dart';
+import 'package:opennutritracker/features/profile/presentation/widgets/set_sex_dialog.dart';
 import 'package:opennutritracker/features/profile/presentation/widgets/set_goal_dialog.dart';
 import 'package:opennutritracker/features/profile/presentation/widgets/set_height_dialog.dart';
 import 'package:opennutritracker/features/profile/presentation/widgets/set_weekly_weight_goal_dialog.dart';
@@ -297,28 +295,15 @@ class _ProfilePageState extends State<ProfilePage> {
               },
             ),
             _ProfileTile(
-              identifier: 'profile-gender',
+              identifier: 'profile-sex',
               palette: palette,
-              iconWidget: user.gender.getIcon(),
-              title: S.of(context).genderLabel,
-              subtitle: user.gender.getName(context),
+              iconWidget: user.sex.getIcon(),
+              title: S.of(context).sexLabel,
+              subtitle: user.sex.getName(context),
               onTap: () {
-                _showSetGenderDialog(context, user);
+                _showSetSexDialog(context, user);
               },
             ),
-            if (user.gender == UserGenderEntity.nonBinary)
-              _ProfileTile(
-                identifier: 'profile-calories-profile',
-                palette: palette,
-                icon: Icons.tune_rounded,
-                title: S.of(context).caloriesProfileInfoTitle,
-                subtitle:
-                    (user.caloriesProfile ?? CaloriesProfileEntity.averaged)
-                        .getName(context),
-                onTap: () {
-                  _showCaloriesProfileDialog(context, user);
-                },
-              ),
           ],
         ),
         const SizedBox(height: Dimens.spacing24),
@@ -549,44 +534,16 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> _showSetGenderDialog(
+  Future<void> _showSetSexDialog(
     BuildContext context,
     UserEntity userEntity,
   ) async {
-    final selectedGender = await showDialog<UserGenderEntity>(
+    final selectedSex = await showDialog<UserSexEntity>(
       context: context,
-      builder: (BuildContext context) => const SetGenderDialog(),
+      builder: (BuildContext context) => const SetSexDialog(),
     );
-    if (selectedGender == null) return;
-    userEntity.gender = selectedGender;
-
-    // Switching to non-binary: prompt for hormone profile and persist BOTH
-    // fields in a single updateUser call. Issuing two saves (one for the
-    // gender, one for the profile) used to race — by the time the home
-    // recomputed kcal, only the gender write had landed and the profile
-    // was still null, so every choice rendered as "averaged".
-    if (selectedGender == UserGenderEntity.nonBinary) {
-      if (context.mounted) {
-        final selected = await showDialog<CaloriesProfileEntity>(
-          context: context,
-          builder: (BuildContext context) => CaloriesProfileInfoDialog(
-            initialProfile:
-                userEntity.caloriesProfile ?? CaloriesProfileEntity.averaged,
-          ),
-        );
-        if (selected != null) {
-          userEntity.caloriesProfile = selected;
-        } else {
-          // User cancelled the picker but is now non-binary — store the
-          // implicit default explicitly so reads don't keep falling back.
-          userEntity.caloriesProfile ??= CaloriesProfileEntity.averaged;
-        }
-      }
-    } else {
-      // Switching back to binary — drop any previously set hormone profile.
-      // The field is meaningless outside of nonBinary.
-      userEntity.caloriesProfile = null;
-    }
+    if (selectedSex == null) return;
+    userEntity.sex = selectedSex;
 
     await _profileBloc.updateUser(userEntity);
   }
@@ -613,22 +570,6 @@ class _ProfilePageState extends State<ProfilePage> {
         homeBloc: locator<HomeBloc>(),
       ),
     );
-  }
-
-  Future<void> _showCaloriesProfileDialog(
-    BuildContext context,
-    UserEntity userEntity,
-  ) async {
-    final selected = await showDialog<CaloriesProfileEntity>(
-      context: context,
-      builder: (BuildContext context) => CaloriesProfileInfoDialog(
-        initialProfile:
-            userEntity.caloriesProfile ?? CaloriesProfileEntity.averaged,
-      ),
-    );
-    if (selected == null) return;
-    userEntity.caloriesProfile = selected;
-    await _profileBloc.updateUser(userEntity);
   }
 
   String _targetWeightSubLabel(

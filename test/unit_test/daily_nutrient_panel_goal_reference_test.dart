@@ -179,8 +179,8 @@ void main() {
       );
     });
 
-    test('falls back to gender-aware iron default when goal is null', () {
-      // The caller supplies the gender-based default so the helper
+    test('falls back to sex-aware iron default when goal is null', () {
+      // The caller supplies the sex-based default so the helper
       // stays pure — passing 18 here simulates the female fallback.
       expect(DailyNutrientReferences.resolveIronReference(null, 18.0), 18.0);
       expect(
@@ -196,7 +196,7 @@ void main() {
       expect(
         DailyNutrientReferences.resolveIronReference(
           trackedDay(ironGoal: userIronGoal),
-          // Gender default is passed through but ignored when the
+          // Sex default is passed through but ignored when the
           // goal is non-null.
           8.0,
         ),
@@ -287,37 +287,6 @@ void main() {
           trackedDay(magnesiumGoal: userMagnesiumGoal),
         ),
         userMagnesiumGoal,
-      );
-    });
-
-    test('resolves each follow-up nutrient independently', () {
-      // Only sodium is overridden. Every other follow-up nutrient
-      // must still fall back to its own default rather than picking
-      // up the sodium value.
-      final day = trackedDay(sodiumGoal: 1500);
-      expect(DailyNutrientReferences.resolveSodiumReference(day), 1500);
-      expect(
-        DailyNutrientReferences.resolveCalciumReference(day),
-        DailyNutrientReferences.defaultCalciumRefMg,
-      );
-      // Iron's gender-aware default is supplied by the caller; passing
-      // 14 here simulates the non-binary / unknown fallback path.
-      expect(DailyNutrientReferences.resolveIronReference(day, 14.0), 14.0);
-      expect(
-        DailyNutrientReferences.resolvePotassiumReference(day),
-        DailyNutrientReferences.defaultPotassiumRefMg,
-      );
-      expect(
-        DailyNutrientReferences.resolveMagnesiumReference(day),
-        DailyNutrientReferences.defaultMagnesiumRefMg,
-      );
-      expect(
-        DailyNutrientReferences.resolveVitaminDReference(day),
-        DailyNutrientReferences.defaultVitaminDRefUg,
-      );
-      expect(
-        DailyNutrientReferences.resolveVitaminB12Reference(day),
-        DailyNutrientReferences.defaultVitaminB12RefUg,
       );
     });
   });

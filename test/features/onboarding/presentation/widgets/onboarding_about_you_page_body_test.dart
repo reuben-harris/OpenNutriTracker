@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/features/onboarding/presentation/widgets/onboarding_about_you_page_body.dart';
 import 'package:opennutritracker/generated/l10n.dart';
+import 'package:opennutritracker/features/onboarding/domain/entity/user_sex_selection_entity.dart';
 
 import '../../../../helpers/test_l10n.dart';
 
@@ -18,7 +19,7 @@ void main() {
         supportedLocales: S.supportedLocales,
         home: Scaffold(
           body: OnboardingAboutYouPageBody(
-            setPageContent: (_, _, _, _) {},
+            setPageContent: (_, _, _) {},
             initialBirthday: birthday,
           ),
         ),
@@ -30,6 +31,53 @@ void main() {
   DateTime yearsAgo(int years) {
     final now = DateTime.now();
     return DateTime(now.year - years, now.month, now.day);
+  }
+
+  for (final sex in UserSexSelectionEntity.values) {
+    testWidgets('${sex.name} selection requires a birthday to continue', (
+      tester,
+    ) async {
+      final birthday = yearsAgo(30);
+      bool? active;
+      UserSexSelectionEntity? selectedSex;
+      DateTime? selectedBirthday;
+      Future<void> pump({DateTime? date}) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: const [S.delegate],
+            supportedLocales: S.supportedLocales,
+            home: Scaffold(
+              body: OnboardingAboutYouPageBody(
+                key: ValueKey(date),
+                initialBirthday: date,
+                setPageContent: (isActive, selection, birthday) {
+                  active = isActive;
+                  selectedSex = selection;
+                  selectedBirthday = birthday;
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+
+      final label = sex == UserSexSelectionEntity.sexMale
+          ? l10nEn.sexMaleLabel
+          : l10nEn.sexFemaleLabel;
+      await pump();
+      expect(find.byType(ChoiceChip), findsNWidgets(2));
+      expect(find.text(l10nEn.sexLabel), findsOneWidget);
+      await tester.tap(find.widgetWithText(ChoiceChip, label));
+      await tester.pump();
+      expect(active, isFalse);
+      await pump(date: birthday);
+      await tester.tap(find.widgetWithText(ChoiceChip, label));
+      await tester.pump();
+      expect(active, isTrue);
+      expect(selectedSex, sex);
+      expect(selectedBirthday, birthday);
+    });
   }
 
   testWidgets('no birthday chosen yet shows no notice', (tester) async {

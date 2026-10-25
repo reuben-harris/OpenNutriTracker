@@ -23,7 +23,7 @@ class ProfileLoadedState extends ProfileState {
   final BodyWeightUnit bodyWeightUnit;
   final bool usesImperialHeightUnits;
   // #32: resolved daily water goal in millilitres, with the user's
-  // override applied (or the gendered seed if none is stored yet). The
+  // override applied (or the sex-based seed if none is stored yet). The
   // profile entry subtitle shows this so the user sees the value the
   // home chip is using without opening the dialog.
   final int effectiveWaterGoalMl;

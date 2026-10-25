@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
+import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 import 'package:opennutritracker/core/utils/calc/tdee_calc.dart';
@@ -46,7 +46,7 @@ void main() {
   final yesterday = DateTime.now().subtract(const Duration(days: 1));
 
   UserEntity userAged30({
-    required UserGenderEntity gender,
+    required UserSexEntity sex,
     required double weightKG,
     required double heightM,
     required UserPALEntity pal,
@@ -55,7 +55,7 @@ void main() {
       birthday: DateTime(yesterday.year - 30, yesterday.month, yesterday.day),
       heightCM: heightM * 100,
       weightKG: weightKG,
-      gender: gender,
+      sex: sex,
       goal: UserWeightGoalEntity.maintainWeight,
       pal: pal,
     );
@@ -66,7 +66,7 @@ void main() {
       test('${c.citation} → ${c.publishedKcal} kcal', () {
         final tdee = TDEECalc.getTDEEKcalIOM2005(
           userAged30(
-            gender: c.gender,
+            sex: c.sex,
             weightKG: c.weightKG,
             heightM: c.heightM,
             pal: c.pal,
@@ -84,7 +84,7 @@ void main() {
         // The pre-#987 code left the height term outside the PA multiplier;
         // reproduced here so the failure it would produce is measurable.
         double buggy(_PublishedCase c) {
-          final isMale = c.gender == UserGenderEntity.male;
+          final isMale = c.sex == UserSexEntity.male;
           final pa = _paFor(c.pal, isMale: isMale);
           return isMale
               ? 864 - 9.72 * 30 + pa * 14.2 * c.weightKG + 503 * c.heightM
@@ -115,7 +115,7 @@ void main() {
     // p. 204 page image by three agents that were denied access to this
     // repository, and reconciled by a fourth. They are not hand-computed here.
     void expectTdee({
-      required UserGenderEntity gender,
+      required UserSexEntity sex,
       required int age,
       required double weightKG,
       required double heightCM,
@@ -130,7 +130,7 @@ void main() {
         ),
         heightCM: heightCM,
         weightKG: weightKG,
-        gender: gender,
+        sex: sex,
         goal: UserWeightGoalEntity.maintainWeight,
         pal: pal,
       );
@@ -139,7 +139,7 @@ void main() {
 
     test('male 25 y, 80 kg, 180 cm, sedentary', () {
       expectTdee(
-        gender: UserGenderEntity.male,
+        sex: UserSexEntity.male,
         age: 25,
         weightKG: 80,
         heightCM: 180,
@@ -150,7 +150,7 @@ void main() {
 
     test('male 25 y, 80 kg, 180 cm, very active', () {
       expectTdee(
-        gender: UserGenderEntity.male,
+        sex: UserSexEntity.male,
         age: 25,
         weightKG: 80,
         heightCM: 180,
@@ -161,7 +161,7 @@ void main() {
 
     test('male 19 y, 60 kg, 155 cm, very active (youngest in-range age)', () {
       expectTdee(
-        gender: UserGenderEntity.male,
+        sex: UserSexEntity.male,
         age: 19,
         weightKG: 60,
         heightCM: 155,
@@ -172,7 +172,7 @@ void main() {
 
     test('female 54 y, 75 kg, 160 cm, active', () {
       expectTdee(
-        gender: UserGenderEntity.female,
+        sex: UserSexEntity.female,
         age: 54,
         weightKG: 75,
         heightCM: 160,
@@ -187,7 +187,7 @@ void main() {
       // profile that separates them, and the only thing standing between us
       // and silently sharing the men's low-active coefficient.
       expectTdee(
-        gender: UserGenderEntity.female,
+        sex: UserSexEntity.female,
         age: 25,
         weightKG: 80,
         heightCM: 180,
@@ -198,7 +198,7 @@ void main() {
 
     test('female 35 y, 70 kg, 165 cm, sedentary', () {
       expectTdee(
-        gender: UserGenderEntity.female,
+        sex: UserSexEntity.female,
         age: 35,
         weightKG: 70,
         heightCM: 165,
@@ -226,7 +226,7 @@ double _paFor(UserPALEntity pal, {required bool isMale}) {
 }
 
 class _PublishedCase {
-  final UserGenderEntity gender;
+  final UserSexEntity sex;
   final double weightKG;
   final double heightM;
   final UserPALEntity pal;
@@ -234,7 +234,7 @@ class _PublishedCase {
   final String citation;
 
   const _PublishedCase({
-    required this.gender,
+    required this.sex,
     required this.weightKG,
     required this.heightM,
     required this.pal,
@@ -243,8 +243,8 @@ class _PublishedCase {
   });
 }
 
-const _m = UserGenderEntity.male;
-const _f = UserGenderEntity.female;
+const _m = UserSexEntity.male;
+const _f = UserSexEntity.female;
 const _sed = UserPALEntity.sedentary;
 const _low = UserPALEntity.lowActive;
 const _act = UserPALEntity.active;
@@ -255,7 +255,7 @@ const _very = UserPALEntity.veryActive;
 const List<_PublishedCase> _publishedCases = [
   // Table 5-29 (men), inputs p. 206 / results p. 207.
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 52.5625,
     heightM: 1.45,
     pal: _sed,
@@ -263,7 +263,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.207 h1.45 BMI25 sedentary',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 52.5625,
     heightM: 1.45,
     pal: _low,
@@ -271,7 +271,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.207 h1.45 BMI25 low active',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 52.5625,
     heightM: 1.45,
     pal: _act,
@@ -279,7 +279,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.207 h1.45 BMI25 active',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 52.5625,
     heightM: 1.45,
     pal: _very,
@@ -287,7 +287,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.207 h1.45 BMI25 very active',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 63.075,
     heightM: 1.45,
     pal: _sed,
@@ -295,7 +295,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.207 h1.45 BMI30 sedentary',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 84.1,
     heightM: 1.45,
     pal: _very,
@@ -303,7 +303,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.207 h1.45 BMI40 very active',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 78.75,
     heightM: 1.50,
     pal: _act,
@@ -311,7 +311,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.207 h1.50 BMI35 active',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 64.0,
     heightM: 1.60,
     pal: _sed,
@@ -319,7 +319,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.207 h1.60 BMI25 sedentary',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 102.4,
     heightM: 1.60,
     pal: _very,
@@ -328,7 +328,7 @@ const List<_PublishedCase> _publishedCases = [
   ),
   // Table 5-29 continued, inputs p. 208 / results p. 209.
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 97.2,
     heightM: 1.80,
     pal: _sed,
@@ -336,7 +336,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.209 h1.80 BMI30 sedentary',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 97.2,
     heightM: 1.80,
     pal: _low,
@@ -344,7 +344,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.209 h1.80 BMI30 low active',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 97.2,
     heightM: 1.80,
     pal: _act,
@@ -352,7 +352,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.209 h1.80 BMI30 active',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 97.2,
     heightM: 1.80,
     pal: _very,
@@ -360,7 +360,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.209 h1.80 BMI30 very active',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 152.1,
     heightM: 1.95,
     pal: _sed,
@@ -368,7 +368,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-29 p.209 h1.95 BMI40 sedentary',
   ),
   _PublishedCase(
-    gender: _m,
+    sex: _m,
     weightKG: 152.1,
     heightM: 1.95,
     pal: _very,
@@ -377,7 +377,7 @@ const List<_PublishedCase> _publishedCases = [
   ),
   // Table 5-30 (women), inputs p. 210 / results p. 211.
   _PublishedCase(
-    gender: _f,
+    sex: _f,
     weightKG: 52.5625,
     heightM: 1.45,
     pal: _sed,
@@ -385,7 +385,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-30 p.211 h1.45 BMI25 sedentary',
   ),
   _PublishedCase(
-    gender: _f,
+    sex: _f,
     weightKG: 52.5625,
     heightM: 1.45,
     pal: _low,
@@ -393,7 +393,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-30 p.211 h1.45 BMI25 low active',
   ),
   _PublishedCase(
-    gender: _f,
+    sex: _f,
     weightKG: 52.5625,
     heightM: 1.45,
     pal: _act,
@@ -401,7 +401,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-30 p.211 h1.45 BMI25 active',
   ),
   _PublishedCase(
-    gender: _f,
+    sex: _f,
     weightKG: 52.5625,
     heightM: 1.45,
     pal: _very,
@@ -409,7 +409,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-30 p.211 h1.45 BMI25 very active',
   ),
   _PublishedCase(
-    gender: _f,
+    sex: _f,
     weightKG: 84.1,
     heightM: 1.45,
     pal: _sed,
@@ -417,7 +417,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-30 p.211 h1.45 BMI40 sedentary',
   ),
   _PublishedCase(
-    gender: _f,
+    sex: _f,
     weightKG: 64.0,
     heightM: 1.60,
     pal: _sed,
@@ -425,7 +425,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-30 p.211 h1.60 BMI25 sedentary',
   ),
   _PublishedCase(
-    gender: _f,
+    sex: _f,
     weightKG: 102.4,
     heightM: 1.60,
     pal: _very,
@@ -434,7 +434,7 @@ const List<_PublishedCase> _publishedCases = [
   ),
   // Table 5-30 continued, inputs p. 212 / results p. 213.
   _PublishedCase(
-    gender: _f,
+    sex: _f,
     weightKG: 97.2,
     heightM: 1.80,
     pal: _sed,
@@ -442,7 +442,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-30 p.213 h1.80 BMI30 sedentary',
   ),
   _PublishedCase(
-    gender: _f,
+    sex: _f,
     weightKG: 97.2,
     heightM: 1.80,
     pal: _very,
@@ -450,7 +450,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-30 p.213 h1.80 BMI30 very active',
   ),
   _PublishedCase(
-    gender: _f,
+    sex: _f,
     weightKG: 152.1,
     heightM: 1.95,
     pal: _sed,
@@ -458,7 +458,7 @@ const List<_PublishedCase> _publishedCases = [
     citation: 'T5-30 p.213 h1.95 BMI40 sedentary',
   ),
   _PublishedCase(
-    gender: _f,
+    sex: _f,
     weightKG: 152.1,
     heightM: 1.95,
     pal: _very,

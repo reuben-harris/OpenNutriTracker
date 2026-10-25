@@ -147,13 +147,11 @@ class HomePage extends StatelessWidget {
                 ),
                 if (CalorieGoalCalc.isBelowRecommendedDailyKcalFloor(
                   goalKcal: state.totalKcalDaily,
-                  gender: state.userGender,
-                  caloriesProfile: state.userCaloriesProfile,
+                  sex: state.userSex,
                 ))
                   LowKcalWarningCard(
                     thresholdKcal: CalorieGoalCalc.recommendedDailyKcalFloor(
-                      gender: state.userGender,
-                      caloriesProfile: state.userCaloriesProfile,
+                      sex: state.userSex,
                     ),
                   ),
               ],

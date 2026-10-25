@@ -779,8 +779,10 @@ class _AiAssistDialogState extends State<AiAssistDialog> {
     return literal != null && !isPrivateDestination(literal);
   }
 
-  String _providerName(BuildContext context, AiProvider provider) =>
-      switch (provider) {
+  String _providerName(
+    BuildContext context,
+    AiProvider provider,
+  ) => switch (provider) {
     // Brand names, deliberately not localized.
     AiProvider.anthropic => 'Anthropic',
     AiProvider.openrouter => 'OpenRouter',
@@ -848,8 +850,8 @@ class _AiAssistDialogState extends State<AiAssistDialog> {
                   children: [
                     _label(theme, s.aiAssistProviderLabel),
                     // Per-tile groupValue/onChanged rather than a RadioGroup
-                    // ancestor, matching CaloriesProfileInfoDialog: inside a
-                    // dialog the ancestor form does not reliably propagate
+                    // ancestor: inside a dialog the ancestor form does not reliably
+                    // propagate
                     // taps to RadioListTile children, and the bug it produced
                     // there was a selection that silently stayed on its
                     // initial value. Deprecated, and still the form that works
@@ -1132,9 +1134,10 @@ class _AiAssistDialogState extends State<AiAssistDialog> {
       AiModelListFailure.rejected => s.aiAssistModelsRejectedLabel(host),
       // A list did come back. Only its being empty is worth a sentence — a
       // list with entries in it speaks for itself, in the picker below.
-      null => _modelIds != null && _modelIds!.isEmpty
-          ? s.aiAssistModelsEmptyLabel(host)
-          : null,
+      null =>
+        _modelIds != null && _modelIds!.isEmpty
+            ? s.aiAssistModelsEmptyLabel(host)
+            : null,
     };
   }
 
@@ -1241,9 +1244,8 @@ class _AiAssistDialogState extends State<AiAssistDialog> {
   _ProbeRowState _rowStateFor(AiCapability capability) => switch (capability) {
     AiCapability.passed => _ProbeRowState.passed,
     AiCapability.failed => _ProbeRowState.failed,
-    AiCapability.unknown => _probe.checked
-        ? _ProbeRowState.noAnswer
-        : _ProbeRowState.neverChecked,
+    AiCapability.unknown =>
+      _probe.checked ? _ProbeRowState.noAnswer : _ProbeRowState.neverChecked,
   };
 
   /// One capability, its verdict, and what that verdict means for the user.
