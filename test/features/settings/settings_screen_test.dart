@@ -309,8 +309,9 @@ void main() {
       ) async {
         if (call.method == 'launch') {
           launches.add(call.arguments as Map<Object?, Object?>);
-          if (outcome == 'exception')
+          if (outcome == 'exception') {
             throw PlatformException(code: 'ACTIVITY_NOT_FOUND');
+          }
           return outcome == 'success';
         }
         throw StateError('Unexpected launcher method: ${call.method}');
