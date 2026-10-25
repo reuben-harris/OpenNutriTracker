@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
 import 'package:opennutritracker/core/domain/entity/calories_profile_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_bmi_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_gender_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
@@ -21,7 +20,6 @@ import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:opennutritracker/features/profile/presentation/utils/profile_display_format.dart';
-import 'package:opennutritracker/features/profile/presentation/widgets/bmi_overview.dart';
 import 'package:opennutritracker/features/profile/presentation/widgets/profile_switcher_header.dart';
 import 'package:opennutritracker/features/profile/presentation/widgets/set_gender_dialog.dart';
 import 'package:opennutritracker/features/profile/presentation/widgets/set_goal_dialog.dart';
@@ -34,6 +32,7 @@ import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart'
 import 'package:opennutritracker/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:opennutritracker/features/settings/settings_screen.dart';
 import 'package:opennutritracker/features/settings/presentation/widgets/water_goal_dialog.dart';
+import 'package:opennutritracker/features/settings/presentation/widgets/workout_calorie_credit_dialog.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -65,7 +64,7 @@ class _ProfilePageState extends State<ProfilePage> {
         } else if (state is ProfileLoadedState) {
           return _getLoadedContent(
             context,
-            state.userBMI,
+            state.effectiveWorkoutKcalMultiplier,
             state.userEntity,
             state.bodyWeightUnit,
             state.usesImperialHeightUnits,
@@ -84,7 +83,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _getLoadedContent(
     BuildContext context,
-    UserBMIEntity userBMIEntity,
+    double workoutKcalMultiplier,
     UserEntity user,
     BodyWeightUnit bodyWeightUnit,
     bool usesImperialHeightUnits,
@@ -102,11 +101,6 @@ class _ProfilePageState extends State<ProfilePage> {
       children: [
         const ProfileSwitcherHeader(),
         const SizedBox(height: Dimens.spacing24),
-        BMIOverview(
-          bmiValue: userBMIEntity.bmiValue,
-          nutritionalStatus: userBMIEntity.nutritionalStatus,
-        ),
-        const SizedBox(height: Dimens.spacing32),
         SectionHeader(label: S.of(context).goalLabel, palette: palette),
         const SizedBox(height: Dimens.spacing12),
         SectionGroup(
@@ -119,6 +113,21 @@ class _ProfilePageState extends State<ProfilePage> {
               title: S.of(context).activityLabel,
               subtitle: user.pal.getName(context),
               onTap: () => _showSetPALCategoryDialog(context, user),
+            ),
+            _ProfileTile(
+              identifier: 'profile-workout-calorie-credit',
+              palette: palette,
+              icon: Icons.fitness_center_rounded,
+              title: S.of(context).healthSyncKcalMultiplierLabel,
+              subtitle: S
+                  .of(context)
+                  .healthSyncKcalMultiplierValueLabel(
+                    (workoutKcalMultiplier * 100).round(),
+                  ),
+              onTap: () => _showWorkoutCalorieCreditDialog(
+                context,
+                workoutKcalMultiplier,
+              ),
             ),
             _ProfileTile(
               identifier: 'profile-goal',
@@ -134,11 +143,8 @@ class _ProfilePageState extends State<ProfilePage> {
               icon: Icons.trending_down_rounded,
               title: S.of(context).weeklyWeightGoalLabel,
               subtitle: _weeklyGoalSubtitle(context, user, bodyWeightUnit),
-              onTap: () => _showSetWeeklyWeightGoalDialog(
-                context,
-                user,
-                bodyWeightUnit,
-              ),
+              onTap: () =>
+                  _showSetWeeklyWeightGoalDialog(context, user, bodyWeightUnit),
             ),
           ],
         ),
@@ -165,9 +171,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       lbLabel: S.of(context).lbsLabel,
                       stLabel: S.of(context).stLabel,
                     ),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: palette.textMuted,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: palette.textMuted),
                   ),
                   // #119: When the user has set a concrete target weight, surface
                   // the distance to it directly below the current weight. The
@@ -176,9 +182,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   if (user.targetWeightKg != null)
                     Text(
                       _targetWeightSubLabel(context, user, bodyWeightUnit),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: palette.textMuted,
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: palette.textMuted),
                     ),
                 ],
               ),
@@ -233,8 +239,9 @@ class _ProfilePageState extends State<ProfilePage> {
               icon: Icons.timer_rounded,
               title: S.of(context).profileFastingEntry,
               showChevron: true,
-              onTap: () =>
-                  Navigator.of(context).pushNamed(NavigationOptions.fastingRoute),
+              onTap: () => Navigator.of(
+                context,
+              ).pushNamed(NavigationOptions.fastingRoute),
             ),
           ],
         ),
@@ -258,10 +265,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
         const SizedBox(height: Dimens.spacing24),
-        SectionHeader(
-          label: S.of(context).profileLabel,
-          palette: palette,
-        ),
+        SectionHeader(label: S.of(context).profileLabel, palette: palette),
         const SizedBox(height: Dimens.spacing12),
         SectionGroup(
           palette: palette,
@@ -308,8 +312,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 palette: palette,
                 icon: Icons.tune_rounded,
                 title: S.of(context).caloriesProfileInfoTitle,
-                subtitle: (user.caloriesProfile ?? CaloriesProfileEntity.averaged)
-                    .getName(context),
+                subtitle:
+                    (user.caloriesProfile ?? CaloriesProfileEntity.averaged)
+                        .getName(context),
                 onTap: () {
                   _showCaloriesProfileDialog(context, user);
                 },
@@ -328,8 +333,9 @@ class _ProfilePageState extends State<ProfilePage> {
               icon: Icons.menu_book_rounded,
               title: S.of(context).recipesLabel,
               showChevron: true,
-              onTap: () =>
-                  Navigator.of(context).pushNamed(NavigationOptions.recipesRoute),
+              onTap: () => Navigator.of(
+                context,
+              ).pushNamed(NavigationOptions.recipesRoute),
             ),
           ],
         ),
@@ -355,7 +361,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               childrenPadding: const EdgeInsets.only(bottom: Dimens.spacing8),
-              children: const [SettingsScreen(embedded: true)],
+              children: [
+                SettingsScreen(embedded: true, profileBloc: _profileBloc),
+              ],
             ),
           ),
         ),
@@ -388,11 +396,15 @@ class _ProfilePageState extends State<ProfilePage> {
     switch (bodyWeightUnit) {
       case BodyWeightUnit.kg:
         final sign = goal > 0 ? '+' : '';
-        return S.of(context).weeklyWeightGoalKgPerWeek('$sign${goal.toStringAsFixed(2)}');
+        return S
+            .of(context)
+            .weeklyWeightGoalKgPerWeek('$sign${goal.toStringAsFixed(2)}');
       case BodyWeightUnit.lb:
         final displayLb = goal * 2.20462;
         final sign = displayLb > 0 ? '+' : '';
-        return S.of(context).weeklyWeightGoalLbsPerWeek('$sign${displayLb.toStringAsFixed(2)}');
+        return S
+            .of(context)
+            .weeklyWeightGoalLbsPerWeek('$sign${displayLb.toStringAsFixed(2)}');
       case BodyWeightUnit.st:
         final displaySt = goal * 2.20462 / 14;
         final sign = displaySt > 0 ? '+' : '';
@@ -466,10 +478,8 @@ class _ProfilePageState extends State<ProfilePage> {
   ) async {
     final newKg = await showDialog<double>(
       context: context,
-      builder: (context) => SetWeightDialog(
-        initialKg: userEntity.weightKG,
-        unit: bodyWeightUnit,
-      ),
+      builder: (context) =>
+          SetWeightDialog(initialKg: userEntity.weightKG, unit: bodyWeightUnit),
     );
     if (newKg != null) {
       final now = DateTime.now();
@@ -581,6 +591,20 @@ class _ProfilePageState extends State<ProfilePage> {
     await _profileBloc.updateUser(userEntity);
   }
 
+  Future<void> _showWorkoutCalorieCreditDialog(
+    BuildContext context,
+    double currentMultiplier,
+  ) async {
+    final selected = await showDialog<double>(
+      context: context,
+      builder: (_) =>
+          WorkoutCalorieCreditDialog(initialMultiplier: currentMultiplier),
+    );
+    if (selected == null || !mounted) return;
+    await locator<SettingsBloc>().setHealthWorkoutKcalMultiplier(selected);
+    if (mounted) _profileBloc.add(LoadProfileEvent());
+  }
+
   void _showWaterGoalDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -674,12 +698,17 @@ class _ProfileTile extends StatelessWidget {
     return Semantics(
       identifier: identifier,
       child: ListTile(
-        leading: _IconChip(palette: palette, icon: icon, iconWidget: iconWidget),
+        leading: _IconChip(
+          palette: palette,
+          icon: icon,
+          iconWidget: iconWidget,
+        ),
         title: Text(
           title,
           style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
-        subtitle: subtitleWidget ??
+        subtitle:
+            subtitleWidget ??
             (subtitle != null
                 ? Text(
                     subtitle!,

@@ -40,7 +40,6 @@ import '../helpers/hive_test_setup.dart';
 /// behind [HealthService].
 class _FakeHealthService extends Fake implements HealthService {
   List<ExternalWorkout> workouts = const [];
-  double? bodyFatPercent;
   bool throwOnRead = false;
 
   /// Holds a read open so a second caller can arrive mid-import.
@@ -71,9 +70,6 @@ class _FakeHealthService extends Fake implements HealthService {
     }
     return workouts;
   }
-
-  @override
-  Future<double?> readLatestBodyFatPercent() async => bodyFatPercent;
 }
 
 ExternalWorkout _workout({
@@ -196,7 +192,7 @@ void main() {
 
   group('ImportWorkoutsUsecase budget invariant', () {
     test(
-      'an imported workout becomes an activity and raises the day goal',
+      'a 500 kcal workout credits 360 kcal by default and raises the day goal',
       () async {
         healthService.workouts = [_workout(start: DateTime(2026, 5, 23, 7, 0))];
         // Read before importing: the goal excluding activities is the base the
@@ -213,7 +209,8 @@ void main() {
         expect(imported, equals(1));
         final activities = await userActivityRepository.getAllUserActivityDBO();
         expect(activities, hasLength(1));
-        expect(activities.single.burnedKcal, closeTo(500, 0.001));
+        expect(activities.single.burnedKcal, closeTo(360, 0.001));
+        expect(activities.single.sourceReportedKcal, closeTo(500, 0.001));
         expect(activities.single.duration, closeTo(60, 0.001));
         expect(activities.single.externalId, equals('record-1'));
         expect(activities.single.date, equals(DateTime(2026, 5, 23, 7, 0)));
@@ -222,16 +219,16 @@ void main() {
           DateTime(2026, 5, 23),
         );
         expect(trackedDay, isNotNull);
-        expect(trackedDay!.calorieGoal, closeTo(baseKcalGoal + 500, 0.001));
+        expect(trackedDay!.calorieGoal, closeTo(baseKcalGoal + 360, 0.001));
         expect(
           trackedDay.carbsGoal,
-          closeTo(baseCarbsGoal + MacroCalc.getTotalCarbsGoal(500), 0.001),
+          closeTo(baseCarbsGoal + MacroCalc.getTotalCarbsGoal(360), 0.001),
         );
         expect(
           trackedDay.fatGoal,
           closeTo(
             await getMacroGoalUsecase.getFatsGoal(baseKcalGoal) +
-                MacroCalc.getTotalFatsGoal(500),
+                MacroCalc.getTotalFatsGoal(360),
             0.001,
           ),
         );
@@ -239,7 +236,7 @@ void main() {
           trackedDay.proteinGoal,
           closeTo(
             await getMacroGoalUsecase.getProteinsGoal(baseKcalGoal) +
-                MacroCalc.getTotalProteinsGoal(500),
+                MacroCalc.getTotalProteinsGoal(360),
             0.001,
           ),
         );
@@ -292,6 +289,34 @@ void main() {
       expect(trackedDay!.calorieGoal, closeTo(baseKcalGoal + 350, 0.001));
     });
   });
+
+  test(
+    'changing the credit affects new imports, not existing activities',
+    () async {
+      final first = _workout(start: DateTime(2026, 5, 23, 7));
+      healthService.workouts = [first];
+      await usecase.importNow();
+
+      await configDataSource.setConfigHealthWorkoutKcalMultiplier(1.0);
+      ImportWorkoutsUsecase.clock = () => now.add(const Duration(hours: 2));
+      healthService.workouts = [
+        first,
+        _workout(id: 'record-2', start: DateTime(2026, 5, 23, 13)),
+      ];
+      expect(await usecase.importNow(), 1);
+
+      final activities = await userActivityRepository.getAllUserActivityDBO();
+      final byId = {
+        for (final activity in activities) activity.externalId: activity,
+      };
+      expect(byId['record-1']!.burnedKcal, closeTo(360, 0.001));
+      expect(byId['record-2']!.burnedKcal, closeTo(500, 0.001));
+      expect(
+        activities.every((activity) => activity.sourceReportedKcal == 500),
+        isTrue,
+      );
+    },
+  );
 
   group('ImportWorkoutsUsecase filtering', () {
     test('a record already imported is never imported again', () async {

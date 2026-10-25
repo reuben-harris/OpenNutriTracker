@@ -121,8 +121,7 @@ class ConfigDBO extends HiveObject {
   bool? healthImportEnabled;
   // Share of an imported workout's device-reported energy that counts toward
   // the daily goal, stored as a fraction in 0.50–1.00. Null means "not chosen
-  // yet"; the settings flow writes a body-composition-derived suggestion the
-  // moment import is switched on (see WorkoutCompensationCalc).
+  // yet"; ConfigEntity resolves this to the fixed 72% default.
   @HiveField(34)
   double? healthWorkoutKcalMultiplier;
   // Watermark: the end of the window the last successful import read. Doubles

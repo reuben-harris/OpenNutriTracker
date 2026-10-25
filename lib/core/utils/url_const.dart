@@ -25,8 +25,7 @@ class URLConst {
   // energy-specific 2005 catalogue cited above.
   static const sourceNutrientReferenceIomURL =
       "https://www.nationalacademies.org/our-work/summary-report-of-the-dietary-reference-intakes";
-  static const sourceBmiWhoURL =
-      "https://www.who.int/data/gho/data/themes/topics/topic-details/GHO/body-mass-index";
+
   static const sourceMacrosWhoTrs916URL =
       "https://iris.who.int/handle/10665/42665";
   static const sourceActivityCompendium2024URL =
@@ -39,8 +38,6 @@ class URLConst {
       "https://link.springer.com/article/10.1186/s12937-020-00590-4";
   static const sourceEnergyCompensationCareau2021URL =
       "https://pubmed.ncbi.nlm.nih.gov/34453886/";
-  static const sourceBodyCompositionBorrud2010URL =
-      "https://www.cdc.gov/nchs/data/series/sr_11/sr11_250.pdf";
 
   // Wiki page documenting every in-app calculation in full — linked from
   // the calorie-goal transparency screen for people who want the complete

@@ -32,19 +32,9 @@ enum HealthTargetPlatform {
 /// feature needs, hands back plain [ExternalWorkout] records, and leaves
 /// every decision about what to do with them to the import use case.
 ///
-/// The two platforms are not symmetric, and the asymmetry is a policy
-/// consequence rather than a technical one. Play's Health Connect permissions
-/// policy refused this app READ_BODY_FAT, READ_DISTANCE and READ_STEPS as
-/// excessive (enforced 8 Sept 2026), so on Android:
-///
-///  * workouts are read outside the plugin, by
-///    [HealthConnectWorkoutReader] — the plugin's own workout read pulls
-///    distance and steps for every session and fails entirely without them;
-///  * body fat is not read at all, and the calorie-credit suggestion falls
-///    back to the BMI-derived percentile it already used for anyone whose
-///    health store had no body fat on record.
-///
-/// HealthKit is not subject to that policy and keeps both.
+/// Android sessions are read through [HealthConnectWorkoutReader] because
+/// the plugin also queries distance and steps, which this feature does not
+/// use or request permission for. HealthKit reads the workout directly.
 class HealthPackageService implements HealthService {
   /// Workouts, on every platform that has a health store. On Android this is
   /// requested (it is what grants READ_EXERCISE) but read through
@@ -58,29 +48,10 @@ class HealthPackageService implements HealthService {
   /// feature never uses.
   static const _androidEnergyType = HealthDataType.TOTAL_CALORIES_BURNED;
 
-  /// Body fat personalises the calorie-credit suggestion. iOS only; see the
-  /// class doc.
-  static const _iosBodyCompositionType = HealthDataType.BODY_FAT_PERCENTAGE;
-
   List<HealthDataType> get _readTypes => [
     _workoutType,
     if (_platform == HealthTargetPlatform.android) _androidEnergyType,
-    if (_platform == HealthTargetPlatform.ios) _iosBodyCompositionType,
   ];
-
-  /// The types a workout read touches — [requestPermissions] asks for all of
-  /// [_readTypes], but a revoked body-fat grant only costs the suggestion,
-  /// so the workout guard must not fail on it.
-  List<HealthDataType> get _workoutReadTypes => [
-    _workoutType,
-    if (_platform == HealthTargetPlatform.android) _androidEnergyType,
-  ];
-
-  /// How far back to look for the latest body fat reading. A year is long
-  /// enough that a user who steps on a smart scale occasionally still gets a
-  /// personalised suggestion, and short enough that a stale composition from
-  /// several years ago doesn't drive it.
-  static const _bodyFatLookback = Duration(days: 365);
 
   static final _log = Logger('HealthPackageService');
   final Health _health;
@@ -119,13 +90,12 @@ class HealthPackageService implements HealthService {
     // Android answers the request with "was anything at all granted", so a
     // user who ticked calories and left exercise unticked would switch the
     // feature on with nothing importable behind it. Re-check the types a
-    // workout read actually needs; on iOS body fat only costs the suggestion,
-    // so a refusal there is not a failure. hasPermissions answers null where
-    // the platform will not say (iOS never reports read grants) — same rule
-    // as [readWorkouts], only a definite refusal counts.
+    // workout read actually needs. hasPermissions answers null where the
+    // platform will not say (iOS never reports read grants) — same rule as
+    // [readWorkouts], only a definite refusal counts.
     final hasWorkoutPermissions = await _health.hasPermissions(
-      _workoutReadTypes,
-      permissions: List.filled(_workoutReadTypes.length, HealthDataAccess.READ),
+      _readTypes,
+      permissions: List.filled(_readTypes.length, HealthDataAccess.READ),
     );
     return hasWorkoutPermissions != false;
   }
@@ -141,13 +111,13 @@ class HealthPackageService implements HealthService {
     // hasPermissions answers null where the platform will not say (iOS never
     // reports read grants); only a definite refusal aborts.
     final hasPermissions = await _health.hasPermissions(
-      _workoutReadTypes,
-      permissions: List.filled(_workoutReadTypes.length, HealthDataAccess.READ),
+      _readTypes,
+      permissions: List.filled(_readTypes.length, HealthDataAccess.READ),
     );
     if (hasPermissions == false) {
       throw StateError(
         'Missing health read permissions for a workout import; '
-        'needed: $_workoutReadTypes',
+        'needed: $_readTypes',
       );
     }
     if (_platform == HealthTargetPlatform.android) {
@@ -272,30 +242,6 @@ class HealthPackageService implements HealthService {
     return largestKcal > 0 ? largestKcal : null;
   }
 
-  @override
-  Future<double?> readLatestBodyFatPercent() async {
-    // Android holds no body-fat permission — Play refused it as excessive for
-    // what this app does. Null is the same answer the calculator already got
-    // for the many users whose health store has no body fat on record, and it
-    // falls back to the BMI-derived percentile.
-    if (_platform == HealthTargetPlatform.android) return null;
-    final now = DateTime.now();
-    final points = await _health.getHealthDataFromTypes(
-      types: const [HealthDataType.BODY_FAT_PERCENTAGE],
-      startTime: now.subtract(_bodyFatLookback),
-      endTime: now,
-    );
-    HealthDataPoint? latest;
-    for (final point in points) {
-      if (latest == null || point.dateTo.isAfter(latest.dateTo)) {
-        latest = point;
-      }
-    }
-    final value = latest?.value;
-    if (value is! NumericHealthValue) return null;
-    return _bodyFatAsPercent(value.numericValue.toDouble());
-  }
-
   /// Both platform bridges report workout energy in kilocalories, but the
   /// unit travels with the value, so honour it rather than assuming. An
   /// energy unit we can't convert is dropped: a workout with no usable
@@ -317,10 +263,4 @@ class HealthPackageService implements HealthService {
         return null;
     }
   }
-
-  /// Health Connect stores body fat as a 0..100 percentage while HealthKit's
-  /// percent unit is a 0..1 fraction, and the plugin passes each through
-  /// as-is. No living adult is under 1% body fat, so a value at or below 1 is
-  /// unambiguously the fractional spelling.
-  double _bodyFatAsPercent(double raw) => raw <= 1 ? raw * 100 : raw;
 }

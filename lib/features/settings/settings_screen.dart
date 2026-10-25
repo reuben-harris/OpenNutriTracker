@@ -70,7 +70,11 @@ class SettingsScreen extends StatefulWidget {
   /// route uses the default (full-screen) form.
   final bool embedded;
 
-  const SettingsScreen({super.key, this.embedded = false});
+  /// The mounted You tab's bloc when embedded. ProfileBloc is a factory,
+  /// so resolving it again would refresh a different screen state.
+  final ProfileBloc? profileBloc;
+
+  const SettingsScreen({super.key, this.embedded = false, this.profileBloc});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -108,7 +112,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _aiCredentials = locator<AiCredentialStorage>();
     _aiProbeRunner = locator<AiEndpointProbeRunner>();
     _settingsBloc = locator<SettingsBloc>();
-    _profileBloc = locator<ProfileBloc>();
+    _profileBloc = widget.profileBloc ?? locator<ProfileBloc>();
     _homeBloc = locator<HomeBloc>();
     _diaryBloc = locator<DiaryBloc>();
     _calendarDayBloc = locator<CalendarDayBloc>();
@@ -1076,11 +1080,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _refreshAiAssistState();
   }
 
-  void _openHealthSyncScreen(BuildContext context) {
+  Future<void> _openHealthSyncScreen(BuildContext context) async {
     // The named route rather than a direct push: Health Connect can ask for
     // this same screen from outside the app (#927), and one registration is
     // easier to keep honest than two ways in.
-    Navigator.of(context).pushNamed(NavigationOptions.healthSyncRoute);
+    await Navigator.of(context).pushNamed(NavigationOptions.healthSyncRoute);
+    if (mounted) _profileBloc.add(LoadProfileEvent());
   }
 
   Future<void> _confirmClearOffCache(BuildContext context) async {

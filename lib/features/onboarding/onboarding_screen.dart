@@ -267,9 +267,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         bodyWidget: OnboardingGoalPageBody(
           setButtonContent: _setGoalPageData,
           initialGoal: selection.goal,
-          heightCm: selection.height,
-          weightKg: selection.weight,
-          targetWeightKg: selection.targetWeight,
         ),
         footer: HighlightButton(
           buttonLabel: S.of(context).buttonNextLabel,

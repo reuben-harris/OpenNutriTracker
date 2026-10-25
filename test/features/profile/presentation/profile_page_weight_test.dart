@@ -5,7 +5,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_bmi_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 import 'package:opennutritracker/core/domain/entity/profile_entity.dart';
 import 'package:opennutritracker/core/domain/entity/weight_log_entity.dart';
@@ -15,10 +14,13 @@ import 'package:opennutritracker/core/domain/usecase/get_user_usecase.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:opennutritracker/features/profile/profile_page.dart';
+import 'package:opennutritracker/features/settings/presentation/bloc/settings_bloc.dart';
+import 'package:opennutritracker/features/settings/presentation/widgets/workout_calorie_credit_dialog.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
 import '../../../fixture/user_entity_fixtures.dart';
 import '../../../helpers/test_l10n.dart';
+import '../../../helpers/pump_until.dart';
 
 /// Real Bloc state/stream machinery, but [updateUser] just records the call
 /// instead of touching AddUserUsecase / HomeBloc / DiaryBloc / CalendarDayBloc
@@ -26,9 +28,23 @@ import '../../../helpers/test_l10n.dart';
 class _FakeProfileBloc extends Bloc<ProfileEvent, ProfileState>
     implements ProfileBloc {
   final List<UserEntity> updateUserCalls = [];
+  double multiplier = 0.72;
+  int reloads = 0;
 
   _FakeProfileBloc(super.initialState) {
-    on<LoadProfileEvent>((event, emit) => emit(state));
+    on<LoadProfileEvent>((event, emit) {
+      reloads++;
+      final current = state as ProfileLoadedState;
+      emit(
+        ProfileLoadedState(
+          userEntity: current.userEntity,
+          bodyWeightUnit: current.bodyWeightUnit,
+          usesImperialHeightUnits: current.usesImperialHeightUnits,
+          effectiveWaterGoalMl: current.effectiveWaterGoalMl,
+          effectiveWorkoutKcalMultiplier: multiplier,
+        ),
+      );
+    });
   }
 
   @override
@@ -41,6 +57,19 @@ class _FakeProfileBloc extends Bloc<ProfileEvent, ProfileState>
   @override
   Future<void> updateUser(UserEntity userEntity) async {
     updateUserCalls.add(userEntity);
+  }
+}
+
+class _FakeSettingsBloc extends Fake implements SettingsBloc {
+  final _FakeProfileBloc profileBloc;
+  final List<double> savedCredits = [];
+
+  _FakeSettingsBloc(this.profileBloc);
+
+  @override
+  Future<void> setHealthWorkoutKcalMultiplier(double multiplier) async {
+    savedCredits.add(multiplier);
+    profileBloc.multiplier = multiplier;
   }
 }
 
@@ -99,15 +128,14 @@ void main() {
   useTestLocator();
   late _FakeProfileBloc fakeProfileBloc;
   late _FakeAddWeightLogUsecase fakeAddWeightLogUsecase;
+  late _FakeSettingsBloc settingsBloc;
+  late int profileLookups;
   final user = UserEntityFixtures.youngSedentaryMaleWantingToMaintainWeight;
 
   setUp(() {
     fakeProfileBloc = _FakeProfileBloc(
       ProfileLoadedState(
-        userBMI: const UserBMIEntity(
-          bmiValue: 24.7,
-          nutritionalStatus: UserNutritionalStatus.normalWeight,
-        ),
+        effectiveWorkoutKcalMultiplier: 0.72,
         userEntity: user,
         bodyWeightUnit: BodyWeightUnit.kg,
         usesImperialHeightUnits: false,
@@ -116,7 +144,13 @@ void main() {
     );
     fakeAddWeightLogUsecase = _FakeAddWeightLogUsecase();
 
-    locator.registerSingleton<ProfileBloc>(fakeProfileBloc);
+    profileLookups = 0;
+    locator.registerFactory<ProfileBloc>(() {
+      profileLookups++;
+      return fakeProfileBloc;
+    });
+    settingsBloc = _FakeSettingsBloc(fakeProfileBloc);
+    locator.registerSingleton<SettingsBloc>(settingsBloc);
     locator.registerSingleton<AddWeightLogUsecase>(fakeAddWeightLogUsecase);
     locator.registerSingleton<GetUserUsecase>(_FakeGetUserUsecase(user));
     locator.registerSingleton<GetProfilesUsecase>(
@@ -167,5 +201,51 @@ void main() {
 
     // Profile/home/diary refresh still happens via ProfileBloc.updateUser.
     expect(fakeProfileBloc.updateUserCalls, hasLength(1));
+  });
+  testWidgets('You edits workout credit and refreshes its mounted bloc', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_wrap(const ProfilePage()));
+    await tester.pumpAndSettle();
+
+    final tile = find.bySemanticsIdentifier('profile-workout-calorie-credit');
+    expect(find.text('BMI'), findsNothing);
+    expect(
+      find.descendant(
+        of: tile,
+        matching: find.text(l10nEn.healthSyncKcalMultiplierValueLabel(72)),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    expect(find.byType(WorkoutCalorieCreditDialog), findsOneWidget);
+    final slider = find.byType(Slider);
+    await tester.tapAt(tester.getRect(slider).centerRight - const Offset(1, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10nEn.buttonSaveLabel));
+    await tester.pumpAndSettle();
+    await pumpUntil(
+      tester,
+      () => find
+          .descendant(
+            of: tile,
+            matching: find.text(l10nEn.healthSyncKcalMultiplierValueLabel(100)),
+          )
+          .evaluate()
+          .isNotEmpty,
+      reason: 'the mounted profile bloc to publish the saved workout credit',
+    );
+
+    expect(settingsBloc.savedCredits, [1.0]);
+    expect(fakeProfileBloc.reloads, 1);
+    expect(profileLookups, 1, reason: 'refresh the mounted factory instance');
+    expect(
+      find.descendant(
+        of: tile,
+        matching: find.text(l10nEn.healthSyncKcalMultiplierValueLabel(100)),
+      ),
+      findsOneWidget,
+    );
   });
 }

@@ -345,9 +345,7 @@ Future<void> exitDemoMode() async {
   );
 }
 
-/// 178cm / 87kg puts BMI at ~27.5 ("overweight") — solidly outside the
-/// normal 18.5-24.9 range regardless of [DemoSeedOptions] duration, since
-/// [_buildWeightLog] never lets the trend dip below this figure either.
+/// Fictional profile used consistently across demo durations.
 UserEntity _demoUser(DateTime startOfToday) => UserEntity(
   birthday: DateTime(startOfToday.year - 29, 4, 12),
   heightCM: 178,

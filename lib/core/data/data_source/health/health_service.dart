@@ -11,7 +11,7 @@ abstract class HealthService {
   /// on Android a Health Connect install that is actually usable.
   Future<bool> isAvailable();
 
-  /// Asks the user for read access to workouts and body fat percentage.
+  /// Asks the user for read access to workouts and their reported energy.
   /// Returns whether the request came back granted.
   Future<bool> requestPermissions();
 
@@ -23,9 +23,4 @@ abstract class HealthService {
     required DateTime from,
     required DateTime to,
   });
-
-  /// Most recent body fat percentage on record, as a percentage in 0..100.
-  /// Null when nothing is recorded or the read was not permitted — the
-  /// suggestion calculator treats that as "fall back to BMI".
-  Future<double?> readLatestBodyFatPercent();
 }

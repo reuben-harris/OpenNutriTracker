@@ -5,6 +5,76 @@ import 'package:opennutritracker/features/onboarding/presentation/widgets/onboar
 import '../../../../helpers/test_l10n.dart';
 
 void main() {
+  testWidgets('target weight stays optional and is entered manually', (
+    tester,
+  ) async {
+    double? target;
+    bool? active;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const [S.delegate],
+        supportedLocales: S.supportedLocales,
+        home: Scaffold(
+          body: OnboardingBodyMeasurementsPageBody(
+            setButtonContent: (ready, _, _, selectedTarget, _, _, _) {
+              active = ready;
+              target = selectedTarget;
+            },
+          ),
+        ),
+      ),
+    );
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), '180');
+    await tester.enterText(fields.at(1), '95');
+    await tester.pumpAndSettle();
+    expect(active, isTrue);
+    expect(target, isNull);
+    expect(
+      tester.widget<TextFormField>(fields.at(2)).controller!.text,
+      isEmpty,
+    );
+    expect(find.byType(ActionChip), findsNothing);
+
+    await tester.ensureVisible(fields.at(2));
+    await tester.enterText(fields.at(2), '82');
+    await tester.pumpAndSettle();
+    expect(target, 82);
+    expect(active, isTrue);
+
+    await tester.enterText(fields.at(2), '');
+    await tester.pumpAndSettle();
+    expect(target, isNull);
+    expect(active, isTrue);
+  });
+
+  testWidgets('restores the target the user entered previously', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: const [S.delegate],
+        supportedLocales: S.supportedLocales,
+        home: Scaffold(
+          body: OnboardingBodyMeasurementsPageBody(
+            initialHeightCm: 180,
+            initialWeightKg: 95,
+            initialTargetWeightKg: 82,
+            setButtonContent: (_, _, _, _, _, _, _) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      tester
+          .widget<TextFormField>(find.byType(TextFormField).at(2))
+          .controller!
+          .text,
+      '82',
+    );
+  });
+
   testWidgets('Case 1: Value is null', (WidgetTester tester) async {
     final showErrors = ValueNotifier<int>(0);
     addTearDown(showErrors.dispose);
