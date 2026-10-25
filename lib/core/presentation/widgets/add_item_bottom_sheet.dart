@@ -206,10 +206,10 @@ class AddItemBottomSheet extends StatelessWidget {
             ),
             const Divider(indent: 16, endIndent: 16),
             Semantics(
-              identifier: 'add-item-recipes',
+              identifier: 'add-item-library',
               child: ListTile(
                 title: Text(
-                  S.of(context).recipesLabel,
+                  S.of(context).libraryLabel,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Theme.of(context).colorScheme.onSurface,
                   ),

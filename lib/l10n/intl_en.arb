@@ -892,6 +892,7 @@
   "recipesEmptyHint": "Build a meal from multiple ingredients and reuse it like any other food.",
   "recipesEmptyLabel": "No recipes yet",
   "recipesFilterAllLabel": "All",
+  "libraryLabel": "Library",
   "recipesLabel": "Recipes",
   "recipesLoadErrorLabel": "Could not load recipes. Try again later.",
   "reportErrorDialogText": "Do you want to report an error to the developer?",

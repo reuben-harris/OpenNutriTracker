@@ -65,22 +65,21 @@ class SettingsScreenArguments {
 }
 
 class SettingsScreen extends StatefulWidget {
-  /// When true, renders the settings list inline (no Scaffold/AppBar, the list
-  /// shrink-wraps) so it can be hosted inside the You tab's scroll. The pushed
-  /// route uses the default (full-screen) form.
-  final bool embedded;
+  final bool showAppBar;
+  final bool isActive;
 
-  /// The mounted You tab's bloc when embedded. ProfileBloc is a factory,
-  /// so resolving it again would refresh a different screen state.
-  final ProfileBloc? profileBloc;
-
-  const SettingsScreen({super.key, this.embedded = false, this.profileBloc});
+  const SettingsScreen({
+    super.key,
+    this.showAppBar = true,
+    this.isActive = true,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen>
+    with WidgetsBindingObserver {
   late SettingsBloc _settingsBloc;
   late ProfileBloc _profileBloc;
   late HomeBloc _homeBloc;
@@ -112,32 +111,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _aiCredentials = locator<AiCredentialStorage>();
     _aiProbeRunner = locator<AiEndpointProbeRunner>();
     _settingsBloc = locator<SettingsBloc>();
-    _profileBloc = widget.profileBloc ?? locator<ProfileBloc>();
+    _profileBloc = locator<ProfileBloc>();
     _homeBloc = locator<HomeBloc>();
     _diaryBloc = locator<DiaryBloc>();
     _calendarDayBloc = locator<CalendarDayBloc>();
     _trendsBloc = locator<TrendsBloc>();
     super.initState();
-    _refreshAiAssistState();
-    // SettingsBloc is registered as a singleton so the previous
-    // SettingsLoadedState survives across screen visits. The cache
-    // count and on-disk size in particular are written in the
-    // background by search and barcode-scan flows, so reading them
-    // once at the bloc's first transition out of SettingsInitial
-    // leaves stale values on the screen for the rest of the session.
-    // Refresh on every entry instead.
+    WidgetsBinding.instance.addObserver(this);
+    if (widget.isActive) _refresh();
+  }
+
+  @override
+  void didUpdateWidget(covariant SettingsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) _refresh();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && widget.isActive) _refresh();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  void _refresh() {
+    // Cache statistics and AI credentials can change while this tab is hidden.
     _settingsBloc.add(LoadSettingsEvent());
+    _refreshAiAssistState();
   }
 
   /// Acts on what the caller asked the settings route for — see
   /// [SettingsScreenArguments].
   ///
-  /// The embedded form is skipped: it has no route of its own, so what it
-  /// would read is the host route's arguments, which are not addressed to it.
+  /// Tab content has no route of its own and must ignore its host's arguments.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_routeRequestHandled || widget.embedded) return;
+    if (_routeRequestHandled || !widget.showAppBar) return;
     _routeRequestHandled = true;
     final arguments = ModalRoute.of(context)?.settings.arguments;
     if (arguments is! SettingsScreenArguments || !arguments.openAiAssist) {
@@ -155,33 +169,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final Widget body = BlocBuilder<SettingsBloc, SettingsState>(
       bloc: _settingsBloc,
+      buildWhen: (previous, next) =>
+          previous is! SettingsLoadedState || next is! SettingsLoadingState,
       builder: (context, state) {
-        if (state is SettingsInitial) {
-          _settingsBloc.add(LoadSettingsEvent());
-        } else if (state is SettingsLoadingState) {
+        if (state is SettingsInitial || state is SettingsLoadingState) {
           return const Center(child: CircularProgressIndicator());
         } else if (state is SettingsLoadedState) {
           final isDark = Theme.of(context).brightness == Brightness.dark;
           final palette = isDark ? AppPalette.dark : AppPalette.light;
           final error = Theme.of(context).colorScheme.error;
-          // Built once, then wrapped in one of two shapes — because the
-          // embedded form is not a scrollable and should not pretend to be.
-          //
-          // It used to be a `ListView` either way, `shrinkWrap` with
-          // `NeverScrollableScrollPhysics` when embedded: a viewport that
-          // cannot scroll, nested inside the You tab's viewport that can.
-          // Rows outside the outer viewport are marked `isHidden`, and which
-          // of them cleared was decided by that outer list's offset — flung,
-          // it moves in large non-overlapping jumps, and a band in the middle
-          // was never uncovered. Four rows (the food databases, Health
-          // Connect, AI Assist, custom food import) could not be reached by a
-          // screen reader at all. #974.
-          //
-          // A `Column` has no viewport, so nothing here hides anything and
-          // the outer list alone decides what is on screen, exactly as it
-          // does for every other row of the You tab. It renders the same: a
-          // shrink-wrapped, unscrollable list of fixed children *is* a
-          // Column, with a viewport in the way.
           final children = <Widget>[
             _categoryHeader(
               context,
@@ -601,10 +597,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             AppBannerVersion(versionNumber: state.versionNumber),
           ];
 
-          if (widget.embedded) {
-            return Column(mainAxisSize: MainAxisSize.min, children: children);
-          }
           return ListView(
+            key: const PageStorageKey('settings-scroll'),
             padding: const EdgeInsets.fromLTRB(
               Dimens.spacing16,
               Dimens.spacing16,
@@ -617,7 +611,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return const SizedBox();
       },
     );
-    if (widget.embedded) return body;
+    if (!widget.showAppBar) return body;
     return Scaffold(
       appBar: AppBar(title: Text(S.of(context).settingsLabel)),
       body: body,
