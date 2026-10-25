@@ -34,14 +34,14 @@ import '../../helpers/test_l10n.dart';
 
 // Keep unrelated data screens loading: these tests exercise the real shell,
 // tab lifecycle and headers without storage, health imports or chart fixtures.
-class _BlocStub<E, S> extends Fake implements Bloc<E, S> {
+class _BlocStub<E, TState> extends Fake implements Bloc<E, TState> {
   _BlocStub(this.state);
 
   @override
-  final S state;
+  final TState state;
 
   @override
-  Stream<S> get stream => const Stream.empty();
+  Stream<TState> get stream => const Stream.empty();
 
   final List<E> events = [];
 
