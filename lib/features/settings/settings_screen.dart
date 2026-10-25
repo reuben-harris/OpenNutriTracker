@@ -1038,9 +1038,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   /// The tile is the only place the destination is visible without opening
   /// the dialog, so the "on" state names it.
   ///
-  /// The switch itself lives in [aiAssistSubtitle], shared with onboarding's
-  /// Other options page since #728 — one exhaustive site rather than two that
-  /// can disagree about who is being sent to.
+  /// [aiAssistSubtitle] exhaustively names the configured provider.
   String? _aiAssistSubtitle(BuildContext context) => aiAssistSubtitle(
     S.of(context),
     configured: _aiConfigured,
