@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
+import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
 import 'package:animated_flip_counter/animated_flip_counter.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
@@ -14,7 +16,7 @@ class DashboardWidget extends StatefulWidget {
   final bool allowGoalDetails;
   final double totalKcalDaily;
   final double totalKcalLeft;
-  final double totalKcalSupplied;
+  final NutrientAmount? totalKcalSupplied;
   final double totalKcalBurned;
   final double totalCarbsIntake;
   final double totalFatsIntake;
@@ -74,10 +76,12 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                 widget.totalKcalDaily
           : 0;
     }
-    final displayValue = usesKilojoules ? UnitCalc.kcalToKj(kcalValue) : kcalValue;
-    final displaySupplied = usesKilojoules
-        ? UnitCalc.kcalToKj(widget.totalKcalSupplied)
-        : widget.totalKcalSupplied;
+    final displayValue = usesKilojoules
+        ? UnitCalc.kcalToKj(kcalValue)
+        : kcalValue;
+    final displaySupplied = widget.totalKcalSupplied?.scale(
+      usesKilojoules ? 4.184 : 1,
+    );
     final displayBurned = usesKilojoules
         ? UnitCalc.kcalToKj(widget.totalKcalBurned)
         : widget.totalKcalBurned;
@@ -113,7 +117,11 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                     Expanded(
                       child: _MiniStat(
                         icon: Icons.arrow_downward_rounded,
-                        value: '${displaySupplied.toInt()}',
+                        value: formatNutrientAmount(
+                          displaySupplied,
+                          S.of(context),
+                          decimals: 0,
+                        ),
                         label: S.of(context).suppliedLabel,
                         color: palette.proteinColor,
                       ),
@@ -129,10 +137,12 @@ class _DashboardWidgetState extends State<DashboardWidget> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: Dimens.spacing16),
                 Semantics(
                   identifier: 'home-kcal-gauge',
-                  label: '${displayValue.toInt()} $kcalLabelText',
+                  label:
+                      '${nutrientNumber(displayValue, decimals: 0)} $kcalLabelText. ${nutrientQualificationLabel(displaySupplied, S.of(context))}',
                   hint: widget.allowGoalDetails
                       ? S.of(context).settingsKcalGoalInfoLabel
                       : null,
@@ -228,7 +238,9 @@ class _MiniStat extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Column(
-      crossAxisAlignment: trailing ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: trailing
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Container(
           padding: const EdgeInsets.all(8),

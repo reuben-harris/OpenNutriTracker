@@ -101,6 +101,21 @@ class NZTest(unittest.TestCase):
         self.assertEqual(cells[1]['raw_value'], '1.2300')
         self.assertEqual(cells[1]['formula'], '1+0.23')
 
+    def test_qualifications_without_invented_limits(self):
+        for code, qualification in [('TR', 'trace'), ('BL', 'belowDetection'),
+                                    ('BLX', 'belowDetectionOrQuantification'), ('BQ', 'belowQuantification')]:
+            self.assertEqual(importer.project_amount('0.0000', code),
+                             {'value': '0' if code == 'TR' else '0.0000',
+                              'qualification': qualification, 'limit': None})
+        for code in ['LZ', 'BE', 'AV', 'W']:
+            self.assertEqual(importer.project_amount('0.00100', code), '0.00100')
+        self.nutrients.append(['Q1', 'VITB12', '0', 'µg', 'W', '', 'TR', '', '', ''])
+        self.write_nutrients()
+        db, _ = self.build()
+        values = json.loads(db.execute('SELECT nutrition FROM food').fetchone()[0])
+        self.assertEqual(values['vitaminB12100']['qualification'], 'trace')
+        self.assertEqual(values['sodium100'], '0.00')
+
     def test_duplicate_measure_labels_remain_distinct_and_unique_labels_keep_identity(self):
         db, _ = self.build()
         rows = db.execute('SELECT id, label, gram_weight FROM food_portion ORDER BY position').fetchall()

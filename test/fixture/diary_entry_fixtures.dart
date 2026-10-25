@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
@@ -22,13 +23,13 @@ IntakeEntity diaryEntry({
     servingSize: '50 g',
     source: MealSourceEntity.custom,
     nutriments: MealNutrimentsEntity(
-      energyKcal100: 380,
-      carbohydrates100: 60,
-      fat100: 8,
-      proteins100: 12,
-      sugars100: 1,
-      saturatedFat100: 2,
-      fiber100: 10,
+      energyKcal100: NutrientAmount(380),
+      carbohydrates100: NutrientAmount(60),
+      fat100: NutrientAmount(8),
+      proteins100: NutrientAmount(12),
+      sugars100: NutrientAmount(1),
+      saturatedFat100: NutrientAmount(2),
+      fiber100: NutrientAmount(10),
     ),
   );
   final saved = recipe

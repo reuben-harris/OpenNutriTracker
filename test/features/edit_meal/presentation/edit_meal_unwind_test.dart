@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import '../../../helpers/locator_test_setup.dart';
 import '../../../helpers/pump_until.dart';
 import '../../../helpers/test_l10n.dart';
@@ -49,10 +50,10 @@ void main() {
   late _RecipeRepository recipes;
 
   const nutriments = MealNutrimentsEntity(
-    energyKcal100: 120,
-    carbohydrates100: 10,
-    fat100: 5,
-    proteins100: 8,
+    energyKcal100: NutrientAmount(120),
+    carbohydrates100: NutrientAmount(10),
+    fat100: NutrientAmount(5),
+    proteins100: NutrientAmount(8),
     sugars100: null,
     saturatedFat100: null,
     fiber100: null,

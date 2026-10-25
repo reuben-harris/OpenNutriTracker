@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_entity.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_ingredient_entity.dart';
@@ -206,17 +207,25 @@ class CsvRecipeImporter {
         servingUnit: null,
         servingSize: null,
         nutriments: MealNutrimentsEntity(
-          energyKcal100: kcal,
-          carbohydrates100: CsvRowParser.parseDoubleOrNull(
-            row[_kIngredientCarbs],
+          energyKcal100: NutrientAmount.fromNumber(kcal),
+          carbohydrates100: NutrientAmount.fromNumber(
+            CsvRowParser.parseDoubleOrNull(row[_kIngredientCarbs]),
           ),
-          fat100: CsvRowParser.parseDoubleOrNull(row[_kIngredientFat]),
-          proteins100: CsvRowParser.parseDoubleOrNull(row[_kIngredientProtein]),
-          sugars100: CsvRowParser.parseDoubleOrNull(row[_kIngredientSugars]),
-          saturatedFat100: CsvRowParser.parseDoubleOrNull(
-            row[_kIngredientSatFat],
+          fat100: NutrientAmount.fromNumber(
+            CsvRowParser.parseDoubleOrNull(row[_kIngredientFat]),
           ),
-          fiber100: CsvRowParser.parseDoubleOrNull(row[_kIngredientFiber]),
+          proteins100: NutrientAmount.fromNumber(
+            CsvRowParser.parseDoubleOrNull(row[_kIngredientProtein]),
+          ),
+          sugars100: NutrientAmount.fromNumber(
+            CsvRowParser.parseDoubleOrNull(row[_kIngredientSugars]),
+          ),
+          saturatedFat100: NutrientAmount.fromNumber(
+            CsvRowParser.parseDoubleOrNull(row[_kIngredientSatFat]),
+          ),
+          fiber100: NutrientAmount.fromNumber(
+            CsvRowParser.parseDoubleOrNull(row[_kIngredientFiber]),
+          ),
         ),
         source: MealSourceEntity.custom,
       );

@@ -73,7 +73,9 @@ void main() {
     await tester.pump();
     expect(fixture.requests, hasLength(1));
     expect(
-      (await tester.runAsync(() => fixture.cached))!.nutriments.energyKcal100,
+      (await tester.runAsync(
+        () => fixture.cached,
+      ))!.nutriments.energyKcal100?.value,
       100,
     );
     // Editing while the request is in flight must be preserved too.
@@ -93,16 +95,18 @@ void main() {
           find.byType(MealDetailNutrimentsTable),
         )
         .product;
-    expect(displayed.nutriments.energyKcal100, 200);
+    expect(displayed.nutriments.energyKcal100?.value, 200);
     expect(
-      (await tester.runAsync(() => fixture.cached))!.nutriments.energyKcal100,
+      (await tester.runAsync(
+        () => fixture.cached,
+      ))!.nutriments.energyKcal100?.value,
       200,
     );
     expect(await tester.runAsync(() => fixture.cache.count), 2);
     expect(
       (await tester.runAsync(
         () => fixture.cache.getDetailedByBarcode('other-product'),
-      ))!.nutriments.energyKcal100,
+      ))!.nutriments.energyKcal100?.value,
       100,
     );
     expect(fixture.requests.single.url.path, contains(refreshBarcode));
@@ -114,11 +118,13 @@ void main() {
     expect(bloc.state.mealRevision, 2);
     expect(bloc.state.totalKcal, 300);
     expect(
-      (await tester.runAsync(() => fixture.cached))!.nutriments.energyKcal100,
+      (await tester.runAsync(
+        () => fixture.cached,
+      ))!.nutriments.energyKcal100?.value,
       300,
     );
     final scanned = (await tester.runAsync(fixture.scanAgain))!;
-    expect(scanned.nutriments.energyKcal100, 300);
+    expect(scanned.nutriments.energyKcal100?.value, 300);
     expect(fixture.requests, hasLength(2));
   });
 

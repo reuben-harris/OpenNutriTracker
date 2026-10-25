@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import '../../helpers/pump_until.dart';
 import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
@@ -34,13 +35,13 @@ void main() {
         servingSize: null,
         source: MealSourceEntity.custom,
         nutriments: MealNutrimentsEntity(
-          energyKcal100: 100,
-          carbohydrates100: 0,
-          fat100: 0,
-          proteins100: 0,
-          sugars100: 0,
-          saturatedFat100: 0,
-          fiber100: 70,
+          energyKcal100: NutrientAmount(100),
+          carbohydrates100: NutrientAmount(0),
+          fat100: NutrientAmount(0),
+          proteins100: NutrientAmount(0),
+          sugars100: NutrientAmount(0),
+          saturatedFat100: NutrientAmount(0),
+          fiber100: NutrientAmount(70),
         ),
       );
       await tester.runAsync(() async {

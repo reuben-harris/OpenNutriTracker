@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:opennutritracker/core/data/data_source/config_data_source.dart';
@@ -31,10 +32,10 @@ MealDBO _meal({
   servingUnit: 'g',
   servingSize: null,
   nutriments: MealNutrimentsDBO(
-    energyKcal100: kcal,
-    carbohydrates100: carbs,
-    fat100: fat,
-    proteins100: protein,
+    energyKcal100: NutrientAmount.fromNumber(kcal),
+    carbohydrates100: NutrientAmount.fromNumber(carbs),
+    fat100: NutrientAmount.fromNumber(fat),
+    proteins100: NutrientAmount.fromNumber(protein),
     sugars100: null,
     saturatedFat100: null,
     fiber100: null,

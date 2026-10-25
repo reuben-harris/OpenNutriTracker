@@ -6,6 +6,7 @@ part 'off_product_nutriments_dto.g.dart';
 
 @JsonSerializable()
 class OFFProductNutrimentsDTO {
+  final Map<String, String> modifiers;
   // Energy Values
   @JsonKey(name: 'energy-kcal_100g')
   final dynamic energy_kcal_100g; // can be String, int, double or null
@@ -93,6 +94,7 @@ class OFFProductNutrimentsDTO {
   final dynamic niacin_100g;
 
   OFFProductNutrimentsDTO({
+    this.modifiers = const {},
     //required this.energy_kcal,
     required this.energy_kcal_100g,
     // required this.energy_kcal_serving,
@@ -148,7 +150,15 @@ class OFFProductNutrimentsDTO {
   });
 
   factory OFFProductNutrimentsDTO.fromJson(Map<String, dynamic> json) =>
-      _$OFFProductNutrimentsDTOFromJson(json);
+      _$OFFProductNutrimentsDTOFromJson({
+        ...json,
+        'modifiers': {
+          ...?json['modifiers'] as Map<String, dynamic>?,
+          for (final entry in json.entries)
+            if (entry.key.endsWith('_modifier') && entry.value is String)
+              entry.key.substring(0, entry.key.length - 9): entry.value,
+        },
+      });
 
   Map<String, dynamic> toJson() => _$OFFProductNutrimentsDTOToJson(this);
 }

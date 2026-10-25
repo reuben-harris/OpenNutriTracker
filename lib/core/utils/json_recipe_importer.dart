@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:convert';
 
@@ -199,10 +200,14 @@ class JsonRecipeImporter {
           servingUnit: null,
           servingSize: null,
           nutriments: MealNutrimentsEntity(
-            energyKcal100: kcal100,
-            carbohydrates100: _asDouble(ing[_kIngCarbs]),
-            fat100: _asDouble(ing[_kIngFat]),
-            proteins100: _asDouble(ing[_kIngProtein]),
+            energyKcal100: NutrientAmount.fromNumber(kcal100),
+            carbohydrates100: NutrientAmount.fromNumber(
+              _asDouble(ing[_kIngCarbs]),
+            ),
+            fat100: NutrientAmount.fromNumber(_asDouble(ing[_kIngFat])),
+            proteins100: NutrientAmount.fromNumber(
+              _asDouble(ing[_kIngProtein]),
+            ),
             sugars100: null,
             saturatedFat100: null,
             fiber100: null,

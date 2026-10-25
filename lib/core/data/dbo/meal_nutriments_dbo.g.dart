@@ -17,30 +17,30 @@ class MealNutrimentsDBOAdapter extends TypeAdapter<MealNutrimentsDBO> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return MealNutrimentsDBO(
-      energyKcal100: (fields[0] as num?)?.toDouble(),
-      carbohydrates100: (fields[1] as num?)?.toDouble(),
-      fat100: (fields[2] as num?)?.toDouble(),
-      proteins100: (fields[3] as num?)?.toDouble(),
-      sugars100: (fields[4] as num?)?.toDouble(),
-      saturatedFat100: (fields[5] as num?)?.toDouble(),
-      fiber100: (fields[6] as num?)?.toDouble(),
-      monounsaturatedFat100: (fields[7] as num?)?.toDouble(),
-      polyunsaturatedFat100: (fields[8] as num?)?.toDouble(),
-      transFat100: (fields[9] as num?)?.toDouble(),
-      cholesterol100: (fields[10] as num?)?.toDouble(),
-      sodium100: (fields[11] as num?)?.toDouble(),
-      potassium100: (fields[12] as num?)?.toDouble(),
-      magnesium100: (fields[13] as num?)?.toDouble(),
-      calcium100: (fields[14] as num?)?.toDouble(),
-      iron100: (fields[15] as num?)?.toDouble(),
-      zinc100: (fields[16] as num?)?.toDouble(),
-      phosphorus100: (fields[17] as num?)?.toDouble(),
-      vitaminA100: (fields[18] as num?)?.toDouble(),
-      vitaminC100: (fields[19] as num?)?.toDouble(),
-      vitaminD100: (fields[20] as num?)?.toDouble(),
-      vitaminB6100: (fields[21] as num?)?.toDouble(),
-      vitaminB12100: (fields[22] as num?)?.toDouble(),
-      niacin100: (fields[23] as num?)?.toDouble(),
+      energyKcal100: fields[0] as NutrientAmount?,
+      carbohydrates100: fields[1] as NutrientAmount?,
+      fat100: fields[2] as NutrientAmount?,
+      proteins100: fields[3] as NutrientAmount?,
+      sugars100: fields[4] as NutrientAmount?,
+      saturatedFat100: fields[5] as NutrientAmount?,
+      fiber100: fields[6] as NutrientAmount?,
+      monounsaturatedFat100: fields[7] as NutrientAmount?,
+      polyunsaturatedFat100: fields[8] as NutrientAmount?,
+      transFat100: fields[9] as NutrientAmount?,
+      cholesterol100: fields[10] as NutrientAmount?,
+      sodium100: fields[11] as NutrientAmount?,
+      potassium100: fields[12] as NutrientAmount?,
+      magnesium100: fields[13] as NutrientAmount?,
+      calcium100: fields[14] as NutrientAmount?,
+      iron100: fields[15] as NutrientAmount?,
+      zinc100: fields[16] as NutrientAmount?,
+      phosphorus100: fields[17] as NutrientAmount?,
+      vitaminA100: fields[18] as NutrientAmount?,
+      vitaminC100: fields[19] as NutrientAmount?,
+      vitaminD100: fields[20] as NutrientAmount?,
+      vitaminB6100: fields[21] as NutrientAmount?,
+      vitaminB12100: fields[22] as NutrientAmount?,
+      niacin100: fields[23] as NutrientAmount?,
     );
   }
 
@@ -116,30 +116,86 @@ class MealNutrimentsDBOAdapter extends TypeAdapter<MealNutrimentsDBO> {
 MealNutrimentsDBO _$MealNutrimentsDBOFromJson(
   Map<String, dynamic> json,
 ) => MealNutrimentsDBO(
-  energyKcal100: (json['energyKcal100'] as num?)?.toDouble(),
-  carbohydrates100: (json['carbohydrates100'] as num?)?.toDouble(),
-  fat100: (json['fat100'] as num?)?.toDouble(),
-  proteins100: (json['proteins100'] as num?)?.toDouble(),
-  sugars100: (json['sugars100'] as num?)?.toDouble(),
-  saturatedFat100: (json['saturatedFat100'] as num?)?.toDouble(),
-  fiber100: (json['fiber100'] as num?)?.toDouble(),
-  monounsaturatedFat100: (json['monounsaturatedFat100'] as num?)?.toDouble(),
-  polyunsaturatedFat100: (json['polyunsaturatedFat100'] as num?)?.toDouble(),
-  transFat100: (json['transFat100'] as num?)?.toDouble(),
-  cholesterol100: (json['cholesterol100'] as num?)?.toDouble(),
-  sodium100: (json['sodium100'] as num?)?.toDouble(),
-  potassium100: (json['potassium100'] as num?)?.toDouble(),
-  magnesium100: (json['magnesium100'] as num?)?.toDouble(),
-  calcium100: (json['calcium100'] as num?)?.toDouble(),
-  iron100: (json['iron100'] as num?)?.toDouble(),
-  zinc100: (json['zinc100'] as num?)?.toDouble(),
-  phosphorus100: (json['phosphorus100'] as num?)?.toDouble(),
-  vitaminA100: (json['vitaminA100'] as num?)?.toDouble(),
-  vitaminC100: (json['vitaminC100'] as num?)?.toDouble(),
-  vitaminD100: (json['vitaminD100'] as num?)?.toDouble(),
-  vitaminB6100: (json['vitaminB6100'] as num?)?.toDouble(),
-  vitaminB12100: (json['vitaminB12100'] as num?)?.toDouble(),
-  niacin100: (json['niacin100'] as num?)?.toDouble(),
+  energyKcal100: json['energyKcal100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['energyKcal100'] as Map<String, dynamic>),
+  carbohydrates100: json['carbohydrates100'] == null
+      ? null
+      : NutrientAmount.fromJson(
+          json['carbohydrates100'] as Map<String, dynamic>,
+        ),
+  fat100: json['fat100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['fat100'] as Map<String, dynamic>),
+  proteins100: json['proteins100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['proteins100'] as Map<String, dynamic>),
+  sugars100: json['sugars100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['sugars100'] as Map<String, dynamic>),
+  saturatedFat100: json['saturatedFat100'] == null
+      ? null
+      : NutrientAmount.fromJson(
+          json['saturatedFat100'] as Map<String, dynamic>,
+        ),
+  fiber100: json['fiber100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['fiber100'] as Map<String, dynamic>),
+  monounsaturatedFat100: json['monounsaturatedFat100'] == null
+      ? null
+      : NutrientAmount.fromJson(
+          json['monounsaturatedFat100'] as Map<String, dynamic>,
+        ),
+  polyunsaturatedFat100: json['polyunsaturatedFat100'] == null
+      ? null
+      : NutrientAmount.fromJson(
+          json['polyunsaturatedFat100'] as Map<String, dynamic>,
+        ),
+  transFat100: json['transFat100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['transFat100'] as Map<String, dynamic>),
+  cholesterol100: json['cholesterol100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['cholesterol100'] as Map<String, dynamic>),
+  sodium100: json['sodium100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['sodium100'] as Map<String, dynamic>),
+  potassium100: json['potassium100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['potassium100'] as Map<String, dynamic>),
+  magnesium100: json['magnesium100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['magnesium100'] as Map<String, dynamic>),
+  calcium100: json['calcium100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['calcium100'] as Map<String, dynamic>),
+  iron100: json['iron100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['iron100'] as Map<String, dynamic>),
+  zinc100: json['zinc100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['zinc100'] as Map<String, dynamic>),
+  phosphorus100: json['phosphorus100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['phosphorus100'] as Map<String, dynamic>),
+  vitaminA100: json['vitaminA100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['vitaminA100'] as Map<String, dynamic>),
+  vitaminC100: json['vitaminC100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['vitaminC100'] as Map<String, dynamic>),
+  vitaminD100: json['vitaminD100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['vitaminD100'] as Map<String, dynamic>),
+  vitaminB6100: json['vitaminB6100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['vitaminB6100'] as Map<String, dynamic>),
+  vitaminB12100: json['vitaminB12100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['vitaminB12100'] as Map<String, dynamic>),
+  niacin100: json['niacin100'] == null
+      ? null
+      : NutrientAmount.fromJson(json['niacin100'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$MealNutrimentsDBOToJson(MealNutrimentsDBO instance) =>

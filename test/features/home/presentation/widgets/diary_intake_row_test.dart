@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import '../../../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
@@ -32,10 +33,10 @@ IntakeEntity recipeIntake({
   bool recipe = true,
 }) {
   const nutrients = MealNutrimentsEntity(
-    energyKcal100: 100,
-    carbohydrates100: 10,
-    fat100: 2,
-    proteins100: 3,
+    energyKcal100: NutrientAmount(100),
+    carbohydrates100: NutrientAmount(10),
+    fat100: NutrientAmount(2),
+    proteins100: NutrientAmount(3),
     sugars100: null,
     saturatedFat100: null,
     fiber100: null,

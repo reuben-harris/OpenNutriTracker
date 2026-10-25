@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_card.dart';
@@ -36,6 +37,9 @@ class FoodAmountCard extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       content: FoodCardText(
+        nutritionSemantics: meal.nutriments.hasQualifications
+            ? '${EnergyDisplay.formatAmount(context, meal.nutriments.energyKcal100?.scale(scale))}. ${meal.nutriments.amounts.entries.where((e) => e.value?.isQualified ?? false).map((e) => nutrientQualificationLabel(e.value, s)).join('. ')}'
+            : null,
         title: meal.name ?? '?',
         subtitle: TextSpan(
           children: [
@@ -57,20 +61,15 @@ class FoodAmountCard extends StatelessWidget {
               ),
           ],
         ),
-        trailingTitle: meal.nutriments.energyKcal100 == null
-            ? '—'
-            : EnergyDisplay.formatWithUnit(
-                context,
-                (meal.nutriments.energyKcal100 ?? 0) * scale,
-              ),
+        trailingTitle: EnergyDisplay.formatAmount(
+          context,
+          meal.nutriments.energyKcal100?.scale(scale),
+        ),
         trailingSubtitle:
-            '${_known(meal.nutriments.carbohydrates100, (meal.nutriments.carbohydrates100 ?? 0) * scale)} ${s.carbsLabelShort} '
-            '${_known(meal.nutriments.fat100, (meal.nutriments.fat100 ?? 0) * scale)} ${s.fatLabelShort} '
-            '${_known(meal.nutriments.proteins100, (meal.nutriments.proteins100 ?? 0) * scale)} ${s.proteinLabelShort}',
+            '${formatNutrientAmount(meal.nutriments.carbohydrates100?.scale(scale), s, decimals: 0)} ${s.carbsLabelShort} '
+            '${formatNutrientAmount(meal.nutriments.fat100?.scale(scale), s, decimals: 0)} ${s.fatLabelShort} '
+            '${formatNutrientAmount(meal.nutriments.proteins100?.scale(scale), s, decimals: 0)} ${s.proteinLabelShort}',
       ),
     );
   }
-
-  String _known(double? value, double total) =>
-      value == null ? '—' : total.toStringAsFixed(0);
 }

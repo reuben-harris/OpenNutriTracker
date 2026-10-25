@@ -65,10 +65,11 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
       final nutrients = event.meal.nutriments;
       emit(
         state.copyWith(
-          totalKcal: scale * (nutrients.energyKcal100 ?? 0),
-          totalCarbs: scale * (nutrients.carbohydrates100 ?? 0),
-          totalFat: scale * (nutrients.fat100 ?? 0),
-          totalProtein: scale * (nutrients.proteins100 ?? 0),
+          totalKcal: scale * (nutrients.energyKcal100?.calculationValue ?? 0),
+          totalCarbs:
+              scale * (nutrients.carbohydrates100?.calculationValue ?? 0),
+          totalFat: scale * (nutrients.fat100?.calculationValue ?? 0),
+          totalProtein: scale * (nutrients.proteins100?.calculationValue ?? 0),
         ),
       );
     });

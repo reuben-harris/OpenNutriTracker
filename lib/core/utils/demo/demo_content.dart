@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/utils/food_amount_unit.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:io';
@@ -177,29 +178,29 @@ Future<MealEntity> _meal(
     servingSize: null,
     source: MealSourceEntity.custom,
     nutriments: MealNutrimentsEntity(
-      energyKcal100: kcal100,
-      carbohydrates100: carbs100,
-      fat100: fat100,
-      proteins100: protein100,
-      sugars100: sugars100 ?? carbs100 * 0.3,
-      saturatedFat100: satFat100 ?? fat100 * 0.35,
-      fiber100: fiber100 ?? 2.0,
-      monounsaturatedFat100: monounsaturatedFat100,
-      polyunsaturatedFat100: polyunsaturatedFat100,
-      cholesterol100: cholesterol100,
-      sodium100: sodium100,
-      potassium100: potassium100,
-      magnesium100: magnesium100,
-      calcium100: calcium100,
-      iron100: iron100,
-      zinc100: zinc100,
-      phosphorus100: phosphorus100,
-      vitaminA100: vitaminA100,
-      vitaminC100: vitaminC100,
-      vitaminD100: vitaminD100,
-      vitaminB6100: vitaminB6100,
-      vitaminB12100: vitaminB12100,
-      niacin100: niacin100,
+      energyKcal100: NutrientAmount.fromNumber(kcal100),
+      carbohydrates100: NutrientAmount.fromNumber(carbs100),
+      fat100: NutrientAmount.fromNumber(fat100),
+      proteins100: NutrientAmount.fromNumber(protein100),
+      sugars100: NutrientAmount.fromNumber(sugars100 ?? carbs100 * 0.3),
+      saturatedFat100: NutrientAmount.fromNumber(satFat100 ?? fat100 * 0.35),
+      fiber100: NutrientAmount.fromNumber(fiber100 ?? 2.0),
+      monounsaturatedFat100: NutrientAmount.fromNumber(monounsaturatedFat100),
+      polyunsaturatedFat100: NutrientAmount.fromNumber(polyunsaturatedFat100),
+      cholesterol100: NutrientAmount.fromNumber(cholesterol100),
+      sodium100: NutrientAmount.fromNumber(sodium100),
+      potassium100: NutrientAmount.fromNumber(potassium100),
+      magnesium100: NutrientAmount.fromNumber(magnesium100),
+      calcium100: NutrientAmount.fromNumber(calcium100),
+      iron100: NutrientAmount.fromNumber(iron100),
+      zinc100: NutrientAmount.fromNumber(zinc100),
+      phosphorus100: NutrientAmount.fromNumber(phosphorus100),
+      vitaminA100: NutrientAmount.fromNumber(vitaminA100),
+      vitaminC100: NutrientAmount.fromNumber(vitaminC100),
+      vitaminD100: NutrientAmount.fromNumber(vitaminD100),
+      vitaminB6100: NutrientAmount.fromNumber(vitaminB6100),
+      vitaminB12100: NutrientAmount.fromNumber(vitaminB12100),
+      niacin100: NutrientAmount.fromNumber(niacin100),
     ),
   );
 }
@@ -444,7 +445,7 @@ double _roundToNearest5g(double grams) =>
     grams <= 0 ? 0.0 : max(10.0, (grams / 5).round() * 5.0);
 
 /// Grams of [meal] needed to supply [targetGrams] of the macro read off by
-/// [macroPer100] (e.g. `(n) => n.proteins100`). Zero when the food doesn't
+/// [macroPer100] (e.g. `(n) => n.proteins100?.calculationValue`). Zero when the food doesn't
 /// carry that macro or the target is already met.
 double _gramsFor(
   MealEntity meal,
@@ -494,59 +495,87 @@ List<IntakeEntity> buildDailyIntakes(
   final veggieCarb = _macroGrams(
     foods.broccoli,
     veggieAmount,
-    (n) => n.carbohydrates100,
+    (n) => n.carbohydrates100?.calculationValue,
   );
-  final veggieFat = _macroGrams(foods.broccoli, veggieAmount, (n) => n.fat100);
+  final veggieFat = _macroGrams(
+    foods.broccoli,
+    veggieAmount,
+    (n) => n.fat100?.calculationValue,
+  );
   final veggieProtein = _macroGrams(
     foods.broccoli,
     veggieAmount,
-    (n) => n.proteins100,
+    (n) => n.proteins100?.calculationValue,
   );
   final fruitCarb = _macroGrams(
     fruitMeal,
     fruitAmount,
-    (n) => n.carbohydrates100,
+    (n) => n.carbohydrates100?.calculationValue,
   );
-  final fruitFat = _macroGrams(fruitMeal, fruitAmount, (n) => n.fat100);
+  final fruitFat = _macroGrams(
+    fruitMeal,
+    fruitAmount,
+    (n) => n.fat100?.calculationValue,
+  );
   final fruitProtein = _macroGrams(
     fruitMeal,
     fruitAmount,
-    (n) => n.proteins100,
+    (n) => n.proteins100?.calculationValue,
   );
 
   // Carb target split ~30-60% breakfast / rest dinner starch.
   final carbShareA = 0.3 + demoRng.nextDouble() * 0.3;
   final remainingCarb = targetMacros.carbs - veggieCarb - fruitCarb;
   final carbAmountA = _roundToNearest5g(
-    _gramsFor(carbMealA, remainingCarb * carbShareA, (n) => n.carbohydrates100),
+    _gramsFor(
+      carbMealA,
+      remainingCarb * carbShareA,
+      (n) => n.carbohydrates100?.calculationValue,
+    ),
   );
   final carbAmountB = _roundToNearest5g(
     _gramsFor(
       carbMealB,
       remainingCarb * (1 - carbShareA),
-      (n) => n.carbohydrates100,
+      (n) => n.carbohydrates100?.calculationValue,
     ),
   );
   final carbFat =
-      _macroGrams(carbMealA, carbAmountA, (n) => n.fat100) +
-      _macroGrams(carbMealB, carbAmountB, (n) => n.fat100);
+      _macroGrams(carbMealA, carbAmountA, (n) => n.fat100?.calculationValue) +
+      _macroGrams(carbMealB, carbAmountB, (n) => n.fat100?.calculationValue);
   final carbProtein =
-      _macroGrams(carbMealA, carbAmountA, (n) => n.proteins100) +
-      _macroGrams(carbMealB, carbAmountB, (n) => n.proteins100);
+      _macroGrams(
+        carbMealA,
+        carbAmountA,
+        (n) => n.proteins100?.calculationValue,
+      ) +
+      _macroGrams(
+        carbMealB,
+        carbAmountB,
+        (n) => n.proteins100?.calculationValue,
+      );
 
   // Fat target split ~50-75% dinner oil / rest a handful of almonds.
   final oilShare = 0.5 + demoRng.nextDouble() * 0.25;
   final remainingFat = targetMacros.fat - veggieFat - fruitFat - carbFat;
   final oilAmount = _roundToNearest5g(
-    _gramsFor(foods.oliveOil, remainingFat * oilShare, (n) => n.fat100),
+    _gramsFor(
+      foods.oliveOil,
+      remainingFat * oilShare,
+      (n) => n.fat100?.calculationValue,
+    ),
   );
   final almondAmount = _roundToNearest5g(
-    _gramsFor(foods.almonds, remainingFat * (1 - oilShare), (n) => n.fat100),
+    _gramsFor(
+      foods.almonds,
+      remainingFat * (1 - oilShare),
+      (n) => n.fat100?.calculationValue,
+    ),
   );
   final almondProtein = _macroGrams(
     foods.almonds,
     almondAmount,
-    (n) => n.proteins100,
+    (n) => n.proteins100?.calculationValue,
   );
 
   final remainingProtein =
@@ -556,7 +585,11 @@ List<IntakeEntity> buildDailyIntakes(
       carbProtein -
       almondProtein;
   final proteinAmount = _roundToNearest5g(
-    _gramsFor(proteinMeal, remainingProtein, (n) => n.proteins100),
+    _gramsFor(
+      proteinMeal,
+      remainingProtein,
+      (n) => n.proteins100?.calculationValue,
+    ),
   );
 
   return [

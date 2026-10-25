@@ -1220,7 +1220,10 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
     final selection = row.selection;
     final energy = meal.nutriments.energyPerUnit;
     if (selection == null || energy == null) return '';
-    return EnergyDisplay.formatWithUnit(context, selection.baseAmount * energy);
+    return EnergyDisplay.formatAmount(
+      context,
+      energy.scale(selection.baseAmount),
+    );
   }
 
   List<DropdownMenuItem<String>> _unitItems(

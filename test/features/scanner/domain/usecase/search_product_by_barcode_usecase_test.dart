@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/data_source/remote_search_cache_data_source.dart';
 import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
@@ -206,7 +207,7 @@ MealDBO _offCacheDbo({
   detailed: detailed,
   source: MealSourceDBO.off,
   nutriments: MealNutrimentsDBO(
-    energyKcal100: 0,
+    energyKcal100: NutrientAmount(0),
     carbohydrates100: null,
     fat100: null,
     proteins100: null,
@@ -296,7 +297,7 @@ MealDBO _customMealDbo({required String? code, required String name}) {
     servingSize: null,
     source: MealSourceDBO.custom,
     nutriments: MealNutrimentsDBO(
-      energyKcal100: 0,
+      energyKcal100: NutrientAmount(0),
       carbohydrates100: null,
       fat100: null,
       proteins100: null,
@@ -308,7 +309,7 @@ MealDBO _customMealDbo({required String? code, required String name}) {
 }
 
 MealNutrimentsEntity _emptyNutriments() => const MealNutrimentsEntity(
-  energyKcal100: 0,
+  energyKcal100: NutrientAmount(0),
   carbohydrates100: null,
   fat100: null,
   proteins100: null,

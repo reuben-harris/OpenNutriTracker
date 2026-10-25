@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -124,13 +125,13 @@ MealDBO _meal({required String id, String? localImagePath}) {
       ),
     ],
     nutriments: MealNutrimentsDBO(
-      energyKcal100: 40,
-      carbohydrates100: 5,
-      fat100: 1,
-      proteins100: 2,
-      sugars100: 1,
-      saturatedFat100: 0,
-      fiber100: 0,
+      energyKcal100: NutrientAmount(40),
+      carbohydrates100: NutrientAmount(5),
+      fat100: NutrientAmount(1),
+      proteins100: NutrientAmount(2),
+      sugars100: NutrientAmount(1),
+      saturatedFat100: NutrientAmount(0),
+      fiber100: NutrientAmount(0),
     ),
     source: MealSourceDBO.custom,
     localImagePath: localImagePath,

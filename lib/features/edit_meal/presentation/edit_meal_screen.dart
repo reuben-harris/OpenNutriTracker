@@ -95,6 +95,27 @@ class _EditMealScreenState extends State<EditMealScreen> {
   // user just scanned into the field.
   bool _initialised = false;
 
+  final _editedNutrients = <String>{};
+  void _nutrientEdited(TextEditingController controller) {
+    final field = <TextEditingController, String>{
+      _kcalTextController: 'energyKcal100',
+      _carbsTextController: 'carbohydrates100',
+      _fatTextController: 'fat100',
+      _proteinTextController: 'proteins100',
+      _fiberTextController: 'fiber100',
+      _saturatedFatTextController: 'saturatedFat100',
+      _sugarsTextController: 'sugars100',
+      _sodiumTextController: 'sodium100',
+      _calciumTextController: 'calcium100',
+      _ironTextController: 'iron100',
+      _potassiumTextController: 'potassium100',
+      _magnesiumTextController: 'magnesium100',
+      _vitaminDTextController: 'vitaminD100',
+      _vitaminB12TextController: 'vitaminB12100',
+    }[controller];
+    if (field != null) _editedNutrients.add(field);
+  }
+
   String baseQuantity = "100";
 
   /// Tracks the unit the energy field was last rendered in, so that when
@@ -154,34 +175,36 @@ class _EditMealScreenState extends State<EditMealScreen> {
       listen: false,
     ).usesKilojoules;
     _kcalTextController.text = _formatStoredKcalForDisplay(
-      _mealEntity.nutriments.energyKcal100,
+      _mealEntity.nutriments.energyKcal100?.value,
       usesKjOnLoad,
     );
     _lastRenderedUsesKj = usesKjOnLoad;
-    _carbsTextController.text = _mealEntity.nutriments.carbohydrates100
+    _carbsTextController.text = (_mealEntity.nutriments.carbohydrates100?.value)
         .toStringOrEmpty();
-    _fatTextController.text = _mealEntity.nutriments.fat100.toStringOrEmpty();
-    _proteinTextController.text = _mealEntity.nutriments.proteins100
+    _fatTextController.text = (_mealEntity.nutriments.fat100?.value)
         .toStringOrEmpty();
-    _fiberTextController.text = _mealEntity.nutriments.fiber100
+    _proteinTextController.text = (_mealEntity.nutriments.proteins100?.value)
         .toStringOrEmpty();
-    _saturatedFatTextController.text = _mealEntity.nutriments.saturatedFat100
+    _fiberTextController.text = (_mealEntity.nutriments.fiber100?.value)
         .toStringOrEmpty();
-    _sugarsTextController.text = _mealEntity.nutriments.sugars100
+    _saturatedFatTextController.text =
+        (_mealEntity.nutriments.saturatedFat100?.value).toStringOrEmpty();
+    _sugarsTextController.text = (_mealEntity.nutriments.sugars100?.value)
         .toStringOrEmpty();
-    _sodiumTextController.text = _mealEntity.nutriments.sodium100
+    _sodiumTextController.text = (_mealEntity.nutriments.sodium100?.value)
         .toStringOrEmpty();
-    _calciumTextController.text = _mealEntity.nutriments.calcium100
+    _calciumTextController.text = (_mealEntity.nutriments.calcium100?.value)
         .toStringOrEmpty();
-    _ironTextController.text = _mealEntity.nutriments.iron100.toStringOrEmpty();
-    _potassiumTextController.text = _mealEntity.nutriments.potassium100
+    _ironTextController.text = (_mealEntity.nutriments.iron100?.value)
         .toStringOrEmpty();
-    _magnesiumTextController.text = _mealEntity.nutriments.magnesium100
+    _potassiumTextController.text = (_mealEntity.nutriments.potassium100?.value)
         .toStringOrEmpty();
-    _vitaminDTextController.text = _mealEntity.nutriments.vitaminD100
+    _magnesiumTextController.text = (_mealEntity.nutriments.magnesium100?.value)
         .toStringOrEmpty();
-    _vitaminB12TextController.text = _mealEntity.nutriments.vitaminB12100
+    _vitaminDTextController.text = (_mealEntity.nutriments.vitaminD100?.value)
         .toStringOrEmpty();
+    _vitaminB12TextController.text =
+        (_mealEntity.nutriments.vitaminB12100?.value).toStringOrEmpty();
     _localImagePath = _mealEntity.localImagePath;
     selectedUnit = _switchButtonUnit(_mealEntity.mealUnit);
 
@@ -558,6 +581,7 @@ class _EditMealScreenState extends State<EditMealScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _kcalTextController,
+          onChanged: (_) => _nutrientEdited(_kcalTextController),
           inputFormatters: CustomTextInputFormatter.doubleOnly(),
           decoration: InputDecoration(
             labelText: '${S.of(context).mealEnergyLabel} ($energyUnitSuffix)',
@@ -571,6 +595,7 @@ class _EditMealScreenState extends State<EditMealScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _carbsTextController,
+          onChanged: (_) => _nutrientEdited(_carbsTextController),
           inputFormatters: CustomTextInputFormatter.doubleOnly(),
           decoration: InputDecoration(
             labelText: S.of(context).mealCarbsLabel,
@@ -584,6 +609,7 @@ class _EditMealScreenState extends State<EditMealScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _fatTextController,
+          onChanged: (_) => _nutrientEdited(_fatTextController),
           inputFormatters: CustomTextInputFormatter.doubleOnly(),
           decoration: InputDecoration(
             labelText: S.of(context).mealFatLabel,
@@ -597,6 +623,7 @@ class _EditMealScreenState extends State<EditMealScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _proteinTextController,
+          onChanged: (_) => _nutrientEdited(_proteinTextController),
           inputFormatters: CustomTextInputFormatter.doubleOnly(),
           decoration: InputDecoration(
             labelText: S.of(context).mealProteinLabel,
@@ -709,6 +736,7 @@ class _EditMealScreenState extends State<EditMealScreen> {
   ) {
     return TextFormField(
       controller: controller,
+      onChanged: (_) => _nutrientEdited(controller),
       inputFormatters: CustomTextInputFormatter.doubleOnly(),
       decoration: InputDecoration(
         labelText: label,
@@ -812,6 +840,7 @@ class _EditMealScreenState extends State<EditMealScreen> {
           _carbsTextController.text,
           _fatTextController.text,
           _proteinTextController.text,
+          editedNutrients: _editedNutrients,
           barcodeOverride: rawBarcode.isEmpty ? null : rawBarcode,
           localImagePathOverride: _localImagePath,
           clearLocalImagePath: _localImageCleared && _localImagePath == null,
@@ -993,6 +1022,7 @@ class _EditMealScreenState extends State<EditMealScreen> {
           magnesiumText: magnesiumText,
           vitaminDText: vitaminDText,
           vitaminB12Text: vitaminB12Text,
+          editedNutrients: _editedNutrients,
           barcodeOverride: rawBarcode.isEmpty ? null : rawBarcode,
           localImagePathOverride: _localImagePath,
           clearLocalImagePath: _localImageCleared && _localImagePath == null,

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
 import 'dart:convert';
 import 'package:opennutritracker/core/data/dbo/intake_dbo.dart';
@@ -18,10 +19,10 @@ IntakeEntity _buildIntake({
   double? protein,
 }) {
   final nutriments = MealNutrimentsEntity(
-    energyKcal100: kcal,
-    carbohydrates100: carbs,
-    fat100: fat,
-    proteins100: protein,
+    energyKcal100: NutrientAmount.fromNumber(kcal),
+    carbohydrates100: NutrientAmount.fromNumber(carbs),
+    fat100: NutrientAmount.fromNumber(fat),
+    proteins100: NutrientAmount.fromNumber(protein),
     sugars100: null,
     saturatedFat100: null,
     fiber100: null,
@@ -56,7 +57,7 @@ void main() {
     json['mealQuantity'] = '100';
     final old = MealEntity.fromMealDBO(MealDBO.fromJson(json));
     expect(old.isQuickAdd, true);
-    expect(old.nutriments.energyKcal100, 0);
+    expect(old.nutriments.energyKcal100?.value, 0);
     json['servingQuantity'] = 100;
     expect(MealEntity.fromMealDBO(MealDBO.fromJson(json)).isQuickAdd, false);
   });
@@ -69,18 +70,18 @@ void main() {
           SharedMealItem.fromIntakeEntity(intake).toArray(),
         ).toMealEntity();
         expect(shared.isQuickAdd, true);
-        expect(shared.nutriments.energyKcal100, kcal);
-        expect(shared.nutriments.fat100, isNull);
+        expect(shared.nutriments.energyKcal100?.value, kcal);
+        expect(shared.nutriments.fat100?.value, isNull);
         final dbo = IntakeDBO.fromIntakeEntity(intake);
         final decoded = IntakeDBO.fromJson(
           jsonDecode(jsonEncode(dbo.toJson())),
         );
         expect(decoded.meal.isQuickAdd, true);
-        expect(decoded.meal.nutriments.energyKcal100, kcal);
+        expect(decoded.meal.nutriments.energyKcal100?.value, kcal);
         final csv = CsvDataExporter.intakesToCsv([dbo]);
         final imported = CsvDataExporter.parseIntakesFromCsv(csv).single;
         expect(imported.meal.isQuickAdd, true);
-        expect(imported.meal.nutriments.energyKcal100, kcal);
+        expect(imported.meal.nutriments.energyKcal100?.value, kcal);
       },
     );
   }

@@ -89,16 +89,16 @@ const _legacyOffMealJson = '''
   "servingSize": "15 g",
   "source": "off",
   "nutriments": {
-    "energyKcal100": 539.0,
-    "carbohydrates100": 57.5,
-    "fat100": 30.9,
-    "proteins100": 6.3,
-    "sugars100": 56.3,
-    "saturatedFat100": 10.6,
+    "energyKcal100": {"value": 539.0, "qualification": "none", "limit": null},
+    "carbohydrates100": {"value": 57.5, "qualification": "none", "limit": null},
+    "fat100": {"value": 30.9, "qualification": "none", "limit": null},
+    "proteins100": {"value": 6.3, "qualification": "none", "limit": null},
+    "sugars100": {"value": 56.3, "qualification": "none", "limit": null},
+    "saturatedFat100": {"value": 10.6, "qualification": "none", "limit": null},
     "fiber100": null,
-    "sodium100": 0.12,
-    "iron100": 0.002,
-    "vitaminD100": 0.000005
+    "sodium100": {"value": 0.12, "qualification": "none", "limit": null},
+    "iron100": {"value": 0.002, "qualification": "none", "limit": null},
+    "vitaminD100": {"value": 0.000005, "qualification": "none", "limit": null}
   }
 }''';
 
@@ -141,15 +141,15 @@ const _legacyCustomIntakeJson = '''
     "servingSize": null,
     "source": "custom",
     "nutriments": {
-      "energyKcal100": 50.0,
-      "carbohydrates100": 5.0,
-      "fat100": 1.0,
-      "proteins100": 2.0,
-      "sugars100": 1.0,
-      "saturatedFat100": 0.0,
-      "fiber100": 1.0,
-      "sodium100": 0.4,
-      "vitaminD100": 0.5
+      "energyKcal100": {"value": 50.0, "qualification": "none", "limit": null},
+      "carbohydrates100": {"value": 5.0, "qualification": "none", "limit": null},
+      "fat100": {"value": 1.0, "qualification": "none", "limit": null},
+      "proteins100": {"value": 2.0, "qualification": "none", "limit": null},
+      "sugars100": {"value": 1.0, "qualification": "none", "limit": null},
+      "saturatedFat100": {"value": 0.0, "qualification": "none", "limit": null},
+      "fiber100": {"value": 1.0, "qualification": "none", "limit": null},
+      "sodium100": {"value": 0.4, "qualification": "none", "limit": null},
+      "vitaminD100": {"value": 0.5, "qualification": "none", "limit": null}
     }
   }
 }''';
@@ -174,16 +174,16 @@ const _legacyRecipeJson =
   ],
   "totalWeightG": 100.0,
   "aggregatedNutrimentsPer100": {
-    "energyKcal100": 539.0,
-    "carbohydrates100": 57.5,
-    "fat100": 30.9,
-    "proteins100": 6.3,
-    "sugars100": 56.3,
-    "saturatedFat100": 10.6,
+    "energyKcal100": {"value": 539.0, "qualification": "none", "limit": null},
+    "carbohydrates100": {"value": 57.5, "qualification": "none", "limit": null},
+    "fat100": {"value": 30.9, "qualification": "none", "limit": null},
+    "proteins100": {"value": 6.3, "qualification": "none", "limit": null},
+    "sugars100": {"value": 56.3, "qualification": "none", "limit": null},
+    "saturatedFat100": {"value": 10.6, "qualification": "none", "limit": null},
     "fiber100": null,
-    "sodium100": 0.12,
-    "iron100": 0.002,
-    "vitaminD100": 0.000005
+    "sodium100": {"value": 0.12, "qualification": "none", "limit": null},
+    "iron100": {"value": 0.002, "qualification": "none", "limit": null},
+    "vitaminD100": {"value": 0.000005, "qualification": "none", "limit": null}
   },
   "createdAt": "2026-07-01T00:00:00.000",
   "updatedAt": "2026-07-02T00:00:00.000",
@@ -297,27 +297,36 @@ void main() {
     final byId = {for (final i in intakeBox.values) i.id: i};
     final off = byId['old-off']!;
     expect(off.baseAmount, 30);
-    expect(off.meal.nutriments.sodium100, closeTo(120, 1e-9));
-    expect(off.meal.nutriments.iron100, closeTo(2, 1e-9));
-    expect(off.meal.nutriments.vitaminD100, closeTo(5, 1e-9));
-    expect(off.meal.nutriments.energyKcal100, 539);
-    expect(off.meal.nutriments.fiber100, isNull);
+    expect(off.meal.nutriments.sodium100?.value, closeTo(120, 1e-9));
+    expect(off.meal.nutriments.iron100?.value, closeTo(2, 1e-9));
+    expect(off.meal.nutriments.vitaminD100?.value, closeTo(5, 1e-9));
+    expect(off.meal.nutriments.energyKcal100?.value, 539);
+    expect(off.meal.nutriments.fiber100?.value, isNull);
     expect(
       off.meal.dataVersion,
       MealDBO.dataVersionOffMicronutrientsInAppUnits,
     );
     final custom = byId['custom']!;
-    expect(custom.meal.nutriments.sodium100, 0.4);
-    expect(custom.meal.nutriments.vitaminD100, 0.5);
+    expect(custom.meal.nutriments.sodium100?.value, 0.4);
+    expect(custom.meal.nutriments.vitaminD100?.value, 0.5);
     expect(custom.meal.dataVersion, isNull);
 
     final recipe = recipeBox.values.single;
     final snapshot = recipe.ingredients.single.snapshotMeal;
-    expect(snapshot.nutriments.sodium100, closeTo(120, 1e-9));
+    expect(snapshot.nutriments.sodium100?.value, closeTo(120, 1e-9));
     expect(snapshot.dataVersion, 1);
-    expect(recipe.aggregatedNutrimentsPer100.sodium100, closeTo(120, 1e-9));
-    expect(recipe.aggregatedNutrimentsPer100.vitaminD100, closeTo(5, 1e-9));
-    expect(recipe.aggregatedNutrimentsPer100.energyKcal100, closeTo(539, 1e-9));
+    expect(
+      recipe.aggregatedNutrimentsPer100.sodium100?.value,
+      closeTo(120, 1e-9),
+    );
+    expect(
+      recipe.aggregatedNutrimentsPer100.vitaminD100?.value,
+      closeTo(5, 1e-9),
+    );
+    expect(
+      recipe.aggregatedNutrimentsPer100.energyKcal100?.value,
+      closeTo(539, 1e-9),
+    );
     expect(recipe.totalWeightG, 100);
     expect(recipe.servingsCount, 2);
   });
@@ -329,9 +338,17 @@ void main() {
       final meal = stamped['meal'] as Map<String, dynamic>;
       // What the exporter writes once the row has been through the repair.
       (meal['nutriments'] as Map<String, dynamic>)
-        ..['sodium100'] = 120.0
-        ..['iron100'] = 2.0
-        ..['vitaminD100'] = 5.0;
+        ..['sodium100'] = {
+          'value': 120.0,
+          'qualification': 'none',
+          'limit': null,
+        }
+        ..['iron100'] = {'value': 2.0, 'qualification': 'none', 'limit': null}
+        ..['vitaminD100'] = {
+          'value': 5.0,
+          'qualification': 'none',
+          'limit': null,
+        };
       meal['dataVersion'] = MealDBO.currentDataVersion;
       write(
         'backup.zip',
@@ -345,9 +362,9 @@ void main() {
       expect(await importJson(), isTrue);
 
       final off = intakeBox.values.single;
-      expect(off.meal.nutriments.sodium100, 120);
-      expect(off.meal.nutriments.iron100, 2);
-      expect(off.meal.nutriments.vitaminD100, 5);
+      expect(off.meal.nutriments.sodium100?.value, 120);
+      expect(off.meal.nutriments.iron100?.value, 2);
+      expect(off.meal.nutriments.vitaminD100?.value, 5);
       expect(off.meal.dataVersion, 1);
     },
   );
@@ -393,10 +410,10 @@ void main() {
 
       final off = intakeBox.values.single;
       expect(off.meal.source, MealSourceDBO.off);
-      expect(off.meal.nutriments.sodium100, closeTo(120, 1e-9));
-      expect(off.meal.nutriments.iron100, closeTo(2, 1e-9));
-      expect(off.meal.nutriments.vitaminD100, closeTo(5, 1e-9));
-      expect(off.meal.nutriments.energyKcal100, 539);
+      expect(off.meal.nutriments.sodium100?.value, closeTo(120, 1e-9));
+      expect(off.meal.nutriments.iron100?.value, closeTo(2, 1e-9));
+      expect(off.meal.nutriments.vitaminD100?.value, closeTo(5, 1e-9));
+      expect(off.meal.nutriments.energyKcal100?.value, 539);
       expect(off.meal.dataVersion, 1);
     },
   );

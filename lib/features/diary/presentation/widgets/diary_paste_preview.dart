@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/utils/calc/nutrient_totals.dart';
+import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -151,15 +153,7 @@ class DiaryPastePreview extends StatelessWidget {
     List<IntakeEntity> entries,
     AppPalette palette,
   ) {
-    final totals = entries.fold(
-      (kcal: 0.0, carbs: 0.0, fat: 0.0, protein: 0.0),
-      (sum, entry) => (
-        kcal: sum.kcal + entry.totalKcal,
-        carbs: sum.carbs + entry.totalCarbsGram,
-        fat: sum.fat + entry.totalFatsGram,
-        protein: sum.protein + entry.totalProteinsGram,
-      ),
-    );
+    final totals = NutrientPanelTotals.fromIntakes(entries);
     final s = S.of(context);
     final textTheme = Theme.of(context).textTheme;
     return Column(
@@ -167,7 +161,7 @@ class DiaryPastePreview extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         AutoSizeText(
-          EnergyDisplay.formatWithUnit(context, totals.kcal),
+          EnergyDisplay.formatAmount(context, totals.energyKcal),
           maxLines: 1,
           minFontSize: 8,
           overflow: TextOverflow.ellipsis,
@@ -178,9 +172,9 @@ class DiaryPastePreview extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         AutoSizeText(
-          '${totals.carbs.toStringAsFixed(0)} ${s.carbsLabelShort} '
-          '${totals.fat.toStringAsFixed(0)} ${s.fatLabelShort} '
-          '${totals.protein.toStringAsFixed(0)} ${s.proteinLabelShort}',
+          '${formatNutrientAmount(totals.carbsG, s, decimals: 0)} ${s.carbsLabelShort} '
+          '${formatNutrientAmount(totals.fatG, s, decimals: 0)} ${s.fatLabelShort} '
+          '${formatNutrientAmount(totals.proteinG, s, decimals: 0)} ${s.proteinLabelShort}',
           maxLines: 1,
           minFontSize: 8,
           overflow: TextOverflow.ellipsis,

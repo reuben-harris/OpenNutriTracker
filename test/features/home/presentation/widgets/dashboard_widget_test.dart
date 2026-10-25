@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import '../../../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -70,7 +71,7 @@ void main() {
       await tester.pumpWidget(
         _wrap(
           const DashboardWidget(
-            totalKcalSupplied: 800,
+            totalKcalSupplied: NutrientAmount(800),
             totalKcalBurned: 200,
             totalKcalDaily: 2500,
             totalKcalLeft: 1900,

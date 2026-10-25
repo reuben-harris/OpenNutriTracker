@@ -45,7 +45,7 @@ void main() {
         MealSourceEntity.recipe,
       );
       expect(
-        recipe.aggregatedNutrimentsPer100.energyKcal100! * 1.25,
+        recipe.aggregatedNutrimentsPer100.energyKcal100!.value * 1.25,
         source.fold<double>(0, (sum, entry) => sum + entry.totalKcal),
       );
       expect(source, original);

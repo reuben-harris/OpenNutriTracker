@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
@@ -11,13 +12,13 @@ void main() {
     setUp(() {
       // Setup test meal with default values
       testNutriments = MealNutrimentsEntity(
-        energyKcal100: 250.0, // 2.5 por unidade (250/100)
-        carbohydrates100: 50.0, // 0.5 por unidade (50/100)
-        fat100: 10.0, // 0.1 por unidade (10/100)
-        proteins100: 20.0, // 0.2 por unidade (20/100)
-        sugars100: 30.0,
-        saturatedFat100: 5.0,
-        fiber100: 8.0,
+        energyKcal100: NutrientAmount(250.0), // 2.5 por unidade (250/100)
+        carbohydrates100: NutrientAmount(50.0), // 0.5 por unidade (50/100)
+        fat100: NutrientAmount(10.0), // 0.1 por unidade (10/100)
+        proteins100: NutrientAmount(20.0), // 0.2 por unidade (20/100)
+        sugars100: NutrientAmount(30.0),
+        saturatedFat100: NutrientAmount(5.0),
+        fiber100: NutrientAmount(8.0),
       );
 
       testMeal = MealEntity(
@@ -79,22 +80,23 @@ void main() {
 
     group('CT4 - Conversão Serving - Com quantidade', () {
       test(
-          'deve converter quantidade baseada em serving quando servingQuantity não é nulo',
-          () {
-        // Arrange
-        final selectedUnit = 'serving';
-        final quantity = 2.0;
-        final servingQuantity = testMeal.servingQuantity; // 50.0
+        'deve converter quantidade baseada em serving quando servingQuantity não é nulo',
+        () {
+          // Arrange
+          final selectedUnit = 'serving';
+          final quantity = 2.0;
+          final servingQuantity = testMeal.servingQuantity; // 50.0
 
-        // Act
-        double convertedQuantity = quantity;
-        if (selectedUnit == 'serving' && servingQuantity != null) {
-          convertedQuantity = quantity * servingQuantity;
-        }
+          // Act
+          double convertedQuantity = quantity;
+          if (selectedUnit == 'serving' && servingQuantity != null) {
+            convertedQuantity = quantity * servingQuantity;
+          }
 
-        // Assert
-        expect(convertedQuantity, equals(100.0)); // 2 * 50.0
-      });
+          // Assert
+          expect(convertedQuantity, equals(100.0)); // 2 * 50.0
+        },
+      );
     });
 
     group('CT5 - Conversão Serving - Sem quantidade', () {
@@ -177,11 +179,13 @@ void main() {
       test('deve calcular todos os valores nutricionais corretamente', () {
         // Arrange
         final convertedQuantity = 100.0;
-        final energyPerUnit = testMeal.nutriments.energyPerUnit ?? 0; // 2.5
+        final energyPerUnit =
+            testMeal.nutriments.energyPerUnit?.value ?? 0; // 2.5
         final carbsPerUnit =
-            testMeal.nutriments.carbohydratesPerUnit ?? 0; // 0.5
-        final fatPerUnit = testMeal.nutriments.fatPerUnit ?? 0; // 0.1
-        final proteinPerUnit = testMeal.nutriments.proteinsPerUnit ?? 0; // 0.2
+            testMeal.nutriments.carbohydratesPerUnit?.value ?? 0; // 0.5
+        final fatPerUnit = testMeal.nutriments.fatPerUnit?.value ?? 0; // 0.1
+        final proteinPerUnit =
+            testMeal.nutriments.proteinsPerUnit?.value ?? 0; // 0.2
 
         // Act
         final totalKcal = convertedQuantity * energyPerUnit;
@@ -198,16 +202,18 @@ void main() {
     });
 
     group('CT10 - Erro de Parsing', () {
-      test('deve capturar exceção quando quantidade não é um número válido',
-          () {
-        // Arrange
-        final selectedTotalQuantity = 'abc';
+      test(
+        'deve capturar exceção quando quantidade não é um número válido',
+        () {
+          // Arrange
+          final selectedTotalQuantity = 'abc';
 
-        // Act & Assert
-        expect(() {
-          double.parse(selectedTotalQuantity.replaceAll(',', '.'));
-        }, throwsA(isA<FormatException>()));
-      });
+          // Act & Assert
+          expect(() {
+            double.parse(selectedTotalQuantity.replaceAll(',', '.'));
+          }, throwsA(isA<FormatException>()));
+        },
+      );
     });
 
     group('Casos de Teste Adicionais', () {
@@ -237,12 +243,13 @@ void main() {
 
         final convertedQuantity = 100.0;
         final energyPerUnit =
-            mealWithNullNutriments.nutriments.energyPerUnit ?? 0;
+            mealWithNullNutriments.nutriments.energyPerUnit?.value ?? 0;
         final carbsPerUnit =
-            mealWithNullNutriments.nutriments.carbohydratesPerUnit ?? 0;
-        final fatPerUnit = mealWithNullNutriments.nutriments.fatPerUnit ?? 0;
+            mealWithNullNutriments.nutriments.carbohydratesPerUnit?.value ?? 0;
+        final fatPerUnit =
+            mealWithNullNutriments.nutriments.fatPerUnit?.value ?? 0;
         final proteinPerUnit =
-            mealWithNullNutriments.nutriments.proteinsPerUnit ?? 0;
+            mealWithNullNutriments.nutriments.proteinsPerUnit?.value ?? 0;
 
         // Act
         final totalKcal = convertedQuantity * energyPerUnit;
@@ -270,25 +277,26 @@ void main() {
           servingUnit: 'g',
           servingSize: '50g',
           nutriments: MealNutrimentsEntity(
-            energyKcal100: 0.0,
-            carbohydrates100: 0.0,
-            fat100: 0.0,
-            proteins100: 0.0,
-            sugars100: 0.0,
-            saturatedFat100: 0.0,
-            fiber100: 0.0,
+            energyKcal100: NutrientAmount(0.0),
+            carbohydrates100: NutrientAmount(0.0),
+            fat100: NutrientAmount(0.0),
+            proteins100: NutrientAmount(0.0),
+            sugars100: NutrientAmount(0.0),
+            saturatedFat100: NutrientAmount(0.0),
+            fiber100: NutrientAmount(0.0),
           ),
           source: MealSourceEntity.custom,
         );
 
         final convertedQuantity = 100.0;
         final energyPerUnit =
-            mealWithZeroNutriments.nutriments.energyPerUnit ?? 0;
+            mealWithZeroNutriments.nutriments.energyPerUnit?.value ?? 0;
         final carbsPerUnit =
-            mealWithZeroNutriments.nutriments.carbohydratesPerUnit ?? 0;
-        final fatPerUnit = mealWithZeroNutriments.nutriments.fatPerUnit ?? 0;
+            mealWithZeroNutriments.nutriments.carbohydratesPerUnit?.value ?? 0;
+        final fatPerUnit =
+            mealWithZeroNutriments.nutriments.fatPerUnit?.value ?? 0;
         final proteinPerUnit =
-            mealWithZeroNutriments.nutriments.proteinsPerUnit ?? 0;
+            mealWithZeroNutriments.nutriments.proteinsPerUnit?.value ?? 0;
 
         // Act
         final totalKcal = convertedQuantity * energyPerUnit;
@@ -308,10 +316,11 @@ void main() {
         final selectedTotalQuantity = '100,5';
 
         // Act
-        final quantity =
-            double.parse(selectedTotalQuantity.replaceAll(',', '.'));
+        final quantity = double.parse(
+          selectedTotalQuantity.replaceAll(',', '.'),
+        );
         final convertedQuantity = quantity;
-        final energyPerUnit = testMeal.nutriments.energyPerUnit ?? 0;
+        final energyPerUnit = testMeal.nutriments.energyPerUnit?.value ?? 0;
         final totalKcal = convertedQuantity * energyPerUnit;
 
         // Assert
@@ -322,10 +331,11 @@ void main() {
       test('CT14 - deve lidar com grandes quantidades', () {
         // Arrange
         final convertedQuantity = 10000.0;
-        final energyPerUnit = testMeal.nutriments.energyPerUnit ?? 0;
-        final carbsPerUnit = testMeal.nutriments.carbohydratesPerUnit ?? 0;
-        final fatPerUnit = testMeal.nutriments.fatPerUnit ?? 0;
-        final proteinPerUnit = testMeal.nutriments.proteinsPerUnit ?? 0;
+        final energyPerUnit = testMeal.nutriments.energyPerUnit?.value ?? 0;
+        final carbsPerUnit =
+            testMeal.nutriments.carbohydratesPerUnit?.value ?? 0;
+        final fatPerUnit = testMeal.nutriments.fatPerUnit?.value ?? 0;
+        final proteinPerUnit = testMeal.nutriments.proteinsPerUnit?.value ?? 0;
 
         // Act
         final totalKcal = convertedQuantity * energyPerUnit;
@@ -376,7 +386,8 @@ void main() {
           nutriments: testNutriments,
           source: MealSourceEntity.custom,
         );
-        final servingResult2 = 'serving' == 'serving' &&
+        final servingResult2 =
+            'serving' == 'serving' &&
             mealWithoutServing.servingQuantity != null;
         expect(servingResult2, isFalse);
 

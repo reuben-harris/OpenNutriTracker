@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/config_entity.dart';
@@ -34,20 +35,20 @@ MealEntity _meal({
     servingSize: null,
     source: MealSourceEntity.custom,
     nutriments: MealNutrimentsEntity(
-      energyKcal100: 100,
-      carbohydrates100: 0,
-      fat100: 0,
-      proteins100: 0,
-      sugars100: sugars,
-      saturatedFat100: saturatedFat,
-      fiber100: fiber,
-      sodium100: sodium,
-      potassium100: potassium,
-      magnesium100: magnesium,
-      calcium100: calcium,
-      iron100: iron,
-      vitaminD100: vitaminD,
-      vitaminB12100: vitaminB12,
+      energyKcal100: NutrientAmount(100),
+      carbohydrates100: NutrientAmount(0),
+      fat100: NutrientAmount(0),
+      proteins100: NutrientAmount(0),
+      sugars100: NutrientAmount.fromNumber(sugars),
+      saturatedFat100: NutrientAmount.fromNumber(saturatedFat),
+      fiber100: NutrientAmount.fromNumber(fiber),
+      sodium100: NutrientAmount.fromNumber(sodium),
+      potassium100: NutrientAmount.fromNumber(potassium),
+      magnesium100: NutrientAmount.fromNumber(magnesium),
+      calcium100: NutrientAmount.fromNumber(calcium),
+      iron100: NutrientAmount.fromNumber(iron),
+      vitaminD100: NutrientAmount.fromNumber(vitaminD),
+      vitaminB12100: NutrientAmount.fromNumber(vitaminB12),
     ),
   );
 }
@@ -125,28 +126,28 @@ void main() {
       final totals = NutrientPanelTotals.fromIntakes(intakes);
 
       // fiber: 200×5/100 + 150×8/100 + 100×2/100 = 10 + 12 + 2 = 24
-      expect(totals.fiberG, closeTo(24.0, 1e-9));
+      expect(totals.fiberG?.value, closeTo(24.0, 1e-9));
       // sodium: 200×400/100 + 150×200/100 + 100×50/100 = 800 + 300 + 50 = 1150
-      expect(totals.sodiumMg, closeTo(1150.0, 1e-9));
+      expect(totals.sodiumMg?.value, closeTo(1150.0, 1e-9));
       // saturated fat: 200×1.0/100 + 150×4.0/100 + 100×0.5/100 = 2 + 6 + 0.5 = 8.5
-      expect(totals.saturatedFatG, closeTo(8.5, 1e-9));
+      expect(totals.saturatedFatG?.value, closeTo(8.5, 1e-9));
       // sugars: 200×6/100 + 150×10/100 + 100×1/100 = 12 + 15 + 1 = 28
-      expect(totals.sugarG, closeTo(28.0, 1e-9));
+      expect(totals.sugarG?.value, closeTo(28.0, 1e-9));
       // calcium: 200×120/100 + 150×80/100 + 100×200/100 = 240 + 120 + 200 = 560
-      expect(totals.calciumMg, closeTo(560.0, 1e-9));
+      expect(totals.calciumMg?.value, closeTo(560.0, 1e-9));
       // iron: 200×1.5/100 + 150×2.0/100 + 100×0.5/100 = 3 + 3 + 0.5 = 6.5
-      expect(totals.ironMg, closeTo(6.5, 1e-9));
+      expect(totals.ironMg?.value, closeTo(6.5, 1e-9));
       // potassium: 200×350/100 + 150×600/100 + 100×100/100 = 700 + 900 + 100 = 1700
-      expect(totals.potassiumMg, closeTo(1700.0, 1e-9));
+      expect(totals.potassiumMg?.value, closeTo(1700.0, 1e-9));
       // vitamin D: 200×2.5/100 + 150×5.0/100 + 100×1.0/100 = 5 + 7.5 + 1 = 13.5
-      expect(totals.vitaminDMcg, closeTo(13.5, 1e-9));
+      expect(totals.vitaminDMcg?.value, closeTo(13.5, 1e-9));
       // vitamin B12: 200×0.8/100 + 150×1.2/100 + 100×0.4/100 = 1.6 + 1.8 + 0.4 = 3.8
-      expect(totals.vitaminB12Mcg, closeTo(3.8, 1e-9));
+      expect(totals.vitaminB12Mcg?.value, closeTo(3.8, 1e-9));
       // magnesium: 200×40/100 + 150×60/100 + 100×20/100 = 80 + 90 + 20 = 190
-      expect(totals.magnesiumMg, closeTo(190.0, 1e-9));
+      expect(totals.magnesiumMg?.value, closeTo(190.0, 1e-9));
     });
 
-    test('treats null nutrient values as zero', () {
+    test('sums known values and keeps wholly missing nutrients unknown', () {
       final intakes = [
         _intake(amountGrams: 100, meal: _meal(fiber: 4)),
         _intake(amountGrams: 100, meal: _meal()),
@@ -154,9 +155,9 @@ void main() {
 
       final totals = NutrientPanelTotals.fromIntakes(intakes);
 
-      expect(totals.fiberG, closeTo(4.0, 1e-9));
-      expect(totals.sodiumMg, 0.0);
-      expect(totals.vitaminDMcg, 0.0);
+      expect(totals.fiberG?.value, closeTo(4.0, 1e-9));
+      expect(totals.sodiumMg?.value, isNull);
+      expect(totals.vitaminDMcg?.value, isNull);
     });
   });
 
@@ -190,23 +191,23 @@ void main() {
 
       // fiber sum: 200×7/100 + 100×5/100 + 50×8/100 = 14 + 5 + 4 = 23
       // weekly average: 23 / 7 ≈ 3.2857
-      expect(totals.fiberG, closeTo(23.0 / 7.0, 1e-9));
+      expect(totals.fiberG?.value, closeTo(23.0 / 7.0, 1e-9));
       // iron sum: 200×2.0/100 + 100×3.0/100 + 50×4.0/100 = 4 + 3 + 2 = 9
-      expect(totals.ironMg, closeTo(9.0 / 7.0, 1e-9));
+      expect(totals.ironMg?.value, closeTo(9.0 / 7.0, 1e-9));
       // magnesium sum: 200×50/100 + 100×80/100 + 50×60/100 = 100 + 80 + 30 = 210
-      expect(totals.magnesiumMg, closeTo(210.0 / 7.0, 1e-9));
+      expect(totals.magnesiumMg?.value, closeTo(210.0 / 7.0, 1e-9));
       // vitamin D sum: 200×4.0/100 + 100×7.0/100 + 50×10.0/100 = 8 + 7 + 5 = 20
-      expect(totals.vitaminDMcg, closeTo(20.0 / 7.0, 1e-9));
+      expect(totals.vitaminDMcg?.value, closeTo(20.0 / 7.0, 1e-9));
     });
 
-    test('empty week window yields zeros, not NaN', () {
+    test('empty week window retains unknown amounts', () {
       final totals = NutrientPanelTotals.fromIntakes(
         <IntakeEntity>[],
         weekly: true,
       );
-      expect(totals.fiberG, 0.0);
-      expect(totals.ironMg, 0.0);
-      expect(totals.vitaminB12Mcg, 0.0);
+      expect(totals.fiberG?.value, isNull);
+      expect(totals.ironMg?.value, isNull);
+      expect(totals.vitaminB12Mcg?.value, isNull);
     });
   });
 

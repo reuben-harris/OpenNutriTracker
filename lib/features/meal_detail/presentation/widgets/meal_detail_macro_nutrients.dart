@@ -1,10 +1,12 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
+import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
 class MealDetailMacroNutrients extends StatelessWidget {
   final String typeString;
-  final double? value;
+  final NutrientAmount? value;
   final double goal;
   final Color color;
   final String? amountLabel;
@@ -20,12 +22,11 @@ class MealDetailMacroNutrients extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final known = value != null && value!.isFinite;
-    final percentage = !known || !goal.isFinite || goal <= 0
-        ? '—'
-        : '${(value! / goal * 100).round()}%';
+    final s = S.of(context);
+    final percentage = formatNutrientPercentage(value, goal);
     final amount = known
-        ? amountLabel ?? '${value!.toStringAsFixed(2)} g'
-        : S.of(context).nutritionNoDataLabel;
+        ? amountLabel ?? formatNutrientAmount(value, s, unit: 'g')
+        : s.nutritionNoDataLabel;
     final textTheme = Theme.of(context).textTheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -41,6 +42,7 @@ class MealDetailMacroNutrients extends StatelessWidget {
         const SizedBox(height: 4),
         AutoSizeText(
           amount,
+          semanticsLabel: '$amount. ${nutrientQualificationLabel(value, s)}',
           textAlign: TextAlign.center,
           maxLines: 1,
           minFontSize: 12,

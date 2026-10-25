@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/utils/food_amount_unit.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
@@ -93,7 +94,9 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
     final usesKj = context.read<EnergyUnitProvider>().usesKilojoules;
     _titleController.text = meal.name ?? '';
     final n = meal.nutriments;
-    final energy = n.energyKcal100 == null ? null : n.energyKcal100! * factor;
+    final energy = n.energyKcal100 == null
+        ? null
+        : n.energyKcal100!.calculationValue * factor;
     _energyController.text = energy == null
         ? ''
         : (usesKj ? UnitCalc.kcalToKj(energy) : energy).toString();
@@ -104,7 +107,7 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
     }.entries) {
       entry.key.text = entry.value == null
           ? ''
-          : (entry.value! * factor).toString();
+          : (entry.value!.calculationValue * factor).toString();
     }
     for (final controller in [
       _energyController,
@@ -290,13 +293,17 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
                 ));
     final amount = quantity?.baseAmount ?? 100.0;
     final factor = amount / 100;
-    double? stored(TextEditingController c, double? value, double? original) {
+    NutrientAmount? stored(
+      TextEditingController c,
+      double? value,
+      NutrientAmount? original,
+    ) {
       if (old != null && _initialText[c] == c.text) {
         return amount == oldAmount
             ? original
-            : (original == null ? null : original * oldAmount / amount);
+            : original?.scale(oldAmount / amount);
       }
-      return value == null ? null : value / factor;
+      return NutrientAmount.fromNumber(value)?.scale(1 / factor);
     }
 
     final nutriments = MealNutrimentsEntity(
@@ -316,9 +323,26 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
         protein,
         old?.nutriments.proteins100,
       ),
-      sugars100: null,
-      saturatedFat100: null,
-      fiber100: null,
+      sugars100: old?.nutriments.sugars100,
+      saturatedFat100: old?.nutriments.saturatedFat100,
+      fiber100: old?.nutriments.fiber100,
+      monounsaturatedFat100: old?.nutriments.monounsaturatedFat100,
+      polyunsaturatedFat100: old?.nutriments.polyunsaturatedFat100,
+      transFat100: old?.nutriments.transFat100,
+      cholesterol100: old?.nutriments.cholesterol100,
+      sodium100: old?.nutriments.sodium100,
+      potassium100: old?.nutriments.potassium100,
+      magnesium100: old?.nutriments.magnesium100,
+      calcium100: old?.nutriments.calcium100,
+      iron100: old?.nutriments.iron100,
+      zinc100: old?.nutriments.zinc100,
+      phosphorus100: old?.nutriments.phosphorus100,
+      vitaminA100: old?.nutriments.vitaminA100,
+      vitaminC100: old?.nutriments.vitaminC100,
+      vitaminD100: old?.nutriments.vitaminD100,
+      vitaminB6100: old?.nutriments.vitaminB6100,
+      vitaminB12100: old?.nutriments.vitaminB12100,
+      niacin100: old?.nutriments.niacin100,
     );
     final meal = MealEntity(
       code: old?.code ?? IdGenerator.getUniqueID(),

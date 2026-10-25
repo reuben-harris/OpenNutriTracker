@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_ingredient_entity.dart';
@@ -36,15 +37,15 @@ MealNutrimentsEntity _nutr({
   double? iron,
 }) {
   return MealNutrimentsEntity(
-    energyKcal100: kcal,
-    carbohydrates100: carbs,
-    fat100: fat,
-    proteins100: protein,
-    sugars100: sugar,
-    saturatedFat100: satFat,
-    fiber100: fiber,
-    sodium100: sodium,
-    iron100: iron,
+    energyKcal100: NutrientAmount.fromNumber(kcal),
+    carbohydrates100: NutrientAmount.fromNumber(carbs),
+    fat100: NutrientAmount.fromNumber(fat),
+    proteins100: NutrientAmount.fromNumber(protein),
+    sugars100: NutrientAmount.fromNumber(sugar),
+    saturatedFat100: NutrientAmount.fromNumber(satFat),
+    fiber100: NutrientAmount.fromNumber(fiber),
+    sodium100: NutrientAmount.fromNumber(sodium),
+    iron100: NutrientAmount.fromNumber(iron),
   );
 }
 
@@ -89,8 +90,8 @@ void main() {
       final result = useCase.compute([]);
 
       expect(result.totalWeightG, 0);
-      expect(result.perHundredG.energyKcal100, isNull);
-      expect(result.perHundredG.carbohydrates100, isNull);
+      expect(result.perHundredG.energyKcal100?.value, isNull);
+      expect(result.perHundredG.carbohydrates100?.value, isNull);
     });
 
     test('single ingredient passes through unchanged at per-100g', () {
@@ -99,9 +100,9 @@ void main() {
       final result = useCase.compute([_ingredient(flour, 100, 'g', 100)]);
 
       expect(result.totalWeightG, 100);
-      expect(result.perHundredG.energyKcal100, closeTo(200, 0.001));
-      expect(result.perHundredG.carbohydrates100, closeTo(70, 0.001));
-      expect(result.perHundredG.proteins100, closeTo(10, 0.001));
+      expect(result.perHundredG.energyKcal100?.value, closeTo(200, 0.001));
+      expect(result.perHundredG.carbohydrates100?.value, closeTo(70, 0.001));
+      expect(result.perHundredG.proteins100?.value, closeTo(10, 0.001));
     });
 
     test('two solid ingredients aggregate correctly', () {
@@ -115,7 +116,7 @@ void main() {
       ]);
 
       expect(result.totalWeightG, 100);
-      expect(result.perHundredG.energyKcal100, closeTo(365, 0.001));
+      expect(result.perHundredG.energyKcal100?.value, closeTo(365, 0.001));
     });
 
     test('mixed g + ml (1:1) aggregates correctly', () {
@@ -129,7 +130,7 @@ void main() {
       ]);
 
       expect(result.totalWeightG, 200);
-      expect(result.perHundredG.energyKcal100, closeTo(200, 0.001));
+      expect(result.perHundredG.energyKcal100?.value, closeTo(200, 0.001));
     });
 
     test('cookedWeightG rescales per-100g', () {
@@ -141,7 +142,7 @@ void main() {
       ], cookedWeightG: 720);
 
       expect(result.totalWeightG, 720);
-      expect(result.perHundredG.energyKcal100, closeTo(222.22, 0.01));
+      expect(result.perHundredG.energyKcal100?.value, closeTo(222.22, 0.01));
     });
 
     test(
@@ -156,7 +157,7 @@ void main() {
           _ingredient(b, 50, 'g', 50),
         ]);
 
-        expect(result.perHundredG.iron100, closeTo(2.5, 0.001));
+        expect(result.perHundredG.iron100?.value, closeTo(2.5, 0.001));
       },
     );
 
@@ -170,8 +171,8 @@ void main() {
 
       // None of the ingredients had iron data → recipe iron is null too,
       // not 0 (preserves "hide unknown micros" UI behaviour).
-      expect(result.perHundredG.iron100, isNull);
-      expect(result.perHundredG.vitaminA100, isNull);
+      expect(result.perHundredG.iron100?.value, isNull);
+      expect(result.perHundredG.vitaminA100?.value, isNull);
     });
 
     test(
@@ -182,30 +183,30 @@ void main() {
         // ensures every field is summed (not just kcal/carbs/fat/protein).
         const v = 10.0;
         final fullN = MealNutrimentsEntity(
-          energyKcal100: v,
-          carbohydrates100: v,
-          fat100: v,
-          proteins100: v,
-          sugars100: v,
-          saturatedFat100: v,
-          fiber100: v,
-          monounsaturatedFat100: v,
-          polyunsaturatedFat100: v,
-          transFat100: v,
-          cholesterol100: v,
-          sodium100: v,
-          potassium100: v,
-          magnesium100: v,
-          calcium100: v,
-          iron100: v,
-          zinc100: v,
-          phosphorus100: v,
-          vitaminA100: v,
-          vitaminC100: v,
-          vitaminD100: v,
-          vitaminB6100: v,
-          vitaminB12100: v,
-          niacin100: v,
+          energyKcal100: NutrientAmount.fromNumber(v),
+          carbohydrates100: NutrientAmount.fromNumber(v),
+          fat100: NutrientAmount.fromNumber(v),
+          proteins100: NutrientAmount.fromNumber(v),
+          sugars100: NutrientAmount.fromNumber(v),
+          saturatedFat100: NutrientAmount.fromNumber(v),
+          fiber100: NutrientAmount.fromNumber(v),
+          monounsaturatedFat100: NutrientAmount.fromNumber(v),
+          polyunsaturatedFat100: NutrientAmount.fromNumber(v),
+          transFat100: NutrientAmount.fromNumber(v),
+          cholesterol100: NutrientAmount.fromNumber(v),
+          sodium100: NutrientAmount.fromNumber(v),
+          potassium100: NutrientAmount.fromNumber(v),
+          magnesium100: NutrientAmount.fromNumber(v),
+          calcium100: NutrientAmount.fromNumber(v),
+          iron100: NutrientAmount.fromNumber(v),
+          zinc100: NutrientAmount.fromNumber(v),
+          phosphorus100: NutrientAmount.fromNumber(v),
+          vitaminA100: NutrientAmount.fromNumber(v),
+          vitaminC100: NutrientAmount.fromNumber(v),
+          vitaminD100: NutrientAmount.fromNumber(v),
+          vitaminB6100: NutrientAmount.fromNumber(v),
+          vitaminB12100: NutrientAmount.fromNumber(v),
+          niacin100: NutrientAmount.fromNumber(v),
         );
         final m1 = _meal(code: 'a', nutriments: fullN);
         final m2 = _meal(code: 'b', nutriments: fullN);
@@ -218,30 +219,30 @@ void main() {
 
         final p = result.perHundredG;
         // Every field must equal v (weighted mean of identical values).
-        expect(p.energyKcal100, closeTo(v, 0.001));
-        expect(p.carbohydrates100, closeTo(v, 0.001));
-        expect(p.fat100, closeTo(v, 0.001));
-        expect(p.proteins100, closeTo(v, 0.001));
-        expect(p.sugars100, closeTo(v, 0.001));
-        expect(p.saturatedFat100, closeTo(v, 0.001));
-        expect(p.fiber100, closeTo(v, 0.001));
-        expect(p.monounsaturatedFat100, closeTo(v, 0.001));
-        expect(p.polyunsaturatedFat100, closeTo(v, 0.001));
-        expect(p.transFat100, closeTo(v, 0.001));
-        expect(p.cholesterol100, closeTo(v, 0.001));
-        expect(p.sodium100, closeTo(v, 0.001));
-        expect(p.potassium100, closeTo(v, 0.001));
-        expect(p.magnesium100, closeTo(v, 0.001));
-        expect(p.calcium100, closeTo(v, 0.001));
-        expect(p.iron100, closeTo(v, 0.001));
-        expect(p.zinc100, closeTo(v, 0.001));
-        expect(p.phosphorus100, closeTo(v, 0.001));
-        expect(p.vitaminA100, closeTo(v, 0.001));
-        expect(p.vitaminC100, closeTo(v, 0.001));
-        expect(p.vitaminD100, closeTo(v, 0.001));
-        expect(p.vitaminB6100, closeTo(v, 0.001));
-        expect(p.vitaminB12100, closeTo(v, 0.001));
-        expect(p.niacin100, closeTo(v, 0.001));
+        expect(p.energyKcal100?.value, closeTo(v, 0.001));
+        expect(p.carbohydrates100?.value, closeTo(v, 0.001));
+        expect(p.fat100?.value, closeTo(v, 0.001));
+        expect(p.proteins100?.value, closeTo(v, 0.001));
+        expect(p.sugars100?.value, closeTo(v, 0.001));
+        expect(p.saturatedFat100?.value, closeTo(v, 0.001));
+        expect(p.fiber100?.value, closeTo(v, 0.001));
+        expect(p.monounsaturatedFat100?.value, closeTo(v, 0.001));
+        expect(p.polyunsaturatedFat100?.value, closeTo(v, 0.001));
+        expect(p.transFat100?.value, closeTo(v, 0.001));
+        expect(p.cholesterol100?.value, closeTo(v, 0.001));
+        expect(p.sodium100?.value, closeTo(v, 0.001));
+        expect(p.potassium100?.value, closeTo(v, 0.001));
+        expect(p.magnesium100?.value, closeTo(v, 0.001));
+        expect(p.calcium100?.value, closeTo(v, 0.001));
+        expect(p.iron100?.value, closeTo(v, 0.001));
+        expect(p.zinc100?.value, closeTo(v, 0.001));
+        expect(p.phosphorus100?.value, closeTo(v, 0.001));
+        expect(p.vitaminA100?.value, closeTo(v, 0.001));
+        expect(p.vitaminC100?.value, closeTo(v, 0.001));
+        expect(p.vitaminD100?.value, closeTo(v, 0.001));
+        expect(p.vitaminB6100?.value, closeTo(v, 0.001));
+        expect(p.vitaminB12100?.value, closeTo(v, 0.001));
+        expect(p.niacin100?.value, closeTo(v, 0.001));
       },
     );
   });

@@ -12,12 +12,14 @@ class FoodCardText extends StatelessWidget {
     required this.subtitle,
     required this.trailingTitle,
     required this.trailingSubtitle,
+    this.nutritionSemantics,
   });
 
   final String title;
   final TextSpan subtitle;
   final String trailingTitle;
   final String trailingSubtitle;
+  final String? nutritionSemantics;
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +89,7 @@ class FoodCardText extends StatelessWidget {
                 titleHeight,
                 AutoSizeText(
                   trailingTitle,
+                  semanticsLabel: nutritionSemantics,
                   textAlign: TextAlign.end,
                   maxLines: 1,
                   minFontSize: 8,

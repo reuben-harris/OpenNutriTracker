@@ -58,7 +58,17 @@ def validate(db):
         if not isinstance(values, dict) or not set(values) <= NUTRIENTS:
             raise ValidationError(f'{code}: unknown app nutrition fields')
         for value in values.values():
-            decimal_value(value)
+            if isinstance(value, dict):
+                if (set(value) != {'value', 'qualification', 'limit'} or value['qualification'] not in {
+                        'trace', 'lessThan', 'lessThanOrEqual', 'greaterThan', 'greaterThanOrEqual',
+                        'approximate', 'belowDetection', 'belowDetectionOrQuantification',
+                        'belowQuantification', 'aggregate'}):
+                    raise ValidationError(f'{code}: invalid nutrient qualification')
+                if decimal_value(value['value']) is None:
+                    raise ValidationError(f'{code}: missing calculation value')
+                decimal_value(value['limit'])
+            else:
+                decimal_value(value)
     for weight, in db.execute('SELECT gram_weight FROM food_portion'):
         if decimal_value(weight) is None or Decimal(weight) <= 0:
             raise ValidationError('Invalid portion weight')

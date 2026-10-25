@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
+import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
 import 'package:flutter/widgets.dart';
 import 'package:opennutritracker/core/utils/calc/unit_calc.dart';
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
@@ -19,8 +21,10 @@ class EnergyDisplay {
   /// safe to call from event handlers that don't need to rebuild on
   /// change.
   static String unitLabelStatic(BuildContext context) {
-    final useKj =
-        Provider.of<EnergyUnitProvider>(context, listen: false).usesKilojoules;
+    final useKj = Provider.of<EnergyUnitProvider>(
+      context,
+      listen: false,
+    ).usesKilojoules;
     return useKj ? S.of(context).kjLabel : S.of(context).kcalLabel;
   }
 
@@ -30,6 +34,22 @@ class EnergyDisplay {
     final useKj = context.watch<EnergyUnitProvider>().usesKilojoules;
     return useKj ? UnitCalc.kcalToKj(kcal) : kcal;
   }
+
+  static NutrientAmount? convertAmount(
+    BuildContext context,
+    NutrientAmount? amount,
+  ) => amount?.scale(convert(context, 1));
+
+  static String formatAmount(
+    BuildContext context,
+    NutrientAmount? amount, {
+    int decimals = 0,
+  }) => formatNutrientAmount(
+    convertAmount(context, amount),
+    S.of(context),
+    unit: unitLabel(context),
+    decimals: decimals,
+  );
 
   /// Format a stored kcal value as an integer string in the
   /// currently-selected unit (without the unit suffix).

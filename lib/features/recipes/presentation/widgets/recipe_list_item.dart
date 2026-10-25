@@ -32,7 +32,7 @@ class RecipeListItem extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     final kcalPer100 = recipe.aggregatedNutrimentsPer100.energyKcal100;
-    final totalKcal = (kcalPer100 ?? 0) * recipe.totalWeightG / 100;
+    final totalKcal = kcalPer100?.scale(recipe.totalWeightG / 100);
     final ingredientCount = recipe.ingredients.length;
 
     // AppCard's own onTap is left null so the inner InkWell can carry both the
@@ -77,7 +77,7 @@ class RecipeListItem extends StatelessWidget {
                       const SizedBox(height: Dimens.spacing4),
                       Text(
                         '${S.of(context).recipeIngredientCountLabel(ingredientCount)} · '
-                        '${EnergyDisplay.formatWithUnit(context, totalKcal)}',
+                        '${EnergyDisplay.formatAmount(context, totalKcal)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyMedium?.copyWith(

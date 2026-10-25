@@ -161,10 +161,10 @@ void main() {
       expect(meal.code, 'usda:1');
       expect(meal.mealUnit, 'g');
       expect(meal.servingQuantity, isNull);
-      expect(meal.nutriments.energyKcal100, 52);
-      expect(meal.nutriments.fat100, 0);
-      expect(meal.nutriments.proteins100, isNull);
-      expect(meal.nutriments.sodium100, 2);
+      expect(meal.nutriments.energyKcal100?.value, 52);
+      expect(meal.nutriments.fat100?.value, 0);
+      expect(meal.nutriments.proteins100?.value, isNull);
+      expect(meal.nutriments.sodium100?.value, 2);
       expect(meal.portions, hasLength(1));
       expect(meal.portions.single.label, '1 cup');
       expect(
@@ -175,7 +175,7 @@ void main() {
         )!.baseAmount,
         280,
       );
-      expect(meal.nutriments.energyPerUnit! * 280, closeTo(145.6, 0.001));
+      expect(meal.nutriments.energyPerUnit!.value * 280, closeTo(145.6, 0.001));
     },
   );
 

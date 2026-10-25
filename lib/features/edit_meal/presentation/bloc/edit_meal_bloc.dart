@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
@@ -103,49 +104,115 @@ class EditMealBloc extends Bloc<EditMealEvent, EditMealState> {
     String? barcodeOverride,
     String? localImagePathOverride,
     bool clearLocalImagePath = false,
+    Set<String>? editedNutrients,
   }) {
     final double factorTo100g = factorTo100gFromBase(baseQuantity);
 
-    double? multiplyIfNotNull(double? nutrimentValue) {
-      return nutrimentValue != null ? nutrimentValue * factorTo100g : null;
+    NutrientAmount? multiplyIfNotNull(double? nutrimentValue) {
+      return nutrimentValue != null
+          ? NutrientAmount(nutrimentValue * factorTo100g)
+          : null;
     }
 
-    double? fromTextOrOld(String? text, double? oldValue) =>
-        multiplyIfNotNull(text == null ? oldValue : text.toDoubleOrNull());
+    NutrientAmount? fromTextOrOld(String? text, NutrientAmount? oldValue) =>
+        text == null ? oldValue : multiplyIfNotNull(text.toDoubleOrNull());
+
+    NutrientAmount? preserve(String field, NutrientAmount? replacement) =>
+        editedNutrients != null && !editedNutrients.contains(field)
+        ? oldMealEntity.nutriments.amounts[field]
+        : replacement;
 
     final newMealNutriments = MealNutrimentsEntity(
-      energyKcal100: multiplyIfNotNull(kcalText.toDoubleOrNull()),
-      carbohydrates100: multiplyIfNotNull(carbsText.toDoubleOrNull()),
-      fat100: multiplyIfNotNull(fatText.toDoubleOrNull()),
-      proteins100: multiplyIfNotNull(proteinText.toDoubleOrNull()),
-      sugars100: fromTextOrOld(sugarsText, oldMealEntity.nutriments.sugars100),
-      saturatedFat100: fromTextOrOld(
-        saturatedFatText,
-        oldMealEntity.nutriments.saturatedFat100,
+      energyKcal100: preserve(
+        'energyKcal100',
+        multiplyIfNotNull(kcalText.toDoubleOrNull()),
       ),
-      fiber100: fromTextOrOld(fiberText, oldMealEntity.nutriments.fiber100),
-      sodium100: fromTextOrOld(sodiumText, oldMealEntity.nutriments.sodium100),
-      calcium100: fromTextOrOld(
-        calciumText,
-        oldMealEntity.nutriments.calcium100,
+      carbohydrates100: preserve(
+        'carbohydrates100',
+        multiplyIfNotNull(carbsText.toDoubleOrNull()),
       ),
-      iron100: fromTextOrOld(ironText, oldMealEntity.nutriments.iron100),
-      potassium100: fromTextOrOld(
-        potassiumText,
-        oldMealEntity.nutriments.potassium100,
+      fat100: preserve('fat100', multiplyIfNotNull(fatText.toDoubleOrNull())),
+      proteins100: preserve(
+        'proteins100',
+        multiplyIfNotNull(proteinText.toDoubleOrNull()),
       ),
-      magnesium100: fromTextOrOld(
-        magnesiumText,
-        oldMealEntity.nutriments.magnesium100,
+      sugars100: preserve(
+        'sugars100',
+        fromTextOrOld(sugarsText, oldMealEntity.nutriments.sugars100),
       ),
-      vitaminD100: fromTextOrOld(
-        vitaminDText,
-        oldMealEntity.nutriments.vitaminD100,
+      saturatedFat100: preserve(
+        'saturatedFat100',
+        fromTextOrOld(
+          saturatedFatText,
+          oldMealEntity.nutriments.saturatedFat100,
+        ),
       ),
-      vitaminB12100: fromTextOrOld(
-        vitaminB12Text,
-        oldMealEntity.nutriments.vitaminB12100,
+      fiber100: preserve(
+        'fiber100',
+        fromTextOrOld(fiberText, oldMealEntity.nutriments.fiber100),
       ),
+      sodium100: preserve(
+        'sodium100',
+        fromTextOrOld(sodiumText, oldMealEntity.nutriments.sodium100),
+      ),
+      calcium100: preserve(
+        'calcium100',
+        fromTextOrOld(calciumText, oldMealEntity.nutriments.calcium100),
+      ),
+      iron100: preserve(
+        'iron100',
+        fromTextOrOld(ironText, oldMealEntity.nutriments.iron100),
+      ),
+      potassium100: preserve(
+        'potassium100',
+        fromTextOrOld(potassiumText, oldMealEntity.nutriments.potassium100),
+      ),
+      magnesium100: preserve(
+        'magnesium100',
+        fromTextOrOld(magnesiumText, oldMealEntity.nutriments.magnesium100),
+      ),
+      vitaminD100: preserve(
+        'vitaminD100',
+        fromTextOrOld(vitaminDText, oldMealEntity.nutriments.vitaminD100),
+      ),
+      vitaminB12100: preserve(
+        'vitaminB12100',
+        fromTextOrOld(vitaminB12Text, oldMealEntity.nutriments.vitaminB12100),
+      ),
+      monounsaturatedFat100: preserve(
+        'monounsaturatedFat100',
+        oldMealEntity.nutriments.monounsaturatedFat100,
+      ),
+      polyunsaturatedFat100: preserve(
+        'polyunsaturatedFat100',
+        oldMealEntity.nutriments.polyunsaturatedFat100,
+      ),
+      transFat100: preserve(
+        'transFat100',
+        oldMealEntity.nutriments.transFat100,
+      ),
+      cholesterol100: preserve(
+        'cholesterol100',
+        oldMealEntity.nutriments.cholesterol100,
+      ),
+      zinc100: preserve('zinc100', oldMealEntity.nutriments.zinc100),
+      phosphorus100: preserve(
+        'phosphorus100',
+        oldMealEntity.nutriments.phosphorus100,
+      ),
+      vitaminA100: preserve(
+        'vitaminA100',
+        oldMealEntity.nutriments.vitaminA100,
+      ),
+      vitaminC100: preserve(
+        'vitaminC100',
+        oldMealEntity.nutriments.vitaminC100,
+      ),
+      vitaminB6100: preserve(
+        'vitaminB6100',
+        oldMealEntity.nutriments.vitaminB6100,
+      ),
+      niacin100: preserve('niacin100', oldMealEntity.nutriments.niacin100),
     );
 
     return MealEntity(

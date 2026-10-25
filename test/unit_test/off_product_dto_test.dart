@@ -369,7 +369,7 @@ void main() {
 
       final entity = MealNutrimentsEntity.fromOffNutriments(nutriments);
 
-      expect(entity.niacin100, closeTo(69.0, 1e-9));
+      expect(entity.niacin100?.value, closeTo(69.0, 1e-9));
     });
   });
 }

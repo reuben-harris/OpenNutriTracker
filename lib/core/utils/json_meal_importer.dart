@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'dart:convert';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/utils/food_amount_unit.dart';
@@ -288,10 +289,10 @@ class JsonMealImporter {
       // keeps the displayed kcal/macros faithful to what was pasted.
       final factor = 100.0 / quantity.baseAmount;
       final nutriments = MealNutrimentsEntity(
-        energyKcal100: kcalTotal * factor,
-        carbohydrates100: carbsTotal * factor,
-        fat100: fatTotal * factor,
-        proteins100: proteinTotal * factor,
+        energyKcal100: NutrientAmount.fromNumber(kcalTotal * factor),
+        carbohydrates100: NutrientAmount.fromNumber(carbsTotal * factor),
+        fat100: NutrientAmount.fromNumber(fatTotal * factor),
+        proteins100: NutrientAmount.fromNumber(proteinTotal * factor),
         sugars100: null,
         saturatedFat100: null,
         fiber100: null,

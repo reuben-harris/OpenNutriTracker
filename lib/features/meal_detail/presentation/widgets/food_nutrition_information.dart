@@ -134,29 +134,40 @@ class _FoodNutritionInformationState extends State<FoodNutritionInformation> {
                 final summaries = [
                   MealDetailMacroNutrients(
                     typeString: s.energyLabel,
-                    value: n.energyKcal100 == null ? null : state.totalKcal,
+                    value: n.energyKcal100?.scale(
+                      _reference ? 1 : (_selection?.baseAmount ?? 0) / 100,
+                    ),
                     goal: state.dayKcalGoal,
                     color: palette.textStrong,
-                    amountLabel: EnergyDisplay.formatWithUnit(
+                    amountLabel: EnergyDisplay.formatAmount(
                       context,
-                      state.totalKcal,
+                      n.energyKcal100?.scale(
+                        _reference ? 1 : (_selection?.baseAmount ?? 0) / 100,
+                      ),
+                      decimals: 2,
                     ),
                   ),
                   MealDetailMacroNutrients(
                     typeString: s.carbsLabel,
-                    value: n.carbohydrates100 == null ? null : state.totalCarbs,
+                    value: n.carbohydrates100?.scale(
+                      _reference ? 1 : (_selection?.baseAmount ?? 0) / 100,
+                    ),
                     goal: state.dayCarbsGoal,
                     color: palette.carbs,
                   ),
                   MealDetailMacroNutrients(
                     typeString: s.fatLabel,
-                    value: n.fat100 == null ? null : state.totalFat,
+                    value: n.fat100?.scale(
+                      _reference ? 1 : (_selection?.baseAmount ?? 0) / 100,
+                    ),
                     goal: state.dayFatGoal,
                     color: palette.fat,
                   ),
                   MealDetailMacroNutrients(
                     typeString: s.proteinLabel,
-                    value: n.proteins100 == null ? null : state.totalProtein,
+                    value: n.proteins100?.scale(
+                      _reference ? 1 : (_selection?.baseAmount ?? 0) / 100,
+                    ),
                     goal: state.dayProteinGoal,
                     color: palette.protein,
                   ),

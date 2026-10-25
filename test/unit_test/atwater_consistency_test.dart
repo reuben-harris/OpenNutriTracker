@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 
@@ -7,10 +8,10 @@ MealNutrimentsEntity _n({
   double? fat,
   double? protein,
 }) => MealNutrimentsEntity(
-  energyKcal100: energy,
-  carbohydrates100: carbs,
-  fat100: fat,
-  proteins100: protein,
+  energyKcal100: NutrientAmount.fromNumber(energy),
+  carbohydrates100: NutrientAmount.fromNumber(carbs),
+  fat100: NutrientAmount.fromNumber(fat),
+  proteins100: NutrientAmount.fromNumber(protein),
   sugars100: null,
   saturatedFat100: null,
   fiber100: null,

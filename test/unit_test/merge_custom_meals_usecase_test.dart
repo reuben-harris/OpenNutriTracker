@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
@@ -18,10 +19,10 @@ import '../helpers/fake_hive_db_provider.dart';
 
 MealNutrimentsDBO _nutriments({double kcal = 100, double protein = 5}) =>
     MealNutrimentsDBO(
-      energyKcal100: kcal,
-      carbohydrates100: 10,
-      fat100: 2,
-      proteins100: protein,
+      energyKcal100: NutrientAmount.fromNumber(kcal),
+      carbohydrates100: NutrientAmount(10),
+      fat100: NutrientAmount(2),
+      proteins100: NutrientAmount.fromNumber(protein),
       sugars100: null,
       saturatedFat100: null,
       fiber100: null,

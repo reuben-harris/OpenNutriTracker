@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:convert';
 import 'dart:io' show gzip;
@@ -32,11 +33,11 @@ FoodAmountSelection? resolveSharedMealAmount(
   return selection;
 }
 
-// Emit int for whole numbers, round to 1dp otherwise — shrinks JSON before compression
+// Emit whole numbers compactly without discarding fractional precision.
 num? _compact(double? v) {
   if (v == null) return null;
   if (v == v.truncateToDouble()) return v.toInt();
-  return double.parse(v.toStringAsFixed(1));
+  return v;
 }
 
 // OFF ref field order: [barcode, amount, unit]
@@ -82,13 +83,13 @@ class SharedMealItem {
   final String? brands;
   final String unit;
   final double amount;
-  final double? energyKcal100;
-  final double? carbohydrates100;
-  final double? fat100;
-  final double? proteins100;
-  final double? sugars100;
-  final double? saturatedFat100;
-  final double? fiber100;
+  final NutrientAmount? energyKcal100;
+  final NutrientAmount? carbohydrates100;
+  final NutrientAmount? fat100;
+  final NutrientAmount? proteins100;
+  final NutrientAmount? sugars100;
+  final NutrientAmount? saturatedFat100;
+  final NutrientAmount? fiber100;
   final String? thumbnailImageUrl;
   final String? mainImageUrl;
   final MealSourceEntity source;
@@ -145,7 +146,6 @@ class SharedMealItem {
   }
 
   factory SharedMealItem.fromArray(List<dynamic> a) {
-    num? atNum(int i) => a.length > i ? a[i] as num? : null;
     String? atStr(int i) => a.length > i ? a[i] as String? : null;
     final sourceStr = atStr(13);
     final source = sourceStr == 'catalogue'
@@ -156,13 +156,13 @@ class SharedMealItem {
       brands: a[1] as String?,
       unit: (a[2] as String?) ?? 'g',
       amount: (a[3] as num?)?.toDouble() ?? 100.0,
-      energyKcal100: atNum(4)?.toDouble(),
-      carbohydrates100: atNum(5)?.toDouble(),
-      fat100: atNum(6)?.toDouble(),
-      proteins100: atNum(7)?.toDouble(),
-      sugars100: atNum(8)?.toDouble(),
-      saturatedFat100: atNum(9)?.toDouble(),
-      fiber100: atNum(10)?.toDouble(),
+      energyKcal100: NutrientAmount.fromSource(a[4]),
+      carbohydrates100: NutrientAmount.fromSource(a[5]),
+      fat100: NutrientAmount.fromSource(a[6]),
+      proteins100: NutrientAmount.fromSource(a[7]),
+      sugars100: NutrientAmount.fromSource(a[8]),
+      saturatedFat100: NutrientAmount.fromSource(a[9]),
+      fiber100: NutrientAmount.fromSource(a[10]),
       thumbnailImageUrl: atStr(11),
       mainImageUrl: atStr(12),
       source: source,
@@ -180,13 +180,13 @@ class SharedMealItem {
       brands,
       unit,
       _compact(amount),
-      _compact(energyKcal100),
-      _compact(carbohydrates100),
-      _compact(fat100),
-      _compact(proteins100),
-      _compact(sugars100),
-      _compact(saturatedFat100),
-      _compact(fiber100),
+      energyKcal100?.toJson(),
+      carbohydrates100?.toJson(),
+      fat100?.toJson(),
+      proteins100?.toJson(),
+      sugars100?.toJson(),
+      saturatedFat100?.toJson(),
+      fiber100?.toJson(),
       thumbnailImageUrl,
       mainImageUrl,
       source == MealSourceEntity.catalogue ? 'catalogue' : 'custom',
@@ -261,7 +261,7 @@ class SharedMealPayload {
   // v1: [version, offRefs, items]                — no source on items, no recipes
   // v2: [version, offRefs, items, recipes]       — items carry source ('custom'|'catalogue'),
   //                                                 recipes are full embedded recipe payloads
-  static const int _currentVersion = 2;
+  static const int _currentVersion = 3;
   static const int _minSupportedVersion = 1;
 
   // Cap the post-decompression payload size to make zip-bomb-style QR

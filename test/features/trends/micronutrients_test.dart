@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
@@ -40,14 +41,14 @@ IntakeEntity intake(String id, DateTime time, {double amount = 100}) =>
         servingSize: null,
         source: MealSourceEntity.custom,
         nutriments: MealNutrimentsEntity(
-          energyKcal100: 100,
-          carbohydrates100: 1,
-          proteins100: 2,
-          fat100: 3,
-          sugars100: 4,
-          saturatedFat100: 1,
-          fiber100: 14,
-          sodium100: 70,
+          energyKcal100: NutrientAmount(100),
+          carbohydrates100: NutrientAmount(1),
+          proteins100: NutrientAmount(2),
+          fat100: NutrientAmount(3),
+          sugars100: NutrientAmount(4),
+          saturatedFat100: NutrientAmount(1),
+          fiber100: NutrientAmount(14),
+          sodium100: NutrientAmount(70),
         ),
       ),
     );
@@ -123,9 +124,15 @@ void main() {
           state.nutrientsByDay.keys,
           unorderedEquals([DateTime(2026, 9, 22), DateTime(2026, 9, 28)]),
         );
-        expect(state.nutrientsByDay[DateTime(2026, 9, 22)]!.fiberG, 7);
-        expect(state.nutrientsByDay[DateTime(2026, 9, 28)]!.fiberG, 17.5);
-        expect(state.nutrientsByDay[DateTime(2026, 9, 28)]!.sodiumMg, 87.5);
+        expect(state.nutrientsByDay[DateTime(2026, 9, 22)]!.fiberG?.value, 7);
+        expect(
+          state.nutrientsByDay[DateTime(2026, 9, 28)]!.fiberG?.value,
+          17.5,
+        );
+        expect(
+          state.nutrientsByDay[DateTime(2026, 9, 28)]!.sodiumMg?.value,
+          87.5,
+        );
         expect(state.nutrientVisibility['sodium'], false);
         expect(
           (await GetTrackedDayUsecase(

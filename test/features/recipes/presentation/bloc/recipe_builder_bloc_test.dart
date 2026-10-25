@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -43,7 +44,7 @@ MealEntity _meal(String code, {double kcal = 100}) {
     servingUnit: null,
     servingSize: null,
     nutriments: MealNutrimentsEntity(
-      energyKcal100: kcal,
+      energyKcal100: NutrientAmount.fromNumber(kcal),
       carbohydrates100: null,
       fat100: null,
       proteins100: null,
@@ -226,14 +227,14 @@ void main() {
           servingUnit: 'g',
           servingSize: '40 g',
           nutriments: const MealNutrimentsEntity(
-            energyKcal100: 150,
-            carbohydrates100: 0,
-            fat100: 5,
-            proteins100: 12,
+            energyKcal100: NutrientAmount(150),
+            carbohydrates100: NutrientAmount(0),
+            fat100: NutrientAmount(5),
+            proteins100: NutrientAmount(12),
             sugars100: null,
-            saturatedFat100: 1,
+            saturatedFat100: NutrientAmount(1),
             fiber100: null,
-            calcium100: 120,
+            calcium100: NutrientAmount(120),
           ),
           source: MealSourceEntity.custom,
         );
@@ -260,7 +261,7 @@ void main() {
         final saved = repo.saved.single;
         expect(saved.ingredients.single.snapshotMeal, same(corrected));
         expect(
-          saved.aggregatedNutrimentsPer100.energyKcal100! *
+          saved.aggregatedNutrimentsPer100.energyKcal100!.value *
               saved.totalWeightG /
               100,
           grams == 200 ? 300 : 375,
@@ -316,7 +317,7 @@ void main() {
       expect(saved.totalWeightG, 720.123456789);
       expect(saved.toMealEntity().scalableServingQuantity, 720.123456789 / 4);
       expect(
-        saved.aggregatedNutrimentsPer100.energyKcal100! *
+        saved.aggregatedNutrimentsPer100.energyKcal100!.value *
             saved.totalWeightG /
             100,
         closeTo(1600, 0.00001),
@@ -351,7 +352,7 @@ void main() {
         await addFlour(100);
         expect(bloc.state.totalWeightG, saved.totalWeightG);
         expect(
-          bloc.state.aggregatedNutrimentsPer100!.energyKcal100! *
+          bloc.state.aggregatedNutrimentsPer100!.energyKcal100!.value *
               bloc.state.totalWeightG! /
               100,
           closeTo(1800, 0.00001),
@@ -460,7 +461,7 @@ void main() {
         expect(bloc.state.ingredients, hasLength(1));
         expect(bloc.state.totalWeightG, 100);
         expect(
-          bloc.state.aggregatedNutrimentsPer100!.energyKcal100,
+          bloc.state.aggregatedNutrimentsPer100!.energyKcal100?.value,
           closeTo(340, 0.01),
         );
       },

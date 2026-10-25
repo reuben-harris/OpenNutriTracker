@@ -1431,7 +1431,7 @@
     "placeholders": {"weight": {"type": "String"}}
   },
   "servingWeightUnavailableLabel": "Serving weight unavailable.",
-  "nutritionTargetUnavailableLabel": "— means no daily target or percentage is available.",
+  "nutritionTargetUnavailableLabel": "— no daily target or percentage is available.",
   "nutritionNoDataLabel": "No data",
   "foodSourceLaunchFailedLabel": "Could not open the food information website.",
   "foodImageEnlargeLabel": "Enlarge food photo",
@@ -1449,5 +1449,16 @@
   "catalogueReleasesLabel": "Releases: {releases}",
   "@catalogueReleasesLabel": {"placeholders": {"releases": {"type": "String"}}},
   "catalogueTermsLabel": "Terms of use",
-  "catalogueTermsNotice": "Use of this data is subject to the publisher’s terms of use."
+  "catalogueTermsNotice": "Use of this data is subject to the publisher’s terms of use.",
+  "nutrientTraceLabel": "Trace",
+  "nutrientBelowDetectionLabel": "Below detection limit",
+  "nutrientBelowQuantificationLabel": "Below quantification limit",
+  "nutrientBelowDetectionOrQuantificationLabel": "Below detection or quantification limit",
+  "nutrientLessThanLabel": "Less than the reported amount",
+  "nutrientAtMostLabel": "At most the reported amount",
+  "nutrientGreaterThanLabel": "Greater than the reported amount",
+  "nutrientAtLeastLabel": "At least the reported amount",
+  "nutrientApproximateLabel": "Approximate amount",
+  "nutrientQualifiedTotalLabel": "Total includes qualified amounts",
+  "nutrientQualificationLegend": "* the source reports trace, an approximate amount, or a limit."
 }

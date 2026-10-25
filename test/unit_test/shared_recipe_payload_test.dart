@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:convert';
 import 'dart:io' show gzip;
@@ -21,13 +22,13 @@ RecipeEntity _testRecipe() {
     servingUnit: null,
     servingSize: null,
     nutriments: MealNutrimentsEntity(
-      energyKcal100: 340,
-      carbohydrates100: 70,
-      fat100: 1,
-      proteins100: 10,
-      sugars100: 0,
-      saturatedFat100: 0,
-      fiber100: 3,
+      energyKcal100: NutrientAmount(340),
+      carbohydrates100: NutrientAmount(70),
+      fat100: NutrientAmount(1),
+      proteins100: NutrientAmount(10),
+      sugars100: NutrientAmount(0),
+      saturatedFat100: NutrientAmount(0),
+      fiber100: NutrientAmount(3),
     ),
     source: MealSourceEntity.off,
     thumbnailImageUrl: 'https://example.com/flour.jpg',
@@ -43,13 +44,13 @@ RecipeEntity _testRecipe() {
     servingUnit: null,
     servingSize: null,
     nutriments: MealNutrimentsEntity(
-      energyKcal100: 390,
-      carbohydrates100: 100,
-      fat100: 0,
-      proteins100: 0,
-      sugars100: 100,
-      saturatedFat100: 0,
-      fiber100: 0,
+      energyKcal100: NutrientAmount(390),
+      carbohydrates100: NutrientAmount(100),
+      fat100: NutrientAmount(0),
+      proteins100: NutrientAmount(0),
+      sugars100: NutrientAmount(100),
+      saturatedFat100: NutrientAmount(0),
+      fiber100: NutrientAmount(0),
     ),
     source: MealSourceEntity.off,
   );
@@ -79,13 +80,13 @@ RecipeEntity _testRecipe() {
     ],
     totalWeightG: 300,
     aggregatedNutrimentsPer100: MealNutrimentsEntity(
-      energyKcal100: 356.7,
-      carbohydrates100: 80,
-      fat100: 0.7,
-      proteins100: 6.7,
-      sugars100: 33.3,
-      saturatedFat100: 0,
-      fiber100: 2,
+      energyKcal100: NutrientAmount(356.7),
+      carbohydrates100: NutrientAmount(80),
+      fat100: NutrientAmount(0.7),
+      proteins100: NutrientAmount(6.7),
+      sugars100: NutrientAmount(33.3),
+      saturatedFat100: NutrientAmount(0),
+      fiber100: NutrientAmount(2),
     ),
     createdAt: DateTime.utc(2024, 1, 1),
     updatedAt: DateTime.utc(2024, 1, 2),
@@ -205,10 +206,10 @@ void main() {
       final decoded = SharedRecipePayload.fromJsonString(encoded);
 
       // 1dp tolerance because we round during compaction.
-      expect(decoded.energyKcal100, closeTo(356.7, 0.1));
-      expect(decoded.carbohydrates100, closeTo(80, 0.1));
-      expect(decoded.fat100, closeTo(0.7, 0.1));
-      expect(decoded.proteins100, closeTo(6.7, 0.1));
+      expect(decoded.energyKcal100?.value, closeTo(356.7, 0.1));
+      expect(decoded.carbohydrates100?.value, closeTo(80, 0.1));
+      expect(decoded.fat100?.value, closeTo(0.7, 0.1));
+      expect(decoded.proteins100?.value, closeTo(6.7, 0.1));
 
       final flour = decoded.ingredients.first;
       expect(flour.name, 'Flour');
@@ -216,7 +217,7 @@ void main() {
       expect(flour.quantity.amount, 200);
       expect(flour.quantity.option.unit, 'g');
       expect(flour.quantity.baseAmount, 200);
-      expect(flour.energyKcal100, closeTo(340, 0.1));
+      expect(flour.energyKcal100?.value, closeTo(340, 0.1));
       expect(flour.thumbnailImageUrl, 'https://example.com/flour.jpg');
     });
 

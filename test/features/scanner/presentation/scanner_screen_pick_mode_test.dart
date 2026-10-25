@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import '../../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -206,10 +207,10 @@ final _loadedMeal = MealEntity(
   servingSize: null,
   source: MealSourceEntity.off,
   nutriments: const MealNutrimentsEntity(
-    energyKcal100: 100,
-    carbohydrates100: 4,
-    fat100: 5,
-    proteins100: 10,
+    energyKcal100: NutrientAmount(100),
+    carbohydrates100: NutrientAmount(4),
+    fat100: NutrientAmount(5),
+    proteins100: NutrientAmount(10),
     sugars100: null,
     saturatedFat100: null,
     fiber100: null,

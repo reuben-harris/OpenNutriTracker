@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
@@ -20,6 +21,59 @@ Widget app(Widget child, {bool kj = false}) => ChangeNotifierProvider(
 );
 
 void main() {
+  testWidgets('trace, small numbers, legend and semantics fit enlarged text', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(360, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final semantics = tester.ensureSemantics();
+    final food = MealEntity(
+      code: 'trace',
+      name: 'Natto',
+      url: null,
+      mealQuantity: null,
+      mealUnit: 'g',
+      servingQuantity: null,
+      servingUnit: null,
+      servingSize: null,
+      source: MealSourceEntity.catalogue,
+      nutriments: MealNutrimentsEntity.fromCatalogue({
+        'vitaminB12100': {
+          'value': '0',
+          'qualification': 'trace',
+          'limit': null,
+        },
+        'vitaminD100': '0.001',
+        'fat100': '0',
+      }),
+    );
+    await tester.pumpWidget(
+      app(
+        Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(2)),
+            child: MealDetailNutrimentsTable(
+              product: food,
+              baseAmount: 100,
+              reference: true,
+              goals: const {'vitamin_b12': 2.4},
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.textContaining('Trace*'), findsOneWidget);
+    expect(find.textContaining('0.001'), findsOneWidget);
+    expect(
+      find.text(lookupS(const Locale('en')).nutrientQualificationLegend),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel(RegExp('vitamin B12.*Trace')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
+  });
   for (final (value, goal, expected, amount) in [
     (20.0, 10.0, '200%', '20.00 g'),
     (0.0, 10.0, '0%', '0.00 g'),
@@ -32,7 +86,7 @@ void main() {
         app(
           MealDetailMacroNutrients(
             typeString: 'Fat',
-            value: value,
+            value: NutrientAmount.fromNumber(value),
             goal: goal,
             color: Colors.blue,
           ),
@@ -60,15 +114,15 @@ void main() {
       servingSize: null,
       source: MealSourceEntity.custom,
       nutriments: const MealNutrimentsEntity(
-        energyKcal100: 100,
-        carbohydrates100: 0,
+        energyKcal100: NutrientAmount(100),
+        carbohydrates100: NutrientAmount(0),
         fat100: null,
-        proteins100: 10.123456,
+        proteins100: NutrientAmount(10.123456),
         sugars100: null,
-        saturatedFat100: 0.4,
-        transFat100: 1,
+        saturatedFat100: NutrientAmount(0.4),
+        transFat100: NutrientAmount(1),
         fiber100: null,
-        vitaminB12100: 4,
+        vitaminB12100: NutrientAmount(4),
       ),
     );
     for (final (reference, energy, vitamin, kj) in [
@@ -106,6 +160,10 @@ void main() {
           ),
           kj: kj,
         ),
+      );
+      expect(
+        find.text(lookupS(const Locale('en')).nutrientQualificationLegend),
+        findsOneWidget,
       );
       expect(find.text(energy), findsOneWidget);
       expect(find.text(vitamin), findsOneWidget);

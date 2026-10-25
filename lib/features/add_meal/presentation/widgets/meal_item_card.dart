@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_brand_span.dart';
@@ -56,11 +57,14 @@ class MealItemCard extends StatelessWidget {
           meal: mealEntity,
           onTap: () => onSelected(mealEntity),
           content: FoodCardText(
+            nutritionSemantics: energy?.isQualified == true
+                ? '${EnergyDisplay.formatAmount(context, energy)}. ${nutrientQualificationLabel(energy, s)}'
+                : null,
             title: mealEntity.name ?? '?',
             subtitle: subtitle,
             trailingTitle: energy == null
                 ? '—'
-                : EnergyDisplay.formatWithUnit(context, energy),
+                : EnergyDisplay.formatAmount(context, energy),
             trailingSubtitle: '/ $reference',
           ),
         ),
