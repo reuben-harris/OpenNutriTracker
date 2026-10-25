@@ -1,4 +1,3 @@
-import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
@@ -31,21 +30,6 @@ class UserDataMaskEntity {
   /// Whether the user chose to measure food and drinks in imperial units.
   /// Chosen explicitly rather than inferred from the height toggle.
   bool foodUsesImperial = false;
-
-  /// App theme picked on the "Other options" page. Defaults to following
-  /// the system, matching ConfigDBO.empty().
-  AppThemeEntity appTheme = AppThemeEntity.system;
-
-  /// Whether the user opted into the daily logging reminder. The actual
-  /// permission request and scheduling happen when onboarding finishes.
-  bool dailyReminderEnabled = false;
-
-  /// Accent-colour choice from the "Other options" page, mirroring the
-  /// Settings semantics: [useMaterialYou] true + null [accentColor] is the
-  /// platform default (wallpaper palette on Android 12+, static elsewhere);
-  /// picking a preset stores its ARGB value and turns Material You off.
-  bool useMaterialYou = true;
-  int? accentColor;
 
   UserDataMaskEntity({
     this.sex,

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Sixteen hand-picked accent colours that span the wheel and read well as
 /// circular swatches. Each one drives `ColorScheme.fromSeed` to produce a
-/// coherent Material 3 palette. Shared by the Settings accent-colour screen
-/// and the onboarding "Other options" page.
+/// coherent Material 3 palette in the Settings accent colour picker.
 const List<Color> accentPresetColors = <Color>[
   Color(0xFFE53935), // red
   Color(0xFFFF6F61), // coral

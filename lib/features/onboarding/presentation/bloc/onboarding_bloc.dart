@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
 import 'package:opennutritracker/core/domain/entity/kcal_goal_breakdown_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
@@ -80,22 +79,14 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     UserEntity userEntity,
     bool heightImperial,
     BodyWeightUnit bodyWeightUnit,
-    bool foodImperial, {
-    required AppThemeEntity appTheme,
-    required bool dailyReminderEnabled,
-    required bool useMaterialYou,
-    required int? accentColor,
-  }) async {
+    bool foodImperial,
+  ) async {
     await _addUserUsecase.addUser(userEntity);
     await _addConfigUsecase.setConfigUsesImperialHeightUnits(heightImperial);
     await _addConfigUsecase.setConfigBodyWeightUnit(bodyWeightUnit);
     // Food units are chosen explicitly during onboarding, so someone on feet
     // and stones can still log food in grams.
     await _addConfigUsecase.setConfigUsesImperialFoodUnits(foodImperial);
-    await _addConfigUsecase.setConfigAppTheme(appTheme);
-    await _addConfigUsecase.setNotificationsEnabled(dailyReminderEnabled);
-    await _addConfigUsecase.setConfigUseMaterialYou(useMaterialYou);
-    await _addConfigUsecase.setConfigAccentColor(accentColor);
   }
 
   double? getOverviewCalorieGoal() {

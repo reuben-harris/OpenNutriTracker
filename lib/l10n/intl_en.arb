@@ -232,8 +232,6 @@
   "@measureUnitTablespoon": {"placeholders": {"count": {"type": "num"}}},
   "measureUnitTeaspoon": "{count, plural, one{teaspoon} other{teaspoons}}",
   "@measureUnitTeaspoon": {"placeholders": {"count": {"type": "num"}}},
-  "onboardingOtherOptionsLabel": "Other options",
-  "onboardingOtherOptionsSubtitle": "Personalize the app — you can change everything later in Settings",
   "additionalInfoLabelOFF": "More Information at\nOpenFoodFacts",
   "additionalInfoLabelRecipe": "Custom Recipe",
   "additionalInfoLabelUnknown": "Unknown Meal Item",
