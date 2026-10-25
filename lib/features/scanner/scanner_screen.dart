@@ -236,24 +236,25 @@ class _ScannerScreenState extends State<ScannerScreen>
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(Dimens.spacing16),
-            child: Semantics(
-              identifier: 'scanner-manual-entry-open',
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  shape: Dimens.shapeM,
-                  side: BorderSide(
-                    color: palette.border,
-                    width: Dimens.hairline,
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(Dimens.spacing16),
+              child: Semantics(
+                identifier: 'scanner-manual-entry-open',
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    shape: Dimens.shapeM,
+                    side: BorderSide(
+                      color: palette.border,
+                      width: Dimens.hairline,
+                    ),
+                    padding: const EdgeInsets.all(Dimens.spacing16),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: Dimens.spacing16,
-                  ),
+                  icon: const Icon(Icons.keyboard_rounded),
+                  label: Text(S.of(context).scannerManualEntryButton),
+                  onPressed: () => _showManualEntryDialog(context),
                 ),
-                icon: const Icon(Icons.keyboard_rounded),
-                label: Text(S.of(context).scannerManualEntryButton),
-                onPressed: () => _showManualEntryDialog(context),
               ),
             ),
           ),
