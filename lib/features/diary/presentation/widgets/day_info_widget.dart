@@ -43,7 +43,6 @@ class DayInfoWidget extends StatefulWidget {
   final ValueChanged<IntakeEntity?>? onIntakeDrag;
   final ValueChanged<DragUpdateDetails>? onIntakeDragUpdate;
   final bool usesImperialUnits;
-  final bool showMealMacros;
   // When the user disables Show Activity Tracking in Settings, the diary's
   // per-day Activity section is hidden alongside the home one.
   final bool showActivityTracking;
@@ -86,7 +85,6 @@ class DayInfoWidget extends StatefulWidget {
     this.draggingType,
     this.onIntakeDrag,
     this.onIntakeDragUpdate,
-    this.showMealMacros = true,
     this.showActivityTracking = true,
     this.diarySortPreferences,
     required this.onDeleteIntake,
@@ -222,7 +220,6 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 onItemDragUpdate: widget.onIntakeDragUpdate,
                 onItemTappedCallback: widget.onEditIntake,
                 usesImperialUnits: widget.usesImperialUnits,
-                showMealMacros: widget.showMealMacros,
                 trackedDayEntity: trackedDay,
                 mealKcalTarget: widget.breakfastKcalTarget,
                 sortType: _sortByMeal[IntakeTypeEntity.breakfast],
@@ -244,7 +241,6 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 onItemDragUpdate: widget.onIntakeDragUpdate,
                 onItemTappedCallback: widget.onEditIntake,
                 usesImperialUnits: widget.usesImperialUnits,
-                showMealMacros: widget.showMealMacros,
                 trackedDayEntity: trackedDay,
                 mealKcalTarget: widget.lunchKcalTarget,
                 sortType: _sortByMeal[IntakeTypeEntity.lunch],
@@ -266,7 +262,6 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 onItemDragUpdate: widget.onIntakeDragUpdate,
                 onItemTappedCallback: widget.onEditIntake,
                 usesImperialUnits: widget.usesImperialUnits,
-                showMealMacros: widget.showMealMacros,
                 mealKcalTarget: widget.dinnerKcalTarget,
                 sortType: _sortByMeal[IntakeTypeEntity.dinner],
                 onSortTypeChanged: (sort) =>
@@ -287,7 +282,6 @@ class _DayInfoWidgetState extends State<DayInfoWidget> {
                 onItemDragUpdate: widget.onIntakeDragUpdate,
                 onItemTappedCallback: widget.onEditIntake,
                 usesImperialUnits: widget.usesImperialUnits,
-                showMealMacros: widget.showMealMacros,
                 trackedDayEntity: trackedDay,
                 mealKcalTarget: widget.snackKcalTarget,
                 sortType: _sortByMeal[IntakeTypeEntity.snack],

@@ -30,11 +30,7 @@ class ConfigDBO extends HiveObject {
   int? notificationHour;
   @HiveField(12)
   int? notificationMinute;
-  // Fields 1, 2, 13, 25, 32 and 37 are retired; keep all other Hive field IDs stable.
-  @HiveField(14)
-  bool? showMealMacros;
-  @HiveField(15)
-  bool? showMicronutrients; // #237: null means default (false)
+  // Fields 1, 2, 13, 14, 15, 25, 32 and 37 are retired; keep all other Hive field IDs stable.
   @HiveField(16)
   bool? usesKilojoules; // #177: null means default (false → kcal)
   // #150: per-meal kcal share, percent values keyed by meal type
@@ -158,11 +154,9 @@ class ConfigDBO extends HiveObject {
     this.usesImperialUnits = false,
     this.userKcalAdjustment,
     this.showActivityTracking,
-    this.showMealMacros,
     this.notificationsEnabled,
     this.notificationHour,
     this.notificationMinute,
-    this.showMicronutrients,
     this.usesKilojoules,
     this.mealKcalSharesPct,
     this.customMealFormMode,

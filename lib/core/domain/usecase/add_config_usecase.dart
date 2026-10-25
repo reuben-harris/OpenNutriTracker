@@ -65,20 +65,12 @@ class AddConfigUsecase {
     await _configRepository.setConfigShowActivityTracking(show);
   }
 
-  Future<void> setConfigShowMealMacros(bool show) async {
-    await _configRepository.setConfigShowMealMacros(show);
-  }
-
   Future<void> setNotificationsEnabled(bool enabled) async {
     await _configRepository.setNotificationsEnabled(enabled);
   }
 
   Future<void> setNotificationTime(int hour, int minute) async {
     await _configRepository.setNotificationTime(hour, minute);
-  }
-
-  Future<void> setConfigShowMicronutrients(bool show) async {
-    await _configRepository.setConfigShowMicronutrients(show);
   }
 
   Future<void> setConfigUsesKilojoules(bool usesKilojoules) async {

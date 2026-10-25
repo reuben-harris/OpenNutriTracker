@@ -68,7 +68,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final usesImperialUnits = configData.usesImperialFoodUnits;
       final bodyWeightUnit = configData.bodyWeightUnit;
       final showDisclaimerDialog = !configData.hasAcceptedDisclaimer;
-      final showMealMacros = configData.showMealMacros;
       final showActivityTracking = configData.showActivityTracking;
 
       final breakfastIntakeList = await _getIntakeUsecase
@@ -224,7 +223,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           usesImperialUnits: usesImperialUnits,
           bodyWeightUnit: bodyWeightUnit,
           showActivityTracking: showActivityTracking,
-          showMealMacros: showMealMacros,
           userWeightKg: user.weightKG,
           breakfastKcalTarget: breakfastKcalTarget,
           lunchKcalTarget: lunchKcalTarget,

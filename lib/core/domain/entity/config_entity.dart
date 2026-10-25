@@ -38,11 +38,9 @@ class ConfigEntity extends Equatable {
   final double? userProteinGoalPct;
   final double? userFatGoalPct;
   final bool showActivityTracking;
-  final bool showMealMacros;
   final bool notificationsEnabled;
   final int notificationHour;
   final int notificationMinute;
-  final bool showMicronutrients; // #237
   final bool usesKilojoules; // #177
   final Map<String, int> mealKcalSharesPct; // #150
   final Map<String, int>? diarySortPreferences;
@@ -211,11 +209,9 @@ class ConfigEntity extends Equatable {
     this.userProteinGoalPct,
     this.userFatGoalPct,
     this.showActivityTracking = true,
-    this.showMealMacros = true,
     this.notificationsEnabled = false,
     this.notificationHour = 8,
     this.notificationMinute = 0,
-    this.showMicronutrients = false,
     this.usesKilojoules = false,
     this.mealKcalSharesPct = defaultMealKcalSharesPct,
     this.diarySortPreferences,
@@ -282,11 +278,9 @@ class ConfigEntity extends Equatable {
     userProteinGoalPct: dbo.userProteinGoalPct,
     userFatGoalPct: dbo.userFatGoalPct,
     showActivityTracking: dbo.showActivityTracking ?? true,
-    showMealMacros: dbo.showMealMacros ?? true,
     notificationsEnabled: dbo.notificationsEnabled ?? false,
     notificationHour: dbo.notificationHour ?? 8,
     notificationMinute: dbo.notificationMinute ?? 0,
-    showMicronutrients: dbo.showMicronutrients ?? false,
     usesKilojoules: dbo.usesKilojoules ?? false,
     mealKcalSharesPct:
         _sanitiseShares(dbo.mealKcalSharesPct) ?? defaultMealKcalSharesPct,
@@ -393,11 +387,9 @@ class ConfigEntity extends Equatable {
     userProteinGoalPct,
     userFatGoalPct,
     showActivityTracking,
-    showMealMacros,
     notificationsEnabled,
     notificationHour,
     notificationMinute,
-    showMicronutrients,
     usesKilojoules,
     mealKcalSharesPct,
     diarySortPreferences,

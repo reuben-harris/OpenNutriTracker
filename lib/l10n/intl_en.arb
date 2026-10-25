@@ -969,8 +969,6 @@
   "settingsSaturatedFatGoalDescription": "Daily saturated fat cap in grams. Default reference is 20g.",
   "settingsSaturatedFatGoalLabel": "Saturated fat goal",
   "settingsShowActivityTracking": "Show Activity Tracking",
-  "settingsShowMealMacros": "Show Meal Macros",
-  "settingsShowMicronutrientsLabel": "Show Micronutrients",
   "settingsSodiumGoalDescription": "Daily sodium cap in milligrams. Default reference is 2300mg.",
   "settingsSodiumGoalLabel": "Sodium goal",
   "settingsSourceCodeLabel": "Source Code",

@@ -170,7 +170,7 @@ void main() {
 
   String headerKcalOnly() => '200 ${l10nEn.kcalLabel}';
 
-  testWidgets('shows kcal + macro breakdown when showMealMacros is true', (
+  testWidgets('shows kcal and macro breakdown for logged meals', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -182,7 +182,6 @@ void main() {
           addMealType: AddMealType.breakfastType,
           intakeList: intakes,
           usesImperialUnits: false,
-          showMealMacros: true,
           onDeleteIntakeCallback: (_, _) {},
         ),
       ),
@@ -191,50 +190,6 @@ void main() {
 
     expect(find.text(headerWithMacros()), findsOneWidget);
   });
-
-  testWidgets('shows only kcal when showMealMacros is false', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(
-      _wrapWithMaterial(
-        IntakeVerticalList(
-          day: DateTime(2026, 1, 1),
-          title: 'Breakfast',
-          listIcon: Icons.bakery_dining_outlined,
-          addMealType: AddMealType.breakfastType,
-          intakeList: intakes,
-          usesImperialUnits: false,
-          showMealMacros: false,
-          onDeleteIntakeCallback: (_, _) {},
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(find.text(headerWithMacros()), findsNothing);
-  });
-
-  testWidgets(
-    'defaults to showing macro breakdown when showMealMacros is omitted',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(
-        _wrapWithMaterial(
-          IntakeVerticalList(
-            day: DateTime(2026, 1, 1),
-            title: 'Breakfast',
-            listIcon: Icons.bakery_dining_outlined,
-            addMealType: AddMealType.breakfastType,
-            intakeList: intakes,
-            usesImperialUnits: false,
-            onDeleteIntakeCallback: (_, _) {},
-          ),
-        ),
-      );
-      await tester.pump();
-
-      expect(find.text(headerWithMacros()), findsOneWidget);
-    },
-  );
 
   testWidgets('shows no header text when intake list is empty', (
     WidgetTester tester,
@@ -248,7 +203,6 @@ void main() {
           addMealType: AddMealType.breakfastType,
           intakeList: const [],
           usesImperialUnits: false,
-          showMealMacros: true,
           onDeleteIntakeCallback: (_, _) {},
         ),
       ),
@@ -274,7 +228,6 @@ void main() {
             addMealType: AddMealType.breakfastType,
             intakeList: intakes,
             usesImperialUnits: false,
-            showMealMacros: true,
             onDeleteIntakeCallback: (_, _) {},
           ),
         ),
@@ -303,7 +256,6 @@ void main() {
           addMealType: AddMealType.breakfastType,
           intakeList: const [],
           usesImperialUnits: false,
-          showMealMacros: true,
           onDeleteIntakeCallback: (_, _) {},
         ),
       ),
@@ -341,7 +293,6 @@ void main() {
               addMealType: AddMealType.breakfastType,
               intakeList: intakes,
               usesImperialUnits: false,
-              showMealMacros: false,
               mealKcalTarget: 583,
               onDeleteIntakeCallback: (_, _) {},
             ),
@@ -369,41 +320,38 @@ void main() {
       for (final scale in [1.0, 1.8]) {
         double? right;
         for (final entries in [<IntakeEntity>[], intakes]) {
-          for (final macros in [false, true]) {
-            for (final target in [null, 583.0]) {
-              await tester.pumpWidget(
-                _wrapWithMaterial(
-                  MediaQuery(
-                    data: MediaQueryData(textScaler: TextScaler.linear(scale)),
-                    child: Align(
-                      alignment: Alignment.topLeft,
-                      child: SizedBox(
-                        width: width,
-                        child: IntakeVerticalList(
-                          day: DateTime(2026, 1, 1),
-                          title: 'Breakfast',
-                          listIcon: Icons.bakery_dining_outlined,
-                          addMealType: AddMealType.breakfastType,
-                          intakeList: entries,
-                          usesImperialUnits: false,
-                          showMealMacros: macros,
-                          mealKcalTarget: target,
-                          onDeleteIntakeCallback: (_, _) {},
-                        ),
+          for (final target in [null, 583.0]) {
+            await tester.pumpWidget(
+              _wrapWithMaterial(
+                MediaQuery(
+                  data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: SizedBox(
+                      width: width,
+                      child: IntakeVerticalList(
+                        day: DateTime(2026, 1, 1),
+                        title: 'Breakfast',
+                        listIcon: Icons.bakery_dining_outlined,
+                        addMealType: AddMealType.breakfastType,
+                        intakeList: entries,
+                        usesImperialUnits: false,
+                        mealKcalTarget: target,
+                        onDeleteIntakeCallback: (_, _) {},
                       ),
                     ),
                   ),
                 ),
-              );
-              await tester.pump();
-              expect(tester.takeException(), isNull);
-              final rect = tester.getRect(
-                find.byType(PopupMenuButton<DiaryMealAction>),
-              );
-              right ??= rect.right;
-              expect(rect.right, right);
-              expect(rect.right, width - 12);
-            }
+              ),
+            );
+            await tester.pump();
+            expect(tester.takeException(), isNull);
+            final rect = tester.getRect(
+              find.byType(PopupMenuButton<DiaryMealAction>),
+            );
+            right ??= rect.right;
+            expect(rect.right, right);
+            expect(rect.right, width - 12);
           }
         }
       }
