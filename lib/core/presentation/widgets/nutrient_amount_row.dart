@@ -9,13 +9,15 @@ import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
 Color nutrientProgressColor(BuildContext context, double? ratio, bool isLimit) {
-  final scheme = Theme.of(context).colorScheme;
-  if (ratio == null) return scheme.outline;
-  if (isLimit && ratio >= 1) return scheme.error;
-  if (isLimit && ratio >= 0.8 || !isLimit && ratio >= 0.5 && ratio < 1) {
-    return Colors.amber.shade700;
+  final palette = Theme.of(context).brightness == Brightness.dark
+      ? AppPalette.dark
+      : AppPalette.light;
+  if (ratio != null && ratio >= 1) {
+    return isLimit
+        ? palette.nutrientLimitReached
+        : palette.nutrientTargetReached;
   }
-  return scheme.primary;
+  return palette.nutrientProgressNeutral;
 }
 
 /// Shared amounts, qualifications and goal progress for daily and item views.
