@@ -41,7 +41,7 @@ void main() {
   /// The freshly-installed shape: the three split unit fields are null and
   /// the legacy flag has never been set either.
   ConfigDBO freshConfig() =>
-      ConfigDBO(false, AppThemeDBO.system, usesImperialUnits: null);
+      ConfigDBO(AppThemeDBO.system, usesImperialUnits: null);
 
   Future<OnboardingBloc> loadedBloc(ConfigDBO config) async {
     final configRepo = _FakeConfigRepository(config);
@@ -74,7 +74,6 @@ void main() {
     test('stored imperial height and stones are restored', () async {
       final bloc = await loadedBloc(
         ConfigDBO(
-          false,
           AppThemeDBO.system,
           usesImperialHeightUnits: true,
           usesImperialFoodUnits: false,
@@ -94,7 +93,6 @@ void main() {
       // box, so re-guessing here would also rewrite profile one's units.
       final bloc = await loadedBloc(
         ConfigDBO(
-          false,
           AppThemeDBO.system,
           usesImperialHeightUnits: false,
           usesImperialFoodUnits: false,
@@ -111,7 +109,7 @@ void main() {
     test('the legacy imperial flag alone counts as a choice', () async {
       // Pre-split install: only usesImperialUnits was ever written.
       final bloc = await loadedBloc(
-        ConfigDBO(false, AppThemeDBO.system, usesImperialUnits: true),
+        ConfigDBO(AppThemeDBO.system, usesImperialUnits: true),
       );
       addTearDown(bloc.close);
 
@@ -133,7 +131,7 @@ void main() {
       // untouched install from a deliberate metric one.
       final usecase = GetConfigUsecase(
         _FakeConfigRepository(
-          ConfigDBO(false, AppThemeDBO.system, usesImperialUnits: false),
+          ConfigDBO(AppThemeDBO.system, usesImperialUnits: false),
         ),
       );
 
@@ -144,7 +142,6 @@ void main() {
       final usecase = GetConfigUsecase(
         _FakeConfigRepository(
           ConfigDBO(
-            false,
             AppThemeDBO.system,
             usesImperialUnits: null,
             bodyWeightUnitIndex: 0,
@@ -206,7 +203,6 @@ void main() {
       await bloc.stream.firstWhere((state) => state is OnboardingLoadedState);
 
       configRepo.dbo = ConfigDBO(
-        false,
         AppThemeDBO.system,
         usesImperialHeightUnits: true,
         usesImperialFoodUnits: true,

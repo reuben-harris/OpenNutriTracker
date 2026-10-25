@@ -83,7 +83,6 @@ class OverviewDiaryHarness {
     );
     configSource = ConfigDataSource(db);
     await configSource.initializeConfig();
-    await configSource.setConfigDisclaimer(true);
     config = ConfigRepository(configSource);
     intakes = IntakeRepository(IntakeDataSource(db));
     tracked = TrackedDayRepository(TrackedDayDataSource(db));

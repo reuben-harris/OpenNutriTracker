@@ -23,7 +23,7 @@ import '../helpers/test_l10n.dart';
 class _Config extends Fake implements GetConfigUsecase {
   @override
   Future<ConfigEntity> getConfig() async =>
-      const ConfigEntity(true, AppThemeEntity.system);
+      const ConfigEntity(AppThemeEntity.system);
 }
 
 class _Preferences extends Fake implements ConfigRepository {

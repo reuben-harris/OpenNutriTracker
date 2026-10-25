@@ -55,7 +55,6 @@ void main() {
         // and 0 on the other meals — this is the contract day_info_widget and
         // home_page rely on when deciding whether to hide a section.
         final config = ConfigEntity(
-          true,
           AppThemeEntity.system,
           mealKcalSharesPct: MealPatternEntity.omad.toSharesMap(),
         );

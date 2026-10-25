@@ -32,7 +32,7 @@ class _FakeSettingsBloc extends Fake implements SettingsBloc {
 }
 
 class _FakeGetConfigUsecase extends Fake implements GetConfigUsecase {
-  ConfigEntity config = const ConfigEntity(true, AppThemeEntity.system);
+  ConfigEntity config = const ConfigEntity(AppThemeEntity.system);
 
   @override
   Future<ConfigEntity> getConfig() async => config;
@@ -102,14 +102,12 @@ void main() {
     await GetIt.instance.resetScope();
   });
 
-  /// Rewrites the stored config the screen loads from. Positional arguments
-  /// mirror ConfigEntity's disclaimer / theme head.
+  /// Rewrites the stored config the screen loads from.
   void storeConfig({
     required bool healthImportEnabled,
     double? healthWorkoutKcalMultiplier,
   }) {
     getConfigUsecase.config = ConfigEntity(
-      true,
       AppThemeEntity.system,
       healthImportEnabled: healthImportEnabled,
       healthWorkoutKcalMultiplier: healthWorkoutKcalMultiplier,

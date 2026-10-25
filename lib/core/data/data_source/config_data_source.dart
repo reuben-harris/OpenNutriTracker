@@ -145,10 +145,6 @@ class ConfigDataSource {
     await _writeBoth(config);
   }
 
-  Future<void> setConfigDisclaimer(bool hasAcceptedDisclaimer) async {
-    await _update((c) => c.hasAcceptedDisclaimer = hasAcceptedDisclaimer);
-  }
-
   Future<AppThemeDBO> getAppTheme() async => _readMerged().selectedAppTheme;
 
   Future<void> setConfigAppTheme(AppThemeDBO appTheme) async {

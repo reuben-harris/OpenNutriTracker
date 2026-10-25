@@ -91,11 +91,7 @@ void main() {
     caloriesTaperEnabled: false,
   );
 
-  const config = ConfigEntity(
-    false,
-    AppThemeEntity.system,
-    dayStartOffsetHours: 6,
-  );
+  const config = ConfigEntity(AppThemeEntity.system, dayStartOffsetHours: 6);
 
   // Both belong to the logical 19th: the second was logged after midnight
   // but before the 06:00 boundary.

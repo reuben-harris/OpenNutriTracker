@@ -104,8 +104,7 @@ void main() {
 
 class _Config implements GetConfigUsecase {
   @override
-  Future<ConfigEntity> getConfig() async =>
-      ConfigEntity(true, AppThemeEntity.system);
+  Future<ConfigEntity> getConfig() async => ConfigEntity(AppThemeEntity.system);
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }

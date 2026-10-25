@@ -24,10 +24,6 @@ class ConfigRepository {
   Future<void> setOverviewNutrientsAsPercent(bool value) =>
       _configDataSource.setOverviewNutrientsAsPercent(value);
 
-  Future<void> setConfigDisclaimer(bool hasAcceptedDisclaimer) async {
-    await _configDataSource.setConfigDisclaimer(hasAcceptedDisclaimer);
-  }
-
   Future<AppThemeEntity> getConfigAppTheme() async {
     final appThemeDBO = await _configDataSource.getAppTheme();
     return AppThemeEntity.fromAppThemeDBO(appThemeDBO);

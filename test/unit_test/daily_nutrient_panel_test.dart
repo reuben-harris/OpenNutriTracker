@@ -214,7 +214,7 @@ void main() {
   group('ConfigEntity.isNutrientVisible', () {
     /// A minimal config — most fields don't matter for visibility behaviour.
     ConfigEntity withVisibility(Map<String, bool> v) =>
-        ConfigEntity(false, AppThemeEntity.system, nutrientPanelVisibility: v);
+        ConfigEntity(AppThemeEntity.system, nutrientPanelVisibility: v);
 
     test('defaults to visible when the map is empty', () {
       final config = withVisibility(const {});

@@ -21,10 +21,6 @@ class AddConfigUsecase {
   Future<void> setOverviewNutrientsAsPercent(bool value) =>
       _configRepository.setOverviewNutrientsAsPercent(value);
 
-  Future<void> setConfigDisclaimer(bool hasAcceptedDisclaimer) async {
-    await _configRepository.setConfigDisclaimer(hasAcceptedDisclaimer);
-  }
-
   Future<void> setConfigAppTheme(AppThemeEntity appTheme) async {
     await _configRepository.setConfigAppTheme(appTheme);
   }

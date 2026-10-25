@@ -12,7 +12,6 @@ import 'package:opennutritracker/core/presentation/ai_assist_summary.dart';
 import 'package:opennutritracker/core/presentation/widgets/badged_title.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
-import 'package:opennutritracker/core/presentation/widgets/disclaimer_dialog.dart';
 import 'package:opennutritracker/core/domain/usecase/delete_all_user_data_usecase.dart';
 import 'package:opennutritracker/core/utils/app_const.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
@@ -528,12 +527,6 @@ class _SettingsScreenState extends State<SettingsScreen>
             _SettingsGroup(
               palette: palette,
               tiles: [
-                _SettingsTile(
-                  palette: palette,
-                  icon: Icons.description_rounded,
-                  title: S.of(context).settingsDisclaimerLabel,
-                  onTap: () => _showDisclaimerDialog(context),
-                ),
                 _SettingsTile(
                   palette: palette,
                   icon: Icons.menu_book_rounded,
@@ -1172,15 +1165,6 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
           ],
         );
-      },
-    );
-  }
-
-  void _showDisclaimerDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return const DisclaimerDialog();
       },
     );
   }
