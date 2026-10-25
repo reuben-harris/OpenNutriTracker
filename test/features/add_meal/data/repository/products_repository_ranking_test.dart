@@ -90,7 +90,7 @@ void main() {
     ]).getOFFProductsByString('Unknown');
     expect(results.single.name, 'Unknown food');
     expect(results.single.nutriments.isIncomplete, isTrue);
-    expect(results.single.nutriments.energyKcal100, isNull);
+    expect(results.single.nutriments.energyKcal100?.value, isNull);
   });
   group('ProductsRepository OFF search ranking (relevance + popularity fusion)', () {
     test(

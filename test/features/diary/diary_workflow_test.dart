@@ -261,7 +261,7 @@ void main() {
       expect(find.text('Created recipe'), findsOneWidget);
       expect(store.saved.single.totalWeightG, 20);
       expect(
-        store.saved.single.aggregatedNutrimentsPer100.energyKcal100! * .2,
+        store.saved.single.aggregatedNutrimentsPer100.energyKcal100!.value * .2,
         quick.totalKcal,
       );
       final original = await h.intakes.getIntakeByDateAndType(

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
@@ -8,7 +9,7 @@ import '../helpers/hive_test_setup.dart';
 import '../helpers/fake_hive_db_provider.dart';
 
 MealNutrimentsDBO _emptyNutriments({double? kcal}) => MealNutrimentsDBO(
-  energyKcal100: kcal,
+  energyKcal100: NutrientAmount.fromNumber(kcal),
   carbohydrates100: null,
   fat100: null,
   proteins100: null,
@@ -72,7 +73,7 @@ void main() {
         expect(ds.getAllCustomMeals(), hasLength(1));
         final saved = ds.getAllCustomMeals().single;
         expect(saved.name, equals('Apple v2'));
-        expect(saved.nutriments.energyKcal100, equals(60));
+        expect(saved.nutriments.energyKcal100?.value, equals(60));
       },
     );
 
@@ -88,7 +89,7 @@ void main() {
         (m) => m.name == 'Banana',
       );
       expect(
-        banana.nutriments.energyKcal100,
+        banana.nutriments.energyKcal100?.value,
         equals(95),
         reason: 'most-recent save should win on dedup',
       );
@@ -102,7 +103,7 @@ void main() {
       expect(ds.getAllCustomMeals(), hasLength(1));
       final stored = ds.getAllCustomMeals().single;
       expect(stored.code, isNull);
-      expect(stored.nutriments.energyKcal100, equals(60));
+      expect(stored.nutriments.energyKcal100?.value, equals(60));
     });
 
     test('a new barcoded meal does NOT match an existing name-only meal: '

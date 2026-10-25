@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:opennutritracker/core/data/dbo/intake_dbo.dart';
@@ -76,8 +77,8 @@ class OffMicronutrientRepair {
     );
   }
 
-  static double? _scale(double? value, double factor) =>
-      value == null ? null : value * factor;
+  static NutrientAmount? _scale(NutrientAmount? value, double factor) =>
+      value?.scale(factor);
 
   /// The same [intake] when its meal needs nothing, otherwise a copy
   /// carrying the repaired meal. Amount, unit, type and date are kept.

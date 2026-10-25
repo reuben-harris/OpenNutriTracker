@@ -19,13 +19,13 @@ void main() {
       expect(meal.brands, 'Acme');
       expect(meal.code, '1234');
       expect(meal.source, MealSourceEntity.custom);
-      expect(meal.nutriments.energyKcal100, 89);
-      expect(meal.nutriments.carbohydrates100, 22.8);
-      expect(meal.nutriments.fat100, 0.3);
-      expect(meal.nutriments.proteins100, 1.1);
-      expect(meal.nutriments.sugars100, 12.2);
-      expect(meal.nutriments.saturatedFat100, 0.1);
-      expect(meal.nutriments.fiber100, 2.6);
+      expect(meal.nutriments.energyKcal100?.value, 89);
+      expect(meal.nutriments.carbohydrates100?.value, 22.8);
+      expect(meal.nutriments.fat100?.value, 0.3);
+      expect(meal.nutriments.proteins100?.value, 1.1);
+      expect(meal.nutriments.sugars100?.value, 12.2);
+      expect(meal.nutriments.saturatedFat100?.value, 0.1);
+      expect(meal.nutriments.fiber100?.value, 2.6);
     });
 
     test('only name and kcal are required; other macros default to null', () {
@@ -36,10 +36,10 @@ void main() {
       expect(result.errors, isEmpty);
       final meal = result.meals.single;
       expect(meal.name, 'Apple');
-      expect(meal.nutriments.energyKcal100, 52);
-      expect(meal.nutriments.carbohydrates100, isNull);
-      expect(meal.nutriments.fat100, isNull);
-      expect(meal.nutriments.proteins100, isNull);
+      expect(meal.nutriments.energyKcal100?.value, 52);
+      expect(meal.nutriments.carbohydrates100?.value, isNull);
+      expect(meal.nutriments.fat100?.value, isNull);
+      expect(meal.nutriments.proteins100?.value, isNull);
     });
 
     test('column order is irrelevant', () {
@@ -50,8 +50,8 @@ void main() {
       expect(result.errors, isEmpty);
       final meal = result.meals.single;
       expect(meal.name, 'Whole Milk');
-      expect(meal.nutriments.energyKcal100, 61);
-      expect(meal.nutriments.fat100, 3.3);
+      expect(meal.nutriments.energyKcal100?.value, 61);
+      expect(meal.nutriments.fat100?.value, 3.3);
     });
 
     test('header lookup is case-insensitive', () {
@@ -98,8 +98,7 @@ void main() {
     });
 
     test('quoted fields with embedded commas are preserved', () {
-      const csv =
-          'name,kcal_per_100g\n"Granola, oats and nuts",450';
+      const csv = 'name,kcal_per_100g\n"Granola, oats and nuts",450';
 
       final result = CsvMealImporter.parse(csv);
 
@@ -122,7 +121,7 @@ void main() {
       final result = CsvMealImporter.parse(csv);
 
       expect(result.errors, isEmpty);
-      expect(result.meals.single.nutriments.fat100, 0.3);
+      expect(result.meals.single.nutriments.fat100?.value, 0.3);
     });
 
     test('quoted decimal-comma works (the documented happy path)', () {
@@ -130,21 +129,23 @@ void main() {
       // CSV format alone doesn't disambiguate `288,12,5` (288 + 12.5
       // vs three integers vs 288.12 + 5). The error path below tells
       // users so when they get it wrong.
-      const csv = 'name,kcal_per_100g,fat_per_100g,protein_per_100g\n'
+      const csv =
+          'name,kcal_per_100g,fat_per_100g,protein_per_100g\n'
           'Butter,717,"82,5","0,9"\n';
 
       final result = CsvMealImporter.parse(csv);
 
       expect(result.errors, isEmpty);
       expect(result.meals, hasLength(1));
-      expect(result.meals.single.nutriments.fat100, 82.5);
-      expect(result.meals.single.nutriments.proteins100, 0.9);
+      expect(result.meals.single.nutriments.fat100?.value, 82.5);
+      expect(result.meals.single.nutriments.proteins100?.value, 0.9);
     });
 
     test('unquoted decimal-comma triggers a clear too-many-columns hint', () {
       // 3 expected columns; the unquoted `12,5` over-splits to 4.
       // Surface a hint about quoting so the user knows what to fix.
-      const csv = 'name,kcal_per_100g,fat_per_100g\n'
+      const csv =
+          'name,kcal_per_100g,fat_per_100g\n'
           'Butter,717,82,5\n';
 
       final result = CsvMealImporter.parse(csv);
@@ -254,18 +255,22 @@ void main() {
       expect(result.errors[1], contains('serving_size'));
     });
 
-    test('old CSV without serving_size column still parses (backward-compat)', () {
-      // The header set predating issue #420. Importers in the wild that
-      // omit the new column must keep working.
-      const csv = 'name,brands,barcode,kcal_per_100g,carbs_per_100g,'
-          'fat_per_100g,protein_per_100g,sugars_per_100g,'
-          'saturated_fat_per_100g,fiber_per_100g\n'
-          'Banana,,,89,22.8,0.3,1.1,12.2,0.1,2.6';
+    test(
+      'old CSV without serving_size column still parses (backward-compat)',
+      () {
+        // The header set predating issue #420. Importers in the wild that
+        // omit the new column must keep working.
+        const csv =
+            'name,brands,barcode,kcal_per_100g,carbs_per_100g,'
+            'fat_per_100g,protein_per_100g,sugars_per_100g,'
+            'saturated_fat_per_100g,fiber_per_100g\n'
+            'Banana,,,89,22.8,0.3,1.1,12.2,0.1,2.6';
 
-      final result = CsvMealImporter.parse(csv);
+        final result = CsvMealImporter.parse(csv);
 
-      expect(result.errors, isEmpty);
-      expect(result.meals.single.servingQuantity, isNull);
-    });
+        expect(result.errors, isEmpty);
+        expect(result.meals.single.servingQuantity, isNull);
+      },
+    );
   });
 }

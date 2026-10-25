@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/utils/extensions.dart';
 import 'dart:async';
@@ -51,10 +52,10 @@ MealEntity food({
   source: source,
   isQuickAdd: quick,
   nutriments: MealNutrimentsEntity(
-    energyKcal100: kcal,
-    carbohydrates100: carbs,
-    fat100: 0,
-    proteins100: 0,
+    energyKcal100: NutrientAmount.fromNumber(kcal),
+    carbohydrates100: NutrientAmount.fromNumber(carbs),
+    fat100: NutrientAmount(0),
+    proteins100: NutrientAmount(0),
     sugars100: null,
     saturatedFat100: null,
     fiber100: null,
@@ -311,7 +312,7 @@ void main() {
       expect(updated.meal.portions.last.gramWeight, 35);
       final unchanged = (await repo.getIntakeById('other'))!;
       expect(unchanged.meal.portions, oldPortions);
-      expect(unchanged.meal.nutriments.energyKcal100, 100);
+      expect(unchanged.meal.nutriments.energyKcal100?.value, 100);
     },
   );
   test(
@@ -485,8 +486,8 @@ void main() {
         expect(updated.baseAmount, 150);
         expect(updated.dateTime, moment);
         expect(updated.type, IntakeTypeEntity.lunch);
-        expect(updated.meal.nutriments.energyKcal100, isNull);
-        expect(updated.meal.nutriments.carbohydrates100, 0);
+        expect(updated.meal.nutriments.energyKcal100?.value, isNull);
+        expect(updated.meal.nutriments.carbohydrates100?.value, 0);
         expect(updated.isIncomplete, isTrue);
         expect(updated.meal.isQuickAdd, quick);
         expect((await repo.getIntakeById('other'))!.totalKcal, 150);
@@ -550,7 +551,7 @@ void main() {
         expect((await b)!.baseAmount, 200);
         expect(products.calls, 1);
         expect(
-          (await cache.getAll()).single.nutriments.carbohydrates100,
+          (await cache.getAll()).single.nutriments.carbohydrates100?.value,
           isNull,
         );
       },
@@ -650,7 +651,7 @@ void main() {
         updated,
       );
       expect(ingredients.single.baseAmount, 60);
-      expect(ingredients.single.meal.nutriments.energyKcal100, isNull);
+      expect(ingredients.single.meal.nutriments.energyKcal100?.value, isNull);
     },
   );
 }

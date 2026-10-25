@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
+import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
@@ -22,7 +24,7 @@ export 'package:opennutritracker/core/utils/calc/nutrient_totals.dart';
 /// Daily micronutrient summary that aggregates the nutrients reporters keep
 /// asking for — fibre, sodium, saturated fat, sugar, calcium, iron, potassium,
 /// vitamin D, vitamin B12, and magnesium — across the day's intake list and
-/// renders each as a "value / reference" row with a small progress bar.
+/// renders each as a "(value?.calculationValue ?? 0) / reference" row with a small progress bar.
 ///
 /// The references are sensible DRIs for an average adult (FDA Daily Values
 /// where applicable). Iron and magnesium are gender-aware because the gap
@@ -350,7 +352,7 @@ class _PanelData {
 class _PanelRow {
   final String key;
   final String label;
-  final double value;
+  final NutrientAmount? value;
   final double reference;
   final String unit;
   final bool excessMatters;
@@ -368,7 +370,7 @@ class _PanelRow {
 class _NutrientRow extends StatelessWidget {
   final bool asPercent;
   final String label;
-  final double value;
+  final NutrientAmount? value;
   final double reference;
   final String unit;
 
@@ -393,12 +395,14 @@ class _NutrientRow extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final palette = isDark ? AppPalette.dark : AppPalette.light;
     final textTheme = Theme.of(context).textTheme;
-    final ratio = reference > 0 ? value / reference : 0.0;
-    final clamped = goalProgress(value, reference);
+    final ratio = reference > 0
+        ? (value?.calculationValue ?? 0) / reference
+        : 0.0;
+    final clamped = goalProgress(value?.calculationValue ?? 0, reference);
     final color = _colorForRatio(context, ratio);
     final valueLabel = asPercent
-        ? goalPercentage(value, reference)
-        : '${value.toStringAsFixed(value >= 10 ? 0 : 1)}'
+        ? formatNutrientPercentage(value, reference)
+        : '${formatNutrientAmount(value, s, decimals: (value?.value ?? 0) >= 10 ? 0 : 1)}'
               ' / ${reference.toStringAsFixed(reference >= 10 ? 0 : 1)}$unit';
 
     return Padding(
@@ -423,6 +427,9 @@ class _NutrientRow extends StatelessWidget {
               Expanded(
                 child: AutoSizeText(
                   '${excessMatters ? '${s.nutrientPanelLimitLabel} · ' : ''}$valueLabel',
+                  semanticsLabel: (value?.isQualified ?? false)
+                      ? '$valueLabel. ${nutrientQualificationLabel(value, s)}'
+                      : null,
                   maxLines: 2,
                   minFontSize: 9,
                   overflow: TextOverflow.ellipsis,

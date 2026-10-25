@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import '../../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:typed_data';
@@ -134,10 +135,10 @@ MealEntity _meal(
   portions: portions,
   source: MealSourceEntity.off,
   nutriments: const MealNutrimentsEntity(
-    energyKcal100: 100,
-    carbohydrates100: 0,
-    fat100: 0,
-    proteins100: 0,
+    energyKcal100: NutrientAmount(100),
+    carbohydrates100: NutrientAmount(0),
+    fat100: NutrientAmount(0),
+    proteins100: NutrientAmount(0),
     sugars100: null,
     saturatedFat100: null,
     fiber100: null,

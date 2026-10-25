@@ -62,10 +62,10 @@ class _RecipeIngredientsSectionState extends State<RecipeIngredientsSection> {
     final n = ingredient.snapshotMeal.nutriments;
     final value = switch (_sort) {
       DiarySortType.timeAdded => 0.0,
-      DiarySortType.kcal => n.energyKcal100 ?? 0,
-      DiarySortType.carbs => n.carbohydrates100 ?? 0,
-      DiarySortType.protein => n.proteins100 ?? 0,
-      DiarySortType.fat => n.fat100 ?? 0,
+      DiarySortType.kcal => n.energyKcal100?.calculationValue ?? 0,
+      DiarySortType.carbs => n.carbohydrates100?.calculationValue ?? 0,
+      DiarySortType.protein => n.proteins100?.calculationValue ?? 0,
+      DiarySortType.fat => n.fat100?.calculationValue ?? 0,
     };
     return value * ingredient.quantity.baseAmount / 100;
   }

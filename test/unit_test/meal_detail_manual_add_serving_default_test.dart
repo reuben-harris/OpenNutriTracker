@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/data_source/remote_search_cache_data_source.dart';
@@ -56,13 +57,13 @@ MealEntity _meal({
     servingUnit: servingUnit,
     servingSize: servingSize,
     nutriments: const MealNutrimentsEntity(
-      energyKcal100: 100,
-      carbohydrates100: 10,
-      fat100: 5,
-      proteins100: 5,
-      sugars100: 2,
-      saturatedFat100: 1,
-      fiber100: 1,
+      energyKcal100: NutrientAmount(100),
+      carbohydrates100: NutrientAmount(10),
+      fat100: NutrientAmount(5),
+      proteins100: NutrientAmount(5),
+      sugars100: NutrientAmount(2),
+      saturatedFat100: NutrientAmount(1),
+      fiber100: NutrientAmount(1),
     ),
     source: MealSourceEntity.off,
   );

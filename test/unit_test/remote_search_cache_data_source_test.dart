@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/data_source/remote_search_cache_data_source.dart';
@@ -27,14 +28,14 @@ MealDBO meal(
   source: MealSourceDBO.off,
   detailed: detailed,
   nutriments: MealNutrimentsDBO(
-    energyKcal100: kcal,
+    energyKcal100: NutrientAmount.fromNumber(kcal),
     carbohydrates100: null,
     fat100: null,
     proteins100: null,
     sugars100: null,
     saturatedFat100: null,
     fiber100: null,
-    vitaminC100: vitamin,
+    vitaminC100: NutrientAmount.fromNumber(vitamin),
   ),
 );
 
@@ -82,8 +83,8 @@ void main() {
       await cache.cacheFromSearch([meal('1', 'New name', kcal: 0)]);
       final saved = (await cache.getDetailedByBarcode('1'))!;
       expect(saved.name, 'New name');
-      expect(saved.nutriments.energyKcal100, 0);
-      expect(saved.nutriments.vitaminC100, 15);
+      expect(saved.nutriments.energyKcal100?.value, 0);
+      expect(saved.nutriments.vitaminC100?.value, 15);
       expect(saved.servingQuantity, 30);
       expect(await cache.search('old'), isEmpty);
       expect((await cache.search('new')).single.code, '1');
@@ -98,7 +99,7 @@ void main() {
       );
       await cache.cache(meal('1', 'Fresh', detailed: true));
       final saved = (await cache.getDetailedByBarcode('1'))!;
-      expect(saved.nutriments.vitaminC100, isNull);
+      expect(saved.nutriments.vitaminC100?.value, isNull);
       expect(saved.servingQuantity, isNull);
       await cache.cache(meal('2', 'Summary'));
       expect(await cache.getDetailedByBarcode('2'), isNull);

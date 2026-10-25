@@ -9,12 +9,14 @@ class FoodSectionHeader extends StatelessWidget {
   final String title;
   final IconData icon;
   final String? summary;
+  final String? summarySemantics;
   final List<Widget> actions;
   const FoodSectionHeader({
     super.key,
     required this.title,
     required this.icon,
     this.summary,
+    this.summarySemantics,
     this.actions = const [],
   });
   @override
@@ -55,6 +57,7 @@ class FoodSectionHeader extends StatelessWidget {
               fit: FlexFit.tight,
               child: Text(
                 summary!,
+                semanticsLabel: summarySemantics,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.end,

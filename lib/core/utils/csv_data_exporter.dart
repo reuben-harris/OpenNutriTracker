@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'dart:convert';
 
@@ -143,30 +144,30 @@ class CsvDataExporter {
         _cell(meal.thumbnailImageUrl),
         _cell(meal.mainImageUrl),
         _cell(meal.url),
-        _num(n.energyKcal100),
-        _num(n.carbohydrates100),
-        _num(n.fat100),
-        _num(n.proteins100),
-        _num(n.sugars100),
-        _num(n.saturatedFat100),
-        _num(n.fiber100),
-        _num(n.monounsaturatedFat100),
-        _num(n.polyunsaturatedFat100),
-        _num(n.transFat100),
-        _num(n.cholesterol100),
-        _num(n.sodium100),
-        _num(n.potassium100),
-        _num(n.magnesium100),
-        _num(n.calcium100),
-        _num(n.iron100),
-        _num(n.zinc100),
-        _num(n.phosphorus100),
-        _num(n.vitaminA100),
-        _num(n.vitaminC100),
-        _num(n.vitaminD100),
-        _num(n.vitaminB6100),
-        _num(n.vitaminB12100),
-        _num(n.niacin100),
+        _nutrientCell(n.energyKcal100),
+        _nutrientCell(n.carbohydrates100),
+        _nutrientCell(n.fat100),
+        _nutrientCell(n.proteins100),
+        _nutrientCell(n.sugars100),
+        _nutrientCell(n.saturatedFat100),
+        _nutrientCell(n.fiber100),
+        _nutrientCell(n.monounsaturatedFat100),
+        _nutrientCell(n.polyunsaturatedFat100),
+        _nutrientCell(n.transFat100),
+        _nutrientCell(n.cholesterol100),
+        _nutrientCell(n.sodium100),
+        _nutrientCell(n.potassium100),
+        _nutrientCell(n.magnesium100),
+        _nutrientCell(n.calcium100),
+        _nutrientCell(n.iron100),
+        _nutrientCell(n.zinc100),
+        _nutrientCell(n.phosphorus100),
+        _nutrientCell(n.vitaminA100),
+        _nutrientCell(n.vitaminC100),
+        _nutrientCell(n.vitaminD100),
+        _nutrientCell(n.vitaminB6100),
+        _nutrientCell(n.vitaminB12100),
+        _nutrientCell(n.niacin100),
         _num(meal.dataVersion?.toDouble()),
         _cell(
           intake.recipeSnapshot == null
@@ -248,44 +249,34 @@ class CsvDataExporter {
     for (var i = 1; i < rows.length; i++) {
       final row = _zip(header, rows[i]);
       final nutriments = MealNutrimentsDBO(
-        energyKcal100: CsvRowParser.parseDoubleOrNull(row['kcal_per_100g']),
-        carbohydrates100: CsvRowParser.parseDoubleOrNull(row['carbs_per_100g']),
-        fat100: CsvRowParser.parseDoubleOrNull(row['fat_per_100g']),
-        proteins100: CsvRowParser.parseDoubleOrNull(row['protein_per_100g']),
-        sugars100: CsvRowParser.parseDoubleOrNull(row['sugars_per_100g']),
-        saturatedFat100: CsvRowParser.parseDoubleOrNull(
-          row['saturated_fat_per_100g'],
-        ),
-        fiber100: CsvRowParser.parseDoubleOrNull(row['fiber_per_100g']),
-        monounsaturatedFat100: CsvRowParser.parseDoubleOrNull(
+        energyKcal100: _parseNutrient(row['kcal_per_100g']),
+        carbohydrates100: _parseNutrient(row['carbs_per_100g']),
+        fat100: _parseNutrient(row['fat_per_100g']),
+        proteins100: _parseNutrient(row['protein_per_100g']),
+        sugars100: _parseNutrient(row['sugars_per_100g']),
+        saturatedFat100: _parseNutrient(row['saturated_fat_per_100g']),
+        fiber100: _parseNutrient(row['fiber_per_100g']),
+        monounsaturatedFat100: _parseNutrient(
           row['monounsaturated_fat_per_100g'],
         ),
-        polyunsaturatedFat100: CsvRowParser.parseDoubleOrNull(
+        polyunsaturatedFat100: _parseNutrient(
           row['polyunsaturated_fat_per_100g'],
         ),
-        transFat100: CsvRowParser.parseDoubleOrNull(row['trans_fat_per_100g']),
-        cholesterol100: CsvRowParser.parseDoubleOrNull(
-          row['cholesterol_per_100g'],
-        ),
-        sodium100: CsvRowParser.parseDoubleOrNull(row['sodium_per_100g']),
-        potassium100: CsvRowParser.parseDoubleOrNull(row['potassium_per_100g']),
-        magnesium100: CsvRowParser.parseDoubleOrNull(row['magnesium_per_100g']),
-        calcium100: CsvRowParser.parseDoubleOrNull(row['calcium_per_100g']),
-        iron100: CsvRowParser.parseDoubleOrNull(row['iron_per_100g']),
-        zinc100: CsvRowParser.parseDoubleOrNull(row['zinc_per_100g']),
-        phosphorus100: CsvRowParser.parseDoubleOrNull(
-          row['phosphorus_per_100g'],
-        ),
-        vitaminA100: CsvRowParser.parseDoubleOrNull(row['vitamin_a_per_100g']),
-        vitaminC100: CsvRowParser.parseDoubleOrNull(row['vitamin_c_per_100g']),
-        vitaminD100: CsvRowParser.parseDoubleOrNull(row['vitamin_d_per_100g']),
-        vitaminB6100: CsvRowParser.parseDoubleOrNull(
-          row['vitamin_b6_per_100g'],
-        ),
-        vitaminB12100: CsvRowParser.parseDoubleOrNull(
-          row['vitamin_b12_per_100g'],
-        ),
-        niacin100: CsvRowParser.parseDoubleOrNull(row['niacin_per_100g']),
+        transFat100: _parseNutrient(row['trans_fat_per_100g']),
+        cholesterol100: _parseNutrient(row['cholesterol_per_100g']),
+        sodium100: _parseNutrient(row['sodium_per_100g']),
+        potassium100: _parseNutrient(row['potassium_per_100g']),
+        magnesium100: _parseNutrient(row['magnesium_per_100g']),
+        calcium100: _parseNutrient(row['calcium_per_100g']),
+        iron100: _parseNutrient(row['iron_per_100g']),
+        zinc100: _parseNutrient(row['zinc_per_100g']),
+        phosphorus100: _parseNutrient(row['phosphorus_per_100g']),
+        vitaminA100: _parseNutrient(row['vitamin_a_per_100g']),
+        vitaminC100: _parseNutrient(row['vitamin_c_per_100g']),
+        vitaminD100: _parseNutrient(row['vitamin_d_per_100g']),
+        vitaminB6100: _parseNutrient(row['vitamin_b6_per_100g']),
+        vitaminB12100: _parseNutrient(row['vitamin_b12_per_100g']),
+        niacin100: _parseNutrient(row['niacin_per_100g']),
       );
       final meal = MealDBO(
         code: _nullable(row['meal_code']),
@@ -461,6 +452,19 @@ class CsvDataExporter {
       return value.toInt().toString();
     }
     return value.toString();
+  }
+
+  static String _nutrientCell(NutrientAmount? amount) => amount == null
+      ? ''
+      : amount.isQualified
+      ? _cell(jsonEncode(amount.toJson()))
+      : _num(amount.value);
+
+  static NutrientAmount? _parseNutrient(String? cell) {
+    if (cell == null || cell.isEmpty) return null;
+    return NutrientAmount.fromSource(
+      cell.startsWith('{') ? jsonDecode(cell) : cell,
+    );
   }
 
   static String? _nullable(String? cell) {

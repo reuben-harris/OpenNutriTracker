@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/dbo/intake_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/intake_type_dbo.dart';
@@ -135,7 +136,7 @@ MealDBO _meal({required String? imagePath}) => MealDBO(
   servingSize: null,
   source: MealSourceDBO.custom,
   nutriments: MealNutrimentsDBO(
-    energyKcal100: 100,
+    energyKcal100: NutrientAmount(100),
     carbohydrates100: null,
     fat100: null,
     proteins100: null,
@@ -153,7 +154,7 @@ RecipeDBO _recipe({required String? imagePath}) => RecipeDBO(
   ingredients: const [],
   totalWeightG: 100,
   aggregatedNutrimentsPer100: MealNutrimentsDBO(
-    energyKcal100: 100,
+    energyKcal100: NutrientAmount(100),
     carbohydrates100: null,
     fat100: null,
     proteins100: null,

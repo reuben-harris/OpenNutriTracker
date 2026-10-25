@@ -15,7 +15,7 @@ void main() {
       expect(intake.quantity!.option.unit, 'l');
       expect(intake.baseAmount, 500);
       expect(intake.baseUnit, 'ml');
-      expect(intake.meal.nutriments.energyKcal100, 20);
+      expect(intake.meal.nutriments.energyKcal100?.value, 20);
       expect(intake.totalKcal, 100);
     },
   );
@@ -49,7 +49,7 @@ void main() {
       expect(intake.type, IntakeTypeEntity.snack);
       expect(intake.dateTime, DateTime(2026, 5, 13));
       // Back-projection: 95 kcal in 100 g = 95 per 100 g.
-      expect(intake.meal.nutriments.energyKcal100, closeTo(95, 0.001));
+      expect(intake.meal.nutriments.energyKcal100?.value, closeTo(95, 0.001));
       expect(intake.totalKcal, closeTo(95, 0.001));
       expect(intake.totalCarbsGram, closeTo(25, 0.001));
       expect(intake.totalFatsGram, closeTo(0.3, 0.001));
@@ -175,7 +175,7 @@ void main() {
 
       expect(result.errors, isEmpty);
       final intake = result.intakes.single;
-      expect(intake.meal.nutriments.energyKcal100, closeTo(100, 0.001));
+      expect(intake.meal.nutriments.energyKcal100?.value, closeTo(100, 0.001));
       expect(intake.totalKcal, closeTo(200, 0.001));
       expect(intake.totalProteinsGram, closeTo(10, 0.001));
     });

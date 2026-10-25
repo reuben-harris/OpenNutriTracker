@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
 import 'package:opennutritracker/core/presentation/widgets/share_qr_dialog.dart';
 import 'package:opennutritracker/core/domain/entity/recipe_ingredient_entity.dart';
@@ -54,13 +55,13 @@ import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
 
 const _nutriments = MealNutrimentsEntity(
-  energyKcal100: 100,
-  carbohydrates100: 10,
-  fat100: 5,
-  proteins100: 5,
-  sugars100: 2,
-  saturatedFat100: 1,
-  fiber100: 1,
+  energyKcal100: NutrientAmount(100),
+  carbohydrates100: NutrientAmount(10),
+  fat100: NutrientAmount(5),
+  proteins100: NutrientAmount(5),
+  sugars100: NutrientAmount(2),
+  saturatedFat100: NutrientAmount(1),
+  fiber100: NutrientAmount(1),
 );
 
 MealEntity _solidWithServing({
@@ -374,14 +375,14 @@ void main() {
             brands: 'Updated brand',
             serving: 40,
             nutriments: const MealNutrimentsEntity(
-              energyKcal100: 150,
+              energyKcal100: NutrientAmount(150),
               carbohydrates100: null,
-              fat100: 5,
-              proteins100: 12,
+              fat100: NutrientAmount(5),
+              proteins100: NutrientAmount(12),
               sugars100: null,
-              saturatedFat100: 1,
+              saturatedFat100: NutrientAmount(1),
               fiber100: null,
-              calcium100: 120,
+              calcium100: NutrientAmount(120),
             ),
           );
           hydratedFor = original;

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/utils/csv_row_parser.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
@@ -60,24 +61,23 @@ class CsvMealImporter {
         .toList();
 
     if (lines.isEmpty) {
-      return const CsvImportResult(
-        meals: [],
-        errors: ['CSV file is empty'],
-      );
+      return const CsvImportResult(meals: [], errors: ['CSV file is empty']);
     }
 
     // Headers never contain decimal-comma payloads, so split with the
     // strict comma-only mode for the header line.
-    final headerCells = CsvRowParser.splitRow(lines.first)
-        .map((c) => c.trim().toLowerCase())
-        .toList();
+    final headerCells = CsvRowParser.splitRow(
+      lines.first,
+    ).map((c) => c.trim().toLowerCase()).toList();
     final missingRequired = requiredColumns
         .where((req) => !headerCells.contains(req))
         .toList();
     if (missingRequired.isNotEmpty) {
       return CsvImportResult(
         meals: const [],
-        errors: ['Header is missing required column(s): ${missingRequired.join(', ')}'],
+        errors: [
+          'Header is missing required column(s): ${missingRequired.join(', ')}',
+        ],
       );
     }
 
@@ -93,9 +93,10 @@ class CsvMealImporter {
       }
       if (cells.length > headerCells.length) {
         errors.add(
-            'Row $rowNum: too many columns. If a value contains a comma '
-            '(for example a decimal like 1,5), wrap that cell in double '
-            'quotes: "1,5".');
+          'Row $rowNum: too many columns. If a value contains a comma '
+          '(for example a decimal like 1,5), wrap that cell in double '
+          'quotes: "1,5".',
+        );
         continue;
       }
       final row = <String, String>{};
@@ -147,13 +148,25 @@ class CsvMealImporter {
               ? '${_formatNumber(servingQuantity)} g'
               : '100 g',
           nutriments: MealNutrimentsEntity(
-            energyKcal100: kcal,
-            carbohydrates100: CsvRowParser.parseDoubleOrNull(row[_kCarbs]),
-            fat100: CsvRowParser.parseDoubleOrNull(row[_kFat]),
-            proteins100: CsvRowParser.parseDoubleOrNull(row[_kProtein]),
-            sugars100: CsvRowParser.parseDoubleOrNull(row[_kSugars]),
-            saturatedFat100: CsvRowParser.parseDoubleOrNull(row[_kSatFat]),
-            fiber100: CsvRowParser.parseDoubleOrNull(row[_kFiber]),
+            energyKcal100: NutrientAmount.fromNumber(kcal),
+            carbohydrates100: NutrientAmount.fromNumber(
+              CsvRowParser.parseDoubleOrNull(row[_kCarbs]),
+            ),
+            fat100: NutrientAmount.fromNumber(
+              CsvRowParser.parseDoubleOrNull(row[_kFat]),
+            ),
+            proteins100: NutrientAmount.fromNumber(
+              CsvRowParser.parseDoubleOrNull(row[_kProtein]),
+            ),
+            sugars100: NutrientAmount.fromNumber(
+              CsvRowParser.parseDoubleOrNull(row[_kSugars]),
+            ),
+            saturatedFat100: NutrientAmount.fromNumber(
+              CsvRowParser.parseDoubleOrNull(row[_kSatFat]),
+            ),
+            fiber100: NutrientAmount.fromNumber(
+              CsvRowParser.parseDoubleOrNull(row[_kFiber]),
+            ),
           ),
           source: MealSourceEntity.custom,
         ),

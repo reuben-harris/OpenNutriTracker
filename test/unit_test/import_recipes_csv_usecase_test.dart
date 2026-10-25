@@ -108,7 +108,7 @@ void main() {
       expect(saved.name, 'Test');
       expect(saved.totalWeightG, 300);
       expect(
-        saved.aggregatedNutrimentsPer100.energyKcal100,
+        saved.aggregatedNutrimentsPer100.energyKcal100?.value,
         closeTo(132, 1e-9),
       );
     });
@@ -125,7 +125,7 @@ void main() {
       final saved = repo.saved.single;
       expect(saved.totalWeightG, 110);
       expect(
-        saved.aggregatedNutrimentsPer100.energyKcal100,
+        saved.aggregatedNutrimentsPer100.energyKcal100?.value,
         closeTo(360, 1e-9),
       );
     });

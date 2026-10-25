@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/data_source/custom_meal_data_source.dart';
@@ -90,7 +91,7 @@ void main() {
                             servingSize: null,
                             source: MealSourceEntity.custom,
                             nutriments: MealNutrimentsEntity(
-                              energyKcal100: 250,
+                              energyKcal100: NutrientAmount(250),
                               carbohydrates100: null,
                               fat100: null,
                               proteins100: null,
@@ -148,8 +149,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(meals.saved, isNotNull);
-      expect(meals.saved!.nutriments.energyKcal100, expected);
-      expect(returned!.nutriments.energyKcal100, expected);
+      expect(meals.saved!.nutriments.energyKcal100?.value, expected);
+      expect(returned!.nutriments.energyKcal100?.value, expected);
       expect(find.byType(EditMealScreen), findsNothing);
       await tester.pumpWidget(const SizedBox());
       units.dispose();

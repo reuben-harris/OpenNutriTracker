@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'dart:async';
 import '../../../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
@@ -95,10 +96,10 @@ IntakeEntity _buildIntake({
       servingUnit: 'g',
       servingSize: '100 g',
       nutriments: MealNutrimentsEntity(
-        energyKcal100: kcal100,
-        carbohydrates100: carbs100,
-        fat100: fat100,
-        proteins100: protein100,
+        energyKcal100: NutrientAmount.fromNumber(kcal100),
+        carbohydrates100: NutrientAmount.fromNumber(carbs100),
+        fat100: NutrientAmount.fromNumber(fat100),
+        proteins100: NutrientAmount.fromNumber(protein100),
         sugars100: null,
         saturatedFat100: null,
         fiber100: null,

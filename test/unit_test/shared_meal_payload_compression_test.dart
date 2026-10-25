@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:convert';
 import 'dart:io' show gzip;
@@ -35,13 +36,13 @@ void main() {
       servingSize: null,
       nutriments: fullNutritionData
           ? MealNutrimentsEntity(
-              energyKcal100: 192.7,
-              carbohydrates100: 22.0,
-              fat100: 7.9,
-              proteins100: 6.7,
-              sugars100: 3.5,
-              saturatedFat100: 2.6,
-              fiber100: 2.0,
+              energyKcal100: NutrientAmount(192.7),
+              carbohydrates100: NutrientAmount(22.0),
+              fat100: NutrientAmount(7.9),
+              proteins100: NutrientAmount(6.7),
+              sugars100: NutrientAmount(3.5),
+              saturatedFat100: NutrientAmount(2.6),
+              fiber100: NutrientAmount(2.0),
             )
           : MealNutrimentsEntity.empty(),
       source: source,
@@ -146,13 +147,13 @@ void main() {
 
       // v2 payload format: items now carry a source field, plus a new
       // recipes bucket. Older v1 payloads remain readable.
-      expect(decoded.version, 2);
+      expect(decoded.version, 3);
       expect(decoded.offRefs.length, 1);
       expect(decoded.offRefs[0].barcode, '4001724039143');
       expect(decoded.offRefs[0].amount, 100.0);
       expect(decoded.items.length, 1);
       expect(decoded.items[0].name, 'Homemade Soup');
-      expect(decoded.items[0].energyKcal100, 192.7);
+      expect(decoded.items[0].energyKcal100?.value, 192.7);
     });
 
     test('payloads for typical meal counts fit within QR v40/M capacity', () {
@@ -352,10 +353,10 @@ void main() {
           servingUnit: null,
           servingSize: null,
           nutriments: MealNutrimentsEntity(
-            energyKcal100: 100, // whole
-            carbohydrates100: 22.5, // 1dp
-            fat100: 0,
-            proteins100: 7,
+            energyKcal100: NutrientAmount(100), // whole
+            carbohydrates100: NutrientAmount(22.5), // 1dp
+            fat100: NutrientAmount(0),
+            proteins100: NutrientAmount(7),
             sugars100: null,
             saturatedFat100: null,
             fiber100: null,
@@ -368,10 +369,10 @@ void main() {
       final encoded = SharedMealPayload.fromIntakeList([intake]).toJsonString();
       final decoded = SharedMealPayload.fromJsonString(encoded);
 
-      expect(decoded.items.single.energyKcal100, equals(100));
-      expect(decoded.items.single.carbohydrates100, equals(22.5));
-      expect(decoded.items.single.fat100, equals(0));
-      expect(decoded.items.single.proteins100, equals(7));
+      expect(decoded.items.single.energyKcal100?.value, equals(100));
+      expect(decoded.items.single.carbohydrates100?.value, equals(22.5));
+      expect(decoded.items.single.fat100?.value, equals(0));
+      expect(decoded.items.single.proteins100?.value, equals(7));
     });
 
     test(

@@ -9,6 +9,11 @@ part of 'off_product_nutriments_dto.dart';
 OFFProductNutrimentsDTO _$OFFProductNutrimentsDTOFromJson(
   Map<String, dynamic> json,
 ) => OFFProductNutrimentsDTO(
+  modifiers:
+      (json['modifiers'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const {},
   energy_kcal_100g: json['energy-kcal_100g'],
   carbohydrates_100g: json['carbohydrates_100g'],
   fat_100g: json['fat_100g'],
@@ -38,6 +43,7 @@ OFFProductNutrimentsDTO _$OFFProductNutrimentsDTOFromJson(
 Map<String, dynamic> _$OFFProductNutrimentsDTOToJson(
   OFFProductNutrimentsDTO instance,
 ) => <String, dynamic>{
+  'modifiers': instance.modifiers,
   'energy-kcal_100g': instance.energy_kcal_100g,
   'carbohydrates_100g': instance.carbohydrates_100g,
   'fat_100g': instance.fat_100g,

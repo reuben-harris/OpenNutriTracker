@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/repository/recipe_repository.dart';
@@ -46,13 +47,13 @@ void main() {
         ingredients: const [],
         totalWeightG: 1500,
         aggregatedNutrimentsPer100: MealNutrimentsEntity(
-          energyKcal100: 350,
-          carbohydrates100: 50,
-          fat100: 15,
-          proteins100: 6,
-          sugars100: 30,
-          saturatedFat100: 8,
-          fiber100: 1,
+          energyKcal100: NutrientAmount(350),
+          carbohydrates100: NutrientAmount(50),
+          fat100: NutrientAmount(15),
+          proteins100: NutrientAmount(6),
+          sugars100: NutrientAmount(30),
+          saturatedFat100: NutrientAmount(8),
+          fiber100: NutrientAmount(1),
         ),
         createdAt: DateTime.utc(2024, 1, 1),
         updatedAt: DateTime.utc(2024, 1, 1),
@@ -100,7 +101,7 @@ void main() {
       expect(loggedIntake.totalKcal, beforeKcal);
       expect(loggedIntake.meal.name, beforeMealName);
       expect(loggedIntake.meal.code, beforeMealCode);
-      expect(loggedIntake.meal.nutriments.energyKcal100, 350);
+      expect(loggedIntake.meal.nutriments.energyKcal100?.value, 350);
     },
   );
 }

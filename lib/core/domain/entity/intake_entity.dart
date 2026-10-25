@@ -56,12 +56,15 @@ class IntakeEntity extends Equatable {
           ) ??
           false);
 
-  double get totalKcal => nutritionScale * (meal.nutriments.energyKcal100 ?? 0);
+  double get totalKcal =>
+      nutritionScale * (meal.nutriments.energyKcal100?.calculationValue ?? 0);
   double get totalCarbsGram =>
-      nutritionScale * (meal.nutriments.carbohydrates100 ?? 0);
-  double get totalFatsGram => nutritionScale * (meal.nutriments.fat100 ?? 0);
+      nutritionScale *
+      (meal.nutriments.carbohydrates100?.calculationValue ?? 0);
+  double get totalFatsGram =>
+      nutritionScale * (meal.nutriments.fat100?.calculationValue ?? 0);
   double get totalProteinsGram =>
-      nutritionScale * (meal.nutriments.proteins100 ?? 0);
+      nutritionScale * (meal.nutriments.proteins100?.calculationValue ?? 0);
 
   @override
   List<Object?> get props => [

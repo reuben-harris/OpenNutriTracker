@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
+import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
@@ -29,22 +31,33 @@ class MealDetailNutrimentsTable extends StatelessWidget {
     Widget row(
       String key,
       String label,
-      double? value,
+      NutrientAmount? value,
       String? unit, {
       String? parent,
     }) {
       final scaled = value == null || !value.isFinite
           ? null
-          : value * (reference ? 1 : baseAmount / 100);
+          : value.scale(reference ? 1 : baseAmount / 100);
       final goal = goals[key];
       final hasGoal = goal != null && goal.isFinite && goal > 0;
-      final ratio = scaled == null || !hasGoal ? null : scaled / goal;
+      final ratio = scaled == null || !hasGoal
+          ? null
+          : scaled.calculationValue / goal;
       String number(double amount) =>
           (unit == null ? EnergyDisplay.convert(context, amount) : amount)
               .toStringAsFixed(2);
-      final amount = scaled == null ? s.nutritionNoDataLabel : number(scaled);
+      final displayed = unit == null
+          ? EnergyDisplay.convertAmount(context, scaled)
+          : scaled;
+      final amount = formatNutrientAmount(
+        displayed,
+        s,
+        unit: displayed?.isQualified == true
+            ? (unit ?? EnergyDisplay.unitLabel(context))
+            : '',
+      );
       final target = hasGoal ? number(goal) : '—';
-      final percentage = ratio == null ? '—' : '${(ratio * 100).round()}%';
+      final percentage = formatNutrientPercentage(scaled, goal);
       final color = switch (parent ?? key) {
         'energy' => palette.textStrong,
         'fat' || NutrientPanelKeys.saturatedFat => palette.fat,
@@ -70,7 +83,9 @@ class MealDetailNutrimentsTable extends StatelessWidget {
                 Expanded(
                   child: Text(
                     '$label - $amount / $target ${unit ?? EnergyDisplay.unitLabel(context)}',
-                    maxLines: 3,
+                    semanticsLabel:
+                        '$label. $amount. ${nutrientQualificationLabel(scaled, s)}. $percentage',
+                    maxLines: 6,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight:
@@ -191,6 +206,10 @@ class MealDetailNutrimentsTable extends StatelessWidget {
             'µg',
           ),
           row('niacin', s.niacinLabel, n.niacin100, 'mg'),
+          Text(
+            s.nutrientQualificationLegend,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(

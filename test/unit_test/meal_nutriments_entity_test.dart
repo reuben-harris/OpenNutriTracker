@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/dbo/meal_nutriments_dbo.dart';
 import 'package:opennutritracker/features/add_meal/data/dto/off/off_product_nutriments_dto.dart';
@@ -16,13 +17,13 @@ void main() {
         'fiber100': 2,
       });
 
-      expect(entity.energyKcal100, 250);
-      expect(entity.carbohydrates100, 30);
-      expect(entity.fat100, 10);
-      expect(entity.proteins100, 15);
-      expect(entity.sugars100, 5);
-      expect(entity.saturatedFat100, 3);
-      expect(entity.fiber100, 2);
+      expect(entity.energyKcal100?.value, 250);
+      expect(entity.carbohydrates100?.value, 30);
+      expect(entity.fat100?.value, 10);
+      expect(entity.proteins100?.value, 15);
+      expect(entity.sugars100?.value, 5);
+      expect(entity.saturatedFat100?.value, 3);
+      expect(entity.fiber100?.value, 2);
     });
 
     test('maps all micronutrient fields correctly', () {
@@ -46,31 +47,31 @@ void main() {
         'niacin100': 8,
       });
 
-      expect(entity.monounsaturatedFat100, 1.1);
-      expect(entity.polyunsaturatedFat100, 2.2);
-      expect(entity.transFat100, 0.5);
-      expect(entity.cholesterol100, 55);
-      expect(entity.sodium100, 120);
-      expect(entity.potassium100, 300);
-      expect(entity.magnesium100, 25);
-      expect(entity.calcium100, 100);
-      expect(entity.iron100, 2);
-      expect(entity.zinc100, 1);
-      expect(entity.phosphorus100, 150);
-      expect(entity.vitaminA100, 90);
-      expect(entity.vitaminC100, 45);
-      expect(entity.vitaminD100, 5);
-      expect(entity.vitaminB6100, 0.3);
-      expect(entity.vitaminB12100, 1.5);
-      expect(entity.niacin100, 8);
+      expect(entity.monounsaturatedFat100?.value, 1.1);
+      expect(entity.polyunsaturatedFat100?.value, 2.2);
+      expect(entity.transFat100?.value, 0.5);
+      expect(entity.cholesterol100?.value, 55);
+      expect(entity.sodium100?.value, 120);
+      expect(entity.potassium100?.value, 300);
+      expect(entity.magnesium100?.value, 25);
+      expect(entity.calcium100?.value, 100);
+      expect(entity.iron100?.value, 2);
+      expect(entity.zinc100?.value, 1);
+      expect(entity.phosphorus100?.value, 150);
+      expect(entity.vitaminA100?.value, 90);
+      expect(entity.vitaminC100?.value, 45);
+      expect(entity.vitaminD100?.value, 5);
+      expect(entity.vitaminB6100?.value, 0.3);
+      expect(entity.vitaminB12100?.value, 1.5);
+      expect(entity.niacin100?.value, 8);
     });
 
     test('absent micronutrients are null', () {
       final entity = MealNutrimentsEntity.fromCatalogue({'energyKcal100': 100});
 
-      expect(entity.monounsaturatedFat100, isNull);
-      expect(entity.sodium100, isNull);
-      expect(entity.vitaminC100, isNull);
+      expect(entity.monounsaturatedFat100?.value, isNull);
+      expect(entity.sodium100?.value, isNull);
+      expect(entity.vitaminC100?.value, isNull);
     });
   });
 
@@ -140,13 +141,13 @@ void main() {
         ),
       );
 
-      expect(entity.energyKcal100, 200.0);
-      expect(entity.carbohydrates100, 25.0);
-      expect(entity.fat100, 8.0);
-      expect(entity.proteins100, 12.0);
-      expect(entity.sugars100, 4.0);
-      expect(entity.saturatedFat100, 2.5);
-      expect(entity.fiber100, 3.0);
+      expect(entity.energyKcal100?.value, 200.0);
+      expect(entity.carbohydrates100?.value, 25.0);
+      expect(entity.fat100?.value, 8.0);
+      expect(entity.proteins100?.value, 12.0);
+      expect(entity.sugars100?.value, 4.0);
+      expect(entity.saturatedFat100?.value, 2.5);
+      expect(entity.fiber100?.value, 3.0);
     });
 
     test('handles integer values from OFF (dynamic type)', () {
@@ -162,8 +163,8 @@ void main() {
         ),
       );
 
-      expect(entity.energyKcal100, 200.0);
-      expect(entity.carbohydrates100, 25.0);
+      expect(entity.energyKcal100?.value, 200.0);
+      expect(entity.carbohydrates100?.value, 25.0);
     });
 
     test('handles string values from OFF (dynamic type)', () {
@@ -179,8 +180,8 @@ void main() {
         ),
       );
 
-      expect(entity.energyKcal100, 200.0);
-      expect(entity.carbohydrates100, 25.0);
+      expect(entity.energyKcal100?.value, 200.0);
+      expect(entity.carbohydrates100?.value, 25.0);
     });
 
     // Every value below is what Open Food Facts actually sends: it normalises
@@ -218,25 +219,25 @@ void main() {
       );
 
       // Lipids are grams on both sides, so they pass straight through.
-      expect(entity.monounsaturatedFat100, 1.1);
-      expect(entity.polyunsaturatedFat100, 2.2);
-      expect(entity.transFat100, 0.5);
+      expect(entity.monounsaturatedFat100?.value, 1.1);
+      expect(entity.polyunsaturatedFat100?.value, 2.2);
+      expect(entity.transFat100?.value, 0.5);
       // Milligrams from here down.
-      expect(entity.cholesterol100, 55.0);
-      expect(entity.sodium100, 120.0);
-      expect(entity.potassium100, 300.0);
-      expect(entity.magnesium100, 25.0);
-      expect(entity.calcium100, 100.0);
-      expect(entity.iron100, 2.0);
-      expect(entity.zinc100, 1.0);
-      expect(entity.phosphorus100, 150.0);
+      expect(entity.cholesterol100?.value, 55.0);
+      expect(entity.sodium100?.value, 120.0);
+      expect(entity.potassium100?.value, 300.0);
+      expect(entity.magnesium100?.value, 25.0);
+      expect(entity.calcium100?.value, 100.0);
+      expect(entity.iron100?.value, 2.0);
+      expect(entity.zinc100?.value, 1.0);
+      expect(entity.phosphorus100?.value, 150.0);
       // Micrograms for A, D and B12; the rest of the vitamins are milligrams.
-      expect(entity.vitaminA100, 90.0);
-      expect(entity.vitaminC100, 45.0);
-      expect(entity.vitaminD100, 5.0);
-      expect(entity.vitaminB6100, 0.3);
-      expect(entity.vitaminB12100, 1.5);
-      expect(entity.niacin100, 8.0);
+      expect(entity.vitaminA100?.value, 90.0);
+      expect(entity.vitaminC100?.value, 45.0);
+      expect(entity.vitaminD100?.value, 5.0);
+      expect(entity.vitaminB6100?.value, 0.3);
+      expect(entity.vitaminB12100?.value, 1.5);
+      expect(entity.niacin100?.value, 8.0);
     });
 
     // Values copied from live OFF responses rather than invented, so the
@@ -248,8 +249,8 @@ void main() {
         buildDto(iron: 0.0021, sodium: 0.0428),
       );
 
-      expect(entity.iron100, closeTo(2.1, 1e-9));
-      expect(entity.sodium100, closeTo(42.8, 1e-9));
+      expect(entity.iron100?.value, closeTo(2.1, 1e-9));
+      expect(entity.sodium100?.value, closeTo(42.8, 1e-9));
     });
 
     // The point of #716 in one assertion: the same food should read the same
@@ -292,20 +293,20 @@ void main() {
         'niacin100': 8,
       });
 
-      expect(fromOff.cholesterol100, fromFdc.cholesterol100);
-      expect(fromOff.sodium100, fromFdc.sodium100);
-      expect(fromOff.potassium100, fromFdc.potassium100);
-      expect(fromOff.magnesium100, fromFdc.magnesium100);
-      expect(fromOff.calcium100, fromFdc.calcium100);
-      expect(fromOff.iron100, fromFdc.iron100);
-      expect(fromOff.zinc100, fromFdc.zinc100);
-      expect(fromOff.phosphorus100, fromFdc.phosphorus100);
-      expect(fromOff.vitaminA100, fromFdc.vitaminA100);
-      expect(fromOff.vitaminC100, fromFdc.vitaminC100);
-      expect(fromOff.vitaminD100, fromFdc.vitaminD100);
-      expect(fromOff.vitaminB6100, fromFdc.vitaminB6100);
-      expect(fromOff.vitaminB12100, fromFdc.vitaminB12100);
-      expect(fromOff.niacin100, fromFdc.niacin100);
+      expect(fromOff.cholesterol100?.value, fromFdc.cholesterol100?.value);
+      expect(fromOff.sodium100?.value, fromFdc.sodium100?.value);
+      expect(fromOff.potassium100?.value, fromFdc.potassium100?.value);
+      expect(fromOff.magnesium100?.value, fromFdc.magnesium100?.value);
+      expect(fromOff.calcium100?.value, fromFdc.calcium100?.value);
+      expect(fromOff.iron100?.value, fromFdc.iron100?.value);
+      expect(fromOff.zinc100?.value, fromFdc.zinc100?.value);
+      expect(fromOff.phosphorus100?.value, fromFdc.phosphorus100?.value);
+      expect(fromOff.vitaminA100?.value, fromFdc.vitaminA100?.value);
+      expect(fromOff.vitaminC100?.value, fromFdc.vitaminC100?.value);
+      expect(fromOff.vitaminD100?.value, fromFdc.vitaminD100?.value);
+      expect(fromOff.vitaminB6100?.value, fromFdc.vitaminB6100?.value);
+      expect(fromOff.vitaminB12100?.value, fromFdc.vitaminB12100?.value);
+      expect(fromOff.niacin100?.value, fromFdc.niacin100?.value);
     });
 
     // A declared zero is a fact about the food and has to survive the
@@ -315,8 +316,8 @@ void main() {
         buildDto(sodium: 0, vitaminD: 0.0),
       );
 
-      expect(entity.sodium100, 0.0);
-      expect(entity.vitaminD100, 0.0);
+      expect(entity.sodium100?.value, 0.0);
+      expect(entity.vitaminD100?.value, 0.0);
     });
 
     test('absent micronutrients are null', () {
@@ -332,43 +333,43 @@ void main() {
         ),
       );
 
-      expect(entity.monounsaturatedFat100, isNull);
-      expect(entity.sodium100, isNull);
-      expect(entity.vitaminC100, isNull);
-      expect(entity.vitaminD100, isNull);
+      expect(entity.monounsaturatedFat100?.value, isNull);
+      expect(entity.sodium100?.value, isNull);
+      expect(entity.vitaminC100?.value, isNull);
+      expect(entity.vitaminD100?.value, isNull);
     });
 
     test('returns empty entity when DTO is null', () {
       final entity = MealNutrimentsEntity.fromOffNutriments(null);
-      expect(entity.energyKcal100, isNull);
-      expect(entity.carbohydrates100, isNull);
+      expect(entity.energyKcal100?.value, isNull);
+      expect(entity.carbohydrates100?.value, isNull);
     });
   });
 
   group('MealNutrimentsEntity.hasMicronutrientData', () {
     test('returns false when all micronutrients are null', () {
       const entity = MealNutrimentsEntity(
-        energyKcal100: 200,
-        carbohydrates100: 30,
-        fat100: 10,
-        proteins100: 15,
-        sugars100: 5,
-        saturatedFat100: 3,
-        fiber100: 2,
+        energyKcal100: NutrientAmount(200),
+        carbohydrates100: NutrientAmount(30),
+        fat100: NutrientAmount(10),
+        proteins100: NutrientAmount(15),
+        sugars100: NutrientAmount(5),
+        saturatedFat100: NutrientAmount(3),
+        fiber100: NutrientAmount(2),
       );
       expect(entity.hasMicronutrientData, isFalse);
     });
 
     test('returns true when any micronutrient is non-null', () {
       const entity = MealNutrimentsEntity(
-        energyKcal100: 200,
-        carbohydrates100: 30,
-        fat100: 10,
-        proteins100: 15,
-        sugars100: 5,
-        saturatedFat100: 3,
-        fiber100: 2,
-        sodium100: 120,
+        energyKcal100: NutrientAmount(200),
+        carbohydrates100: NutrientAmount(30),
+        fat100: NutrientAmount(10),
+        proteins100: NutrientAmount(15),
+        sugars100: NutrientAmount(5),
+        saturatedFat100: NutrientAmount(3),
+        fiber100: NutrientAmount(2),
+        sodium100: NutrientAmount(120),
       );
       expect(entity.hasMicronutrientData, isTrue);
     });
@@ -385,48 +386,48 @@ void main() {
       // typed 0 became NaN, every other value infinity.
       final entity = MealNutrimentsEntity.fromMealNutrimentsDBO(
         MealNutrimentsDBO(
-          energyKcal100: double.nan,
-          carbohydrates100: double.infinity,
-          fat100: double.negativeInfinity,
-          proteins100: double.nan,
-          sugars100: double.nan,
-          saturatedFat100: double.nan,
-          fiber100: double.nan,
-          sodium100: double.nan,
+          energyKcal100: NutrientAmount.fromNumber(double.nan),
+          carbohydrates100: NutrientAmount.fromNumber(double.infinity),
+          fat100: NutrientAmount.fromNumber(double.negativeInfinity),
+          proteins100: NutrientAmount.fromNumber(double.nan),
+          sugars100: NutrientAmount.fromNumber(double.nan),
+          saturatedFat100: NutrientAmount.fromNumber(double.nan),
+          fiber100: NutrientAmount.fromNumber(double.nan),
+          sodium100: NutrientAmount.fromNumber(double.nan),
         ),
       );
 
-      expect(entity.energyKcal100, isNull);
-      expect(entity.carbohydrates100, isNull);
-      expect(entity.fat100, isNull);
-      expect(entity.proteins100, isNull);
-      expect(entity.sugars100, isNull);
-      expect(entity.saturatedFat100, isNull);
-      expect(entity.fiber100, isNull);
-      expect(entity.sodium100, isNull);
-      expect(entity.energyPerUnit, isNull);
+      expect(entity.energyKcal100?.value, isNull);
+      expect(entity.carbohydrates100?.value, isNull);
+      expect(entity.fat100?.value, isNull);
+      expect(entity.proteins100?.value, isNull);
+      expect(entity.sugars100?.value, isNull);
+      expect(entity.saturatedFat100?.value, isNull);
+      expect(entity.fiber100?.value, isNull);
+      expect(entity.sodium100?.value, isNull);
+      expect(entity.energyPerUnit?.value, isNull);
     });
 
     test('keeps finite values, zero included', () {
       final entity = MealNutrimentsEntity.fromMealNutrimentsDBO(
         MealNutrimentsDBO(
-          energyKcal100: 0,
-          carbohydrates100: 30,
-          fat100: 10,
-          proteins100: 15,
+          energyKcal100: NutrientAmount(0),
+          carbohydrates100: NutrientAmount(30),
+          fat100: NutrientAmount(10),
+          proteins100: NutrientAmount(15),
           sugars100: null,
-          saturatedFat100: 3,
-          fiber100: 2,
+          saturatedFat100: NutrientAmount(3),
+          fiber100: NutrientAmount(2),
         ),
       );
 
-      expect(entity.energyKcal100, 0);
-      expect(entity.carbohydrates100, 30);
-      expect(entity.fat100, 10);
-      expect(entity.proteins100, 15);
-      expect(entity.sugars100, isNull);
-      expect(entity.saturatedFat100, 3);
-      expect(entity.fiber100, 2);
+      expect(entity.energyKcal100?.value, 0);
+      expect(entity.carbohydrates100?.value, 30);
+      expect(entity.fat100?.value, 10);
+      expect(entity.proteins100?.value, 15);
+      expect(entity.sugars100?.value, isNull);
+      expect(entity.saturatedFat100?.value, 3);
+      expect(entity.fiber100?.value, 2);
     });
   });
 }

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -50,14 +51,14 @@ MealEntity _food(String name, double kcal100, {String unit = 'g'}) =>
       servingUnit: null,
       servingSize: null,
       nutriments: MealNutrimentsEntity(
-        energyKcal100: kcal100,
-        carbohydrates100: 10,
-        fat100: 2,
-        proteins100: 4,
+        energyKcal100: NutrientAmount.fromNumber(kcal100),
+        carbohydrates100: NutrientAmount(10),
+        fat100: NutrientAmount(2),
+        proteins100: NutrientAmount(4),
         sugars100: null,
         saturatedFat100: null,
         fiber100: null,
-        iron100: 3.25,
+        iron100: NutrientAmount(3.25),
       ),
       source: MealSourceEntity.custom,
     );
@@ -90,10 +91,10 @@ RecipeEntity _recipe({double kcal100 = 190}) => RecipeEntity(
   totalWeightG: 200,
   cookedWeightG: 200,
   aggregatedNutrimentsPer100: MealNutrimentsEntity(
-    energyKcal100: kcal100,
-    carbohydrates100: 9,
-    fat100: 2,
-    proteins100: 4,
+    energyKcal100: NutrientAmount.fromNumber(kcal100),
+    carbohydrates100: NutrientAmount(9),
+    fat100: NutrientAmount(2),
+    proteins100: NutrientAmount(4),
     sugars100: null,
     saturatedFat100: null,
     fiber100: null,
@@ -317,7 +318,8 @@ void main() {
             .first
             .snapshotMeal
             .nutriments
-            .iron100,
+            .iron100
+            ?.value,
         3.25,
       );
       expect(
@@ -380,7 +382,12 @@ void main() {
         copiedFrom: first,
       );
       expect(
-        capture.last!.recipeSnapshot?.aggregatedNutrimentsPer100.energyKcal100,
+        capture
+            .last!
+            .recipeSnapshot
+            ?.aggregatedNutrimentsPer100
+            .energyKcal100
+            ?.value,
         190,
       );
       await bloc.close();

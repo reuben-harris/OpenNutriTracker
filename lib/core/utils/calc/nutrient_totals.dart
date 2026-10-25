@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/domain/entity/config_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
@@ -7,18 +8,23 @@ import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments
 /// without spinning up a Flutter binding. `weekly: true` divides every total
 /// by 7 to convert a seven-day window into an average daily intake.
 class NutrientPanelTotals {
-  final double fiberG;
-  final double sodiumMg;
-  final double saturatedFatG;
-  final double sugarG;
-  final double calciumMg;
-  final double ironMg;
-  final double potassiumMg;
-  final double vitaminDMcg;
-  final double vitaminB12Mcg;
-  final double magnesiumMg;
+  final NutrientAmount? energyKcal, carbsG, fatG, proteinG;
+  final NutrientAmount? fiberG;
+  final NutrientAmount? sodiumMg;
+  final NutrientAmount? saturatedFatG;
+  final NutrientAmount? sugarG;
+  final NutrientAmount? calciumMg;
+  final NutrientAmount? ironMg;
+  final NutrientAmount? potassiumMg;
+  final NutrientAmount? vitaminDMcg;
+  final NutrientAmount? vitaminB12Mcg;
+  final NutrientAmount? magnesiumMg;
 
   const NutrientPanelTotals({
+    this.energyKcal,
+    this.carbsG,
+    this.fatG,
+    this.proteinG,
     required this.fiberG,
     required this.sodiumMg,
     required this.saturatedFatG,
@@ -36,16 +42,19 @@ class NutrientPanelTotals {
     bool weekly = false,
   }) {
     final divisor = weekly ? 7.0 : 1.0;
-    double sum(double? Function(MealNutrimentsEntity n) pick) {
-      return intakes.fold<double>(0, (running, intake) {
-            final per100 = pick(intake.meal.nutriments);
-            if (per100 == null) return running;
-            return running + intake.nutritionScale * per100;
-          }) /
-          divisor;
+    NutrientAmount? sum(NutrientAmount? Function(MealNutrimentsEntity n) pick) {
+      final acc = NutrientAccumulator();
+      for (final intake in intakes) {
+        acc.add(pick(intake.meal.nutriments), scale: intake.nutritionScale);
+      }
+      return acc.total?.scale(1 / divisor);
     }
 
     return NutrientPanelTotals(
+      energyKcal: sum((n) => n.energyKcal100),
+      carbsG: sum((n) => n.carbohydrates100),
+      fatG: sum((n) => n.fat100),
+      proteinG: sum((n) => n.proteins100),
       fiberG: sum((n) => n.fiber100),
       sodiumMg: sum((n) => n.sodium100),
       saturatedFatG: sum((n) => n.saturatedFat100),
@@ -58,6 +67,17 @@ class NutrientPanelTotals {
       magnesiumMg: sum((n) => n.magnesium100),
     );
   }
+}
+
+NutrientAmount? intakeNutrientTotal(
+  Iterable<IntakeEntity> intakes,
+  NutrientAmount? Function(MealNutrimentsEntity) pick,
+) {
+  final accumulator = NutrientAccumulator();
+  for (final intake in intakes) {
+    accumulator.add(pick(intake.meal.nutriments), scale: intake.nutritionScale);
+  }
+  return accumulator.total;
 }
 
 /// Stable identifiers for the panel's nutrient rows. These are the keys the

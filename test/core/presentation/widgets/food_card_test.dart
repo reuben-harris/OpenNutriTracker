@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,10 +35,10 @@ void main() {
             servingUnit: 'g',
             servingSize: null,
             nutriments: const MealNutrimentsEntity(
-              energyKcal100: 200,
-              carbohydrates100: 20,
-              fat100: 10,
-              proteins100: 5,
+              energyKcal100: NutrientAmount(200),
+              carbohydrates100: NutrientAmount(20),
+              fat100: NutrientAmount(10),
+              proteins100: NutrientAmount(5),
               sugars100: null,
               saturatedFat100: null,
               fiber100: null,

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/core/utils/food_amount_unit.dart';
@@ -57,8 +58,8 @@ MealEntity quick({double? kcal = 123.456789, double? carbs}) => MealEntity(
   source: MealSourceEntity.custom,
   isQuickAdd: true,
   nutriments: MealNutrimentsEntity(
-    energyKcal100: kcal,
-    carbohydrates100: carbs,
+    energyKcal100: NutrientAmount.fromNumber(kcal),
+    carbohydrates100: NutrientAmount.fromNumber(carbs),
     fat100: null,
     proteins100: null,
     sugars100: null,
@@ -198,7 +199,7 @@ void main() {
         );
         expect(
           tester.widget<TextField>(field(1)).controller!.text,
-          nutrients.nutriments.energyKcal100?.toString() ?? '',
+          nutrients.nutriments.energyKcal100?.value.toString() ?? '',
         );
         expect(tester.widget<TextField>(field(3)).controller!.text, '');
       },
@@ -329,9 +330,9 @@ void main() {
         expect(updated.dateTime, intake.dateTime);
         expect(updated.type, intake.type);
         expect(updated.baseAmount, intake.baseAmount);
-        expect(updated.meal.nutriments.energyKcal100, 123.456789);
-        expect(updated.meal.nutriments.carbohydrates100, 0);
-        expect(updated.meal.nutriments.fat100, isNull);
+        expect(updated.meal.nutriments.energyKcal100?.value, 123.456789);
+        expect(updated.meal.nutriments.carbohydrates100?.value, 0);
+        expect(updated.meal.nutriments.fat100?.value, isNull);
         expect(db.customMealBox.values.single.name, 'Renamed quick');
         expect((await repo.getIntakeById('other'))!.meal.name, 'Quick food');
       },

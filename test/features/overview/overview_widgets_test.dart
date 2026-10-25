@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import '../../helpers/pump_until.dart';
 import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
@@ -202,9 +203,9 @@ void main() {
             child: Column(
               children: [
                 OverviewMacros(
-                  carbs: 150,
-                  fat: 20,
-                  protein: 0,
+                  carbs: const NutrientAmount(150),
+                  fat: const NutrientAmount(20),
+                  protein: const NutrientAmount(0),
                   carbsGoal: 100,
                   fatGoal: 0,
                   proteinGoal: 50,
@@ -403,10 +404,10 @@ void main() {
         servingSize: null,
         source: MealSourceEntity.custom,
         nutriments: MealNutrimentsEntity(
-          energyKcal100: 200,
-          carbohydrates100: 40,
-          fat100: 8,
-          proteins100: 20,
+          energyKcal100: NutrientAmount(200),
+          carbohydrates100: NutrientAmount(40),
+          fat100: NutrientAmount(8),
+          proteins100: NutrientAmount(20),
           sugars100: null,
           saturatedFat100: null,
           fiber100: null,

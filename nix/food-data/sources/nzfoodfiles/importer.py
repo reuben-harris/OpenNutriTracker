@@ -115,6 +115,17 @@ def workbook_records(path, records):
                 records.record(f'{path.name}/{sheet.attrib["name"]}', row.attrib['r'], {'cells': cells})
 
 
+def project_amount(amount, value_type):
+    qualification = {'TR': 'trace', 'BL': 'belowDetection',
+                     'BLX': 'belowDetectionOrQuantification', 'BQ': 'belowQuantification'}.get(value_type)
+    if qualification is None:
+        return amount
+    # The value column is the published calculation value, not a threshold.
+    # No detection/quantification limit is supplied by this table.
+    return {'value': '0' if qualification == 'trace' else amount or '0',
+            'qualification': qualification, 'limit': None}
+
+
 def import_files(directory, pin, output, lock):
     counts, exceptions = {}, []
     external_references = Counter()
@@ -157,7 +168,7 @@ def import_files(directory, pin, output, lock):
                 raise ValidationError(f'Component units or basis differ: {key}')
             amount = decimal_value(row['Value'])
             if component in mapped:
-                nutrition[identity][mapped[component]] = amount
+                nutrition[identity][mapped[component]] = project_amount(amount, row['Value Type Code'])
             nutrient_count += 1
         for identity, row in sorted(names.items()):
             name = row['Short Food Name'] or row['Food Name']

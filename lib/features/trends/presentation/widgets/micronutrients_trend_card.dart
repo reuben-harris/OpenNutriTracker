@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
+import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -43,7 +45,7 @@ class _MicronutrientsTrendCardState extends State<MicronutrientsTrendCard> {
                 String key,
                 String label,
                 String unit,
-                double Function(NutrientPanelTotals) amount,
+                NutrientAmount? Function(NutrientPanelTotals) amount,
               })
             >[
               (
@@ -143,19 +145,32 @@ class _MicronutrientsTrendCardState extends State<MicronutrientsTrendCard> {
     final spots = [
       for (var i = 0; i < widget.rangeDays; i++)
         FlSpot(i.toDouble(), switch (widget.nutrientsByDay[dateAt(i)]) {
-          final totals? => nutrient.amount(totals),
+          final totals? => nutrient.amount(totals)?.calculationValue ?? 0,
           null => 0,
         }),
     ];
-    final average =
-        spots.fold<double>(0, (sum, spot) => sum + spot.y) / widget.rangeDays;
+    NutrientAmount? dayAmount(int index) =>
+        switch (widget.nutrientsByDay[dateAt(index)]) {
+          final totals? => nutrient.amount(totals),
+          null => null,
+        };
+    final accumulator = NutrientAccumulator();
+    for (var i = 0; i < widget.rangeDays; i++) {
+      accumulator.add(dayAmount(i));
+    }
+    final average = accumulator.total?.scale(1 / widget.rangeDays);
     final maximum = spots.fold<double>(
       0,
       (max, spot) => spot.y > max ? spot.y : max,
     );
     final locale = Localizations.localeOf(context).toString();
-    final number = NumberFormat('0.#', locale);
-    String amount(double value) => '${number.format(value)} ${nutrient.unit}';
+    String amount(NutrientAmount? value) => formatNutrientAmount(
+      value,
+      s,
+      unit: nutrient.unit,
+      decimals: 1,
+      trimTrailingZeros: true,
+    );
     final averageLabel = '${s.trendsDailyAverageLabel}: ${amount(average)}';
     final dateFormat = DateFormat.MMMd(locale);
 
@@ -197,11 +212,18 @@ class _MicronutrientsTrendCardState extends State<MicronutrientsTrendCard> {
             ),
           ),
           const SizedBox(height: 12),
-          Text(averageLabel, style: theme.textTheme.bodySmall),
+          Text(
+            averageLabel,
+            semanticsLabel:
+                '$averageLabel. ${nutrientQualificationLabel(average, s)}',
+            style: theme.textTheme.bodySmall,
+          ),
+
           const SizedBox(height: 20),
           Semantics(
             identifier: 'trends-nutrients-chart',
-            label: '${nutrient.label}. $averageLabel',
+            label:
+                '${nutrient.label}. $averageLabel. ${nutrientQualificationLabel(average, s)}',
             child: SizedBox(
               height: 160,
               child: LineChart(
@@ -221,7 +243,7 @@ class _MicronutrientsTrendCardState extends State<MicronutrientsTrendCard> {
                         for (final spot in touched)
                           LineTooltipItem(
                             '${dateFormat.format(dateAt(spot.x.round()))}\n'
-                            '${amount(spot.y)}',
+                            '${amount(dayAmount(spot.x.round()))}',
                             theme.textTheme.labelMedium!.copyWith(
                               color: theme.colorScheme.onInverseSurface,
                             ),

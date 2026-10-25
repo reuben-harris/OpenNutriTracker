@@ -48,8 +48,8 @@ void main() {
               : ProductRefreshFixture.success(kcal: 100),
         );
         await bloc.close();
-        expect(bloc.state.hydratedMeal!.nutriments.energyKcal100, 300);
-        expect((await fixture.cached).nutriments.energyKcal100, 300);
+        expect(bloc.state.hydratedMeal!.nutriments.energyKcal100?.value, 300);
+        expect((await fixture.cached).nutriments.energyKcal100?.value, 300);
         expect(bloc.state.isHydrating, isFalse);
         expect(bloc.state.mealRevision, 1);
         expect(fixture.requests, hasLength(2));
@@ -96,7 +96,7 @@ void main() {
       final closing = bloc.close();
       response.complete(ProductRefreshFixture.success());
       await closing;
-      expect((await fixture.cached).nutriments.energyKcal100, 100);
+      expect((await fixture.cached).nutriments.energyKcal100?.value, 100);
     },
   );
 }

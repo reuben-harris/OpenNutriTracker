@@ -259,6 +259,9 @@ Map<String, dynamic> _mergeFoodMaps(
     if (entry.value == null) continue;
     if (entry.key == 'detailed') {
       merged[entry.key] = old[entry.key] == true || entry.value == true;
+    } else if (entry.value is Map &&
+        (entry.value as Map).containsKey('qualification')) {
+      merged[entry.key] = entry.value;
     } else if (entry.value is Map && old[entry.key] is Map) {
       merged[entry.key] = _mergeFoodMaps(
         Map<String, dynamic>.from(old[entry.key] as Map),

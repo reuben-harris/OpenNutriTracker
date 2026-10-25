@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/data_source/user_activity_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/intake_dbo.dart';
@@ -75,7 +76,7 @@ void main() {
           name: 'Sparse meal',
           // Only kcal present; everything else null.
           nutriments: MealNutrimentsDBO(
-            energyKcal100: 100,
+            energyKcal100: NutrientAmount(100),
             carbohydrates100: null,
             fat100: null,
             proteins100: null,
@@ -89,11 +90,11 @@ void main() {
       final csv = CsvDataExporter.intakesToCsv([intake]);
       final parsed = CsvDataExporter.parseIntakesFromCsv(csv).single;
 
-      expect(parsed.meal.nutriments.energyKcal100, 100);
-      expect(parsed.meal.nutriments.carbohydrates100, isNull);
-      expect(parsed.meal.nutriments.fat100, isNull);
-      expect(parsed.meal.nutriments.proteins100, isNull);
-      expect(parsed.meal.nutriments.iron100, isNull);
+      expect(parsed.meal.nutriments.energyKcal100?.value, 100);
+      expect(parsed.meal.nutriments.carbohydrates100?.value, isNull);
+      expect(parsed.meal.nutriments.fat100?.value, isNull);
+      expect(parsed.meal.nutriments.proteins100?.value, isNull);
+      expect(parsed.meal.nutriments.iron100?.value, isNull);
     });
 
     test('exported CSV starts with the documented header row', () {
@@ -336,10 +337,10 @@ MealNutrimentsDBO _nutriments({
   double? protein,
 }) {
   return MealNutrimentsDBO(
-    energyKcal100: kcal,
-    carbohydrates100: carbs,
-    fat100: fat,
-    proteins100: protein,
+    energyKcal100: NutrientAmount.fromNumber(kcal),
+    carbohydrates100: NutrientAmount.fromNumber(carbs),
+    fat100: NutrientAmount.fromNumber(fat),
+    proteins100: NutrientAmount.fromNumber(protein),
     sugars100: null,
     saturatedFat100: null,
     fiber100: null,
@@ -362,16 +363,19 @@ void _expectIntakeEqual(IntakeDBO actual, IntakeDBO expected) {
   expect(actual.meal.servingUnit, expected.meal.servingUnit);
   expect(actual.meal.servingSize, expected.meal.servingSize);
   expect(
-    actual.meal.nutriments.energyKcal100,
-    expected.meal.nutriments.energyKcal100,
+    actual.meal.nutriments.energyKcal100?.value,
+    expected.meal.nutriments.energyKcal100?.value,
   );
   expect(
-    actual.meal.nutriments.carbohydrates100,
-    expected.meal.nutriments.carbohydrates100,
+    actual.meal.nutriments.carbohydrates100?.value,
+    expected.meal.nutriments.carbohydrates100?.value,
   );
-  expect(actual.meal.nutriments.fat100, expected.meal.nutriments.fat100);
   expect(
-    actual.meal.nutriments.proteins100,
-    expected.meal.nutriments.proteins100,
+    actual.meal.nutriments.fat100?.value,
+    expected.meal.nutriments.fat100?.value,
+  );
+  expect(
+    actual.meal.nutriments.proteins100?.value,
+    expected.meal.nutriments.proteins100?.value,
   );
 }

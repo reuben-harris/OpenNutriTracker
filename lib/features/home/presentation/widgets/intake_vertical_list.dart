@@ -1,3 +1,6 @@
+import 'package:opennutritracker/core/utils/calc/nutrient_totals.dart';
+import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/create_recipe_from_diary.dart';
 import 'package:opennutritracker/core/presentation/widgets/food_section_header.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
@@ -102,33 +105,14 @@ class IntakeVerticalList extends StatefulWidget {
 
 class _IntakeVerticalListState extends State<IntakeVerticalList> {
   bool _creatingRecipe = false;
-  double get totalKcal {
-    return widget.intakeList.fold(
-      0,
-      (previousValue, element) => previousValue + element.totalKcal,
-    );
-  }
-
-  double get totalCarbsGram {
-    return widget.intakeList.fold(
-      0,
-      (previousValue, element) => previousValue + element.totalCarbsGram,
-    );
-  }
-
-  double get totalFatsGram {
-    return widget.intakeList.fold(
-      0,
-      (previousValue, element) => previousValue + element.totalFatsGram,
-    );
-  }
-
-  double get totalProteinsGram {
-    return widget.intakeList.fold(
-      0,
-      (previousValue, element) => previousValue + element.totalProteinsGram,
-    );
-  }
+  NutrientPanelTotals get totals =>
+      NutrientPanelTotals.fromIntakes(widget.intakeList);
+  bool get hasQualifications => [
+    totals.energyKcal,
+    totals.carbsG,
+    totals.fatG,
+    totals.proteinG,
+  ].any((a) => a?.isQualified ?? false);
 
   // #150: only show a header when we have something to say — either some
   // food was logged, or a recommended target exists so the section can read
@@ -140,7 +124,15 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
       widget.intakeList.isNotEmpty || _hasMealKcalTarget;
 
   String _buildHeaderSummary(BuildContext context) {
-    final consumed = EnergyDisplay.formatValue(context, totalKcal);
+    final n = totals;
+    final energy = widget.intakeList.isEmpty
+        ? const NutrientAmount(0)
+        : n.energyKcal;
+    final consumed = formatNutrientAmount(
+      EnergyDisplay.convertAmount(context, energy),
+      S.of(context),
+      decimals: 0,
+    );
     final kcalLine = _hasMealKcalTarget
         ? S
               .of(context)
@@ -148,12 +140,12 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                 consumed,
                 EnergyDisplay.formatValue(context, widget.mealKcalTarget!),
               )
-        : EnergyDisplay.formatWithUnit(context, totalKcal);
+        : EnergyDisplay.formatAmount(context, energy);
     if (widget.showMealMacros && widget.intakeList.isNotEmpty) {
       return '$kcalLine\n'
-          '${totalCarbsGram.toInt()} ${S.of(context).carbsLabelShort}  '
-          '${totalFatsGram.toInt()} ${S.of(context).fatLabelShort}  '
-          '${totalProteinsGram.toInt()} ${S.of(context).proteinLabelShort}';
+          '${formatNutrientAmount(n.carbsG, S.of(context), decimals: 0)} ${S.of(context).carbsLabelShort}  '
+          '${formatNutrientAmount(n.fatG, S.of(context), decimals: 0)} ${S.of(context).fatLabelShort}  '
+          '${formatNutrientAmount(n.proteinG, S.of(context), decimals: 0)} ${S.of(context).proteinLabelShort}';
     }
     return kcalLine;
   }
@@ -196,6 +188,9 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                     summary: _shouldShowHeaderSummary
                         ? _buildHeaderSummary(context)
                         : null,
+                    summarySemantics: hasQualifications
+                        ? '${_buildHeaderSummary(context)}. ${S.of(context).nutrientQualifiedTotalLabel}'
+                        : null,
                     actions: [
                       if (widget.onSortTypeChanged != null &&
                           widget.intakeList.isNotEmpty)
@@ -207,6 +202,7 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                       _buildMenu(context),
                     ],
                   ),
+
                   for (final entry in widget.intakeList)
                     Semantics(
                       key: ValueKey(entry.id),

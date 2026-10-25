@@ -102,7 +102,7 @@ void main() {
       // 100 g @ 200 + 100 g @ 300 = 500 kcal in 200 g → 250 kcal/100 g
       expect(result.recipes.single.totalWeightG, 200);
       expect(
-        result.recipes.single.aggregatedNutrimentsPer100.energyKcal100,
+        result.recipes.single.aggregatedNutrimentsPer100.energyKcal100?.value,
         closeTo(250, 0.001),
       );
     });
@@ -124,7 +124,7 @@ void main() {
       expect(ingredients, hasLength(2));
       expect(ingredients[0].quantity.amount, 1.5);
       expect(ingredients[0].quantity.option.unit, 'g');
-      expect(ingredients[0].snapshotMeal.nutriments.fat100, 12.5);
+      expect(ingredients[0].snapshotMeal.nutriments.fat100?.value, 12.5);
       expect(ingredients[1].quantity.amount, 200);
     });
 

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -23,60 +24,60 @@ import '../helpers/hive_test_setup.dart';
 // The expectations are the app's units, the same pairs #775's own test
 // reads in both directions.
 MealNutrimentsDBO _offGramsAsStoredBefore775() => MealNutrimentsDBO(
-  energyKcal100: 250,
-  carbohydrates100: 30,
-  fat100: 10,
-  proteins100: 8,
-  sugars100: 12,
-  saturatedFat100: 4,
-  fiber100: 2,
-  monounsaturatedFat100: 1.1,
-  polyunsaturatedFat100: 2.2,
-  transFat100: 0.5,
-  cholesterol100: 0.055,
-  sodium100: 0.12,
-  potassium100: 0.3,
-  magnesium100: 0.025,
-  calcium100: 0.1,
-  iron100: 0.002,
-  zinc100: 0.001,
-  phosphorus100: 0.15,
-  vitaminA100: 0.00009,
-  vitaminC100: 0.045,
-  vitaminD100: 0.000005,
-  vitaminB6100: 0.0003,
-  vitaminB12100: 0.0000015,
-  niacin100: 0.008,
+  energyKcal100: NutrientAmount(250),
+  carbohydrates100: NutrientAmount(30),
+  fat100: NutrientAmount(10),
+  proteins100: NutrientAmount(8),
+  sugars100: NutrientAmount(12),
+  saturatedFat100: NutrientAmount(4),
+  fiber100: NutrientAmount(2),
+  monounsaturatedFat100: NutrientAmount(1.1),
+  polyunsaturatedFat100: NutrientAmount(2.2),
+  transFat100: NutrientAmount(0.5),
+  cholesterol100: NutrientAmount(0.055),
+  sodium100: NutrientAmount(0.12),
+  potassium100: NutrientAmount(0.3),
+  magnesium100: NutrientAmount(0.025),
+  calcium100: NutrientAmount(0.1),
+  iron100: NutrientAmount(0.002),
+  zinc100: NutrientAmount(0.001),
+  phosphorus100: NutrientAmount(0.15),
+  vitaminA100: NutrientAmount(0.00009),
+  vitaminC100: NutrientAmount(0.045),
+  vitaminD100: NutrientAmount(0.000005),
+  vitaminB6100: NutrientAmount(0.0003),
+  vitaminB12100: NutrientAmount(0.0000015),
+  niacin100: NutrientAmount(0.008),
 );
 
 void _expectAppUnits(MealNutrimentsDBO n) {
   // Macros and the three lipid fields are grams on both sides.
-  expect(n.energyKcal100, 250);
-  expect(n.carbohydrates100, 30);
-  expect(n.fat100, 10);
-  expect(n.proteins100, 8);
-  expect(n.sugars100, 12);
-  expect(n.saturatedFat100, 4);
-  expect(n.fiber100, 2);
-  expect(n.monounsaturatedFat100, 1.1);
-  expect(n.polyunsaturatedFat100, 2.2);
-  expect(n.transFat100, 0.5);
+  expect(n.energyKcal100?.value, 250);
+  expect(n.carbohydrates100?.value, 30);
+  expect(n.fat100?.value, 10);
+  expect(n.proteins100?.value, 8);
+  expect(n.sugars100?.value, 12);
+  expect(n.saturatedFat100?.value, 4);
+  expect(n.fiber100?.value, 2);
+  expect(n.monounsaturatedFat100?.value, 1.1);
+  expect(n.polyunsaturatedFat100?.value, 2.2);
+  expect(n.transFat100?.value, 0.5);
   // Milligrams from here down.
-  expect(n.cholesterol100, closeTo(55, 1e-9));
-  expect(n.sodium100, closeTo(120, 1e-9));
-  expect(n.potassium100, closeTo(300, 1e-9));
-  expect(n.magnesium100, closeTo(25, 1e-9));
-  expect(n.calcium100, closeTo(100, 1e-9));
-  expect(n.iron100, closeTo(2, 1e-9));
-  expect(n.zinc100, closeTo(1, 1e-9));
-  expect(n.phosphorus100, closeTo(150, 1e-9));
-  expect(n.vitaminC100, closeTo(45, 1e-9));
-  expect(n.vitaminB6100, closeTo(0.3, 1e-9));
-  expect(n.niacin100, closeTo(8, 1e-9));
+  expect(n.cholesterol100?.value, closeTo(55, 1e-9));
+  expect(n.sodium100?.value, closeTo(120, 1e-9));
+  expect(n.potassium100?.value, closeTo(300, 1e-9));
+  expect(n.magnesium100?.value, closeTo(25, 1e-9));
+  expect(n.calcium100?.value, closeTo(100, 1e-9));
+  expect(n.iron100?.value, closeTo(2, 1e-9));
+  expect(n.zinc100?.value, closeTo(1, 1e-9));
+  expect(n.phosphorus100?.value, closeTo(150, 1e-9));
+  expect(n.vitaminC100?.value, closeTo(45, 1e-9));
+  expect(n.vitaminB6100?.value, closeTo(0.3, 1e-9));
+  expect(n.niacin100?.value, closeTo(8, 1e-9));
   // Micrograms for A, D and B12.
-  expect(n.vitaminA100, closeTo(90, 1e-9));
-  expect(n.vitaminD100, closeTo(5, 1e-9));
-  expect(n.vitaminB12100, closeTo(1.5, 1e-9));
+  expect(n.vitaminA100?.value, closeTo(90, 1e-9));
+  expect(n.vitaminD100?.value, closeTo(5, 1e-9));
+  expect(n.vitaminB12100?.value, closeTo(1.5, 1e-9));
 }
 
 MealDBO _meal({
@@ -124,16 +125,16 @@ MealDBO _mealWrittenAfter775({
     servingUnit: 'g',
     servingSize: '50 g',
     nutriments: const MealNutrimentsEntity(
-      energyKcal100: 380,
-      carbohydrates100: 60,
-      fat100: 8,
-      proteins100: 10,
-      sugars100: 15,
-      saturatedFat100: 1.5,
-      fiber100: 9,
-      sodium100: 42.8,
-      iron100: 2.1,
-      vitaminD100: 5,
+      energyKcal100: NutrientAmount(380),
+      carbohydrates100: NutrientAmount(60),
+      fat100: NutrientAmount(8),
+      proteins100: NutrientAmount(10),
+      sugars100: NutrientAmount(15),
+      saturatedFat100: NutrientAmount(1.5),
+      fiber100: NutrientAmount(9),
+      sodium100: NutrientAmount(42.8),
+      iron100: NutrientAmount(2.1),
+      vitaminD100: NutrientAmount(5),
     ),
     source: source,
   ),
@@ -168,14 +169,14 @@ RecipeDBO _recipe(
     cookedWeightG: cookedWeightG,
     // Whatever the old build aggregated; the repair recomputes it.
     aggregatedNutrimentsPer100: MealNutrimentsDBO(
-      energyKcal100: 0,
-      carbohydrates100: 0,
-      fat100: 0,
-      proteins100: 0,
-      sugars100: 0,
-      saturatedFat100: 0,
-      fiber100: 0,
-      sodium100: 0.06,
+      energyKcal100: NutrientAmount(0),
+      carbohydrates100: NutrientAmount(0),
+      fat100: NutrientAmount(0),
+      proteins100: NutrientAmount(0),
+      sugars100: NutrientAmount(0),
+      saturatedFat100: NutrientAmount(0),
+      fiber100: NutrientAmount(0),
+      sodium100: NutrientAmount(0.06),
     ),
     createdAt: DateTime.utc(2026, 7, 1),
     updatedAt: DateTime.utc(2026, 7, 2),
@@ -252,8 +253,8 @@ void main() {
       expect(meal.dataVersion, MealDBO.currentDataVersion);
 
       expect(identical(OffMicronutrientRepair.repairMeal(meal), meal), isTrue);
-      expect(meal.nutriments.sodium100, 42.8);
-      expect(meal.nutriments.vitaminD100, 5);
+      expect(meal.nutriments.sodium100?.value, 42.8);
+      expect(meal.nutriments.vitaminD100?.value, 5);
     });
 
     test('never touches a row from another source, stamped or not', () {
@@ -278,24 +279,24 @@ void main() {
         _meal(
           source: MealSourceDBO.off,
           nutriments: MealNutrimentsDBO(
-            energyKcal100: 100,
+            energyKcal100: NutrientAmount(100),
             carbohydrates100: null,
             fat100: null,
             proteins100: null,
             sugars100: null,
             saturatedFat100: null,
             fiber100: null,
-            sodium100: 0,
-            vitaminD100: 0.0,
+            sodium100: NutrientAmount(0),
+            vitaminD100: NutrientAmount(0.0),
           ),
         ),
       );
 
-      expect(repaired.nutriments.sodium100, 0);
-      expect(repaired.nutriments.vitaminD100, 0);
-      expect(repaired.nutriments.iron100, isNull);
-      expect(repaired.nutriments.vitaminB12100, isNull);
-      expect(repaired.nutriments.energyKcal100, 100);
+      expect(repaired.nutriments.sodium100?.value, 0);
+      expect(repaired.nutriments.vitaminD100?.value, 0);
+      expect(repaired.nutriments.iron100?.value, isNull);
+      expect(repaired.nutriments.vitaminB12100?.value, isNull);
+      expect(repaired.nutriments.energyKcal100?.value, 100);
     });
 
     test('is a no-op the second time', () {
@@ -305,7 +306,7 @@ void main() {
       final twice = OffMicronutrientRepair.repairMeal(once);
 
       expect(identical(twice, once), isTrue);
-      expect(twice.nutriments.sodium100, closeTo(120, 1e-9));
+      expect(twice.nutriments.sodium100?.value, closeTo(120, 1e-9));
     });
   });
 
@@ -389,7 +390,7 @@ void main() {
         OffMicronutrientRepair.repairIntake(intakeBox.get(firstKey)!),
       );
       expect(
-        intakeBox.get(firstKey)!.meal.nutriments.sodium100,
+        intakeBox.get(firstKey)!.meal.nutriments.sodium100?.value,
         closeTo(120, 1e-9),
       );
 
@@ -424,9 +425,9 @@ void main() {
         expect(byName['Nutella']!.detailed, isTrue);
         _expectAppUnits(byName['thin']!.nutriments);
         expect(byName['thin']!.detailed, isFalse);
-        expect(byName['fdc']!.nutriments.sodium100, 0.12);
+        expect(byName['fdc']!.nutriments.sodium100?.value, 0.12);
         expect(byName['fdc']!.dataVersion, isNull);
-        expect(byName['Muesli']!.nutriments.sodium100, 42.8);
+        expect(byName['Muesli']!.nutriments.sodium100?.value, 42.8);
         expect(await OffMicronutrientRepair.repairMealBox(cacheBox), 0);
       },
     );
@@ -441,7 +442,7 @@ void main() {
         expect(repaired.cookedWeightG, recipe.cookedWeightG);
         expect(repaired.totalWeightG, recipe.cookedWeightG);
         expect(
-          repaired.aggregatedNutrimentsPer100.energyKcal100! *
+          repaired.aggregatedNutrimentsPer100.energyKcal100!.value *
               repaired.totalWeightG /
               100,
           closeTo(250, 1e-9),
@@ -530,15 +531,15 @@ void main() {
         code: null,
         name: 'Homemade',
         nutriments: MealNutrimentsDBO(
-          energyKcal100: 50,
-          carbohydrates100: 5,
-          fat100: 1,
-          proteins100: 2,
-          sugars100: 1,
-          saturatedFat100: 0,
-          fiber100: 1,
-          sodium100: 80,
-          vitaminD100: 1,
+          energyKcal100: NutrientAmount(50),
+          carbohydrates100: NutrientAmount(5),
+          fat100: NutrientAmount(1),
+          proteins100: NutrientAmount(2),
+          sugars100: NutrientAmount(1),
+          saturatedFat100: NutrientAmount(0),
+          fiber100: NutrientAmount(1),
+          sodium100: NutrientAmount(80),
+          vitaminD100: NutrientAmount(1),
         ),
       );
       await recipeBox.addAll([
@@ -569,12 +570,21 @@ void main() {
       final mixed = byId['mixed']!;
       _expectAppUnits(mixed.ingredients.first.snapshotMeal.nutriments);
       expect(mixed.ingredients.first.quantity.baseAmount, 100);
-      expect(mixed.ingredients.last.snapshotMeal.nutriments.sodium100, 80);
-      expect(mixed.ingredients.last.snapshotMeal.dataVersion, isNull);
-      expect(mixed.aggregatedNutrimentsPer100.sodium100, closeTo(100, 1e-9));
-      expect(mixed.aggregatedNutrimentsPer100.vitaminD100, closeTo(3, 1e-9));
       expect(
-        mixed.aggregatedNutrimentsPer100.energyKcal100,
+        mixed.ingredients.last.snapshotMeal.nutriments.sodium100?.value,
+        80,
+      );
+      expect(mixed.ingredients.last.snapshotMeal.dataVersion, isNull);
+      expect(
+        mixed.aggregatedNutrimentsPer100.sodium100?.value,
+        closeTo(100, 1e-9),
+      );
+      expect(
+        mixed.aggregatedNutrimentsPer100.vitaminD100?.value,
+        closeTo(3, 1e-9),
+      );
+      expect(
+        mixed.aggregatedNutrimentsPer100.energyKcal100?.value,
         closeTo(150, 1e-9),
       );
       expect(mixed.totalWeightG, 200);
@@ -688,7 +698,7 @@ void main() {
       final repaired = OffMicronutrientRepair.repairIntake(decoded);
 
       expect(identical(repaired, decoded), isTrue);
-      expect(repaired.meal.nutriments.sodium100, 42.8);
+      expect(repaired.meal.nutriments.sodium100?.value, 42.8);
     });
 
     test('a user_intake.csv without the version column is scaled', () {
@@ -747,7 +757,7 @@ void main() {
         identical(OffMicronutrientRepair.repairIntake(parsed), parsed),
         isTrue,
       );
-      expect(parsed.meal.nutriments.sodium100, 42.8);
+      expect(parsed.meal.nutriments.sodium100?.value, 42.8);
     });
   });
 }

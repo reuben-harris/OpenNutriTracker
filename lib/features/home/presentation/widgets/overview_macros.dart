@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
+import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
@@ -6,7 +8,8 @@ import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
 class OverviewMacros extends StatelessWidget {
-  final double carbs, fat, protein, carbsGoal, fatGoal, proteinGoal;
+  final NutrientAmount? carbs, fat, protein;
+  final double carbsGoal, fatGoal, proteinGoal;
   final bool asPercent;
   final VoidCallback onToggle;
   const OverviewMacros({
@@ -71,7 +74,7 @@ class OverviewMacros extends StatelessWidget {
   Widget _row(
     BuildContext context,
     String label,
-    double value,
+    NutrientAmount? value,
     double goal,
     Color color,
   ) => Padding(
@@ -83,8 +86,11 @@ class OverviewMacros extends StatelessWidget {
           builder: (context, constraints) {
             final amount = Text(
               asPercent
-                  ? goalPercentage(value, goal)
-                  : '${value.toStringAsFixed(0)} / ${goal.toStringAsFixed(0)} g',
+                  ? formatNutrientPercentage(value, goal)
+                  : '${formatNutrientAmount(value, S.of(context), decimals: 0)} / ${goal.toStringAsFixed(0)} g',
+              semanticsLabel: (value?.isQualified ?? false)
+                  ? '${formatNutrientAmount(value, S.of(context))}. ${nutrientQualificationLabel(value, S.of(context))}'
+                  : null,
               textAlign: TextAlign.end,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -114,7 +120,7 @@ class OverviewMacros extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         LinearProgressIndicator(
-          value: goalProgress(value, goal),
+          value: goalProgress(value?.calculationValue ?? 0, goal),
           color: color,
           minHeight: 8,
           borderRadius: BorderRadius.circular(8),
