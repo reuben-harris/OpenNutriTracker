@@ -201,10 +201,6 @@ class ConfigDataSource {
     await _update((c) => c.showActivityTracking = show);
   }
 
-  Future<void> setConfigShowMealMacros(bool show) async {
-    await _update((c) => c.showMealMacros = show);
-  }
-
   Future<void> setNotificationsEnabled(bool enabled) async {
     await _update((c) => c.notificationsEnabled = enabled);
   }
@@ -214,10 +210,6 @@ class ConfigDataSource {
       c.notificationHour = hour;
       c.notificationMinute = minute;
     });
-  }
-
-  Future<void> setConfigShowMicronutrients(bool show) async {
-    await _update((c) => c.showMicronutrients = show);
   }
 
   Future<void> setConfigUsesKilojoules(bool usesKilojoules) async {

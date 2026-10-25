@@ -22,13 +22,11 @@ class SettingsLoadedState extends SettingsState {
   final bool usesImperialHeightUnits;
   final BodyWeightUnit bodyWeightUnit;
   final bool showActivityTracking;
-  final bool showMealMacros;
   final bool notificationsEnabled;
   final int notificationHour;
   final int notificationMinute;
   final int offCacheCount;
   final int offCacheSizeBytes;
-  final bool showMicronutrients; // #237
   final bool usesKilojoules; // #177
   final int dayStartOffsetHours; // #139
   final int dayStartOffsetMinutes; // #139 follow-up
@@ -51,13 +49,11 @@ class SettingsLoadedState extends SettingsState {
     this.usesImperialHeightUnits = false,
     this.bodyWeightUnit = BodyWeightUnit.kg,
     this.showActivityTracking = true,
-    this.showMealMacros = true,
     this.notificationsEnabled = false,
     this.notificationHour = 8,
     this.notificationMinute = 0,
     this.offCacheCount = 0,
     this.offCacheSizeBytes = 0,
-    this.showMicronutrients = false,
     this.usesKilojoules = false,
     this.dayStartOffsetHours = 0,
     this.dayStartOffsetMinutes = 0,
@@ -77,13 +73,11 @@ class SettingsLoadedState extends SettingsState {
     usesImperialHeightUnits,
     bodyWeightUnit,
     showActivityTracking,
-    showMealMacros,
     notificationsEnabled,
     notificationHour,
     notificationMinute,
     offCacheCount,
     offCacheSizeBytes,
-    showMicronutrients,
     usesKilojoules,
     dayStartOffsetHours,
     dayStartOffsetMinutes,

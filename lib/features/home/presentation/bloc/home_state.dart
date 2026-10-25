@@ -41,7 +41,6 @@ class HomeLoadedState extends HomeState {
   // Body weight unit (kg/lb/st) for the home weight chip, independent of food.
   final BodyWeightUnit bodyWeightUnit;
   final bool showActivityTracking; // #277
-  final bool showMealMacros;
   final double userWeightKg;
   // #150: recommended kcal target for each meal section, derived from the
   // daily goal and the share configured under Settings → Calculations.
@@ -103,7 +102,6 @@ class HomeLoadedState extends HomeState {
     required this.waterGoalMl,
     required this.waterIntakes,
     this.showActivityTracking = true,
-    this.showMealMacros = true,
   });
 
   @override
@@ -124,7 +122,6 @@ class HomeLoadedState extends HomeState {
     totalProteinsGoal,
     userActivityList,
     showDisclaimerDialog,
-    showMealMacros,
     userSex,
     breakfastKcalTarget,
     lunchKcalTarget,

@@ -58,13 +58,11 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
           usesImperialHeightUnits: userConfig.usesImperialHeightUnits,
           bodyWeightUnit: userConfig.bodyWeightUnit,
           showActivityTracking: userConfig.showActivityTracking,
-          showMealMacros: userConfig.showMealMacros,
           notificationsEnabled: userConfig.notificationsEnabled,
           notificationHour: userConfig.notificationHour,
           notificationMinute: userConfig.notificationMinute,
           offCacheCount: offCacheCount,
           offCacheSizeBytes: offCacheSizeBytes,
-          showMicronutrients: userConfig.showMicronutrients,
           usesKilojoules: userConfig.usesKilojoules,
           dayStartOffsetHours: userConfig.dayStartOffsetHours,
           dayStartOffsetMinutes: userConfig.dayStartOffsetMinutes,
@@ -121,20 +119,12 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     return _addConfigUsecase.setConfigHealthWorkoutKcalMultiplier(multiplier);
   }
 
-  void setShowMealMacros(bool showMealMacros) {
-    _addConfigUsecase.setConfigShowMealMacros(showMealMacros);
-  }
-
   void setNotificationsEnabled(bool enabled) {
     _addConfigUsecase.setNotificationsEnabled(enabled);
   }
 
   void setNotificationTime(int hour, int minute) {
     _addConfigUsecase.setNotificationTime(hour, minute);
-  }
-
-  void setShowMicronutrients(bool show) {
-    _addConfigUsecase.setConfigShowMicronutrients(show);
   }
 
   void setUsesKilojoules(bool usesKilojoules) {

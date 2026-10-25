@@ -19,13 +19,12 @@ class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
   DateTime currentDay = DateTime.now();
 
   DiaryBloc(this._getDayTrackedUsecase, this._getConfigUsecase)
-      : super(DiaryInitial()) {
+    : super(DiaryInitial()) {
     on<LoadDiaryYearEvent>((event, emit) async {
       emit(DiaryLoadingState());
 
       final config = await _getConfigUsecase.getConfig();
       final usesImperialUnits = config.usesImperialFoodUnits;
-      final showMealMacros = config.showMealMacros;
       final showActivityTracking = config.showActivityTracking;
 
       // #139: pin currentDay to the user's logical "today" so the
@@ -50,7 +49,6 @@ class DiaryBloc extends Bloc<DiaryEvent, DiaryState> {
         DiaryLoadedState(
           trackedDaysMap,
           usesImperialUnits,
-          showMealMacros: showMealMacros,
           showActivityTracking: showActivityTracking,
         ),
       );

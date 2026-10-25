@@ -123,7 +123,6 @@ class _DiaryPageState extends State<DiaryPage> {
                     context,
                     state.trackedDayMap,
                     state.usesImperialUnits,
-                    state.showMealMacros,
                     state.showActivityTracking,
                   );
                 }
@@ -166,7 +165,6 @@ class _DiaryPageState extends State<DiaryPage> {
     BuildContext context,
     Map<String, TrackedDayEntity> trackedDaysMap,
     bool usesImperialUnits,
-    bool showMealMacros,
     bool showActivityTracking,
   ) {
     return ListView(
@@ -218,7 +216,6 @@ class _DiaryPageState extends State<DiaryPage> {
                       onEditIntake: _onEditIntakeItem,
                       onEditActivity: _onEditActivityItem,
                       usesImperialUnits: usesImperialUnits,
-                      showMealMacros: showMealMacros,
                       showActivityTracking: showActivityTracking,
                       breakfastKcalTarget: state.breakfastKcalTarget,
                       lunchKcalTarget: state.lunchKcalTarget,

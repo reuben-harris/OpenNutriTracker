@@ -54,7 +54,6 @@ class IntakeVerticalList extends StatefulWidget {
   final AddMealType addMealType;
   final List<IntakeEntity> intakeList;
   final bool usesImperialUnits;
-  final bool showMealMacros;
   final Function(IntakeEntity intake, TrackedDayEntity? trackedDayEntity)
   onDeleteIntakeCallback;
   final IntakeTypeEntity? draggingType;
@@ -87,7 +86,6 @@ class IntakeVerticalList extends StatefulWidget {
     required this.addMealType,
     required this.intakeList,
     required this.usesImperialUnits,
-    this.showMealMacros = true,
     required this.onDeleteIntakeCallback,
     this.draggingType,
     this.onItemDragCallback,
@@ -141,7 +139,7 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                 EnergyDisplay.formatValue(context, widget.mealKcalTarget!),
               )
         : EnergyDisplay.formatAmount(context, energy);
-    if (widget.showMealMacros && widget.intakeList.isNotEmpty) {
+    if (widget.intakeList.isNotEmpty) {
       return '$kcalLine\n'
           '${formatNutrientAmount(n.carbsG, S.of(context), decimals: 0)} ${S.of(context).carbsLabelShort}  '
           '${formatNutrientAmount(n.fatG, S.of(context), decimals: 0)} ${S.of(context).fatLabelShort}  '

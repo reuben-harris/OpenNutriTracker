@@ -345,31 +345,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                     _diaryBloc.add(const LoadDiaryYearEvent());
                   },
                 ),
-                _SettingsSwitchTile(
-                  palette: palette,
-                  icon: Icons.bar_chart_rounded,
-                  title: S.of(context).settingsShowMealMacros,
-                  value: state.showMealMacros,
-                  onChanged: (bool value) {
-                    _settingsBloc.setShowMealMacros(value);
-                    _settingsBloc.add(LoadSettingsEvent());
-                    _homeBloc.add(LoadItemsEvent());
-                  },
-                ),
-                _SettingsSwitchTile(
-                  palette: palette,
-                  icon: Icons.science_rounded,
-                  title: S.of(context).settingsShowMicronutrientsLabel,
-                  value: state.showMicronutrients,
-                  onChanged: (bool value) {
-                    _settingsBloc.setShowMicronutrients(value);
-                    _settingsBloc.add(LoadSettingsEvent());
-                  },
-                ),
-                // #160 follow-up: lets the user pick which nutrients show
-                // on the diary's daily nutrient panel. Lives next to the
-                // meal-detail micronutrient toggle above; both shape what
-                // the user sees from the same underlying nutrient data.
                 _SettingsTile(
                   identifier: 'settings-nutrient-visibility',
                   palette: palette,

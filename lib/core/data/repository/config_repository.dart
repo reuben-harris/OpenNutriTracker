@@ -77,10 +77,6 @@ class ConfigRepository {
     await _configDataSource.setConfigShowActivityTracking(show);
   }
 
-  Future<void> setConfigShowMealMacros(bool show) async {
-    await _configDataSource.setConfigShowMealMacros(show);
-  }
-
   Future<void> setUserMacroPct(double carbs, double protein, double fat) async {
     await _configDataSource.setConfigCarbGoalPct(carbs);
     await _configDataSource.setConfigProteinGoalPct(protein);
@@ -93,10 +89,6 @@ class ConfigRepository {
 
   Future<void> setNotificationTime(int hour, int minute) async {
     await _configDataSource.setNotificationTime(hour, minute);
-  }
-
-  Future<void> setConfigShowMicronutrients(bool show) async {
-    await _configDataSource.setConfigShowMicronutrients(show);
   }
 
   Future<void> setConfigUsesKilojoules(bool usesKilojoules) async {
