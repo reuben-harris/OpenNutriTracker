@@ -46,7 +46,7 @@ class _FakeDeleteWeightLogUsecase extends Fake
 class _FakeConfigRepository extends Fake implements ConfigRepository {
   @override
   Future<ConfigEntity> getConfig() async {
-    return ConfigEntity(false, AppThemeEntity.system);
+    return ConfigEntity(AppThemeEntity.system);
   }
 }
 

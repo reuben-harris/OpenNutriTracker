@@ -20,7 +20,6 @@ class HomeLoadedState extends HomeState {
   final WeightLogEntity? weight;
   final bool overviewMacrosAsPercent;
   final bool overviewNutrientsAsPercent;
-  final bool showDisclaimerDialog;
   final double totalKcalDaily;
   final double totalKcalLeft;
   final double totalKcalSupplied;
@@ -70,7 +69,6 @@ class HomeLoadedState extends HomeState {
     required this.weight,
     required this.overviewMacrosAsPercent,
     required this.overviewNutrientsAsPercent,
-    required this.showDisclaimerDialog,
     required this.totalKcalDaily,
     required this.totalKcalLeft,
     required this.totalKcalSupplied,
@@ -121,7 +119,6 @@ class HomeLoadedState extends HomeState {
     totalFatsGoal,
     totalProteinsGoal,
     userActivityList,
-    showDisclaimerDialog,
     userSex,
     breakfastKcalTarget,
     lunchKcalTarget,

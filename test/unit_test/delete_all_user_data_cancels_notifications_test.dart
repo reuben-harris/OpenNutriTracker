@@ -107,7 +107,6 @@ void main() {
       // alongside the device-wide preferences a wipe is meant to leave alone.
       await configDataSource.addConfig(
         ConfigDBO(
-          true,
           AppThemeDBO.dark,
           usesImperialUnits: true,
           notificationsEnabled: true,

@@ -910,7 +910,6 @@ class _FakeGetConfigUsecase implements GetConfigUsecase {
   @override
   Future<ConfigEntity> getConfig() async {
     return ConfigEntity(
-      true,
       AppThemeEntity.system,
       usesImperialFoodUnits: imperialProvider(),
     );

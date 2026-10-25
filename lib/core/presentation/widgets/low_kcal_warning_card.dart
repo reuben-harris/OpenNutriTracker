@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
-import 'package:opennutritracker/core/presentation/widgets/disclaimer_dialog.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/generated/l10n.dart';
@@ -9,7 +8,7 @@ import 'package:opennutritracker/generated/l10n.dart';
 /// target whenever the computed goal drops below the research-backed
 /// floor for the user's calorie profile. It never prevents navigation,
 /// never edits the goal, and never gates a save — it simply names the
-/// floor and offers a quick link to the existing disclaimer + sources.
+/// floor.
 ///
 /// Visibility is decided by the caller (typically with
 /// `CalorieGoalCalc.isBelowRecommendedDailyKcalFloor`); this widget only
@@ -31,11 +30,6 @@ class LowKcalWarningCard extends StatelessWidget {
     final palette = isDark ? AppPalette.dark : AppPalette.light;
     final accent = Theme.of(context).colorScheme.primary;
     final textTheme = Theme.of(context).textTheme;
-    // Prefer text/`content-desc` drivers ("View disclaimer") over
-    // coordinate taps: in scrollable/list layouts hit targets still
-    // shift. `container: true` keeps the semantics node bounds tight
-    // (see AGENTS.md "The `container: true` gotcha"); the identifier
-    // remains useful for hierarchy queries.
     return Semantics(
       identifier: 'low-kcal-warning-card',
       container: true,
@@ -43,7 +37,7 @@ class LowKcalWarningCard extends StatelessWidget {
         padding: margin,
         child: AppCard(
           color: palette.surfaceMuted,
-          padding: const EdgeInsets.fromLTRB(Dimens.spacing16, Dimens.spacing16, Dimens.spacing12, Dimens.spacing8),
+          padding: const EdgeInsets.all(Dimens.spacing16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -67,28 +61,12 @@ class LowKcalWarningCard extends StatelessWidget {
               const SizedBox(height: Dimens.spacing8),
               Text(
                 l10n.lowKcalWarningBody(thresholdKcal.round()),
-                style: textTheme.bodyMedium?.copyWith(
-                  color: palette.textMuted,
-                ),
-              ),
-              Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: TextButton(
-                  onPressed: () => _openDisclaimer(context),
-                  child: Text(l10n.lowKcalWarningViewDisclaimer),
-                ),
+                style: textTheme.bodyMedium?.copyWith(color: palette.textMuted),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Future<void> _openDisclaimer(BuildContext context) {
-    return showDialog(
-      context: context,
-      builder: (_) => const DisclaimerDialog(),
     );
   }
 }

@@ -8,8 +8,6 @@ part 'config_dbo.g.dart';
 @HiveType(typeId: 13)
 @JsonSerializable() // Used for exporting to JSON
 class ConfigDBO extends HiveObject {
-  @HiveField(0)
-  bool hasAcceptedDisclaimer;
   @HiveField(3)
   AppThemeDBO selectedAppTheme;
   @HiveField(4)
@@ -30,7 +28,7 @@ class ConfigDBO extends HiveObject {
   int? notificationHour;
   @HiveField(12)
   int? notificationMinute;
-  // Fields 1, 2, 13, 14, 15, 25, 32 and 37 are retired; keep all other Hive field IDs stable.
+  // Fields 0, 1, 2, 13, 14, 15, 25, 32 and 37 are retired; keep all other Hive field IDs stable.
   @HiveField(16)
   bool? usesKilojoules; // #177: null means default (false → kcal)
   // #150: per-meal kcal share, percent values keyed by meal type
@@ -149,7 +147,6 @@ class ConfigDBO extends HiveObject {
   Map<String, bool>? catalogueSourceOverrides;
 
   ConfigDBO(
-    this.hasAcceptedDisclaimer,
     this.selectedAppTheme, {
     this.usesImperialUnits = false,
     this.userKcalAdjustment,
@@ -182,10 +179,9 @@ class ConfigDBO extends HiveObject {
     this.overviewNutrientsAsPercent,
   });
 
-  factory ConfigDBO.empty() => ConfigDBO(false, AppThemeDBO.system);
+  factory ConfigDBO.empty() => ConfigDBO(AppThemeDBO.system);
 
   factory ConfigDBO.fromConfigEntity(ConfigEntity entity) => ConfigDBO(
-    entity.hasAcceptedDisclaimer,
     AppThemeDBO.fromAppThemeEntity(entity.appTheme),
     amountArithmeticEnabled: entity.amountArithmeticEnabled,
     catalogueSourceOverrides: Map<String, bool>.from(

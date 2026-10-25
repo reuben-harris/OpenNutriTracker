@@ -67,7 +67,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final dayStartOffsetMinutes = configData.dayStartOffsetMinutes;
       final usesImperialUnits = configData.usesImperialFoodUnits;
       final bodyWeightUnit = configData.bodyWeightUnit;
-      final showDisclaimerDialog = !configData.hasAcceptedDisclaimer;
       final showActivityTracking = configData.showActivityTracking;
 
       final breakfastIntakeList = await _getIntakeUsecase
@@ -204,7 +203,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           weight: weight,
           overviewMacrosAsPercent: configData.overviewMacrosAsPercent,
           overviewNutrientsAsPercent: configData.overviewNutrientsAsPercent,
-          showDisclaimerDialog: showDisclaimerDialog,
           totalKcalDaily: totalKcalGoal,
           totalKcalLeft: totalKcalLeft,
           totalKcalSupplied: totalKcalIntake,

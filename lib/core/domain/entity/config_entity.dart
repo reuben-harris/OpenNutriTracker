@@ -23,7 +23,6 @@ class ConfigEntity extends Equatable {
     mealKeySnack: 10,
   };
 
-  final bool hasAcceptedDisclaimer;
   final AppThemeEntity appTheme;
   // Legacy single switch, kept as the fallback the three split preferences
   // derive from when the user has never touched them (see [fromConfigDBO]).
@@ -198,7 +197,6 @@ class ConfigEntity extends Equatable {
   static const int waterGoalMaleMl = 1900;
 
   const ConfigEntity(
-    this.hasAcceptedDisclaimer,
     this.appTheme, {
     this.usesImperialUnits = false,
     this.usesImperialFoodUnits = false,
@@ -261,7 +259,6 @@ class ConfigEntity extends Equatable {
       dayStartOffsetHours * 60 + dayStartOffsetMinutes;
 
   factory ConfigEntity.fromConfigDBO(ConfigDBO dbo) => ConfigEntity(
-    dbo.hasAcceptedDisclaimer,
     AppThemeEntity.fromAppThemeDBO(dbo.selectedAppTheme),
     usesImperialUnits: dbo.usesImperialUnits ?? false,
     usesImperialFoodUnits:
@@ -377,7 +374,6 @@ class ConfigEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-    hasAcceptedDisclaimer,
     usesImperialUnits,
     usesImperialFoodUnits,
     usesImperialHeightUnits,

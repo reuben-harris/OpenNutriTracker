@@ -36,11 +36,8 @@ class _Config extends Fake implements GetConfigUsecase {
   bool imperial = false;
 
   @override
-  Future<ConfigEntity> getConfig() async => ConfigEntity(
-    true,
-    AppThemeEntity.system,
-    usesImperialFoodUnits: imperial,
-  );
+  Future<ConfigEntity> getConfig() async =>
+      ConfigEntity(AppThemeEntity.system, usesImperialFoodUnits: imperial);
 }
 
 class _CustomMeals extends Fake implements CustomMealsBloc {

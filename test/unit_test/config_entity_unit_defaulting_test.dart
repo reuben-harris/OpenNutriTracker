@@ -16,7 +16,6 @@ void main() {
   group('ConfigEntity.fromConfigDBO — unit defaulting', () {
     test('legacy usesImperialUnits=true, new fields null -> all imperial', () {
       final dbo = ConfigDBO(
-        false,
         AppThemeDBO.system,
         usesImperialUnits: true,
         // usesImperialFoodUnits, usesImperialHeightUnits, bodyWeightUnitIndex all null
@@ -41,11 +40,7 @@ void main() {
     });
 
     test('legacy usesImperialUnits=false, new fields null -> all metric', () {
-      final dbo = ConfigDBO(
-        false,
-        AppThemeDBO.system,
-        usesImperialUnits: false,
-      );
+      final dbo = ConfigDBO(AppThemeDBO.system, usesImperialUnits: false);
       final entity = ConfigEntity.fromConfigDBO(dbo);
 
       expect(entity.usesImperialFoodUnits, isFalse);
@@ -56,7 +51,7 @@ void main() {
     test('legacy field null (first-run default) -> all metric', () {
       // ConfigDBO constructor defaults usesImperialUnits to false, but we
       // pass null explicitly to confirm fromConfigDBO handles that path too.
-      final dbo = ConfigDBO(false, AppThemeDBO.system, usesImperialUnits: null);
+      final dbo = ConfigDBO(AppThemeDBO.system, usesImperialUnits: null);
       final entity = ConfigEntity.fromConfigDBO(dbo);
 
       expect(entity.usesImperialFoodUnits, isFalse);
@@ -68,7 +63,6 @@ void main() {
       'explicit usesImperialFoodUnits=false overrides legacy imperial flag',
       () {
         final dbo = ConfigDBO(
-          false,
           AppThemeDBO.system,
           usesImperialUnits: true,
           usesImperialFoodUnits:
@@ -93,7 +87,6 @@ void main() {
       'explicit usesImperialHeightUnits=false overrides legacy imperial flag',
       () {
         final dbo = ConfigDBO(
-          false,
           AppThemeDBO.system,
           usesImperialUnits: true,
           usesImperialHeightUnits: false,
@@ -107,7 +100,6 @@ void main() {
 
     test('explicit bodyWeightUnitIndex=2 (st) overrides legacy flag', () {
       final dbo = ConfigDBO(
-        false,
         AppThemeDBO.system,
         usesImperialUnits: false, // metric legacy flag
         bodyWeightUnitIndex: BodyWeightUnit.st.index, // but user picked stones
@@ -122,7 +114,7 @@ void main() {
     });
 
     test('bodyWeightUnitIndex out of range (99) falls back to kg', () {
-      final dbo = ConfigDBO(false, AppThemeDBO.system, bodyWeightUnitIndex: 99);
+      final dbo = ConfigDBO(AppThemeDBO.system, bodyWeightUnitIndex: 99);
       final entity = ConfigEntity.fromConfigDBO(dbo);
 
       expect(
@@ -134,7 +126,7 @@ void main() {
     });
 
     test('bodyWeightUnitIndex negative falls back to kg', () {
-      final dbo = ConfigDBO(false, AppThemeDBO.system, bodyWeightUnitIndex: -1);
+      final dbo = ConfigDBO(AppThemeDBO.system, bodyWeightUnitIndex: -1);
       final entity = ConfigEntity.fromConfigDBO(dbo);
 
       expect(entity.bodyWeightUnit, equals(BodyWeightUnit.kg));

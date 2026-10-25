@@ -197,11 +197,7 @@ void main() {
     });
 
     Future<void> seedLegacy(List<String> ids) async {
-      final dbo = ConfigDBO(
-        false,
-        AppThemeDBO.system,
-        healthDeletedExternalIds: ids,
-      );
+      final dbo = ConfigDBO(AppThemeDBO.system, healthDeletedExternalIds: ids);
       await appBox.put('ConfigKey', ConfigDBO.fromJson(dbo.toJson()));
       await profileBox.put('ConfigKey', ConfigDBO.fromJson(dbo.toJson()));
     }
@@ -245,7 +241,6 @@ void main() {
       // already deleted — the exact bug the tombstones exist to prevent.
       final config = ConfigEntity.fromConfigDBO(
         ConfigDBO(
-          false,
           AppThemeDBO.system,
           healthDeletedExternalIds: ['legacy-1', 'legacy-2'],
         ),
@@ -261,7 +256,6 @@ void main() {
     test('dated and undated ids are both visible at once', () {
       final config = ConfigEntity.fromConfigDBO(
         ConfigDBO(
-          false,
           AppThemeDBO.system,
           healthDeletedExternalIds: ['legacy-1'],
           healthDeletedWorkouts: {'dated-1': now},

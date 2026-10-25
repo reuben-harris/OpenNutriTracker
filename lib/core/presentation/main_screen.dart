@@ -3,11 +3,8 @@ import 'dart:async';
 import 'package:auto_size_text/auto_size_text.dart';
 
 import 'package:flutter/material.dart';
-import 'package:opennutritracker/core/domain/usecase/add_config_usecase.dart';
-import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/import_workouts_usecase.dart';
 import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
-import 'package:opennutritracker/core/presentation/widgets/disclaimer_dialog.dart';
 import 'package:opennutritracker/core/presentation/widgets/main_appbar.dart';
 import 'package:opennutritracker/core/presentation/widgets/selected_day_header.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
@@ -86,7 +83,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _loadConfigDrivenUi();
+    _initialize();
   }
 
   @override
@@ -106,8 +103,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _loadConfigDrivenUi() async {
-    final config = await locator<GetConfigUsecase>().getConfig();
+  Future<void> _initialize() async {
     if (!mounted) return;
     await locator<SelectedDayCubit>().initialize();
     if (!mounted) return;
@@ -116,15 +112,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     });
     _refreshRecords();
     unawaited(_importHealthWorkouts());
-    if (!config.hasAcceptedDisclaimer) {
-      final accepted = await showDialog<bool>(
-        context: context,
-        builder: (_) => const DisclaimerDialog(),
-      );
-      if (accepted == true) {
-        await locator<AddConfigUsecase>().setConfigDisclaimer(true);
-      }
-    }
     if (!mounted) return;
     await _maybeOpenHealthRationale();
   }

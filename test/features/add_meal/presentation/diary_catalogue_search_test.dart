@@ -26,7 +26,7 @@ import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dar
 class Config implements GetConfigUsecase {
   @override
   Future<ConfigEntity> getConfig() async =>
-      const ConfigEntity(true, AppThemeEntity.system);
+      const ConfigEntity(AppThemeEntity.system);
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
