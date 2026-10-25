@@ -61,7 +61,6 @@ class _FakeConfigRepository implements ConfigRepository {
   Future<ConfigEntity> getConfig() async {
     return ConfigEntity(
       true,
-      true,
       AppThemeEntity.system,
       fastingWarningAcknowledged: acknowledged,
     );

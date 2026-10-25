@@ -37,25 +37,6 @@ void main() {
     home: Scaffold(body: child),
   );
 
-  group('OnboardingIntroPageBody restoration', () {
-    testWidgets('reflects initialAcceptedPolicy in the checkbox', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        wrap(
-          OnboardingIntroPageBody(
-            setPageContent: (_) {},
-            initialAcceptedPolicy: true,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final boxes = tester.widgetList<Checkbox>(find.byType(Checkbox)).toList();
-      expect(boxes[0].value, isTrue);
-    });
-  });
-
   group('OnboardingAboutYouPageBody restoration', () {
     testWidgets('reflects initialSex on the correct ChoiceChip', (
       tester,
@@ -207,14 +188,14 @@ void main() {
   });
 
   group('Default values (no initial* args)', () {
-    testWidgets('intro page: both checkboxes start unchecked', (tester) async {
-      await tester.pumpWidget(
-        wrap(OnboardingIntroPageBody(setPageContent: (_) {})),
-      );
+    testWidgets('intro page: welcome and sources need no consent', (
+      tester,
+    ) async {
+      await tester.pumpWidget(wrap(const OnboardingIntroPageBody()));
       await tester.pumpAndSettle();
 
-      final boxes = tester.widgetList<Checkbox>(find.byType(Checkbox)).toList();
-      expect(boxes.every((b) => b.value == false), isTrue);
+      expect(find.byType(Checkbox), findsNothing);
+      expect(find.text(l10nEn.onboardingIntroSourcesLinkLabel), findsOneWidget);
     });
 
     testWidgets('about-you page: no chip selected, date field empty', (

@@ -14,7 +14,6 @@ ConfigDBO _dbo({
   DateTime? healthLastImportAt,
 }) => ConfigDBO(
   false,
-  false,
   AppThemeDBO.system,
   healthImportEnabled: healthImportEnabled,
   healthWorkoutKcalMultiplier: healthWorkoutKcalMultiplier,

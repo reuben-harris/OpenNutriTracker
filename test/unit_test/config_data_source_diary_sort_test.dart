@@ -98,7 +98,7 @@ void main() {
       // preferences field null — this matches what an upgraded install
       // would look like before the user has ever interacted with the
       // sort dropdown.
-      await box.put('ConfigKey', ConfigDBO(false, false, AppThemeDBO.system));
+      await box.put('ConfigKey', ConfigDBO(false, AppThemeDBO.system));
 
       final source = ConfigDataSource(FakeHiveDBProvider(configBox: box));
       expect(await source.getDiarySortPreferences(), isNull);

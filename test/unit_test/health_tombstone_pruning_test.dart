@@ -199,7 +199,6 @@ void main() {
     Future<void> seedLegacy(List<String> ids) async {
       final dbo = ConfigDBO(
         false,
-        true,
         AppThemeDBO.system,
         healthDeletedExternalIds: ids,
       );
@@ -247,7 +246,6 @@ void main() {
       final config = ConfigEntity.fromConfigDBO(
         ConfigDBO(
           false,
-          true,
           AppThemeDBO.system,
           healthDeletedExternalIds: ['legacy-1', 'legacy-2'],
         ),
@@ -264,7 +262,6 @@ void main() {
       final config = ConfigEntity.fromConfigDBO(
         ConfigDBO(
           false,
-          true,
           AppThemeDBO.system,
           healthDeletedExternalIds: ['legacy-1'],
           healthDeletedWorkouts: {'dated-1': now},

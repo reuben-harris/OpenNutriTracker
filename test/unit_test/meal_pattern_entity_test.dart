@@ -56,7 +56,6 @@ void main() {
         // home_page rely on when deciding whether to hide a section.
         final config = ConfigEntity(
           true,
-          true,
           AppThemeEntity.system,
           mealKcalSharesPct: MealPatternEntity.omad.toSharesMap(),
         );

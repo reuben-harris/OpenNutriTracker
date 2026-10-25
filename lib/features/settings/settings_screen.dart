@@ -20,7 +20,6 @@ import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/utils/notification_service.dart';
 import 'package:opennutritracker/core/utils/theme_mode_provider.dart';
-import 'package:opennutritracker/core/utils/url_const.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
@@ -1286,18 +1285,6 @@ class _SettingsScreenState extends State<SettingsScreen>
               ],
             ),
           ),
-          TextButton(
-            onPressed: () {
-              _launchPrivacyPolicyUrl(context);
-            },
-            child: Row(
-              children: [
-                const Icon(Icons.policy_outlined),
-                const SizedBox(width: 8.0),
-                Text(S.of(context).privacyPolicyLabel),
-              ],
-            ),
-          ),
         ],
       );
     }
@@ -1306,13 +1293,6 @@ class _SettingsScreenState extends State<SettingsScreen>
   void _launchSourceCodeUrl(BuildContext context) async {
     final sourceCodeUri = Uri.parse(AppConst.sourceCodeUrl);
     _launchUrl(context, sourceCodeUri);
-  }
-
-  void _launchPrivacyPolicyUrl(BuildContext context) async {
-    final privacyPolicyUri = Uri.parse(
-      URLConst.privacyPolicyFor(Localizations.localeOf(context).languageCode),
-    );
-    _launchUrl(context, privacyPolicyUri);
   }
 
   void _launchUrl(BuildContext context, Uri url) async {

@@ -24,7 +24,6 @@ class ConfigEntity extends Equatable {
   };
 
   final bool hasAcceptedDisclaimer;
-  final bool hasAcceptedPolicy;
   final AppThemeEntity appTheme;
   // Legacy single switch, kept as the fallback the three split preferences
   // derive from when the user has never touched them (see [fromConfigDBO]).
@@ -158,15 +157,6 @@ class ConfigEntity extends Equatable {
 
   final Map<String, bool> catalogueSourceOverrides;
 
-  /// Which revision of the privacy policy the user has been shown a *notice*
-  /// about. Zero for every install that predates the field, which is exactly
-  /// who the notice is for.
-  ///
-  /// Not a record of what anyone agreed to. #874 settled that the onboarding
-  /// checkbox is an acknowledgement and no legal basis rests on it, so there
-  /// is nothing here to re-collect — this only answers "have they been told".
-  final int policyNoticeRevisionSeen;
-
   /// Population-average starting credit, rounded from the 27.7% mean
   /// compensation reported by Careau et al. (2021). This is a fixed default,
   /// independent of body measurements; each profile can override it.
@@ -216,7 +206,6 @@ class ConfigEntity extends Equatable {
 
   const ConfigEntity(
     this.hasAcceptedDisclaimer,
-    this.hasAcceptedPolicy,
     this.appTheme, {
     this.usesImperialUnits = false,
     this.usesImperialFoodUnits = false,
@@ -250,7 +239,6 @@ class ConfigEntity extends Equatable {
     this.healthLastImportAt,
     this.healthDeletedWorkouts = const <String, DateTime>{},
     this.legacyHealthDeletedExternalIds = const <String>{},
-    this.policyNoticeRevisionSeen = 0,
     this.amountArithmeticEnabled = false,
     this.catalogueSourceOverrides = const {},
   });
@@ -284,7 +272,6 @@ class ConfigEntity extends Equatable {
 
   factory ConfigEntity.fromConfigDBO(ConfigDBO dbo) => ConfigEntity(
     dbo.hasAcceptedDisclaimer,
-    dbo.hasAcceptedPolicy,
     AppThemeEntity.fromAppThemeDBO(dbo.selectedAppTheme),
     usesImperialUnits: dbo.usesImperialUnits ?? false,
     usesImperialFoodUnits:
@@ -326,7 +313,6 @@ class ConfigEntity extends Equatable {
       dbo.healthWorkoutKcalMultiplier,
     ),
     healthLastImportAt: dbo.healthLastImportAt,
-    policyNoticeRevisionSeen: dbo.policyNoticeRevisionSeen ?? 0,
     healthDeletedWorkouts: dbo.healthDeletedWorkouts != null
         ? Map<String, DateTime>.from(dbo.healthDeletedWorkouts!)
         : const <String, DateTime>{},
@@ -405,7 +391,6 @@ class ConfigEntity extends Equatable {
   @override
   List<Object?> get props => [
     hasAcceptedDisclaimer,
-    hasAcceptedPolicy,
     usesImperialUnits,
     usesImperialFoodUnits,
     usesImperialHeightUnits,
@@ -438,7 +423,6 @@ class ConfigEntity extends Equatable {
     healthLastImportAt,
     healthDeletedWorkouts,
     legacyHealthDeletedExternalIds,
-    policyNoticeRevisionSeen,
     amountArithmeticEnabled,
     catalogueSourceOverrides,
   ];

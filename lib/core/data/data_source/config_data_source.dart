@@ -8,7 +8,7 @@ import 'package:opennutritracker/core/utils/hive_db_provider.dart';
 ///
 /// - the **shared** [HiveDBProvider.appConfigBox] holds everything that is
 ///   a device-wide preference (theme, accent, language, units, energy unit,
-///   notifications, legal acceptances, and the
+///   notifications and the
 ///   various view toggles), so it stays consistent whichever profile is
 ///   active;
 /// - the **per-profile** [HiveDBProvider.configBox] holds the personal
@@ -147,18 +147,6 @@ class ConfigDataSource {
 
   Future<void> setConfigDisclaimer(bool hasAcceptedDisclaimer) async {
     await _update((c) => c.hasAcceptedDisclaimer = hasAcceptedDisclaimer);
-  }
-
-  Future<void> setConfigAcceptedPolicy(bool hasAcceptedPolicy) async {
-    await _update((c) => c.hasAcceptedPolicy = hasAcceptedPolicy);
-  }
-
-  /// Records that the user has been shown the policy-change notice for
-  /// [revision]. Device-wide: it is not in [_readMerged]'s personal-field
-  /// overlay, so it is read from the shared app box and a second profile is
-  /// not notified again.
-  Future<void> setConfigPolicyNoticeRevisionSeen(int revision) async {
-    await _update((c) => c.policyNoticeRevisionSeen = revision);
   }
 
   Future<AppThemeDBO> getAppTheme() async => _readMerged().selectedAppTheme;

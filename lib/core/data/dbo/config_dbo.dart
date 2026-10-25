@@ -10,8 +10,6 @@ part 'config_dbo.g.dart';
 class ConfigDBO extends HiveObject {
   @HiveField(0)
   bool hasAcceptedDisclaimer;
-  @HiveField(1)
-  bool hasAcceptedPolicy;
   @HiveField(3)
   AppThemeDBO selectedAppTheme;
   @HiveField(4)
@@ -32,7 +30,7 @@ class ConfigDBO extends HiveObject {
   int? notificationHour;
   @HiveField(12)
   int? notificationMinute;
-  // Fields 2, 13 and 32 are retired; keep all other Hive field IDs stable.
+  // Fields 1, 2, 13, 32 and 37 are retired; keep all other Hive field IDs stable.
   @HiveField(14)
   bool? showMealMacros;
   @HiveField(15)
@@ -147,20 +145,6 @@ class ConfigDBO extends HiveObject {
   // with the lifetime of the install rather than with recent activity.
   @HiveField(38)
   Map<String, DateTime>? healthDeletedWorkouts;
-  // Which revision of the privacy policy the user has been *shown a notice
-  // about* — not which one they accepted, which `hasAcceptedPolicy` cannot
-  // answer because it is an unversioned bool (#887).
-  //
-  // Device-wide rather than per-profile: the policy describes what the app
-  // does, not what one profile does, so it is deliberately absent from the
-  // personal-field overlay in `ConfigDataSource._readMerged` and therefore
-  // read from the shared app box. A second profile does not get the notice
-  // again.
-  //
-  // Null means "no notice has ever been shown", which is every install that
-  // existed before the field did — exactly the users the notice is for.
-  @HiveField(37)
-  int? policyNoticeRevisionSeen;
   // Field 39 (the serving-first amount default preference) is retired.
 
   @HiveField(40)
@@ -176,7 +160,6 @@ class ConfigDBO extends HiveObject {
 
   ConfigDBO(
     this.hasAcceptedDisclaimer,
-    this.hasAcceptedPolicy,
     this.selectedAppTheme, {
     this.usesImperialUnits = false,
     this.userKcalAdjustment,
@@ -205,7 +188,6 @@ class ConfigDBO extends HiveObject {
     this.healthWorkoutKcalMultiplier,
     this.healthLastImportAt,
     this.healthDeletedExternalIds,
-    this.policyNoticeRevisionSeen,
     this.healthDeletedWorkouts,
     this.amountArithmeticEnabled,
     this.catalogueSourceOverrides,
@@ -213,11 +195,10 @@ class ConfigDBO extends HiveObject {
     this.overviewNutrientsAsPercent,
   });
 
-  factory ConfigDBO.empty() => ConfigDBO(false, false, AppThemeDBO.system);
+  factory ConfigDBO.empty() => ConfigDBO(false, AppThemeDBO.system);
 
   factory ConfigDBO.fromConfigEntity(ConfigEntity entity) => ConfigDBO(
     entity.hasAcceptedDisclaimer,
-    entity.hasAcceptedPolicy,
     AppThemeDBO.fromAppThemeEntity(entity.appTheme),
     amountArithmeticEnabled: entity.amountArithmeticEnabled,
     catalogueSourceOverrides: Map<String, bool>.from(

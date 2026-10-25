@@ -213,7 +213,7 @@ class _DailyTotals extends Fake implements GetTrackedDayUsecase {
 class _Config extends Fake implements GetConfigUsecase {
   @override
   Future<ConfigEntity> getConfig() async =>
-      const ConfigEntity(true, true, AppThemeEntity.system);
+      const ConfigEntity(true, AppThemeEntity.system);
 }
 
 class _Images extends Fake implements CacheManager {

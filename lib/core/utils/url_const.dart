@@ -1,19 +1,5 @@
 class URLConst {
   static const paCompendium2011URL = "https://pacompendium.com/";
-  static const privacyPolicyURLEn =
-      "https://www.iubenda.com/privacy-policy/53501884";
-  static const privacyPolicyURLDe =
-      "https://www.iubenda.com/privacy-policy/53922100";
-
-  /// The privacy policy to open for [languageCode], English by default.
-  ///
-  /// The UI always uses English. Keep the explicit German document mapping
-  /// available to callers that supply that language code.
-  static String privacyPolicyFor(String languageCode) =>
-      languageCode == 'de' ? privacyPolicyURLDe : privacyPolicyURLEn;
-
-  static const policyRevision = 1;
-
   // Citations for the in-app medical/health calculations. Surfaced on the
   // Sources & References screen (see `sources_screen.dart`) so that users
   // can verify each number we show against its peer-reviewed source.
