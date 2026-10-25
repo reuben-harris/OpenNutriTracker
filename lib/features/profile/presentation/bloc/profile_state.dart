@@ -15,7 +15,7 @@ class ProfileLoadingState extends ProfileState {
 }
 
 class ProfileLoadedState extends ProfileState {
-  final UserBMIEntity userBMI;
+  final double effectiveWorkoutKcalMultiplier;
   final UserEntity userEntity;
 
   // Granular unit preferences. Height (cm/ft) and body weight (kg/lb/st) are
@@ -29,7 +29,7 @@ class ProfileLoadedState extends ProfileState {
   final int effectiveWaterGoalMl;
 
   const ProfileLoadedState({
-    required this.userBMI,
+    required this.effectiveWorkoutKcalMultiplier,
     required this.userEntity,
     required this.bodyWeightUnit,
     required this.usesImperialHeightUnits,
@@ -38,10 +38,10 @@ class ProfileLoadedState extends ProfileState {
 
   @override
   List<Object?> get props => [
-        userBMI,
-        userEntity,
-        bodyWeightUnit,
-        usesImperialHeightUnits,
-        effectiveWaterGoalMl,
-      ];
+    effectiveWorkoutKcalMultiplier,
+    userEntity,
+    bodyWeightUnit,
+    usesImperialHeightUnits,
+    effectiveWaterGoalMl,
+  ];
 }

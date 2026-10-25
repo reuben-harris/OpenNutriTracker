@@ -6,7 +6,7 @@ import 'package:opennutritracker/core/utils/extensions.dart';
 /// Records a weight reading for a particular day in the historical log.
 ///
 /// When the entry is for today, the user's current weight on [UserDBO]
-/// is updated in the same operation so the rest of the app (BMI on the
+/// is updated in the same operation so the rest of the app (weight on the
 /// profile, the kcal goal calculator) stays in sync. Backdated entries
 /// are stored without touching the current weight — adding "what I
 /// weighed last Tuesday" should not rewrite today's value.

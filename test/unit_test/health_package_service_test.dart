@@ -222,8 +222,7 @@ void main() {
 
     test('a grant that left the workout rows out is not success', () async {
       // Android's requestAuthorization answers true as soon as *anything* was
-      // granted — body fat alone would otherwise switch the feature on with
-      // nothing importable behind it.
+      // granted, even if another required workout type was refused.
       health.workoutPermissions = false;
 
       expect(await service.requestPermissions(), isFalse);
@@ -245,7 +244,7 @@ void main() {
       },
     );
 
-    test('on iOS body fat is asked for, but never re-checked', () async {
+    test('iOS requests and checks only workouts', () async {
       final iosHealth = _FakeHealth()..workoutPermissions = true;
       final iosService = HealthPackageService(
         iosHealth,
@@ -254,15 +253,8 @@ void main() {
 
       await iosService.requestPermissions();
 
-      expect(
-        iosHealth.requestedTypes,
-        contains(HealthDataType.BODY_FAT_PERCENTAGE),
-      );
-      expect(iosHealth.recheckedTypes, contains(HealthDataType.WORKOUT));
-      expect(
-        iosHealth.recheckedTypes,
-        isNot(contains(HealthDataType.BODY_FAT_PERCENTAGE)),
-      );
+      expect(iosHealth.requestedTypes, [HealthDataType.WORKOUT]);
+      expect(iosHealth.recheckedTypes, [HealthDataType.WORKOUT]);
     });
   });
 
@@ -309,12 +301,6 @@ void main() {
         ),
       );
     });
-
-    test('body fat is not read, and answers null rather than throwing',
-        () async {
-      expect(await service.readLatestBodyFatPercent(), isNull);
-      expect(health.queriedTypes, isEmpty);
-    });
   });
 
   group('HealthPackageService.readWorkouts on Android', () {
@@ -358,34 +344,36 @@ void main() {
       ]);
     });
 
-    test('energy is attributed to the session from the calorie records',
-        () async {
-      reader.sessions = [
-        ExternalWorkout(
-          id: 'session-1',
-          start: sessionStart,
-          end: sessionEnd,
-          activityTypeName: 'RUNNING',
-          sourceAppName: 'com.hevy.app',
-        ),
-      ];
-      health.dataPoints = [
-        _calories(source: 'com.hevy.app', start: sessionStart, kcal: 430.3),
-        _calories(
-          source: 'com.fitbit.FitbitMobile',
-          start: sessionStart,
-          kcal: 170,
-        ),
-      ];
+    test(
+      'energy is attributed to the session from the calorie records',
+      () async {
+        reader.sessions = [
+          ExternalWorkout(
+            id: 'session-1',
+            start: sessionStart,
+            end: sessionEnd,
+            activityTypeName: 'RUNNING',
+            sourceAppName: 'com.hevy.app',
+          ),
+        ];
+        health.dataPoints = [
+          _calories(source: 'com.hevy.app', start: sessionStart, kcal: 430.3),
+          _calories(
+            source: 'com.fitbit.FitbitMobile',
+            start: sessionStart,
+            kcal: 170,
+          ),
+        ];
 
-      final workouts = await service.readWorkouts(from: from, to: to);
+        final workouts = await service.readWorkouts(from: from, to: to);
 
-      expect(workouts, hasLength(1));
-      expect(workouts.single.id, 'session-1');
-      expect(workouts.single.activityTypeName, 'RUNNING');
-      expect(workouts.single.energyBurnedKcal, closeTo(430.3, 0.001));
-      expect(workouts.single.sourceAppName, 'com.hevy.app');
-    });
+        expect(workouts, hasLength(1));
+        expect(workouts.single.id, 'session-1');
+        expect(workouts.single.activityTypeName, 'RUNNING');
+        expect(workouts.single.energyBurnedKcal, closeTo(430.3, 0.001));
+        expect(workouts.single.sourceAppName, 'com.hevy.app');
+      },
+    );
 
     test('no sessions means the calorie records are never read', () async {
       reader.sessions = const [];
@@ -397,10 +385,7 @@ void main() {
     test('a definite refusal still aborts before any read', () async {
       health.workoutPermissions = false;
 
-      expect(
-        () => service.readWorkouts(from: from, to: to),
-        throwsStateError,
-      );
+      expect(() => service.readWorkouts(from: from, to: to), throwsStateError);
       expect(reader.calls, 0);
     });
   });

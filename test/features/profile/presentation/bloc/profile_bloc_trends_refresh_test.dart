@@ -40,10 +40,12 @@ class _FakeAddTrackedDayUsecase extends Fake implements AddTrackedDayUsecase {
 }
 
 class _FakeGetConfigUsecase extends Fake implements GetConfigUsecase {
+  final ConfigEntity config;
+
+  _FakeGetConfigUsecase(this.config);
+
   @override
-  Future<ConfigEntity> getConfig() async {
-    return const ConfigEntity(false, false, false, AppThemeEntity.system);
-  }
+  Future<ConfigEntity> getConfig() async => config;
 }
 
 class _FakeGetKcalGoalUsecase extends Fake implements GetKcalGoalUsecase {}
@@ -80,17 +82,51 @@ void main() {
   useTestLocator();
   late _FakeTrendsBloc trendsBloc;
 
-  ProfileBloc buildProfileBloc(UserEntity user) {
+  ProfileBloc buildProfileBloc(
+    UserEntity user, {
+    ConfigEntity config = const ConfigEntity(
+      false,
+      false,
+      false,
+      AppThemeEntity.system,
+    ),
+  }) {
     return ProfileBloc(
       _FakeGetUserUsecase(user),
       _FakeAddUserUsecase(),
       _FakeAddTrackedDayUsecase(),
-      _FakeGetConfigUsecase(),
+      _FakeGetConfigUsecase(config),
       _FakeGetKcalGoalUsecase(),
     );
   }
 
   tearDown(() => GetIt.instance.resetScope());
+
+  for (final (override, expected) in [(null, 0.72), (0.85, 0.85)]) {
+    test('loading Profile resolves workout credit to $expected', () async {
+      final profileBloc = buildProfileBloc(
+        UserEntityFixtures.youngSedentaryMaleWantingToMaintainWeight,
+        config: ConfigEntity(
+          false,
+          false,
+          false,
+          AppThemeEntity.system,
+          healthWorkoutKcalMultiplier: override,
+        ),
+      );
+      addTearDown(profileBloc.close);
+      final loaded = profileBloc.stream.firstWhere(
+        (state) => state is ProfileLoadedState,
+      );
+
+      profileBloc.add(LoadProfileEvent());
+
+      expect(
+        (await loaded as ProfileLoadedState).effectiveWorkoutKcalMultiplier,
+        expected,
+      );
+    });
+  }
 
   test('updateUser refreshes TrendsBloc, preserving the currently selected '
       'range chip (regression: home weight chip did not update the Trends '

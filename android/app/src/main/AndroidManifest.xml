@@ -22,9 +22,8 @@
          sessions directly (HealthConnectWorkoutReader.kt), so neither is
          needed.
 
-         READ_BODY_FAT personalised the workout calorie-credit suggestion.
-         That suggestion falls back to a BMI-derived percentile, which is what
-         Android now uses; iOS still reads body fat from HealthKit. -->
+         Workout calorie credit uses a fixed, user-adjustable default and
+         needs no body-composition data. -->
     <uses-permission android:name="android.permission.health.READ_EXERCISE"/>
     <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED"/>
 

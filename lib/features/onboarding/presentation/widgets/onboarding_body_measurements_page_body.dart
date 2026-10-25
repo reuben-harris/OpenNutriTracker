@@ -1,12 +1,8 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
-import 'package:opennutritracker/core/presentation/sources_screen.dart';
 import 'package:opennutritracker/core/utils/bounds/validator.dart';
-import 'package:opennutritracker/core/utils/calc/healthy_weight_calc.dart';
 import 'package:opennutritracker/core/utils/calc/unit_calc.dart';
 import 'package:opennutritracker/features/profile/presentation/utils/profile_display_format.dart';
 import 'package:opennutritracker/features/profile/presentation/widgets/body_weight_input.dart';
@@ -77,15 +73,6 @@ class _OnboardingBodyMeasurementsPageBodyState
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
   final _targetWeightController = TextEditingController();
-
-  /// Anchors the healthy-range card so focusing the target field can scroll
-  /// it into view. The card sits below that field, so the keyboard covers it
-  /// while the user is deciding what to type.
-  final _healthyRangeKey = GlobalKey();
-
-  /// Pending scroll-into-view, cancelled on dispose and superseded when the
-  /// field is focused again.
-  Timer? _scrollDelay;
 
   late bool _isHeightImperial;
   late BodyWeightUnit _bodyWeightUnit;
@@ -177,41 +164,13 @@ class _OnboardingBodyMeasurementsPageBodyState
   }
 
   void _onTargetFocusChange() {
-    if (_targetWeightFocusNode.hasFocus) {
-      _scrollSuggestionIntoView();
-      return;
-    }
+    if (_targetWeightFocusNode.hasFocus) return;
     _revealTargetError();
     _confirmTargetIfImplausible();
   }
 
-  /// Brings the suggestion card above the keyboard when the user moves into
-  /// the target field. Waits a moment first so the scroll is measured against
-  /// the viewport the keyboard has already shrunk.
-  ///
-  /// The timer is held rather than fired and forgotten: a bare
-  /// `Future.delayed` here outlives dispose, which leaves a pending timer
-  /// behind and trips the widget-test binding for anyone who pumps without
-  /// settling.
-  void _scrollSuggestionIntoView() {
-    _scrollDelay?.cancel();
-    _scrollDelay = Timer(const Duration(milliseconds: 300), () {
-      final cardContext = _healthyRangeKey.currentContext;
-      // Null when there is no height/weight yet, so no card.
-      if (cardContext == null || !cardContext.mounted) return;
-      Scrollable.ensureVisible(
-        cardContext,
-        // 1.0 lines the card's bottom up with the bottom of what's visible,
-        // so the chip clears the keyboard.
-        alignment: 1.0,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
-  /// The composite ft/in and stones widgets own their inner fields, so a
-  /// [Focus] wrapper is how this page learns the whole group was left.
+  /// Composite ft/in and stones inputs own their inner focus nodes, so the
+  /// page checks the value when focus leaves the whole group.
   void _onHeightGroupFocusChange(bool hasFocus) {
     if (hasFocus) return;
     _revealHeightError();
@@ -225,10 +184,7 @@ class _OnboardingBodyMeasurementsPageBodyState
   }
 
   void _onTargetGroupFocusChange(bool hasFocus) {
-    if (hasFocus) {
-      _scrollSuggestionIntoView();
-      return;
-    }
+    if (hasFocus) return;
     _revealTargetError();
     _confirmTargetIfImplausible();
   }
@@ -359,112 +315,6 @@ class _OnboardingBodyMeasurementsPageBodyState
     stLabel: S.of(context).stLabel,
   );
 
-  /// Fills the optional target field with the suggested weight. The stones
-  /// input seeds itself from `initialKg`, so it is rebuilt via its key to
-  /// pick the new value up.
-  void _applySuggestedTarget(double kg) {
-    setState(() {
-      _parsedTargetWeight = kg;
-      _confirmedTargetKg = null;
-      if (!_isWeightSt) {
-        final display = _isWeightLb ? UnitCalc.kgToLbs(kg) : kg;
-        _targetWeightController.text = _formatRestoredNumber(display);
-      }
-      checkCorrectInput();
-    });
-  }
-
-  /// The WHO healthy-weight band for the entered height, with the figure it
-  /// comes from stated next to it. Shown only once height and weight both
-  /// parse, since the suggestion depends on both.
-  Widget _buildHealthyRangeCard() {
-    final heightCm = _parsedHeight!;
-    final weightKg = _parsedWeight!;
-    final range = HealthyWeightRange.forHeightCm(heightCm);
-    final suggestion = range.suggestionFor(weightKg);
-    final rangeText = '${_formatKg(range.minKg)} – ${_formatKg(range.maxKg)}';
-    final heightText = formatHeight(
-      heightCm,
-      _isHeightImperial,
-      cmLabel: S.of(context).cmLabel,
-      ftLabel: S.of(context).ftLabel,
-      inLabel: S.of(context).inLabel,
-    );
-
-    return Container(
-      key: _healthyRangeKey,
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.straighten_outlined,
-                size: 18,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  S
-                      .of(context)
-                      .onboardingHealthyRangeLabel(heightText, rangeText),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4.0),
-          Text(
-            S.of(context).onboardingHealthyRangeSource,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 8.0),
-          // A Wrap, so the citation link drops onto its own line instead of
-          // overflowing when the chip carries a long stones-and-pounds label.
-          Wrap(
-            spacing: 8.0,
-            runSpacing: 4.0,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              Semantics(
-                identifier: 'onboarding-target-weight-suggestion',
-                child: ActionChip(
-                  avatar: const Icon(Icons.flag_outlined, size: 18),
-                  label: Text(
-                    S
-                        .of(context)
-                        .onboardingHealthyRangeApply(_formatKg(suggestion)),
-                  ),
-                  onPressed: () => _applySuggestedTarget(suggestion),
-                ),
-              ),
-              // The line above names the rule; this links to the citation,
-              // the WHO adult BMI classification the Sources screen lists.
-              Semantics(
-                identifier: 'onboarding-healthy-range-sources',
-                child: TextButton.icon(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SourcesScreen()),
-                  ),
-                  icon: const Icon(Icons.menu_book_outlined, size: 18),
-                  label: Text(S.of(context).settingsSourcesLabel),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Trim a restored value to one decimal place when needed, and drop the
   /// trailing '.0' for whole numbers — matches what users typically type.
   String _formatRestoredNumber(double value) {
@@ -502,7 +352,6 @@ class _OnboardingBodyMeasurementsPageBodyState
 
   @override
   void dispose() {
-    _scrollDelay?.cancel();
     widget.showErrorsSignal?.removeListener(_onShowErrorsRequested);
     _heightFocusNode.dispose();
     _weightFocusNode.dispose();
@@ -756,10 +605,6 @@ class _OnboardingBodyMeasurementsPageBodyState
                     canRequestFocus: false,
                     onFocusChange: _onTargetGroupFocusChange,
                     child: BodyWeightInput(
-                      // Keyed on the applied suggestion so tapping the chip
-                      // re-seeds the stones/pounds pair, which reads its
-                      // value from initialKg only when it is built.
-                      key: ValueKey(_parsedTargetWeight),
                       initialKg:
                           _parsedTargetWeight ?? widget.initialTargetWeightKg,
                       unit: BodyWeightUnit.st,
@@ -828,10 +673,6 @@ class _OnboardingBodyMeasurementsPageBodyState
                       ),
                     ),
                   ),
-            if (_parsedHeight != null && _parsedWeight != null) ...[
-              const SizedBox(height: 16.0),
-              _buildHealthyRangeCard(),
-            ],
             const SizedBox(height: 32.0),
             // Food units are chosen explicitly rather than inferred from the
             // height toggle, so a UK user on feet and stones can still log

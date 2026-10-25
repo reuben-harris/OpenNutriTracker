@@ -95,8 +95,8 @@ class ConfigEntity extends Equatable {
 
   /// Share of an imported workout's device-reported energy that counts
   /// toward the daily goal, as a fraction in [minHealthWorkoutKcalMultiplier]
-  /// .. [maxHealthWorkoutKcalMultiplier]. Null means the user has not been
-  /// given a suggestion yet — read it through
+  /// .. [maxHealthWorkoutKcalMultiplier]. Null means no override is stored;
+  /// read it through
   /// [effectiveHealthWorkoutKcalMultiplier], never directly.
   final double? healthWorkoutKcalMultiplier;
 
@@ -175,10 +175,14 @@ class ConfigEntity extends Equatable {
   /// is nothing here to re-collect — this only answers "have they been told".
   final int policyNoticeRevisionSeen;
 
+  /// Population-average starting credit, rounded from the 27.7% mean
+  /// compensation reported by Careau et al. (2021). This is a fixed default,
+  /// independent of body measurements; each profile can override it.
+  static const double defaultHealthWorkoutKcalMultiplier = 0.72;
+
   /// Bounds on the calorie-credit multiplier. The floor sits at 50% because
   /// even the most compensating decile in Careau et al. 2021 keeps roughly
-  /// half of the exercise deficit; the ceiling is "credit every calorie",
-  /// which is what the app did before the setting existed.
+  /// half of the exercise deficit; the ceiling credits every reported calorie.
   static const double minHealthWorkoutKcalMultiplier = 0.5;
   static const double maxHealthWorkoutKcalMultiplier = 1.0;
 
@@ -267,11 +271,10 @@ class ConfigEntity extends Equatable {
     this.catalogueSourceOverrides = const {},
   });
 
-  /// The multiplier the importer actually applies. Falls back to crediting
-  /// every device-reported calorie, which is what a user who has never seen
-  /// the setting would expect from the rest of the app.
+  /// The multiplier the importer applies, using the fixed default when
+  /// this profile has no override.
   double get effectiveHealthWorkoutKcalMultiplier =>
-      healthWorkoutKcalMultiplier ?? maxHealthWorkoutKcalMultiplier;
+      healthWorkoutKcalMultiplier ?? defaultHealthWorkoutKcalMultiplier;
 
   /// Resolves the daily water goal for the home chip. Returns the user's
   /// stored override if one exists, otherwise the gendered seed default
@@ -425,8 +428,8 @@ class ConfigEntity extends Equatable {
   }
 
   // Defensive clamp on the persisted calorie-credit multiplier. Null means
-  // "no suggestion stored" — [effectiveHealthWorkoutKcalMultiplier] then
-  // credits the full device figure. A stored value outside the supported
+  // "no override stored" — [effectiveHealthWorkoutKcalMultiplier] then
+  // uses the fixed default. A stored value outside the supported
   // range is treated as corrupt and dropped to null rather than silently
   // scaling every future import by a nonsense factor.
   static double? _normaliseHealthMultiplier(double? raw) {

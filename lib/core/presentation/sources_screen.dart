@@ -10,7 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 /// Surfaces the peer-reviewed sources behind every health/medical
 /// calculation OpenNutriTracker shows. Reachable from the Home dashboard,
-/// the BMI overview on the Profile tab, both gender-selection screens,
+/// workout calorie credit, both gender-selection screens,
 /// and the disclaimer dialog — so anyone scanning the app for citations
 /// (Apple's reviewers included) can find them within one tap.
 class SourcesScreen extends StatefulWidget {
@@ -54,18 +54,6 @@ class _SourcesScreenState extends State<SourcesScreen> {
         ],
       ),
       _SourceEntry(
-        title: l10n.sourcesBmiTitle,
-        description: l10n.sourcesBmiDescription,
-        sources: const [
-          _SourceLink(
-            citation:
-                'World Health Organization. Body mass index (BMI), adult '
-                'classification. WHO Global Health Observatory.',
-            url: URLConst.sourceBmiWhoURL,
-          ),
-        ],
-      ),
-      _SourceEntry(
         title: l10n.sourcesMacrosTitle,
         description: l10n.sourcesMacrosDescription,
         sources: const [
@@ -99,14 +87,6 @@ class _SourcesScreenState extends State<SourcesScreen> {
                 'Careau V, et al. (2021). Energy compensation and adiposity '
                 'in humans. Current Biology, 31(20):4659–4666.e2.',
             url: URLConst.sourceEnergyCompensationCareau2021URL,
-          ),
-          _SourceLink(
-            citation:
-                'Borrud LG, et al. (2010). Body composition data for '
-                'individuals 8 years of age and older: U.S. population, '
-                '1999–2004. National Center for Health Statistics, Vital and '
-                'Health Statistics Series 11, No. 250.',
-            url: URLConst.sourceBodyCompositionBorrud2010URL,
           ),
         ],
       ),

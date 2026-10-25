@@ -33,10 +33,10 @@ void main() {
       expect(config.healthLastImportAt, isNull);
     });
 
-    test('no stored multiplier credits every reported calorie', () {
+    test('no stored multiplier uses the fixed 72% default', () {
       final config = ConfigEntity.fromConfigDBO(_dbo());
 
-      expect(config.effectiveHealthWorkoutKcalMultiplier, equals(1.0));
+      expect(config.effectiveHealthWorkoutKcalMultiplier, equals(0.72));
     });
 
     test('a stored multiplier is used verbatim', () {
@@ -77,9 +77,9 @@ void main() {
         );
 
         expect(tooLow.healthWorkoutKcalMultiplier, isNull);
-        expect(tooLow.effectiveHealthWorkoutKcalMultiplier, equals(1.0));
+        expect(tooLow.effectiveHealthWorkoutKcalMultiplier, equals(0.72));
         expect(tooHigh.healthWorkoutKcalMultiplier, isNull);
-        expect(tooHigh.effectiveHealthWorkoutKcalMultiplier, equals(1.0));
+        expect(tooHigh.effectiveHealthWorkoutKcalMultiplier, equals(0.72));
       },
     );
 

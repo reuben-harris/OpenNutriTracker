@@ -21,7 +21,4 @@ class HealthImportRepository {
     required DateTime from,
     required DateTime to,
   }) async => await _healthService.readWorkouts(from: from, to: to);
-
-  Future<double?> getLatestBodyFatPercent() async =>
-      await _healthService.readLatestBodyFatPercent();
 }

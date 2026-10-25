@@ -1,14 +1,12 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_bmi_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/add_tracked_day_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/add_user_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_kcal_goal_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_user_usecase.dart';
-import 'package:opennutritracker/core/utils/calc/bmi_calc.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
@@ -37,16 +35,12 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       emit(ProfileLoadingState());
 
       final user = await _getUserUsecase.getUserData();
-      final userBMIValue = BMICalc.getBMI(user);
-      final userBMIEntity = UserBMIEntity(
-        bmiValue: userBMIValue,
-        nutritionalStatus: BMICalc.getNutritionalStatus(userBMIValue),
-      );
       final userConfig = await _getConfigUsecase.getConfig();
 
       emit(
         ProfileLoadedState(
-          userBMI: userBMIEntity,
+          effectiveWorkoutKcalMultiplier:
+              userConfig.effectiveHealthWorkoutKcalMultiplier,
           userEntity: user,
           bodyWeightUnit: userConfig.bodyWeightUnit,
           usesImperialHeightUnits: userConfig.usesImperialHeightUnits,

@@ -21,7 +21,4 @@ class NoopHealthService implements HealthService {
     required DateTime from,
     required DateTime to,
   }) async => const <ExternalWorkout>[];
-
-  @override
-  Future<double?> readLatestBodyFatPercent() async => null;
 }
