@@ -2,6 +2,7 @@ import 'package:opennutritracker/core/search/catalogue_preferences.dart';
 import '../../helpers/fake_food_catalogue.dart';
 import '../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -298,4 +299,47 @@ void main() {
 
     expect(find.byType(AiAssistDialog), findsNothing);
   });
+
+  for (final outcome in ['success', 'unavailable', 'exception']) {
+    testWidgets('Report Error opens GitHub: $outcome', (tester) async {
+      const channel = MethodChannel('plugins.flutter.io/url_launcher');
+      final launches = <Map<Object?, Object?>>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+        call,
+      ) async {
+        if (call.method == 'launch') {
+          launches.add(call.arguments as Map<Object?, Object?>);
+          if (outcome == 'exception')
+            throw PlatformException(code: 'ACTIVITY_NOT_FOUND');
+          return outcome == 'success';
+        }
+        throw StateError('Unexpected launcher method: ${call.method}');
+      });
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          null,
+        ),
+      );
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+      final report = find.bySemanticsIdentifier('settings-report-error');
+      await tester.scrollUntilVisible(report, 400);
+      await tester.tap(report);
+      await tester.pumpAndSettle();
+      expect(launches, hasLength(1));
+      expect(
+        launches.single['url'],
+        'https://github.com/reuben-harris/OpenNutriTracker/issues/new',
+      );
+      expect(launches.single['useWebView'], isFalse);
+      expect(launches.single['useSafariVC'], isFalse);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(
+        find.text(l10nEn.errorOpeningBrowser),
+        outcome == 'success' ? findsNothing : findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

@@ -536,9 +536,10 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
                 _SettingsTile(
                   palette: palette,
+                  identifier: 'settings-report-error',
                   icon: Icons.bug_report_rounded,
                   title: S.of(context).settingsReportErrorLabel,
-                  onTap: () => _showReportErrorDialog(context),
+                  onTap: () => _reportError(context),
                 ),
               ],
             ),
@@ -1162,47 +1163,20 @@ class _SettingsScreenState extends State<SettingsScreen>
     );
   }
 
-  void _showReportErrorDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(S.of(context).settingsReportErrorLabel),
-          content: Text(S.of(context).reportErrorDialogText),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(S.of(context).dialogCancelLabel),
-            ),
-            TextButton(
-              onPressed: () async {
-                _reportError(context);
-                Navigator.of(context).pop();
-              },
-              child: Text(S.of(context).dialogOKLabel),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _reportError(BuildContext context) async {
-    final reportUri = Uri.parse(
-      "mailto:${AppConst.reportErrorEmail}?subject=Report_Error",
-    );
-
-    if (await canLaunchUrl(reportUri)) {
-      launchUrl(reportUri);
-    } else {
-      // Cannot open email app, show error snackbar
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).errorOpeningEmail)),
-        );
-      }
+    var opened = false;
+    try {
+      opened = await launchUrl(
+        Uri.parse(AppConst.reportIssueUrl),
+        mode: LaunchMode.externalApplication,
+      );
+    } on Exception {
+      // A missing browser and a failed platform launch share the same feedback.
+    }
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(S.of(context).errorOpeningBrowser)),
+      );
     }
   }
 }
