@@ -10,7 +10,6 @@ import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
 import 'package:opennutritracker/features/add_meal/presentation/bloc/add_meal_bloc.dart';
-import 'package:opennutritracker/features/add_meal/presentation/screens/bulk_add_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/meal_item_card.dart';
 import 'package:opennutritracker/features/edit_meal/presentation/edit_meal_screen.dart';
@@ -70,27 +69,13 @@ class _AddMealScreenState extends State<AddMealScreen> {
             bloc: _addMealBloc,
             builder: (BuildContext context, AddMealState state) {
               if (state is AddMealLoadedState) {
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Semantics(
-                      identifier: 'add-meal-bulk-add',
-                      child: IconButton(
-                        onPressed: () =>
-                            _onBulkAddPressed(state.usesImperialUnits),
-                        icon: const Icon(Icons.playlist_add),
-                        tooltip: S.of(context).bulkAddTitle,
-                      ),
-                    ),
-                    Semantics(
-                      identifier: 'add-meal-custom-add',
-                      child: IconButton(
-                        onPressed: () =>
-                            _onCustomAddButtonPressed(state.usesImperialUnits),
-                        icon: const Icon(Icons.add_circle_outline),
-                      ),
-                    ),
-                  ],
+                return Semantics(
+                  identifier: 'add-meal-custom-add',
+                  child: IconButton(
+                    onPressed: () =>
+                        _onCustomAddButtonPressed(state.usesImperialUnits),
+                    icon: const Icon(Icons.add_circle_outline),
+                  ),
                 );
               }
               return const SizedBox();
@@ -163,17 +148,6 @@ class _AddMealScreenState extends State<AddMealScreen> {
       ),
     );
     if (selected is MealEntity && mounted) await _selectFood(selected);
-  }
-
-  void _onBulkAddPressed(bool usesImperialUnits) {
-    Navigator.of(context).pushNamed(
-      NavigationOptions.bulkAddRoute,
-      arguments: BulkAddScreenArguments(
-        _mealType.getIntakeType(),
-        _day,
-        usesImperialUnits,
-      ),
-    );
   }
 
   void _onCustomAddButtonPressed(bool usesImperialUnits) {
