@@ -8,7 +8,6 @@ import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart
 import 'package:opennutritracker/core/domain/entity/weight_log_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/add_weight_log_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_user_usecase.dart';
-import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
 import 'package:opennutritracker/core/presentation/widgets/section_group.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
@@ -28,7 +27,6 @@ import 'package:opennutritracker/features/profile/presentation/widgets/set_targe
 import 'package:opennutritracker/features/profile/presentation/widgets/set_weight_dialog.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/features/settings/presentation/bloc/settings_bloc.dart';
-import 'package:opennutritracker/features/settings/settings_screen.dart';
 import 'package:opennutritracker/features/settings/presentation/widgets/water_goal_dialog.dart';
 import 'package:opennutritracker/features/settings/presentation/widgets/workout_calorie_credit_dialog.dart';
 import 'package:opennutritracker/generated/l10n.dart';
@@ -305,52 +303,6 @@ class _ProfilePageState extends State<ProfilePage> {
               },
             ),
           ],
-        ),
-        const SizedBox(height: Dimens.spacing24),
-        SectionHeader(label: S.of(context).recipesLabel, palette: palette),
-        const SizedBox(height: Dimens.spacing12),
-        SectionGroup(
-          palette: palette,
-          tiles: [
-            _ProfileTile(
-              identifier: 'profile-recipes',
-              palette: palette,
-              icon: Icons.menu_book_rounded,
-              title: S.of(context).recipesLabel,
-              showChevron: true,
-              onTap: () => Navigator.of(
-                context,
-              ).pushNamed(NavigationOptions.recipesRoute),
-            ),
-          ],
-        ),
-        const SizedBox(height: Dimens.spacing24),
-        // The full settings surface lives inline so You is the single home for
-        // identity, goals and app preferences — but collapsed by default so the
-        // tab stays scannable. Reuses SettingsScreen unchanged; the pushed route
-        // still works for any other caller.
-        AppCard(
-          padding: EdgeInsets.zero,
-          child: Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              shape: const Border(),
-              collapsedShape: const Border(),
-              tilePadding: const EdgeInsets.symmetric(
-                horizontal: Dimens.spacing16,
-                vertical: Dimens.spacing4,
-              ),
-              leading: Icon(Icons.settings_rounded, color: palette.textMuted),
-              title: Text(
-                S.of(context).settingsLabel,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              childrenPadding: const EdgeInsets.only(bottom: Dimens.spacing8),
-              children: [
-                SettingsScreen(embedded: true, profileBloc: _profileBloc),
-              ],
-            ),
-          ),
         ),
       ],
     );

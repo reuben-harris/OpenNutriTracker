@@ -23,6 +23,9 @@ class CustomMealsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<CustomMealsBloc, CustomMealsState>(
+      buildWhen: (previous, next) =>
+          previous is! CustomMealsLoadedState ||
+          next is! CustomMealsLoadingState,
       listenWhen: (prev, curr) => curr is CustomMealsMergedState,
       listener: (context, state) {
         if (state is CustomMealsMergedState) {
@@ -67,99 +70,104 @@ class CustomMealsTab extends StatelessWidget {
           final isDark = Theme.of(context).brightness == Brightness.dark;
           final palette = isDark ? AppPalette.dark : AppPalette.light;
           final textTheme = Theme.of(context).textTheme;
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: Dimens.spacing8),
-            itemCount: state.meals.length,
-            itemBuilder: (context, index) {
-              final meal = state.meals[index];
-              final canMerge = state.meals.length >= 2;
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Dimens.spacing16,
-                  vertical: Dimens.spacing4,
-                ),
-                child: AppCard(
-                  padding: EdgeInsets.zero,
-                  child: InkWell(
-                    borderRadius: Dimens.borderRadiusL,
-                    onTap: () => _openEditMeal(context, meal),
-                    child: Padding(
-                      padding: const EdgeInsets.all(Dimens.spacing12),
-                      child: Row(
-                        children: [
-                          FoodImage(
-                            meal: meal,
-                            width: 52,
-                            height: 52,
-                            borderRadius: Dimens.borderRadiusS,
-                          ),
-                          const SizedBox(width: Dimens.spacing12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  meal.name ?? '',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                if (meal.brands != null) ...[
-                                  const SizedBox(height: Dimens.spacing4),
+          return Semantics(
+            identifier: 'library-custom-meals-list',
+            label: S.of(context).settingsCustomMealsLabel,
+            child: ListView.builder(
+              key: const PageStorageKey('library-custom-meals-scroll'),
+              padding: const EdgeInsets.symmetric(vertical: Dimens.spacing8),
+              itemCount: state.meals.length,
+              itemBuilder: (context, index) {
+                final meal = state.meals[index];
+                final canMerge = state.meals.length >= 2;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Dimens.spacing16,
+                    vertical: Dimens.spacing4,
+                  ),
+                  child: AppCard(
+                    padding: EdgeInsets.zero,
+                    child: InkWell(
+                      borderRadius: Dimens.borderRadiusL,
+                      onTap: () => _openEditMeal(context, meal),
+                      child: Padding(
+                        padding: const EdgeInsets.all(Dimens.spacing12),
+                        child: Row(
+                          children: [
+                            FoodImage(
+                              meal: meal,
+                              width: 52,
+                              height: 52,
+                              borderRadius: Dimens.borderRadiusS,
+                            ),
+                            const SizedBox(width: Dimens.spacing12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    meal.brands!,
+                                    meal.name ?? '',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      color: palette.textMuted,
+                                    style: textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          if (canMerge)
-                            Semantics(
-                              identifier: 'custom-foods-merge-open',
-                              child: PopupMenuButton<String>(
-                                icon: Icon(
-                                  Icons.more_vert_rounded,
-                                  color: palette.textMuted,
-                                ),
-                                tooltip: S
-                                    .of(context)
-                                    .customMealsRowMoreTooltip,
-                                onSelected: (value) {
-                                  if (value == 'merge') {
-                                    _startMerge(context, meal, state.meals);
-                                  }
-                                },
-                                itemBuilder: (ctx) => [
-                                  PopupMenuItem<String>(
-                                    value: 'merge',
-                                    child: Text(
-                                      S.of(context).customMealsMergeAction,
+                                  if (meal.brands != null) ...[
+                                    const SizedBox(height: Dimens.spacing4),
+                                    Text(
+                                      meal.brands!,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: textTheme.bodyMedium?.copyWith(
+                                        color: palette.textMuted,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ],
                               ),
                             ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.delete_outline_rounded,
-                              color: palette.textMuted,
+                            if (canMerge)
+                              Semantics(
+                                identifier: 'custom-foods-merge-open',
+                                child: PopupMenuButton<String>(
+                                  icon: Icon(
+                                    Icons.more_vert_rounded,
+                                    color: palette.textMuted,
+                                  ),
+                                  tooltip: S
+                                      .of(context)
+                                      .customMealsRowMoreTooltip,
+                                  onSelected: (value) {
+                                    if (value == 'merge') {
+                                      _startMerge(context, meal, state.meals);
+                                    }
+                                  },
+                                  itemBuilder: (ctx) => [
+                                    PopupMenuItem<String>(
+                                      value: 'merge',
+                                      child: Text(
+                                        S.of(context).customMealsMergeAction,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete_outline_rounded,
+                                color: palette.textMuted,
+                              ),
+                              onPressed: () => _confirmDelete(context, meal),
                             ),
-                            onPressed: () => _confirmDelete(context, meal),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
         }
         return const SizedBox.shrink();

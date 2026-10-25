@@ -163,6 +163,23 @@ void main() {
     await GetIt.instance.resetScope();
   });
 
+  testWidgets(
+    'You contains profile controls without library or settings entries',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(400, 3000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(_wrap(const ProfilePage()));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsIdentifier('profile-height'), findsOneWidget);
+      expect(find.bySemanticsIdentifier('profile-water-goal'), findsOneWidget);
+      expect(find.bySemanticsIdentifier('profile-recipes'), findsNothing);
+      expect(find.text(l10nEn.recipesLabel), findsNothing);
+      expect(find.text(l10nEn.settingsLabel), findsNothing);
+      expect(find.byType(ExpansionTile), findsNothing);
+    },
+  );
+
   testWidgets('tapping the profile weight tile logs a weight-history entry '
       '(regression #510: Profile weight edits used to skip WeightLogBox)', (
     tester,

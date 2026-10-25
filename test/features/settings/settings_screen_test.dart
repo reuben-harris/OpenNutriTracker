@@ -31,6 +31,8 @@ import '../../helpers/test_l10n.dart';
 /// real one renders — and skips Hive, `package_info`, and the cache size
 /// read, none of which are what these tests are about.
 class _FakeSettingsBloc extends Fake implements SettingsBloc {
+  int loads = 0;
+
   @override
   SettingsState get state =>
       const SettingsLoadedState('1.0.0', false, AppThemeEntity.system, false);
@@ -39,7 +41,9 @@ class _FakeSettingsBloc extends Fake implements SettingsBloc {
   Stream<SettingsState> get stream => const Stream<SettingsState>.empty();
 
   @override
-  void add(SettingsEvent event) {}
+  void add(SettingsEvent event) {
+    if (event is LoadSettingsEvent) loads++;
+  }
 }
 
 /// The screen resolves these in `initState` and only calls them from
@@ -103,7 +107,7 @@ void _register() {
 
 /// Pushes the settings route the way the app does, so the screen reads its
 /// arguments off a real `ModalRoute` rather than a constructor.
-Widget _app({Object? arguments}) => MaterialApp(
+Widget _app({Object? arguments, bool showAppBar = true}) => MaterialApp(
   localizationsDelegates: const [
     S.delegate,
     GlobalMaterialLocalizations.delegate,
@@ -114,7 +118,9 @@ Widget _app({Object? arguments}) => MaterialApp(
   initialRoute: NavigationOptions.settingsRoute,
   onGenerateRoute: (settings) => MaterialPageRoute<void>(
     settings: RouteSettings(name: settings.name, arguments: arguments),
-    builder: (_) => const SettingsScreen(),
+    builder: (_) => showAppBar
+        ? const SettingsScreen()
+        : const Scaffold(body: SettingsScreen(showAppBar: false)),
   ),
 );
 
@@ -139,60 +145,80 @@ void main() {
     expect(find.byType(SwitchListTile), findsOneWidget);
   });
 
-  group('the embedded form is not a scrollable (#974)', () {
-    /// The You tab hosts the screen inside its own scrollable, so anything
-    /// scrollable here is a viewport nested in a viewport.
-    Widget embeddedIn(Widget child) => MaterialApp(
-      localizationsDelegates: const [
-        S.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: S.supportedLocales,
-      home: Scaffold(body: SingleChildScrollView(child: child)),
+  Widget tabApp({bool active = true}) => MaterialApp(
+    localizationsDelegates: const [
+      S.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    supportedLocales: S.supportedLocales,
+    home: Scaffold(
+      appBar: AppBar(title: const Text('Host header')),
+      body: SettingsScreen(showAppBar: false, isActive: active),
+    ),
+  );
+
+  testWidgets('the tab has one header and one independently scrolling list', (
+    tester,
+  ) async {
+    await tester.pumpWidget(tabApp());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Scaffold), findsOneWidget);
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.byType(Scrollable), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.bySemanticsIdentifier('settings-databases'),
+      400,
     );
+    expect(
+      find.bySemanticsIdentifier('settings-databases').hitTestable(),
+      findsOneWidget,
+    );
+  });
 
-    testWidgets('embedded, it creates no viewport of its own', (tester) async {
-      // The fix, stated as the thing that can be checked without a device.
-      //
-      // It used to be a `ListView` with `shrinkWrap` and
-      // `NeverScrollableScrollPhysics`: a viewport that cannot scroll,
-      // inside the You tab's viewport that can. Rows outside the outer
-      // viewport are flagged `isHidden`, and which of them cleared depended
-      // on the outer list's offset — flung, it jumps in large
-      // non-overlapping steps, and four rows in the middle were never
-      // uncovered for a screen reader.
-      //
-      // The device behaviour cannot be reproduced here: a widget test
-      // scrolls to a computed offset, which a fling never rests at. So this
-      // pins the structural property the fix rests on instead, and says so
-      // rather than implying wider cover.
-      await tester.pumpWidget(embeddedIn(const SettingsScreen(embedded: true)));
-      await tester.pumpAndSettle();
+  testWidgets('reactivating the tab refreshes settings and keeps its scroll', (
+    tester,
+  ) async {
+    await tester.pumpWidget(tabApp());
+    await tester.pumpAndSettle();
+    final bloc = locator<SettingsBloc>() as _FakeSettingsBloc;
+    expect(bloc.loads, 1);
+    await tester.scrollUntilVisible(
+      find.bySemanticsIdentifier('settings-databases'),
+      400,
+    );
+    final scroll = tester.state<ScrollableState>(find.byType(Scrollable));
+    final offset = scroll.position.pixels;
+    expect(offset, greaterThan(0));
 
-      final scrollables = tester.widgetList(find.byType(Scrollable));
-      expect(
-        scrollables,
-        hasLength(1),
-        reason:
-            'only the host scrollable — the embedded settings must add '
-            'none of its own',
-      );
-    });
+    await tester.pumpWidget(tabApp(active: false));
+    await tester.pumpAndSettle();
+    expect(bloc.loads, 1);
+    await tester.pumpWidget(tabApp());
+    await tester.pumpAndSettle();
+    expect(bloc.loads, 2);
+    expect(scroll.position.pixels, offset);
+  });
 
-    testWidgets('pushed, it still scrolls itself', (tester) async {
-      // The other half: the standalone screen is the one that must keep its
-      // viewport, and it is the arrangement that was always reachable.
-      await tester.pumpWidget(_app());
-      await tester.pumpAndSettle();
+  testWidgets('tab content ignores settings requests on the host route', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        showAppBar: false,
+        arguments: const SettingsScreenArguments(openAiAssist: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(AiAssistDialog), findsNothing);
+  });
 
-      expect(find.byType(Scrollable), findsWidgets);
-      expect(
-        tester.widget<ListView>(find.byType(ListView).first).physics,
-        isNot(isA<NeverScrollableScrollPhysics>()),
-      );
-    });
+  testWidgets('the standalone settings route scrolls itself', (tester) async {
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+    expect(find.byType(Scrollable), findsOneWidget);
   });
 
   testWidgets('the AI row is nowhere near the top of a plain Settings', (

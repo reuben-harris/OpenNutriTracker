@@ -22,9 +22,50 @@ import 'package:opennutritracker/features/home/home_page.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/core/presentation/widgets/swipe_reveal_scope.dart';
 import 'package:opennutritracker/features/profile/profile_page.dart';
+import 'package:opennutritracker/features/recipes/presentation/screens/recipes_page.dart';
+import 'package:opennutritracker/features/recipes/presentation/widgets/library_add_menu.dart';
+import 'package:opennutritracker/features/settings/settings_screen.dart';
 import 'package:opennutritracker/features/trends/presentation/trends_page.dart';
 import 'package:opennutritracker/features/trends/presentation/bloc/trends_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
+
+enum _MainDestination {
+  diary,
+  overview,
+  trends,
+  library,
+  you,
+  settings;
+
+  String label(S s) => switch (this) {
+    diary => s.diaryLabel,
+    overview => s.onboardingOverviewLabel,
+    trends => s.trendsLabel,
+    library => s.libraryLabel,
+    you => s.youLabel,
+    settings => s.settingsLabel,
+  };
+
+  IconData get icon => switch (this) {
+    diary => Icons.book_outlined,
+    overview => Icons.pie_chart_outline,
+    trends => Icons.insights_outlined,
+    library => Icons.menu_book_outlined,
+    you => Icons.account_circle_outlined,
+    settings => Icons.settings_outlined,
+  };
+
+  IconData get selectedIcon => switch (this) {
+    diary => Icons.book_rounded,
+    overview => Icons.pie_chart_rounded,
+    trends => Icons.insights_rounded,
+    library => Icons.menu_book_rounded,
+    you => Icons.account_circle_rounded,
+    settings => Icons.settings_rounded,
+  };
+
+  bool get showsSelectedDay => this == diary || this == overview;
+}
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -34,7 +75,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
-  int _selectedPageIndex = 0;
+  _MainDestination _selectedDestination = _MainDestination.diary;
   bool _isDemoData = false;
   bool _ready = false;
 
@@ -42,9 +83,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   /// platform side clears the flag on read, so a race would not open the
   /// screen twice — but it would spend two channel round trips finding out.
   bool _checkingHealthRationale = false;
-
-  late List<Widget> _bodyPages;
-  late List<PreferredSizeWidget> _appbarPages;
 
   @override
   void initState() {
@@ -128,46 +166,53 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     await Navigator.of(context).pushNamed(NavigationOptions.healthSyncRoute);
   }
 
-  @override
-  void didChangeDependencies() {
-    _bodyPages = [
-      const DiaryPage(),
-      const HomePage(),
-      const TrendsPage(),
-      const ProfilePage(),
-    ];
-    _appbarPages = [
-      MainAppbar(title: S.of(context).diaryLabel, iconData: Icons.book),
-      MainAppbar(
-        title: S.of(context).onboardingOverviewLabel,
-        iconData: Icons.pie_chart_outline,
-      ),
-      MainAppbar(title: S.of(context).trendsLabel, iconData: Icons.insights),
-      MainAppbar(title: S.of(context).youLabel, iconData: Icons.account_circle),
-    ];
-    super.didChangeDependencies();
-  }
+  Widget _buildPage(_MainDestination destination) => switch (destination) {
+    _MainDestination.diary => const DiaryPage(),
+    _MainDestination.overview => const HomePage(),
+    _MainDestination.trends => const TrendsPage(),
+    _MainDestination.library => RecipesPage(
+      showAppBar: false,
+      isActive: destination == _selectedDestination,
+    ),
+    _MainDestination.you => const ProfilePage(),
+    _MainDestination.settings => SettingsScreen(
+      showAppBar: false,
+      isActive: destination == _selectedDestination,
+    ),
+  };
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final palette = isDark ? AppPalette.dark : AppPalette.light;
+    final s = S.of(context);
     return Scaffold(
-      appBar: _appbarPages[_selectedPageIndex],
+      appBar: MainAppbar(
+        title: _selectedDestination.label(s),
+        iconData: _selectedDestination.selectedIcon,
+        actions: _ready && _selectedDestination == _MainDestination.library
+            ? const [LibraryAddMenu()]
+            : null,
+      ),
       body: Column(
         children: [
           if (_isDemoData) const DemoModeBanner(),
-          if (_ready && _selectedPageIndex < 2) const SelectedDayHeader(),
+          if (_ready && _selectedDestination.showsSelectedDay)
+            const SelectedDayHeader(),
           Expanded(
             child: !_ready
                 ? const Center(child: CircularProgressIndicator())
                 : IndexedStack(
-                    index: _selectedPageIndex,
+                    index: _selectedDestination.index,
                     children: [
-                      for (var i = 0; i < _bodyPages.length; i++)
+                      for (final destination in _MainDestination.values)
                         SwipeRevealScope(
-                          active: i == _selectedPageIndex,
-                          child: _bodyPages[i],
+                          key: ValueKey(destination),
+                          active: destination == _selectedDestination,
+                          child: TickerMode(
+                            enabled: destination == _selectedDestination,
+                            child: _buildPage(destination),
+                          ),
                         ),
                     ],
                   ),
@@ -182,46 +227,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         padding: EdgeInsets.zero,
         child: Row(
           children: [
-            _NavItem(
-              id: 'nav-diary',
-              icon: Icons.book_outlined,
-              selectedIcon: Icons.book_rounded,
-              label: S.of(context).diaryLabel,
-              index: 0,
-              selectedIndex: _selectedPageIndex,
-              palette: palette,
-              onTap: _setPage,
-            ),
-            _NavItem(
-              id: 'nav-overview',
-              icon: Icons.pie_chart_outline,
-              selectedIcon: Icons.pie_chart_rounded,
-              label: S.of(context).onboardingOverviewLabel,
-              index: 1,
-              selectedIndex: _selectedPageIndex,
-              palette: palette,
-              onTap: _setPage,
-            ),
-            _NavItem(
-              id: 'nav-trends',
-              icon: Icons.insights_outlined,
-              selectedIcon: Icons.insights_rounded,
-              label: S.of(context).trendsLabel,
-              index: 2,
-              selectedIndex: _selectedPageIndex,
-              palette: palette,
-              onTap: _setPage,
-            ),
-            _NavItem(
-              id: 'nav-you',
-              icon: Icons.account_circle_outlined,
-              selectedIcon: Icons.account_circle_rounded,
-              label: S.of(context).youLabel,
-              index: 3,
-              selectedIndex: _selectedPageIndex,
-              palette: palette,
-              onTap: _setPage,
-            ),
+            for (final destination in _MainDestination.values)
+              _NavItem(
+                destination: destination,
+                selected: destination == _selectedDestination,
+                palette: palette,
+                onTap: () => _setPage(destination),
+              ),
           ],
         ),
       ),
@@ -249,9 +261,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (imported > 0 && mounted) _refreshRecords();
   }
 
-  void _setPage(int selectedIndex) {
-    if (selectedIndex == 1) locator<HomeBloc>().add(const LoadItemsEvent());
-    if (selectedIndex == 2) {
+  void _setPage(_MainDestination destination) {
+    if (destination != _selectedDestination) {
+      FocusScope.of(context).unfocus();
+    }
+    if (destination == _MainDestination.overview) {
+      locator<HomeBloc>().add(const LoadItemsEvent());
+    }
+    if (destination == _MainDestination.trends) {
       final trends = locator<TrendsBloc>();
       final state = trends.state;
       trends.add(
@@ -259,54 +276,49 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       );
     }
     setState(() {
-      _selectedPageIndex = selectedIndex;
+      _selectedDestination = destination;
     });
   }
 }
 
 class _NavItem extends StatelessWidget {
-  final String id;
-  final IconData icon;
-  final IconData selectedIcon;
-  final String label;
-  final int index;
-  final int selectedIndex;
+  final _MainDestination destination;
+  final bool selected;
   final AppPalette palette;
-  final void Function(int) onTap;
+  final VoidCallback onTap;
 
   const _NavItem({
-    required this.id,
-    required this.icon,
-    required this.selectedIcon,
-    required this.label,
-    required this.index,
-    required this.selectedIndex,
+    required this.destination,
+    required this.selected,
     required this.palette,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final selected = index == selectedIndex;
     final color = selected
         ? Theme.of(context).colorScheme.primary
         : palette.textMuted;
     return Expanded(
       child: Semantics(
-        identifier: id,
-        container: true,
+        identifier: 'nav-${destination.name}',
+        selected: selected,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => onTap(index),
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(selected ? selectedIcon : icon, color: color, size: 26),
+                Icon(
+                  selected ? destination.selectedIcon : destination.icon,
+                  color: color,
+                  size: 26,
+                ),
                 const SizedBox(height: 3),
                 AutoSizeText(
-                  label,
+                  destination.label(S.of(context)),
                   minFontSize: 6,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

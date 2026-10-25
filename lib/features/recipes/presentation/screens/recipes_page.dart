@@ -2,22 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/usecase/delete_recipe_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
-import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
+import 'package:opennutritracker/core/presentation/widgets/empty_hint.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/dimens.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
-import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
-import 'package:opennutritracker/features/edit_meal/presentation/edit_meal_screen.dart';
 import 'package:opennutritracker/features/recipes/presentation/bloc/recipes_bloc.dart';
 import 'package:opennutritracker/features/recipes/presentation/screens/recipe_detail_screen.dart';
 import 'package:opennutritracker/features/recipes/presentation/widgets/custom_meals_tab.dart';
+import 'package:opennutritracker/features/recipes/presentation/widgets/library_add_menu.dart';
 import 'package:opennutritracker/features/recipes/presentation/widgets/recipe_list_item.dart';
 import 'package:opennutritracker/features/settings/presentation/bloc/custom_meals_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
 class RecipesPage extends StatefulWidget {
-  const RecipesPage({super.key});
+  final bool showAppBar;
+  final bool isActive;
+
+  const RecipesPage({super.key, this.showAppBar = true, this.isActive = true});
 
   @override
   State<RecipesPage> createState() => _RecipesPageState();
@@ -41,10 +43,21 @@ class _RecipesPageState extends State<RecipesPage>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _bloc = locator<RecipesBloc>();
-    _customMealsBloc = locator<CustomMealsBloc>()..add(LoadCustomMealsEvent());
+    _customMealsBloc = locator<CustomMealsBloc>();
     _tabController = TabController(length: 2, vsync: this);
     _searchController = TextEditingController();
+    if (widget.isActive) _refresh();
+  }
+
+  @override
+  void didUpdateWidget(covariant RecipesPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) _refresh();
+  }
+
+  void _refresh() {
     _bloc.add(const LoadRecipesEvent());
+    _customMealsBloc.add(LoadCustomMealsEvent());
     _loadConfig();
   }
 
@@ -57,10 +70,7 @@ class _RecipesPageState extends State<RecipesPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _bloc.add(const LoadRecipesEvent());
-      _customMealsBloc.add(LoadCustomMealsEvent());
-    }
+    if (state == AppLifecycleState.resumed && widget.isActive) _refresh();
   }
 
   @override
@@ -73,111 +83,44 @@ class _RecipesPageState extends State<RecipesPage>
 
   @override
   Widget build(BuildContext context) {
-    // Standalone pushed screen (reached from Add and from You): it owns its
-    // Scaffold + AppBar, so the title bar clears the status bar / notch on
-    // iPhone and the create/import actions live where you'd expect them.
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(S.of(context).recipesLabel),
-        actions: [
-          PopupMenuButton<_RecipesAction>(
-            tooltip: S.of(context).addLabel,
-            icon: const Icon(Icons.add),
-            onSelected: (action) => _onAddSelected(context, action),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: _RecipesAction.newRecipe,
-                child: Row(
-                  children: [
-                    const Icon(Icons.menu_book_outlined),
-                    const SizedBox(width: Dimens.spacing12),
-                    Text(S.of(context).createRecipeTitle),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: _RecipesAction.newCustomMeal,
-                child: Row(
-                  children: [
-                    const Icon(Icons.restaurant_outlined),
-                    const SizedBox(width: Dimens.spacing12),
-                    Text(S.of(context).newCustomMealLabel),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: _RecipesAction.importRecipe,
-                child: Row(
-                  children: [
-                    const Icon(Icons.qr_code_scanner_outlined),
-                    const SizedBox(width: Dimens.spacing12),
-                    Text(S.of(context).importRecipeLabel),
-                  ],
-                ),
-              ),
+    final body = BlocProvider.value(
+      value: _customMealsBloc,
+      child: Column(
+        children: [
+          TabBar(
+            controller: _tabController,
+            tabs: [
+              Tab(text: S.of(context).recipesLabel),
+              Tab(text: S.of(context).settingsCustomMealsLabel),
             ],
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildRecipesTab(),
+                CustomMealsTab(usesImperialUnits: _usesImperialUnits),
+              ],
+            ),
           ),
         ],
       ),
-      body: BlocProvider.value(
-        value: _customMealsBloc,
-        child: Column(
-          children: [
-            TabBar(
-              controller: _tabController,
-              tabs: [
-                Tab(text: S.of(context).recipesLabel),
-                Tab(text: S.of(context).settingsCustomMealsLabel),
-              ],
-            ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildRecipesTab(),
-                  CustomMealsTab(usesImperialUnits: _usesImperialUnits),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
-  }
-
-  Future<void> _onAddSelected(
-    BuildContext context,
-    _RecipesAction action,
-  ) async {
-    switch (action) {
-      case _RecipesAction.newRecipe:
-        await Navigator.of(
-          context,
-        ).pushNamed(NavigationOptions.recipeBuilderRoute);
-        _bloc.add(const LoadRecipesEvent());
-      case _RecipesAction.newCustomMeal:
-        await Navigator.of(context).pushNamed(
-          NavigationOptions.editMealRoute,
-          arguments: EditMealScreenArguments(
-            DateTime.now(),
-            MealEntity.empty(),
-            IntakeTypeEntity.breakfast,
-            false,
-            editOnly: true,
-          ),
-        );
-        _customMealsBloc.add(LoadCustomMealsEvent());
-      case _RecipesAction.importRecipe:
-        await Navigator.of(
-          context,
-        ).pushNamed(NavigationOptions.importRecipeScannerRoute);
-        _bloc.add(const LoadRecipesEvent());
-    }
+    if (!widget.showAppBar) return body;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(S.of(context).libraryLabel),
+        actions: const [LibraryAddMenu()],
+      ),
+      body: body,
+    );
   }
 
   Widget _buildRecipesTab() {
     return BlocBuilder<RecipesBloc, RecipesState>(
       bloc: _bloc,
+      buildWhen: (previous, next) =>
+          previous is! RecipesLoaded || next is! RecipesLoading,
       builder: (context, state) {
         if (state is RecipesLoading || state is RecipesInitial) {
           return const Center(child: CircularProgressIndicator());
@@ -309,45 +252,54 @@ class _RecipesPageState extends State<RecipesPage>
                         children: [
                           if (_selectionMode) _buildSelectionBar(context),
                           Expanded(
-                            child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: Dimens.spacing8,
+                            child: Semantics(
+                              identifier: 'library-recipes-list',
+                              label: S.of(context).recipesLabel,
+                              child: ListView.builder(
+                                key: const PageStorageKey(
+                                  'library-recipes-scroll',
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: Dimens.spacing8,
+                                ),
+                                itemCount: filtered.length,
+                                itemBuilder: (context, index) {
+                                  final recipe = filtered[index];
+                                  final isSelected = _selectedIds.contains(
+                                    recipe.id,
+                                  );
+                                  return RecipeListItem(
+                                    recipe: recipe,
+                                    isSelected: isSelected,
+                                    onTap: () async {
+                                      if (_selectionMode) {
+                                        setState(() {
+                                          if (isSelected) {
+                                            _selectedIds.remove(recipe.id);
+                                          } else {
+                                            _selectedIds.add(recipe.id);
+                                          }
+                                        });
+                                        return;
+                                      }
+                                      await Navigator.of(context).pushNamed(
+                                        NavigationOptions.recipeDetailRoute,
+                                        arguments: RecipeDetailArguments(
+                                          recipeId: recipe.id,
+                                        ),
+                                      );
+                                      if (mounted) {
+                                        _bloc.add(const LoadRecipesEvent());
+                                      }
+                                    },
+                                    onLongPress: () {
+                                      setState(
+                                        () => _selectedIds.add(recipe.id),
+                                      );
+                                    },
+                                  );
+                                },
                               ),
-                              itemCount: filtered.length,
-                              itemBuilder: (context, index) {
-                                final recipe = filtered[index];
-                                final isSelected = _selectedIds.contains(
-                                  recipe.id,
-                                );
-                                return RecipeListItem(
-                                  recipe: recipe,
-                                  isSelected: isSelected,
-                                  onTap: () async {
-                                    if (_selectionMode) {
-                                      setState(() {
-                                        if (isSelected) {
-                                          _selectedIds.remove(recipe.id);
-                                        } else {
-                                          _selectedIds.add(recipe.id);
-                                        }
-                                      });
-                                      return;
-                                    }
-                                    await Navigator.of(context).pushNamed(
-                                      NavigationOptions.recipeDetailRoute,
-                                      arguments: RecipeDetailArguments(
-                                        recipeId: recipe.id,
-                                      ),
-                                    );
-                                    if (mounted) {
-                                      _bloc.add(const LoadRecipesEvent());
-                                    }
-                                  },
-                                  onLongPress: () {
-                                    setState(() => _selectedIds.add(recipe.id));
-                                  },
-                                );
-                              },
                             ),
                           ),
                         ],
@@ -438,44 +390,14 @@ class _RecipesPageState extends State<RecipesPage>
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final palette = isDark ? AppPalette.dark : AppPalette.light;
-    final accent = Theme.of(context).colorScheme.primary;
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(Dimens.spacing32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(Dimens.spacing24),
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.menu_book_rounded, size: 56, color: accent),
-            ),
-            const SizedBox(height: Dimens.spacing24),
-            Text(
-              S.of(context).recipesEmptyLabel,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: Dimens.spacing8),
-            Text(
-              S.of(context).recipesEmptyHint,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: palette.textMuted),
-              textAlign: TextAlign.center,
-            ),
-          ],
+      child: SingleChildScrollView(
+        child: EmptyHint(
+          icon: Icons.menu_book_rounded,
+          title: S.of(context).recipesEmptyLabel,
+          subtitle: S.of(context).recipesEmptyHint,
         ),
       ),
     );
   }
 }
-
-enum _RecipesAction { newRecipe, newCustomMeal, importRecipe }

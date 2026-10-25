@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
 import 'package:opennutritracker/core/presentation/widgets/add_item_bottom_sheet.dart';
+import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import '../../../helpers/test_l10n.dart';
 
@@ -22,48 +23,88 @@ Widget _wrapWithMaterial(Widget child) {
 }
 
 void main() {
-  testWidgets(
-    'shows the Activity tile when showActivityTracking is true',
-    (tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(
+  testWidgets('the Add shortcut opens the existing library route', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: S.localizationsDelegates,
+        supportedLocales: S.supportedLocales,
+        routes: {
+          NavigationOptions.recipesRoute: (_) =>
+              const Scaffold(body: Text('Opened library')),
+        },
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => AddItemBottomSheet(day: DateTime(2026, 1, 1)),
+              ),
+              child: const Text('Open Add'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open Add'));
+    await tester.pumpAndSettle();
+    final shortcut = find.bySemanticsIdentifier('add-item-library');
+    await tester.ensureVisible(shortcut);
+    expect(
+      find.descendant(of: shortcut, matching: find.text(l10nEn.libraryLabel)),
+      findsOneWidget,
+    );
+    await tester.tap(shortcut);
+    await tester.pumpAndSettle();
+    expect(find.text('Opened library'), findsOneWidget);
+  });
+
+  testWidgets('shows the Activity tile when showActivityTracking is true', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapWithMaterial(
         AddItemBottomSheet(
           day: DateTime(2026, 1, 1),
           showActivityTracking: true,
         ),
-      ));
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.text(l10nEn.activityLabel), findsOneWidget);
-      expect(find.text(l10nEn.breakfastLabel), findsOneWidget);
-    },
-  );
+    expect(find.text(l10nEn.activityLabel), findsOneWidget);
+    expect(find.text(l10nEn.breakfastLabel), findsOneWidget);
+  });
 
-  testWidgets(
-    'hides the Activity tile when showActivityTracking is false',
-    (tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(
+  testWidgets('hides the Activity tile when showActivityTracking is false', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapWithMaterial(
         AddItemBottomSheet(
           day: DateTime(2026, 1, 1),
           showActivityTracking: false,
         ),
-      ));
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.text(l10nEn.activityLabel), findsNothing);
-      // Meal tiles still render so the sheet stays useful for food logging.
-      expect(find.text(l10nEn.breakfastLabel), findsOneWidget);
-      expect(find.text(l10nEn.lunchLabel), findsOneWidget);
-      expect(find.text(l10nEn.dinnerLabel), findsOneWidget);
-      expect(find.text(l10nEn.snackLabel), findsOneWidget);
-    },
-  );
+    expect(find.text(l10nEn.activityLabel), findsNothing);
+    // Meal tiles still render so the sheet stays useful for food logging.
+    expect(find.text(l10nEn.breakfastLabel), findsOneWidget);
+    expect(find.text(l10nEn.lunchLabel), findsOneWidget);
+    expect(find.text(l10nEn.dinnerLabel), findsOneWidget);
+    expect(find.text(l10nEn.snackLabel), findsOneWidget);
+  });
 
   testWidgets(
     'defaults to showing the Activity tile when the flag is omitted',
     (tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(
-        AddItemBottomSheet(day: DateTime(2026, 1, 1)),
-      ));
+      await tester.pumpWidget(
+        _wrapWithMaterial(AddItemBottomSheet(day: DateTime(2026, 1, 1))),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text(l10nEn.activityLabel), findsOneWidget);
@@ -76,12 +117,14 @@ void main() {
   testWidgets(
     'shows exactly one Suggested chip on the tile matching suggestedType',
     (tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(
-        AddItemBottomSheet(
-          day: DateTime(2026, 1, 1),
-          suggestedType: IntakeTypeEntity.lunch,
+      await tester.pumpWidget(
+        _wrapWithMaterial(
+          AddItemBottomSheet(
+            day: DateTime(2026, 1, 1),
+            suggestedType: IntakeTypeEntity.lunch,
+          ),
         ),
-      ));
+      );
       await tester.pumpAndSettle();
 
       expect(find.text(l10nEn.suggestedLabel), findsOneWidget);
@@ -107,46 +150,47 @@ void main() {
   // Its Semantics wrapper sets a label and the Text inside says the same
   // word again; without excludeSemantics they both reach the node and it is
   // announced twice in a row.
-  testWidgets(
-    'announces the suggestion once, not twice',
-    (tester) async {
-      final handle = tester.ensureSemantics();
-      await tester.pumpWidget(_wrapWithMaterial(
+  testWidgets('announces the suggestion once, not twice', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(
+      _wrapWithMaterial(
         AddItemBottomSheet(
           day: DateTime(2026, 1, 1),
           suggestedType: IntakeTypeEntity.lunch,
         ),
-      ));
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      final chip = find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.identifier == 'add-item-suggested-chip',
-      );
-      final label = tester.semantics.find(chip).label;
+    final chip = find.byWidgetPredicate(
+      (widget) =>
+          widget is Semantics &&
+          widget.properties.identifier == 'add-item-suggested-chip',
+    );
+    final label = tester.semantics.find(chip).label;
 
-      expect(label, equals(l10nEn.suggestedLabel),
-          reason: 'the chip should say it once and only once');
+    expect(
+      label,
+      equals(l10nEn.suggestedLabel),
+      reason: 'the chip should say it once and only once',
+    );
 
-      handle.dispose();
-    },
-  );
+    handle.dispose();
+  });
 
-  testWidgets(
-    'renders no Suggested chip when suggestedType is null',
-    (tester) async {
-      await tester.pumpWidget(_wrapWithMaterial(
-        AddItemBottomSheet(day: DateTime(2026, 1, 1)),
-      ));
-      await tester.pumpAndSettle();
+  testWidgets('renders no Suggested chip when suggestedType is null', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrapWithMaterial(AddItemBottomSheet(day: DateTime(2026, 1, 1))),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.text(l10nEn.suggestedLabel), findsNothing);
-      // Meal tiles still render — the sheet remains fully usable.
-      expect(find.text(l10nEn.breakfastLabel), findsOneWidget);
-      expect(find.text(l10nEn.lunchLabel), findsOneWidget);
-      expect(find.text(l10nEn.dinnerLabel), findsOneWidget);
-      expect(find.text(l10nEn.snackLabel), findsOneWidget);
-    },
-  );
+    expect(find.text(l10nEn.suggestedLabel), findsNothing);
+    // Meal tiles still render — the sheet remains fully usable.
+    expect(find.text(l10nEn.breakfastLabel), findsOneWidget);
+    expect(find.text(l10nEn.lunchLabel), findsOneWidget);
+    expect(find.text(l10nEn.dinnerLabel), findsOneWidget);
+    expect(find.text(l10nEn.snackLabel), findsOneWidget);
+  });
 }

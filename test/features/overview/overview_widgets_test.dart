@@ -33,9 +33,11 @@ import 'package:opennutritracker/core/presentation/widgets/selected_day_header.d
 import 'package:opennutritracker/core/styles/app_palette.dart';
 import 'package:opennutritracker/core/styles/app_theme.dart';
 import 'package:opennutritracker/core/utils/calc/day_boundary_calc.dart';
+import 'package:opennutritracker/core/utils/ai_credential_storage.dart';
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/activity_detail/presentation/bloc/activity_detail_bloc.dart';
+import 'package:opennutritracker/features/add_meal/domain/usecase/run_ai_endpoint_probe_usecase.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
@@ -49,6 +51,9 @@ import 'package:opennutritracker/features/home/presentation/widgets/log_water_di
 import 'package:opennutritracker/features/home/presentation/widgets/overview_macros.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
 import 'package:opennutritracker/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:opennutritracker/features/recipes/presentation/bloc/recipes_bloc.dart';
+import 'package:opennutritracker/features/settings/presentation/bloc/custom_meals_bloc.dart';
+import 'package:opennutritracker/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:opennutritracker/features/trends/presentation/bloc/trends_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
@@ -82,6 +87,31 @@ class QuietFasting extends Fake implements FastingBloc {
   @override
   Future<void> close() async {}
 }
+
+class QuietRecipes extends Fake implements RecipesBloc {
+  @override
+  RecipesState get state => const RecipesInitial();
+  @override
+  Stream<RecipesState> get stream => const Stream.empty();
+}
+
+class QuietCustomMeals extends Fake implements CustomMealsBloc {
+  @override
+  CustomMealsState get state => CustomMealsInitial();
+  @override
+  Stream<CustomMealsState> get stream => const Stream.empty();
+}
+
+class QuietSettings extends Fake implements SettingsBloc {
+  @override
+  SettingsState get state => SettingsLoadingState();
+  @override
+  Stream<SettingsState> get stream => const Stream.empty();
+}
+
+class UnusedAiCredentials extends Fake implements AiCredentialStorage {}
+
+class UnusedAiProbeRunner extends Fake implements AiEndpointProbeRunner {}
 
 class NoWorkouts extends Fake implements ImportWorkoutsUsecase {
   int calls = 0;
@@ -482,6 +512,11 @@ void main() {
       locator.registerSingleton<ProfileBloc>(QuietProfile());
       locator.registerSingleton<TrendsBloc>(QuietTrends());
       locator.registerFactory<FastingBloc>(QuietFasting.new);
+      locator.registerSingleton<RecipesBloc>(QuietRecipes());
+      locator.registerSingleton<CustomMealsBloc>(QuietCustomMeals());
+      locator.registerSingleton<SettingsBloc>(QuietSettings());
+      locator.registerSingleton<AiCredentialStorage>(UnusedAiCredentials());
+      locator.registerSingleton<AiEndpointProbeRunner>(UnusedAiProbeRunner());
       locator.registerFactory<MealDetailBloc>(UnusedMealDetail.new);
       locator.registerFactory<ActivityDetailBloc>(UnusedActivityDetail.new);
       addTearDown(() async {
