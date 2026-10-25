@@ -5,7 +5,8 @@ class AppConst {
   static const userAgentAppName = "OpenNutriTracker";
   static const platformNameAndroid = "Android";
   static const platformNameIOS = "iOS";
-  static const reportErrorEmail = "opennutritracker-dev@pm.me";
+  static const reportIssueUrl =
+      "https://github.com/reuben-harris/OpenNutriTracker/issues/new";
   static const sourceCodeUrl =
       "https://github.com/simonoppowa/OpenNutriTracker";
 
