@@ -33,7 +33,6 @@ import 'package:opennutritracker/core/utils/ai_credential_storage.dart';
 import 'package:opennutritracker/features/add_meal/domain/usecase/run_ai_endpoint_probe_usecase.dart';
 import 'package:opennutritracker/features/settings/presentation/widgets/ai_assist_dialog.dart';
 import 'package:opennutritracker/generated/l10n.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:opennutritracker/features/settings/presentation/widgets/diary_day_boundary_dialog.dart';
@@ -540,12 +539,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                   icon: Icons.bug_report_rounded,
                   title: S.of(context).settingsReportErrorLabel,
                   onTap: () => _showReportErrorDialog(context),
-                ),
-                _SettingsTile(
-                  palette: palette,
-                  icon: Icons.error_outline_rounded,
-                  title: S.of(context).settingAboutLabel,
-                  onTap: () => _showAboutDialog(context),
                 ),
               ],
             ),
@@ -1208,58 +1201,6 @@ class _SettingsScreenState extends State<SettingsScreen>
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(S.of(context).errorOpeningEmail)),
-        );
-      }
-    }
-  }
-
-  void _showAboutDialog(BuildContext context) async {
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    if (context.mounted) {
-      showAboutDialog(
-        context: context,
-        applicationName: S.of(context).appTitle,
-        applicationIcon: SizedBox(
-          width: 40,
-          child: Image.asset(
-            Theme.of(context).brightness == Brightness.dark
-                ? 'assets/icon/ont_logo_square_color_white_1024x1024.png'
-                : 'assets/icon/ont_logo_square_color_back_1024x1024.png',
-          ),
-        ),
-        applicationVersion: packageInfo.version,
-        applicationLegalese: S.of(context).appLicenseLabel,
-        children: [
-          TextButton(
-            onPressed: () {
-              _launchSourceCodeUrl(context);
-            },
-            child: Row(
-              children: [
-                const Icon(Icons.code_outlined),
-                const SizedBox(width: 8.0),
-                Text(S.of(context).settingsSourceCodeLabel),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
-  }
-
-  void _launchSourceCodeUrl(BuildContext context) async {
-    final sourceCodeUri = Uri.parse(AppConst.sourceCodeUrl);
-    _launchUrl(context, sourceCodeUri);
-  }
-
-  void _launchUrl(BuildContext context, Uri url) async {
-    if (await canLaunchUrl(url)) {
-      launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      // Cannot open browser app, show error snackbar
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(S.of(context).errorOpeningBrowser)),
         );
       }
     }
