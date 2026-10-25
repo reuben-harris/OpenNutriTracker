@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
+
 /// Minimal CSV row splitter shared between the meal-import and recipe-
 /// import flows. The food-label use case doesn't justify pulling in a
 /// full CSV package: rows are short, headers are known, and the only
@@ -51,5 +54,14 @@ class CsvRowParser {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return null;
     return double.tryParse(trimmed.replaceAll(',', '.'));
+  }
+
+  /// Nutrient cells may also carry trace, bounds, or a full qualified amount.
+  static NutrientAmount? parseNutrientOrNull(String? raw) {
+    final text = raw?.trim() ?? '';
+    if (text.isEmpty) return null;
+    return NutrientAmount.fromSource(
+      text.startsWith('{') ? jsonDecode(text) : text.replaceAll(',', '.'),
+    );
   }
 }

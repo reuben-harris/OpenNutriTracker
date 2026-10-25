@@ -304,44 +304,25 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
       return NutrientAmount.fromNumber(value)?.scale(1 / factor);
     }
 
-    final nutriments = MealNutrimentsEntity(
-      energyKcal100: stored(
+    final nutriments = MealNutrimentsEntity.fromAmounts({
+      ...?old?.nutriments.amounts,
+      'energyKcal100': stored(
         _energyController,
         kcal,
         old?.nutriments.energyKcal100,
       ),
-      carbohydrates100: stored(
+      'carbohydrates100': stored(
         _carbsController,
         carbs,
         old?.nutriments.carbohydrates100,
       ),
-      fat100: stored(_fatController, fat, old?.nutriments.fat100),
-      proteins100: stored(
+      'fat100': stored(_fatController, fat, old?.nutriments.fat100),
+      'proteins100': stored(
         _proteinController,
         protein,
         old?.nutriments.proteins100,
       ),
-      sugars100: old?.nutriments.sugars100,
-      saturatedFat100: old?.nutriments.saturatedFat100,
-      fiber100: old?.nutriments.fiber100,
-      monounsaturatedFat100: old?.nutriments.monounsaturatedFat100,
-      polyunsaturatedFat100: old?.nutriments.polyunsaturatedFat100,
-      transFat100: old?.nutriments.transFat100,
-      cholesterol100: old?.nutriments.cholesterol100,
-      sodium100: old?.nutriments.sodium100,
-      potassium100: old?.nutriments.potassium100,
-      magnesium100: old?.nutriments.magnesium100,
-      calcium100: old?.nutriments.calcium100,
-      iron100: old?.nutriments.iron100,
-      zinc100: old?.nutriments.zinc100,
-      phosphorus100: old?.nutriments.phosphorus100,
-      vitaminA100: old?.nutriments.vitaminA100,
-      vitaminC100: old?.nutriments.vitaminC100,
-      vitaminD100: old?.nutriments.vitaminD100,
-      vitaminB6100: old?.nutriments.vitaminB6100,
-      vitaminB12100: old?.nutriments.vitaminB12100,
-      niacin100: old?.nutriments.niacin100,
-    );
+    });
     final meal = MealEntity(
       code: old?.code ?? IdGenerator.getUniqueID(),
       name: title,

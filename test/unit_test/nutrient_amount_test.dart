@@ -79,6 +79,43 @@ void main() {
     expect(NutrientAmount.fromSource(null, modifier: '~'), isNull);
     expect(formatNutrientAmount(const NutrientAmount(0), s), '0.00');
   });
+  test('partial coverage is retained without adding display wording', () {
+    const amount = NutrientAmount(1.25, isPartial: true);
+    expect(formatNutrientAmount(amount, s, unit: 'g'), '1.25 g');
+    expect(formatNutrientPercentage(amount, 2.5), '50%');
+    expect(amount.isPartial, isTrue);
+    expect(
+      formatNutrientAmount(
+        const NutrientAmount(
+          1.25,
+          qualification: NutrientQualification.approximate,
+          isPartial: true,
+        ),
+        s,
+        unit: 'g',
+      ),
+      '≈1.25 g*',
+    );
+  });
+  test('OFF amino acids retain normalized grams, zero and qualifications', () {
+    final n = MealNutrimentsEntity.fromOffNutriments(
+      OFFProductNutrimentsDTO.fromJson({
+        'proteins_100g': 20,
+        'l-leucine_100g': '0.0012300',
+        'l-leucine_unit': 'mg',
+        'l-leucine_modifier': '<',
+        'l-cysteine_100g': 0,
+        'l-glutamine_100g': 1.25,
+      }),
+    );
+    expect(n.leucine100!.value, 0.00123);
+    expect(n.leucine100!.qualification, NutrientQualification.lessThan);
+    expect(n.cysteine100, const NutrientAmount(0));
+    expect(n.cystine100, isNull);
+    expect(n.histidine100, isNull);
+    expect(n.glutamine100, const NutrientAmount(1.25));
+    expect(n.proteins100, const NutrientAmount(20));
+  });
   test(
     'scaling retains contribution and separate limit; unknown limits stay distinct',
     () {

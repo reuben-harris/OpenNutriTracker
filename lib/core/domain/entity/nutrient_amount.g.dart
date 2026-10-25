@@ -22,19 +22,22 @@ class NutrientAmountAdapter extends TypeAdapter<NutrientAmount> {
           ? NutrientQualification.none
           : fields[1] as NutrientQualification,
       limit: (fields[2] as num?)?.toDouble(),
+      isPartial: fields[3] == null ? false : fields[3] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, NutrientAmount obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.value)
       ..writeByte(1)
       ..write(obj.qualification)
       ..writeByte(2)
-      ..write(obj.limit);
+      ..write(obj.limit)
+      ..writeByte(3)
+      ..write(obj.isPartial);
   }
 
   @override

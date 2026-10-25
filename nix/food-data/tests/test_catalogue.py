@@ -33,6 +33,68 @@ class ProjectionTest(FixtureCase):
                              [('1 loosely packed', '123.40'), ('2 slices, thin', '50.0'), ('1 cup', '246.0')])
             self.assertEqual(set(data), catalogue.NUTRIENTS)
 
+    def test_precise_expanded_nutrients_and_unreported_totals(self):
+        self.tables['supporting']['tables']['nutrient'].extend([
+            ['1103', 'Selenium, Se', 'UG', '317', '7900'],
+            ['1190', 'Folate, DFE', 'UG', '435', '8000'],
+            ['1109', 'Vitamin E (alpha-tocopherol)', 'MG', '323', '8100'],
+        ])
+        table = self.tables['foundation']['tables']['food_nutrient']
+        for identity, nutrient, value in [('100', '1103', '0.0012300'),
+                                          ('101', '1190', '120.4500'),
+                                          ('102', '1109', '0.00')]:
+            row = dict.fromkeys(table[0], '')
+            row.update(id=identity, fdc_id='100', nutrient_id=nutrient, amount=value)
+            table.append([row[k] for k in table[0]])
+        self.write_archives()
+        path = self.root / 'expanded.sqlite'
+        usda.build_database(self.lock, self.paths, path)
+        with contextlib.closing(sqlite3.connect(path)) as db:
+            values = json.loads(db.execute("SELECT nutrition FROM food WHERE code='usda:100'").fetchone()[0])
+            self.assertEqual(values['selenium100'], '0.0012300')
+            self.assertEqual(values['folateDfe100'], '120.4500')
+            self.assertEqual(values['vitaminE100'], '0.00')
+            self.assertIsNone(values['omega3100'])
+            self.assertIsNone(values['omega6100'])
+
+    def test_amino_acids_keep_individual_definitions_precision_and_missing_values(self):
+        self.tables['supporting']['tables']['nutrient'].extend([
+            ['1221', 'Histidine', 'G', '512', ''],
+            ['1216', 'Cystine', 'G', '507', ''],
+            ['1232', 'Cysteine', 'G', '', ''],
+            ['1229', 'Cysteine and methionine', 'G', '', ''],
+        ])
+        table = self.tables['foundation']['tables']['food_nutrient']
+        for identity, nutrient, value in [('100', '1221', '0.0012300'),
+                                          ('101', '1216', '0.00'),
+                                          ('102', '1229', '9.999')]:
+            row = dict.fromkeys(table[0], '')
+            row.update(id=identity, fdc_id='100', nutrient_id=nutrient, amount=value)
+            table.append([row[k] for k in table[0]])
+        self.write_archives()
+        path = self.root / 'amino-acids.sqlite'
+        usda.build_database(self.lock, self.paths, path)
+        with contextlib.closing(sqlite3.connect(path)) as db:
+            values = json.loads(db.execute("SELECT nutrition FROM food WHERE code='usda:100'").fetchone()[0])
+            self.assertEqual(values['histidine100'], '0.0012300')
+            self.assertEqual(values['cystine100'], '0.00')
+            self.assertIsNone(values['cysteine100'])
+            self.assertIsNone(values['methionine100'])
+
+    def test_amino_acid_unit_changes_are_rejected(self):
+        self.tables['supporting']['tables']['nutrient'].append(
+            ['1221', 'Histidine', 'MG', '512', ''])
+        self.write_archives()
+        with self.assertRaisesRegex(catalogue.ValidationError, 'Unsupported USDA nutrient unit'):
+            usda.build_database(self.lock, self.paths, self.root / 'invalid-amino-unit.sqlite')
+
+    def test_changed_projected_units_are_rejected(self):
+        self.tables['supporting']['tables']['nutrient'].append(
+            ['1103', 'Selenium, Se', 'MG', '317', '7900'])
+        self.write_archives()
+        with self.assertRaisesRegex(catalogue.ValidationError, 'Unsupported USDA nutrient unit'):
+            usda.build_database(self.lock, self.paths, self.root / 'invalid-unit.sqlite')
+
     def test_energy_fallbacks_and_source_ids(self):
         self.tables['foundation']['tables']['food_nutrient'] = [
             row for row in self.tables['foundation']['tables']['food_nutrient']
