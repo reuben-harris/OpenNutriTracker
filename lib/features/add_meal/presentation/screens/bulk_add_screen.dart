@@ -1,4 +1,5 @@
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -30,16 +31,27 @@ import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_det
 import 'package:opennutritracker/features/settings/settings_screen.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
+typedef BulkAddSelection = ({MealEntity meal, FoodAmountSelection quantity});
+
 class BulkAddScreenArguments {
-  final IntakeTypeEntity intakeTypeEntity;
-  final DateTime day;
+  final IntakeTypeEntity? intakeTypeEntity;
+  final DateTime? day;
   final bool usesImperialUnits;
+  final bool pickMode;
 
   const BulkAddScreenArguments(
-    this.intakeTypeEntity,
-    this.day,
+    IntakeTypeEntity intakeType,
+    DateTime forDay,
     this.usesImperialUnits,
-  );
+  ) : intakeTypeEntity = intakeType,
+      day = forDay,
+      pickMode = false;
+
+  /// Return confirmed foods and quantities to the caller without logging them.
+  const BulkAddScreenArguments.pick({required this.usesImperialUnits})
+    : intakeTypeEntity = null,
+      day = null,
+      pickMode = true;
 }
 
 /// Type a whole meal, confirm what it matched, log it in one go.
@@ -1285,7 +1297,11 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
                 ? null
                 : () => _onSubmitPressed(state),
             icon: const Icon(Icons.add_rounded),
-            label: Text(S.of(context).bulkAddSubmitLabel(count)),
+            label: Text(
+              _args.pickMode
+                  ? S.of(context).addLabel
+                  : S.of(context).bulkAddSubmitLabel(count),
+            ),
           ),
         ),
       ),
@@ -1459,16 +1475,26 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
     if (chosen != null) _bloc.add(ChangeRowCandidateEvent(index, chosen));
   }
 
-  void _showQuickAdd() {
-    showModalBottomSheet<void>(
+  Future<void> _showQuickAdd() async {
+    BulkAddSelection? picked;
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (_) => QuickAddBottomSheet(
-        intakeType: _args.intakeTypeEntity,
-        day: _args.day,
+        intakeType: _args.intakeTypeEntity ?? IntakeTypeEntity.snack,
+        day: _args.day ?? DateTime.now(),
+        onConfirm: _args.pickMode
+            ? (meal, quantity) async {
+                picked = (meal: meal, quantity: quantity);
+                return true;
+              }
+            : null,
       ),
     );
+    if (picked != null && mounted) {
+      Navigator.of(context).pop(<BulkAddSelection>[picked!]);
+    }
   }
 
   /// Validate the whole batch, then write it.
@@ -1547,6 +1573,14 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
       _submitting = true;
     });
 
+    if (_args.pickMode) {
+      Navigator.of(context).pop(<BulkAddSelection>[
+        for (final write in writes)
+          (meal: write.row.meal!, quantity: write.selection),
+      ]);
+      return;
+    }
+
     final mealDetailBloc = locator<MealDetailBloc>();
     try {
       // Sequential, not concurrent. The tracked-day totals are accumulated
@@ -1556,9 +1590,9 @@ class _BulkAddScreenState extends State<BulkAddScreen> {
         await mealDetailBloc.addIntake(
           context,
           write.selection,
-          _args.intakeTypeEntity,
+          _args.intakeTypeEntity!,
           write.row.meal!,
-          _args.day,
+          _args.day!,
         );
       }
     } catch (e, stackTrace) {

@@ -2,6 +2,7 @@ import 'package:opennutritracker/core/presentation/widgets/share_qr_dialog.dart'
 import 'package:opennutritracker/features/recipes/domain/entity/shared_recipe_payload.dart';
 import 'package:opennutritracker/features/meal_detail/meal_detail_screen.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/quick_add_bottom_sheet.dart';
+import 'package:opennutritracker/features/add_meal/presentation/screens/bulk_add_screen.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -359,6 +360,7 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
         onAdd: () => _onAddIngredient(context),
         onScan: () => _scanIngredient(),
         onQuickAdd: () => _quickAddIngredient(),
+        onBulkAdd: _bulkAddIngredients,
         onExplode: (index, recipe) =>
             _bloc.add(ExplodeIngredientEvent(index: index, recipe: recipe)),
         onEdit: (index) => _onEditIngredient(context, index),
@@ -691,6 +693,26 @@ class _RecipeBuilderScreenState extends State<RecipeBuilderScreen> {
         context,
         meal: selected,
         onConfirm: _addIngredientAmount,
+      );
+    }
+  }
+
+  Future<void> _bulkAddIngredients() async {
+    final config = await locator<GetConfigUsecase>().getConfig();
+    if (!mounted) return;
+    final selected = await Navigator.of(context).pushNamed(
+      NavigationOptions.bulkAddRoute,
+      arguments: BulkAddScreenArguments.pick(
+        usesImperialUnits: config.usesImperialFoodUnits,
+      ),
+    );
+    if (selected is! List<BulkAddSelection> || !mounted) return;
+    for (final ingredient in selected) {
+      _bloc.add(
+        AddIngredientEvent(
+          meal: ingredient.meal,
+          quantity: ingredient.quantity,
+        ),
       );
     }
   }

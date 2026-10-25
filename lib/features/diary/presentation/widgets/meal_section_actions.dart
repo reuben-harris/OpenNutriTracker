@@ -7,16 +7,19 @@ import 'package:opennutritracker/features/add_meal/presentation/add_meal_screen.
 import 'package:opennutritracker/features/add_meal/presentation/add_meal_type.dart';
 import 'package:opennutritracker/features/add_meal/presentation/widgets/quick_add_bottom_sheet.dart';
 import 'package:opennutritracker/features/scanner/scanner_screen.dart';
+import 'package:opennutritracker/features/add_meal/presentation/screens/bulk_add_screen.dart';
 
 /// Each shortcut logs to this meal group on the displayed diary day.
 class MealSectionActions extends StatelessWidget {
   final DateTime day;
   final AddMealType mealType;
+  final bool usesImperialUnits;
 
   const MealSectionActions({
     super.key,
     required this.day,
     required this.mealType,
+    required this.usesImperialUnits,
   });
 
   @override
@@ -25,8 +28,12 @@ class MealSectionActions extends StatelessWidget {
     return FoodSectionActions(
       scanIdentifier: 'diary-${intakeType.name}-scan',
       addIdentifier: 'add-meal-placeholder',
-      addIcon: Icons.search_rounded,
       quickAddIdentifier: 'diary-${intakeType.name}-quick-add',
+      bulkAddIdentifier: 'diary-${intakeType.name}-bulk-add',
+      onBulkAdd: () => Navigator.of(context).pushNamed(
+        NavigationOptions.bulkAddRoute,
+        arguments: BulkAddScreenArguments(intakeType, day, usesImperialUnits),
+      ),
       onScan: () async {
         final selected = await Navigator.of(context).pushNamed(
           NavigationOptions.scannerRoute,

@@ -21,7 +21,7 @@ import 'package:opennutritracker/generated/l10n.dart';
 
 class RecipeIngredientsSection extends StatefulWidget {
   final List<RecipeIngredientEntity> ingredients;
-  final VoidCallback onAdd, onScan, onQuickAdd;
+  final VoidCallback onAdd, onScan, onQuickAdd, onBulkAdd;
   final void Function(int, RecipeEntity) onExplode;
   final ValueChanged<int> onEdit;
   final ValueChanged<int> onRemove;
@@ -33,6 +33,7 @@ class RecipeIngredientsSection extends StatefulWidget {
     required this.onAdd,
     required this.onScan,
     required this.onQuickAdd,
+    required this.onBulkAdd,
     required this.onExplode,
     required this.onEdit,
     required this.onRemove,
@@ -110,9 +111,11 @@ class _RecipeIngredientsSectionState extends State<RecipeIngredientsSection> {
               scanIdentifier: 'recipe-scan-ingredient',
               addIdentifier: 'recipe-add-ingredient',
               quickAddIdentifier: 'recipe-quick-add-ingredient',
+              bulkAddIdentifier: 'recipe-bulk-add-ingredients',
               onScan: widget.onScan,
               onAdd: widget.onAdd,
               onQuickAdd: widget.onQuickAdd,
+              onBulkAdd: widget.onBulkAdd,
             ),
             const SizedBox(height: 16),
           ],

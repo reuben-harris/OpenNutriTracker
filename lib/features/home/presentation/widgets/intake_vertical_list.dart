@@ -261,6 +261,7 @@ class _IntakeVerticalListState extends State<IntakeVerticalList> {
                   MealSectionActions(
                     day: widget.day,
                     mealType: widget.addMealType,
+                    usesImperialUnits: widget.usesImperialUnits,
                   ),
                   // The actions already contribute 4 px, matching the header's 20 px.
                   const SizedBox(height: 16),
