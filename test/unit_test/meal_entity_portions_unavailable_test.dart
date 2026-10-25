@@ -40,18 +40,23 @@ void main() {
       expect(marked.portionsUnavailable, isTrue);
     });
 
-    test('the MealDBO round trip drops it, as it drops the portions', () {
-      // Nothing persists this provenance. A copy read back from the search
-      // cache is a cached copy, not a failed lookup, and must not inherit
-      // the exemption — see the field's comment for why the cached case
-      // stays penalised.
-      final marked = _meal().withPortionsUnavailable();
-      final dbo = MealDBO.fromMealEntity(marked);
-      final cached = MealEntity.fromMealDBO(dbo);
+    test(
+      'the MealDBO round trip drops the lookup failure but retains portions',
+      () {
+        // Nothing persists this provenance. A copy read back from the search
+        // cache is a cached copy, not a failed lookup, and must not inherit
+        // the exemption — see the field's comment for why the cached case
+        // stays penalised.
+        final marked = _meal().withPortionsUnavailable().withPortions([
+          _portion,
+        ]);
+        final dbo = MealDBO.fromMealEntity(marked);
+        final cached = MealEntity.fromMealDBO(dbo);
 
-      expect(dbo.toJson().keys, isNot(contains('portionsUnavailable')));
-      expect(cached.portionsUnavailable, isFalse);
-      expect(cached.portions, isEmpty);
-    });
+        expect(dbo.toJson().keys, isNot(contains('portionsUnavailable')));
+        expect(cached.portionsUnavailable, isFalse);
+        expect(cached.portions, [_portion]);
+      },
+    );
   });
 }

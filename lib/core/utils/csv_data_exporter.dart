@@ -6,6 +6,7 @@ import 'package:opennutritracker/core/data/dbo/intake_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/intake_type_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/meal_nutriments_dbo.dart';
+import 'package:opennutritracker/core/data/dbo/meal_portion_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/physical_activity_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/recipe_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/tracked_day_dbo.dart';
@@ -84,6 +85,7 @@ class CsvDataExporter {
     'quantity_base_unit',
     'quantity_unit_factor',
     'quantity_unit_label',
+    'meal_portions_json',
   ];
 
   static const userActivityColumns = <String>[
@@ -178,6 +180,7 @@ class CsvDataExporter {
         _cell(intake.quantityBaseUnit),
         _num(intake.quantityUnitFactor),
         _cell(intake.quantityUnitLabel),
+        _cell(jsonEncode(meal.portions)),
       ];
       buf.writeln(cells.join(','));
     }
@@ -298,6 +301,15 @@ class CsvDataExporter {
         ),
         servingUnit: _nullable(row['meal_serving_unit']),
         servingSize: _nullable(row['meal_serving_size']),
+        portions: _nullable(row['meal_portions_json']) == null
+            ? const []
+            : (jsonDecode(row['meal_portions_json']!) as List)
+                  .map(
+                    (portion) => MealPortionDBO.fromJson(
+                      portion as Map<String, dynamic>,
+                    ),
+                  )
+                  .toList(),
         isQuickAdd: _nullable(row['meal_is_quick_add']) == null
             ? null
             : row['meal_is_quick_add'] == 'true',

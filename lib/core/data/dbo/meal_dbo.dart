@@ -1,6 +1,7 @@
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:opennutritracker/core/data/dbo/meal_nutriments_dbo.dart';
+import 'package:opennutritracker/core/data/dbo/meal_portion_dbo.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 
 part 'meal_dbo.g.dart';
@@ -88,6 +89,10 @@ class MealDBO extends HiveObject {
   @HiveField(18)
   final bool? isQuickAdd;
 
+  /// Household measures captured alongside this food's nutrition.
+  @HiveField(20, defaultValue: [])
+  final List<MealPortionDBO> portions;
+
   MealDBO({
     required this.code,
     required this.name,
@@ -107,7 +112,8 @@ class MealDBO extends HiveObject {
     this.dataVersion,
     this.isQuickAdd,
     this.catalogueSourceName,
-  });
+    List<MealPortionDBO> portions = const [],
+  }) : portions = List.unmodifiable(portions);
 
   /// Entities always carry app units — every remote mapping converts on
   /// the way in — so a row built from one is stamped current.
@@ -124,6 +130,7 @@ class MealDBO extends HiveObject {
     servingQuantity: mealEntity.servingQuantity,
     servingUnit: mealEntity.servingUnit,
     servingSize: mealEntity.servingSize,
+    portions: mealEntity.portions.map(MealPortionDBO.fromEntity).toList(),
     nutriments: MealNutrimentsDBO.fromProductNutrimentsEntity(
       mealEntity.nutriments,
     ),

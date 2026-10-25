@@ -75,7 +75,7 @@ class MealEntity extends Equatable {
   /// Catalogue synonyms used while ranking search results, not logged snapshots.
   final String? searchAliases;
 
-  /// Optional household measures with a known gram weight. Not persisted.
+  /// Household measures with a known gram weight, retained in food snapshots.
   final List<MealPortionEntity> portions;
 
   /// Distinguishes an unavailable portion lookup from a confirmed empty list.
@@ -227,6 +227,9 @@ class MealEntity extends Equatable {
     servingQuantity: mealDBO.servingQuantity,
     servingUnit: mealDBO.servingUnit,
     servingSize: mealDBO.servingSize,
+    portions: List.unmodifiable(
+      mealDBO.portions.map(MealPortionEntity.fromDBO),
+    ),
     nutriments: MealNutrimentsEntity.fromMealNutrimentsDBO(mealDBO.nutriments),
     source: MealSourceEntity.fromMealSourceDBO(mealDBO.source),
     localImagePath: mealDBO.localImagePath,
@@ -366,6 +369,7 @@ class MealEntity extends Equatable {
     servingSize,
     localImagePath,
     catalogueSourceName,
+    portions,
   ];
 }
 

@@ -2,10 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/intake_type_entity.dart';
+import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/add_tracked_day_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/update_intake_usecase.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboard_cubit.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_copy_cubit.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_portion_entity.dart';
 import '../fixture/diary_entry_fixtures.dart';
 import '../helpers/diary_workflow_harness.dart';
 
@@ -30,6 +32,29 @@ class _FailSecondMacros extends AddTrackedDayUsecase {
 }
 
 void main() {
+  IntakeEntity withPortions(IntakeEntity entry) => IntakeEntity(
+    id: entry.id,
+    quantity: entry.quantity,
+    type: entry.type,
+    dateTime: entry.dateTime,
+    meal: entry.meal.withPortions(const [
+      MealPortionEntity(
+        id: 'test:cup',
+        label: '1 cup',
+        englishLabel: '1 cup',
+        gramWeight: 132.123456789,
+        localized: false,
+      ),
+      MealPortionEntity(
+        id: 'test:spoon',
+        label: '1 spoon',
+        gramWeight: 12.3456789,
+        localized: false,
+      ),
+    ]),
+    recipeSnapshot: entry.recipeSnapshot,
+  );
+
   test(
     'clipboard replaces, deeply detaches, clears and starts empty',
     () async {
@@ -83,7 +108,10 @@ void main() {
     final context = await contextFor(tester);
     await tester.runAsync(() async {
       final clipboard = DiaryClipboardCubit()
-        ..copy([diaryEntry(), diaryEntry(id: 'recipe', recipe: true)]);
+        ..copy([
+          withPortions(diaryEntry()),
+          diaryEntry(id: 'recipe', recipe: true),
+        ]);
       h.recipes.recipe = diaryEntry(
         recipe: true,
       ).recipeSnapshot!.copyWith(name: 'Edited later');
@@ -106,6 +134,14 @@ void main() {
       expect(entries, hasLength(4));
       expect(entries.map((e) => e.id).toSet(), hasLength(4));
       expect(entries.map((e) => e.id), isNot(contains('source')));
+      for (final entry in entries.where((e) => e.recipeSnapshot == null)) {
+        expect(entry.meal.portions, source.first.meal.portions);
+        expect(entry.meal.portions, hasLength(2));
+        expect(
+          identical(entry.meal.portions, source.first.meal.portions),
+          isFalse,
+        );
+      }
       expect(
         entries.every(
           (e) =>
