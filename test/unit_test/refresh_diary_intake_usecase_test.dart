@@ -240,8 +240,21 @@ void main() {
   test(
     'catalogue portion IDs survive weight, label and ordering changes',
     () async {
+      const oldPortions = [
+        MealPortionEntity(
+          id: 'foundation:1',
+          label: 'old cup',
+          gramWeight: 30,
+          localized: false,
+        ),
+      ];
       await log(
-        food(source: MealSourceEntity.catalogue, code: 'usda:1', basis: 'g'),
+        food(
+          source: MealSourceEntity.catalogue,
+          code: 'usda:1',
+          basis: 'g',
+          portions: oldPortions,
+        ),
         quantity: const FoodAmountSelection(
           2,
           FoodAmountOption(
@@ -252,6 +265,15 @@ void main() {
           ),
         ),
       );
+      await log(
+        food(
+          source: MealSourceEntity.catalogue,
+          code: 'usda:1',
+          basis: 'g',
+          portions: oldPortions,
+        ),
+        id: 'other',
+      );
       catalogue.pending = Completer<MealEntity?>();
       final run = refresh.refresh('entry');
       catalogue.pending!.complete(
@@ -259,6 +281,7 @@ void main() {
           source: MealSourceEntity.catalogue,
           code: 'usda:1',
           basis: 'g',
+          kcal: 200,
           portions: const [
             MealPortionEntity(
               id: 'foundation:2',
@@ -280,6 +303,15 @@ void main() {
       expect(updated.quantity!.option.unit, 'portion:foundation:1');
       expect(updated.quantity!.option.label, 'new cup');
       expect(updated.baseAmount, 70);
+      expect(updated.totalKcal, 140);
+      expect(updated.meal.portions.map((p) => p.id), [
+        'foundation:2',
+        'foundation:1',
+      ]);
+      expect(updated.meal.portions.last.gramWeight, 35);
+      final unchanged = (await repo.getIntakeById('other'))!;
+      expect(unchanged.meal.portions, oldPortions);
+      expect(unchanged.meal.nutriments.energyKcal100, 100);
     },
   );
   test(

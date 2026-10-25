@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -14,6 +15,7 @@ import 'package:opennutritracker/core/data/dbo/intake_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/intake_type_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/meal_nutriments_dbo.dart';
+import 'package:opennutritracker/core/data/dbo/meal_portion_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/recipe_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/tracked_day_dbo.dart';
 import 'package:opennutritracker/core/data/data_source/user_activity_dbo.dart';
@@ -112,6 +114,15 @@ MealDBO _meal({required String id, String? localImagePath}) {
     servingQuantity: 100,
     servingUnit: 'g',
     servingSize: '100 g',
+    portions: const [
+      MealPortionDBO(
+        id: 'test:bowl',
+        label: '1 bowl',
+        englishLabel: '1 bowl',
+        gramWeight: 183.123456789,
+        localized: false,
+      ),
+    ],
     nutriments: MealNutrimentsDBO(
       energyKcal100: 40,
       carbohydrates100: 5,
@@ -219,6 +230,20 @@ void main() {
 
       final zipBytes = ZipEncoder().encode(archive);
       final restored = ZipDecoder().decodeBytes(zipBytes);
+      final intakeJson =
+          jsonDecode(
+                utf8.decode(
+                  restored.findFile('user_intake.json')!.content as List<int>,
+                ),
+              )
+              as List;
+      final restoredIntake = IntakeDBO.fromJson(
+        intakeJson.single as Map<String, dynamic>,
+      );
+      expect(
+        restoredIntake.meal.portions.single.toJson(),
+        intake.meal.portions.single.toJson(),
+      );
       final mealOut = await UserImageStorage.ensureDirectory(
         UserImageKind.meal,
       );

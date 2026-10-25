@@ -6,6 +6,7 @@ import 'package:opennutritracker/core/data/dbo/intake_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/intake_type_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/meal_nutriments_dbo.dart';
+import 'package:opennutritracker/core/data/dbo/meal_portion_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/recipe_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/recipe_ingredient_dbo.dart';
 import 'package:opennutritracker/core/utils/csv_data_exporter.dart';
@@ -85,6 +86,7 @@ MealDBO _meal({
   String? code = '3017620422003',
   String name = 'Nutella',
   bool? detailed,
+  List<MealPortionDBO> portions = const [],
 }) => MealDBO(
   code: code,
   name: name,
@@ -100,6 +102,7 @@ MealDBO _meal({
   source: source,
   nutriments: nutriments ?? _offGramsAsStoredBefore775(),
   detailed: detailed,
+  portions: portions,
   dataVersion: dataVersion,
 );
 
@@ -205,6 +208,22 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('OffMicronutrientRepair.repairMeal', () {
+    test('retains household measures while repairing nutrients', () {
+      const portion = MealPortionDBO(
+        id: 'test:slice',
+        label: '1 Scheibe',
+        englishLabel: '1 slice',
+        gramWeight: 38.123456789,
+        localized: true,
+      );
+      final repaired = OffMicronutrientRepair.repairMeal(
+        _meal(source: MealSourceDBO.off, portions: [portion]),
+      );
+      expect(repaired.portions, [portion]);
+      expect(repaired.servingQuantity, 15);
+      _expectAppUnits(repaired.nutriments);
+    });
+
     test(
       'scales an unstamped Open Food Facts row by the factors #775 added',
       () {
