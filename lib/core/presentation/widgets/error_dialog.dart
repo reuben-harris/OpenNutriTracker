@@ -6,11 +6,13 @@ import 'package:opennutritracker/generated/l10n.dart';
 class ErrorDialog extends StatelessWidget {
   final String errorText;
   final VoidCallback onRefreshPressed;
+  final Widget? secondaryAction;
 
   const ErrorDialog({
     super.key,
     required this.errorText,
     required this.onRefreshPressed,
+    this.secondaryAction,
   });
 
   @override
@@ -30,6 +32,10 @@ class ErrorDialog extends StatelessWidget {
             icon: const Icon(Icons.refresh_rounded),
             label: Text(S.of(context).retryLabel),
           ),
+          if (secondaryAction != null) ...[
+            const SizedBox(height: Dimens.spacing16),
+            secondaryAction!,
+          ],
         ],
       ),
     );
