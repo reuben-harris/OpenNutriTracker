@@ -52,7 +52,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
       emit(
         SettingsLoadedState(
           appVersion,
-          userConfig.hasAcceptedSendAnonymousData,
           userConfig.appTheme,
           usesImperialUnits,
           usesImperialFoodUnits: userConfig.usesImperialFoodUnits,
@@ -71,7 +70,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
           dayStartOffsetMinutes: userConfig.dayStartOffsetMinutes,
           useMaterialYou: userConfig.useMaterialYou,
           accentColor: userConfig.accentColor,
-          isDemoData: userConfig.isDemoData,
           healthImportEnabled: userConfig.healthImportEnabled,
           healthWorkoutKcalMultiplier: userConfig.healthWorkoutKcalMultiplier,
           amountArithmeticEnabled: userConfig.amountArithmeticEnabled,
@@ -86,12 +84,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     } finally {
       add(LoadSettingsEvent());
     }
-  }
-
-  Future<void> setHasAcceptedAnonymousData(bool hasAcceptedAnonymousData) {
-    return _addConfigUsecase.setConfigHasAcceptedAnonymousData(
-      hasAcceptedAnonymousData,
-    );
   }
 
   void setAppTheme(AppThemeEntity appTheme) async {

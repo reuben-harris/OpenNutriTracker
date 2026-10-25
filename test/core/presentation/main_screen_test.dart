@@ -81,9 +81,7 @@ class _MealsBloc extends _BlocStub<CustomMealsEvent, CustomMealsState>
 class _SettingsBloc extends _BlocStub<SettingsEvent, SettingsState>
     implements SettingsBloc {
   _SettingsBloc()
-    : super(
-        const SettingsLoadedState('1.0.0', false, AppThemeEntity.system, false),
-      );
+    : super(const SettingsLoadedState('1.0.0', AppThemeEntity.system, false));
 }
 
 class _CalendarBloc extends _BlocStub<CalendarDayEvent, CalendarDayState>
