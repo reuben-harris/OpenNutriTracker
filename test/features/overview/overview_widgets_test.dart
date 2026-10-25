@@ -44,7 +44,6 @@ import 'package:opennutritracker/features/diary/presentation/bloc/diary_clipboar
 import 'package:opennutritracker/features/diary/presentation/widgets/daily_nutrient_panel.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/day_info_widget.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/diary_table_calendar.dart';
-import 'package:opennutritracker/features/fasting/presentation/bloc/fasting_bloc.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/features/home/presentation/widgets/dashboard_widget.dart';
 import 'package:opennutritracker/features/home/presentation/widgets/log_water_dialog.dart';
@@ -75,17 +74,6 @@ class QuietTrends extends Fake implements TrendsBloc {
   Stream<TrendsState> get stream => const Stream.empty();
   @override
   void add(TrendsEvent event) {}
-}
-
-class QuietFasting extends Fake implements FastingBloc {
-  @override
-  FastingState get state => const FastingIdle();
-  @override
-  Stream<FastingState> get stream => const Stream.empty();
-  @override
-  void add(FastingEvent event) {}
-  @override
-  Future<void> close() async {}
 }
 
 class QuietRecipes extends Fake implements RecipesBloc {
@@ -515,7 +503,6 @@ void main() {
       locator.registerSingleton<ImportWorkoutsUsecase>(importer);
       locator.registerSingleton<ProfileBloc>(QuietProfile());
       locator.registerSingleton<TrendsBloc>(QuietTrends());
-      locator.registerFactory<FastingBloc>(QuietFasting.new);
       locator.registerSingleton<RecipesBloc>(QuietRecipes());
       locator.registerSingleton<CustomMealsBloc>(QuietCustomMeals());
       locator.registerSingleton<SettingsBloc>(QuietSettings());

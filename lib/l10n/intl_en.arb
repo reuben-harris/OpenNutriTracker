@@ -322,9 +322,9 @@
   "dailyKjAdjustmentLabel": "Daily kJ adjustment:",
   "deleteAllLabel": "Delete all",
   "settingsDeleteAllDataLabel": "Reset profile data",
-  "settingsDeleteAllDataSubtitle": "Profile, meals, activities, weight history and fasting sessions",
+  "settingsDeleteAllDataSubtitle": "Profile, meals, activities, weight history",
   "settingsDeleteAllDataConfirmTitle": "Reset profile data?",
-  "settingsDeleteAllDataConfirmContent": "This removes your profile, meals, activities, weight history and fasting sessions for the current profile only. It also removes any AI provider key and server address, which are shared by every profile on this device. Shared content (custom meals, recipes, activity templates) and the Open Food Facts and USDA Food Data Central catalogues are not affected. This cannot be undone.",
+  "settingsDeleteAllDataConfirmContent": "This removes your profile, meals, activities, weight history for the current profile only. It also removes any AI provider key and server address, which are shared by every profile on this device. Shared content (custom meals, recipes, activity templates) and the Open Food Facts and USDA Food Data Central catalogues are not affected. This cannot be undone.",
   "settingsDeleteAllDataConfirmAction": "Reset profile",
   "lowKcalWarningTitle": "This daily target is on the low side",
   "lowKcalWarningBody": "Most adults shouldn't eat fewer than {threshold} kcal a day for any length of time without medical guidance. Please consider speaking with a healthcare professional before sticking with a target this low.",
@@ -1046,38 +1046,6 @@
   "settingsWaterGoalLabel": "Daily water goal",
   "waterChipLabel": "{current} / {goal} ml",
   "zincLabel": "zinc",
-  "profileFastingEntry": "Fasting timer",
-  "fastingTitle": "Fasting timer",
-  "fastingSubtitle": "A simple timer for tracking time between meals. No streaks, no targets, just the clock.",
-  "fastingWarningTitle": "Before you start",
-  "fastingWarningBody": "Tracking fasting time can be helpful for some people and distressing for others, especially anyone with a history of disordered eating. If that's you, please look after yourself first. Support is available from BEAT (UK) and NEDA (US).",
-  "fastingWarningDecline": "Not for me",
-  "fastingWarningAccept": "I understand, enable timer",
-  "fastingPresetCustom": "Custom",
-  "fastingStart": "Start timer",
-  "fastingCancel": "End fast",
-  "fastingCancelConfirmTitle": "End fast now?",
-  "fastingCancelConfirmBody": "This will close the current session.",
-  "fastingComplete": "Session complete",
-  "fastingLinkBeat": "BEAT (UK)",
-  "fastingLinkNeda": "NEDA (US)",
-  "fastingElapsedLabel": "Elapsed",
-  "fastingRemainingValue": "{value} remaining",
-  "@fastingRemainingValue": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
-  "fastingTargetValue": "Target: {value}",
-  "@fastingTargetValue": {
-    "placeholders": {
-      "value": {
-        "type": "String"
-      }
-    }
-  },
   "hoursLabel": "hours",
   "dialogCloseLabel": "Close",
   "customMealsRowMoreTooltip": "More actions",
@@ -1105,16 +1073,6 @@
       "winner": { "type": "String" }
     }
   },
-  "fastingHomeChipBody": "Fasting · {remaining} left",
-  "@fastingHomeChipBody": {
-    "placeholders": {
-      "remaining": { "type": "String" }
-    }
-  },
-  "fastingNotificationChannelName": "Fasting timer",
-  "fastingNotificationChannelDescription": "One-off pings when a fasting session reaches its target.",
-  "fastingNotificationCompleteTitle": "Fasting session complete",
-  "fastingNotificationCompleteBody": "Your target time has been reached.",
   "profileImageLabel": "Add a photo",
   "profileImageReplace": "Change photo",
   "profileImageRemove": "Remove photo",
