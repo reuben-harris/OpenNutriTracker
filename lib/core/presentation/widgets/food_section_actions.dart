@@ -7,6 +7,7 @@ import 'package:opennutritracker/generated/l10n.dart';
 class FoodSectionActions extends StatelessWidget {
   final String scanIdentifier, addIdentifier, quickAddIdentifier;
   final VoidCallback onScan, onAdd, onQuickAdd;
+  final IconData addIcon;
   const FoodSectionActions({
     super.key,
     required this.scanIdentifier,
@@ -15,6 +16,7 @@ class FoodSectionActions extends StatelessWidget {
     required this.onScan,
     required this.onAdd,
     required this.onQuickAdd,
+    this.addIcon = Icons.add_rounded,
   });
   @override
   Widget build(BuildContext context) {
@@ -56,7 +58,7 @@ class FoodSectionActions extends StatelessWidget {
             onScan,
           ),
           const SizedBox(width: 8),
-          button(addIdentifier, s.addLabel, Icons.add_rounded, onAdd),
+          button(addIdentifier, s.addLabel, addIcon, onAdd),
           const SizedBox(width: 8),
           button(
             quickAddIdentifier,

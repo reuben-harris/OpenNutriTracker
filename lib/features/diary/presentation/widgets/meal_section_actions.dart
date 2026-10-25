@@ -25,6 +25,7 @@ class MealSectionActions extends StatelessWidget {
     return FoodSectionActions(
       scanIdentifier: 'diary-${intakeType.name}-scan',
       addIdentifier: 'add-meal-placeholder',
+      addIcon: Icons.search_rounded,
       quickAddIdentifier: 'diary-${intakeType.name}-quick-add',
       onScan: () async {
         final selected = await Navigator.of(context).pushNamed(
