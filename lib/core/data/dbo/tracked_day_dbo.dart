@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
@@ -26,43 +27,9 @@ class TrackedDayDBO extends HiveObject {
   @HiveField(8)
   double? proteinTracked;
 
-  // #173: user-configurable per-nutrient goals. Null means "use the
-  // default reference value"; a non-null value means the user has set
-  // their own target via Settings → Calculations.
-  //
-  // Unit convention (preserved across DBO / Entity / panel):
-  //   fibreGoal, satFatGoal, sugarsGoal               — grams
-  //   sodiumGoal, calciumGoal, ironGoal,
-  //   potassiumGoal, magnesiumGoal, vitaminB12Goal    — milligrams
-  //   vitaminDGoal                                    — micrograms
-  // The diary panel renders each row in its own native unit, so storing
-  // the goal in the same unit avoids any conversion math at read time.
-  @HiveField(9)
-  double? fibreGoal;
-  @HiveField(10)
-  double? satFatGoal;
-  @HiveField(11)
-  double? sugarsGoal;
-
-  // Follow-up to #173: extend planning to the rest of the panel's
-  // nutrients so every row the user sees can carry a personal target.
-  // The three D / B12 / Mg fields are accepted on this branch but will
-  // only render once #160's expansion follow-up rebases through and
-  // adds those panel rows.
-  @HiveField(12)
-  double? sodiumGoal;
-  @HiveField(13)
-  double? calciumGoal;
-  @HiveField(14)
-  double? ironGoal;
-  @HiveField(15)
-  double? potassiumGoal;
-  @HiveField(16)
-  double? vitaminDGoal;
-  @HiveField(17)
-  double? vitaminB12Goal;
-  @HiveField(18)
-  double? magnesiumGoal;
+  // Fields 9–18 are retired individual nutrient goals.
+  @HiveField(19)
+  Map<String, NutrientGoal> nutrientGoals;
 
   TrackedDayDBO({
     required this.day,
@@ -74,16 +41,7 @@ class TrackedDayDBO extends HiveObject {
     this.fatTracked,
     this.proteinGoal,
     this.proteinTracked,
-    this.fibreGoal,
-    this.satFatGoal,
-    this.sugarsGoal,
-    this.sodiumGoal,
-    this.calciumGoal,
-    this.ironGoal,
-    this.potassiumGoal,
-    this.vitaminDGoal,
-    this.vitaminB12Goal,
-    this.magnesiumGoal,
+    this.nutrientGoals = const {},
   });
 
   factory TrackedDayDBO.fromTrackedDayEntity(TrackedDayEntity entity) {
@@ -97,16 +55,7 @@ class TrackedDayDBO extends HiveObject {
       fatTracked: entity.fatTracked,
       proteinGoal: entity.proteinGoal,
       proteinTracked: entity.proteinTracked,
-      fibreGoal: entity.fibreGoal,
-      satFatGoal: entity.satFatGoal,
-      sugarsGoal: entity.sugarsGoal,
-      sodiumGoal: entity.sodiumGoal,
-      calciumGoal: entity.calciumGoal,
-      ironGoal: entity.ironGoal,
-      potassiumGoal: entity.potassiumGoal,
-      vitaminDGoal: entity.vitaminDGoal,
-      vitaminB12Goal: entity.vitaminB12Goal,
-      magnesiumGoal: entity.magnesiumGoal,
+      nutrientGoals: Map.of(entity.nutrientGoals),
     );
   }
 

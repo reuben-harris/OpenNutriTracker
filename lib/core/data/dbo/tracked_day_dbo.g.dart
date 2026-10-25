@@ -26,23 +26,16 @@ class TrackedDayDBOAdapter extends TypeAdapter<TrackedDayDBO> {
       fatTracked: (fields[6] as num?)?.toDouble(),
       proteinGoal: (fields[7] as num?)?.toDouble(),
       proteinTracked: (fields[8] as num?)?.toDouble(),
-      fibreGoal: (fields[9] as num?)?.toDouble(),
-      satFatGoal: (fields[10] as num?)?.toDouble(),
-      sugarsGoal: (fields[11] as num?)?.toDouble(),
-      sodiumGoal: (fields[12] as num?)?.toDouble(),
-      calciumGoal: (fields[13] as num?)?.toDouble(),
-      ironGoal: (fields[14] as num?)?.toDouble(),
-      potassiumGoal: (fields[15] as num?)?.toDouble(),
-      vitaminDGoal: (fields[16] as num?)?.toDouble(),
-      vitaminB12Goal: (fields[17] as num?)?.toDouble(),
-      magnesiumGoal: (fields[18] as num?)?.toDouble(),
+      nutrientGoals: fields[19] == null
+          ? const {}
+          : (fields[19] as Map).cast<String, NutrientGoal>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, TrackedDayDBO obj) {
     writer
-      ..writeByte(19)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.day)
       ..writeByte(1)
@@ -61,26 +54,8 @@ class TrackedDayDBOAdapter extends TypeAdapter<TrackedDayDBO> {
       ..write(obj.proteinGoal)
       ..writeByte(8)
       ..write(obj.proteinTracked)
-      ..writeByte(9)
-      ..write(obj.fibreGoal)
-      ..writeByte(10)
-      ..write(obj.satFatGoal)
-      ..writeByte(11)
-      ..write(obj.sugarsGoal)
-      ..writeByte(12)
-      ..write(obj.sodiumGoal)
-      ..writeByte(13)
-      ..write(obj.calciumGoal)
-      ..writeByte(14)
-      ..write(obj.ironGoal)
-      ..writeByte(15)
-      ..write(obj.potassiumGoal)
-      ..writeByte(16)
-      ..write(obj.vitaminDGoal)
-      ..writeByte(17)
-      ..write(obj.vitaminB12Goal)
-      ..writeByte(18)
-      ..write(obj.magnesiumGoal);
+      ..writeByte(19)
+      ..write(obj.nutrientGoals);
   }
 
   @override
@@ -109,16 +84,12 @@ TrackedDayDBO _$TrackedDayDBOFromJson(Map<String, dynamic> json) =>
       fatTracked: (json['fatTracked'] as num?)?.toDouble(),
       proteinGoal: (json['proteinGoal'] as num?)?.toDouble(),
       proteinTracked: (json['proteinTracked'] as num?)?.toDouble(),
-      fibreGoal: (json['fibreGoal'] as num?)?.toDouble(),
-      satFatGoal: (json['satFatGoal'] as num?)?.toDouble(),
-      sugarsGoal: (json['sugarsGoal'] as num?)?.toDouble(),
-      sodiumGoal: (json['sodiumGoal'] as num?)?.toDouble(),
-      calciumGoal: (json['calciumGoal'] as num?)?.toDouble(),
-      ironGoal: (json['ironGoal'] as num?)?.toDouble(),
-      potassiumGoal: (json['potassiumGoal'] as num?)?.toDouble(),
-      vitaminDGoal: (json['vitaminDGoal'] as num?)?.toDouble(),
-      vitaminB12Goal: (json['vitaminB12Goal'] as num?)?.toDouble(),
-      magnesiumGoal: (json['magnesiumGoal'] as num?)?.toDouble(),
+      nutrientGoals:
+          (json['nutrientGoals'] as Map<String, dynamic>?)?.map(
+            (k, e) =>
+                MapEntry(k, NutrientGoal.fromJson(e as Map<String, dynamic>)),
+          ) ??
+          const {},
     );
 
 Map<String, dynamic> _$TrackedDayDBOToJson(TrackedDayDBO instance) =>
@@ -132,14 +103,5 @@ Map<String, dynamic> _$TrackedDayDBOToJson(TrackedDayDBO instance) =>
       'fatTracked': instance.fatTracked,
       'proteinGoal': instance.proteinGoal,
       'proteinTracked': instance.proteinTracked,
-      'fibreGoal': instance.fibreGoal,
-      'satFatGoal': instance.satFatGoal,
-      'sugarsGoal': instance.sugarsGoal,
-      'sodiumGoal': instance.sodiumGoal,
-      'calciumGoal': instance.calciumGoal,
-      'ironGoal': instance.ironGoal,
-      'potassiumGoal': instance.potassiumGoal,
-      'vitaminDGoal': instance.vitaminDGoal,
-      'vitaminB12Goal': instance.vitaminB12Goal,
-      'magnesiumGoal': instance.magnesiumGoal,
+      'nutrientGoals': instance.nutrientGoals,
     };

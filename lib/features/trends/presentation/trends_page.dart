@@ -91,6 +91,7 @@ class _TrendsView extends StatelessWidget {
             ),
             const SizedBox(height: Dimens.spacing16),
             _MacrosTrendCard(
+              today: state.today,
               nutrientsByDay: state.nutrientsByDay,
               days: state.days,
               rangeDays: state.windowDays,
@@ -295,7 +296,7 @@ class _WeekDeltaChip extends StatelessWidget {
 }
 
 class _CaloriesTrendCard extends StatelessWidget {
-  final Map<DateTime, NutrientPanelTotals> nutrientsByDay;
+  final Map<DateTime, NutrientTotals> nutrientsByDay;
   final DateTime today;
   final List<TrackedDayEntity> days;
   final int rangeDays;
@@ -318,8 +319,8 @@ class _CaloriesTrendCard extends StatelessWidget {
     // Full per-day series across the window; missing days contribute 0 tracked.
     DateTime dateAt(int i) =>
         DateTime(today.year, today.month, today.day - rangeDays + 1 + i);
-    NutrientAmount amountAt(int i) =>
-        nutrientsByDay[dateAt(i)]?.energyKcal ?? const NutrientAmount(0);
+    NutrientAmount? amountAt(int i) =>
+        (nutrientsByDay[dateAt(i)] ?? NutrientTotals.zero).energyKcal;
     final qualified = nutrientsByDay.values.any(
       (n) => (n.energyKcal?.isQualified ?? false),
     );
@@ -332,13 +333,21 @@ class _CaloriesTrendCard extends StatelessWidget {
         today.day - rangeDays + 1 + i,
       );
       final d = byDay[DateTime(day.year, day.month, day.day)];
-      spots.add(FlSpot(i.toDouble(), amountAt(i).calculationValue));
+      final amount = amountAt(i);
+      spots.add(
+        amount == null
+            ? FlSpot.nullSpot
+            : FlSpot(i.toDouble(), amount.calculationValue),
+      );
       if (d != null && d.calorieGoal > 0) goals.add(d.calorieGoal);
     }
     final avgGoal = goals.isEmpty
         ? 0.0
         : goals.reduce((a, b) => a + b) / goals.length;
-    final maxTracked = spots.fold<double>(0, (m, s) => s.y > m ? s.y : m);
+    final maxTracked = spots.fold<double>(
+      0,
+      (m, s) => !s.isNull() && s.y > m ? s.y : m,
+    );
     final maxY =
         [maxTracked, avgGoal].reduce((a, b) => a > b ? a : b) * 1.15 + 1;
 
@@ -544,11 +553,13 @@ class _WaterTrendCard extends StatelessWidget {
 }
 
 class _MacrosTrendCard extends StatelessWidget {
-  final Map<DateTime, NutrientPanelTotals> nutrientsByDay;
+  final DateTime today;
+  final Map<DateTime, NutrientTotals> nutrientsByDay;
   final List<TrackedDayEntity> days;
   final AppPalette palette;
   final int rangeDays;
   const _MacrosTrendCard({
+    required this.today,
     required this.nutrientsByDay,
     required this.days,
     required this.palette,
@@ -564,32 +575,32 @@ class _MacrosTrendCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    NutrientAmount? average(
-      NutrientAmount? Function(NutrientPanelTotals) pick,
-    ) {
-      final accumulator = NutrientAccumulator();
-      for (final total in nutrientsByDay.values) {
-        accumulator.add(pick(total));
-      }
-      return accumulator.total?.scale(1 / rangeDays);
-    }
+    final average = NutrientTotals.averageDays([
+      for (var i = 0; i < rangeDays; i++)
+        nutrientsByDay[DateTime(
+              today.year,
+              today.month,
+              today.day - rangeDays + i + 1,
+            )] ??
+            NutrientTotals.zero,
+    ]);
 
     final rows = [
       (
         S.of(context).carbsLabel,
-        average((n) => n.carbsG),
+        average.carbsG,
         _avg(days.map((d) => d.carbsGoal)),
         palette.carbs,
       ),
       (
         S.of(context).fatLabel,
-        average((n) => n.fatG),
+        average.fatG,
         _avg(days.map((d) => d.fatGoal)),
         palette.fat,
       ),
       (
         S.of(context).proteinLabel,
-        average((n) => n.proteinG),
+        average.proteinG,
         _avg(days.map((d) => d.proteinGoal)),
         palette.protein,
       ),

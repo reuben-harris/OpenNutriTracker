@@ -1,4 +1,8 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
+import 'package:opennutritracker/core/domain/entity/nutrients.dart';
+import 'package:opennutritracker/core/presentation/widgets/nutrient_amount_row.dart';
+import 'package:opennutritracker/core/presentation/widgets/nutrient_group_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/utils/energy_unit_provider.dart';
@@ -21,6 +25,94 @@ Widget app(Widget child, {bool kj = false}) => ChangeNotifierProvider(
 );
 
 void main() {
+  for (final (amount, goal, label)
+      in <(NutrientAmount?, NutrientGoal?, String)>[
+        (null, const NutrientGoal(10), 'No data'),
+        (const NutrientAmount(0), const NutrientGoal(10), '0 g'),
+        (const NutrientAmount(5), null, '5 g'),
+        (const NutrientAmount(5), const NutrientGoal(0), '5 g'),
+        (const NutrientAmount(5), const NutrientGoal(double.infinity), '5 g'),
+      ]) {
+    testWidgets(
+      'amount=${amount?.value}, goal=${goal?.amount} always has a determinate empty bar',
+      (tester) async {
+        await tester.pumpWidget(
+          app(
+            NutrientAmountRow(
+              nutrient: Nutrients.byKey[NutrientKeys.fiber]!,
+              amount: amount,
+              goal: goal,
+            ),
+          ),
+        );
+        final bar = tester.widget<LinearProgressIndicator>(
+          find.byType(LinearProgressIndicator),
+        );
+        expect(bar.value, 0);
+        expect(find.textContaining(label), findsOneWidget);
+      },
+    );
+  }
+  testWidgets(
+    'the information table keeps fixed macros within their nutrient groups',
+    (tester) async {
+      final meal = MealEntity(
+        code: 'empty',
+        name: 'Food',
+        url: null,
+        mealQuantity: '100',
+        mealUnit: 'g',
+        servingQuantity: null,
+        servingUnit: null,
+        servingSize: null,
+        nutriments: MealNutrimentsEntity.empty(),
+        source: MealSourceEntity.custom,
+      );
+      await tester.pumpWidget(
+        app(
+          MealDetailNutrimentsTable(
+            product: meal,
+            baseAmount: 100,
+            reference: true,
+          ),
+        ),
+      );
+      Finder header(NutrientGroup group) => find.byWidgetPredicate(
+        (widget) => widget is NutrientGroupHeader && widget.group == group,
+      );
+      Finder row(String key) => find.byKey(ValueKey('nutrition-row-$key'));
+      for (final (key, group) in [
+        ('carbohydrates', NutrientGroup.carbohydrates),
+        ('fat', NutrientGroup.lipids),
+        ('protein', NutrientGroup.proteins),
+      ]) {
+        expect(
+          tester.getTopLeft(row(key)).dy,
+          greaterThan(tester.getTopLeft(header(group)).dy),
+        );
+      }
+      expect(
+        tester.getTopLeft(row('energy')).dy,
+        lessThan(tester.getTopLeft(header(NutrientGroup.carbohydrates)).dy),
+      );
+      expect(
+        tester.getTopLeft(row('carbohydrates')).dy,
+        lessThan(tester.getTopLeft(row('sugar')).dy),
+      );
+      expect(
+        tester.getTopLeft(row('fat')).dy,
+        lessThan(tester.getTopLeft(row('saturated_fat')).dy),
+      );
+      expect(
+        tester
+            .widgetList<LinearProgressIndicator>(
+              find.byType(LinearProgressIndicator),
+            )
+            .every((bar) => bar.value == 0),
+        isTrue,
+      );
+    },
+  );
   testWidgets('trace, small numbers, legend and semantics fit enlarged text', (
     tester,
   ) async {
@@ -58,7 +150,7 @@ void main() {
               product: food,
               baseAmount: 100,
               reference: true,
-              goals: const {'vitamin_b12': 2.4},
+              goals: const {'vitamin_b12': NutrientGoal(2.4)},
             ),
           ),
         ),
@@ -70,6 +162,10 @@ void main() {
       find.text(lookupS(const Locale('en')).nutrientQualificationLegend),
       findsOneWidget,
     );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('nutrition-row-vitamin_b12')),
+    );
+    await tester.pump();
     expect(find.bySemanticsLabel(RegExp('vitamin B12.*Trace')), findsOneWidget);
     expect(tester.takeException(), isNull);
     semantics.dispose();
@@ -126,24 +222,9 @@ void main() {
       ),
     );
     for (final (reference, energy, vitamin, kj) in [
-      (
-        false,
-        'energy - 30.00 / 1000.00 kcal',
-        'vitamin B12 - 1.20 / 2.40 µg',
-        false,
-      ),
-      (
-        true,
-        'energy - 100.00 / 1000.00 kcal',
-        'vitamin B12 - 4.00 / 2.40 µg',
-        false,
-      ),
-      (
-        false,
-        'energy - 125.52 / 4184.00 kJ',
-        'vitamin B12 - 1.20 / 2.40 µg',
-        true,
-      ),
+      (false, '30 kcal / 1000.00 kcal', '1.2 µg / 2.40 µg', false),
+      (true, '100 kcal / 1000.00 kcal', '4 µg / 2.40 µg', false),
+      (false, '125.52 kJ / 4184.00 kJ', '1.2 µg / 2.40 µg', true),
     ]) {
       await tester.pumpWidget(
         app(
@@ -152,82 +233,40 @@ void main() {
             baseAmount: 30,
             reference: reference,
             goals: const {
-              'energy': 1000,
-              'vitamin_b12': 2.4,
-              'carbohydrates': 250,
-              'saturated_fat': 10,
+              'energy': NutrientGoal(1000),
+              'vitamin_b12': NutrientGoal(2.4),
+              'carbohydrates': NutrientGoal(250),
+              'saturated_fat': NutrientGoal(10, isLimit: true),
             },
           ),
           kj: kj,
         ),
       );
-      expect(
-        find.text(lookupS(const Locale('en')).nutrientQualificationLegend),
-        findsOneWidget,
-      );
-      expect(find.text(energy), findsOneWidget);
-      expect(find.text(vitamin), findsOneWidget);
-      expect(
-        find.textContaining('carbohydrate - 0.00 / 250.00 g'),
-        findsOneWidget,
-      );
+      expect(find.textContaining(energy), findsOneWidget);
+      expect(find.textContaining(vitamin), findsOneWidget);
       expect(find.textContaining('No data'), findsWidgets);
-      expect(
-        find.text(reference ? 'protein - 10.12 / — g' : 'protein - 3.04 / — g'),
-        findsOneWidget,
-      );
       expect(find.byType(ExpansionTile), findsNothing);
-      expect(find.textContaining('niacin (B3)'), findsOneWidget);
-      final bars = tester
-          .widgetList<LinearProgressIndicator>(
-            find.byType(LinearProgressIndicator),
-          )
-          .toList();
-      expect(bars, hasLength(24));
-      expect(bars[0].value, reference ? 0.1 : 0.03);
-      expect(bars[22].value, reference ? 1.0 : 0.5);
+      Finder row(String key) => find.byKey(ValueKey('nutrition-row-$key'));
+      LinearProgressIndicator bar(String key) => tester.widget(
+        find.descendant(
+          of: row(key),
+          matching: find.byType(LinearProgressIndicator),
+        ),
+      );
       expect(
-        find.text(
-          reference
-              ? 'saturated fat - 0.40 / 10.00 g'
-              : 'saturated fat - 0.12 / 10.00 g',
+        find.byType(LinearProgressIndicator),
+        findsNWidgets(Nutrients.all.length),
+      );
+      expect(bar('energy').value, reference ? 0.1 : 0.03);
+      expect(bar('vitamin_b12').value, reference ? 1.0 : 0.5);
+      expect(bar('trans_fat').value, 0);
+      expect(bar('iodine').value, 0);
+      expect(
+        find.descendant(
+          of: row('iodine'),
+          matching: find.textContaining('No data'),
         ),
         findsOneWidget,
-      );
-      expect(
-        find.text(
-          reference ? 'trans fat - 1.00 / — g' : 'trans fat - 0.30 / — g',
-        ),
-        findsOneWidget,
-      );
-      expect(bars[5].value, 0);
-      final row = find.byKey(const ValueKey('nutrition-row-trans-fat'));
-      final bar = find.descendant(
-        of: row,
-        matching: find.byType(LinearProgressIndicator),
-      );
-      Finder label(String key) => find
-          .descendant(
-            of: find.byKey(ValueKey('nutrition-row-$key')),
-            matching: find.byType(Text),
-          )
-          .first;
-      expect(
-        tester.getTopLeft(bar).dx,
-        tester.getTopLeft(label('trans-fat')).dx,
-      );
-      expect(tester.getTopRight(bar).dx, tester.getTopRight(row).dx);
-      expect(
-        tester.getTopLeft(label('trans-fat')).dx,
-        tester.getTopLeft(label('fat')).dx + 12,
-      );
-      expect(
-        tester.getTopLeft(label('sugar')).dx,
-        tester.getTopLeft(label('carbohydrates')).dx + 12,
-      );
-      expect(
-        tester.getTopLeft(label('vitamin_b12')).dx,
-        tester.getTopLeft(label('protein')).dx,
       );
     }
   });

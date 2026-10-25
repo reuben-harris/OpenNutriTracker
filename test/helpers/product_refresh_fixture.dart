@@ -212,6 +212,9 @@ class _DailyTotals extends Fake implements GetTrackedDayUsecase {
 
 class _Config extends Fake implements GetConfigUsecase {
   @override
+  Stream<ConfigEntity> watchConfig() => Stream.fromFuture(getConfig());
+
+  @override
   Future<ConfigEntity> getConfig() async =>
       const ConfigEntity(AppThemeEntity.system);
 }

@@ -1,75 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:opennutritracker/core/domain/entity/config_entity.dart';
+import 'package:opennutritracker/core/domain/entity/nutrients.dart';
 import 'package:opennutritracker/core/domain/usecase/add_config_usecase.dart';
-import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
+import 'package:opennutritracker/core/presentation/widgets/nutrient_visibility_builder.dart';
+import 'package:opennutritracker/core/presentation/widgets/nutrient_group_header.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
-import 'package:opennutritracker/features/diary/presentation/widgets/daily_nutrient_panel.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
-/// A small sub-screen inside Settings → Nutrients that lets the user pick
-/// which nutrients should appear on the daily nutrient panel. State is
-/// persisted on [ConfigEntity.nutrientPanelVisibility]; any nutrient not
-/// present in the map defaults to visible (so users who never visit this
-/// screen see every nutrient, which matches the panel's pre-toggle
-/// behaviour).
 class NutrientVisibilityScreen extends StatefulWidget {
   const NutrientVisibilityScreen({super.key});
-
   @override
   State<NutrientVisibilityScreen> createState() =>
       _NutrientVisibilityScreenState();
 }
 
 class _NutrientVisibilityScreenState extends State<NutrientVisibilityScreen> {
-  Map<String, bool> _visibility = <String, bool>{};
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadVisibility();
-  }
-
-  Future<void> _loadVisibility() async {
-    final config = await locator<GetConfigUsecase>().getConfig();
-    if (!mounted) return;
-    setState(() {
-      _visibility = Map<String, bool>.from(config.nutrientPanelVisibility);
-      _loading = false;
-    });
-  }
-
-  Future<void> _toggle(String key, bool visible) async {
-    setState(() => _visibility[key] = visible);
-    await locator<AddConfigUsecase>()
-        .setConfigNutrientPanelVisibility(_visibility);
-  }
-
-  String _labelFor(BuildContext context, String key) {
-    final s = S.of(context);
-    switch (key) {
-      case NutrientPanelKeys.fiber:
-        return s.fiberLabel;
-      case NutrientPanelKeys.sodium:
-        return s.sodiumLabel;
-      case NutrientPanelKeys.saturatedFat:
-        return s.saturatedFatLabel;
-      case NutrientPanelKeys.sugar:
-        return s.sugarLabel;
-      case NutrientPanelKeys.calcium:
-        return s.calciumLabel;
-      case NutrientPanelKeys.iron:
-        return s.ironLabel;
-      case NutrientPanelKeys.potassium:
-        return s.potassiumLabel;
-      case NutrientPanelKeys.vitaminD:
-        return s.vitaminDLabel;
-      case NutrientPanelKeys.vitaminB12:
-        return s.vitaminB12Label;
-      case NutrientPanelKeys.magnesium:
-        return s.magnesiumLabel;
-      default:
-        return key;
+  bool _saving = false;
+  Future<void> _toggle(Iterable<String> keys, bool value, bool info) async {
+    setState(() => _saving = true);
+    try {
+      await locator<AddConfigUsecase>().setNutrientVisibility(
+        keys,
+        value,
+        info: info,
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(S.of(context).nutrientSettingsSaveFailedLabel),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -78,26 +41,117 @@ class _NutrientVisibilityScreenState extends State<NutrientVisibilityScreen> {
     final s = S.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(s.settingsNutrientsLabel)),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
-                  child: Text(
-                    s.settingsNutrientsHelp,
-                    style: Theme.of(context).textTheme.bodySmall,
+      body: NutrientVisibilityBuilder(
+        builder: (context, daily, info) => Semantics(
+          identifier: 'nutrient-visibility-list',
+          label: s.settingsNutrientsLabel,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(
+                s.settingsNutrientsHelp,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Expanded(child: SizedBox()),
+                  SizedBox(
+                    width: 64,
+                    child: Text(
+                      s.nutrientVisibilityDailyLabel,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 64,
+                    child: Text(
+                      s.nutrientVisibilityInfoLabel,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+              for (final group in Nutrients.additionalGroups) ...[
+                NutrientGroupHeader(
+                  group: group,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final isInfo in [false, true])
+                        _groupCheckbox(group, isInfo ? info : daily, isInfo),
+                    ],
                   ),
                 ),
-                for (final key in NutrientPanelKeys.all)
-                  CheckboxListTile(
-                    title: Text(_labelFor(context, key)),
-                    value: _visibility[key] ?? true,
-                    onChanged: (value) => _toggle(key, value ?? true),
+                for (final n in Nutrients.additional.where(
+                  (n) => n.group == group,
+                ))
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          n.label(s),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      for (final isInfo in [false, true])
+                        SizedBox(
+                          width: 64,
+                          child: Semantics(
+                            identifier:
+                                'nutrient-visibility-${n.key.replaceAll('_', '-')}-${isInfo ? 'info' : 'daily'}',
+                            label:
+                                '${n.label(s)}, ${isInfo ? s.nutrientVisibilityInfoLabel : s.nutrientVisibilityDailyLabel}',
+                            child: Checkbox(
+                              value: (isInfo ? info : daily)[n.key] ?? true,
+                              onChanged: _saving
+                                  ? null
+                                  : (value) => _toggle([n.key], value!, isInfo),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
               ],
-            ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _groupCheckbox(
+    NutrientGroup group,
+    Map<String, bool> visibility,
+    bool info,
+  ) {
+    final s = S.of(context);
+    final nutrients = Nutrients.additional
+        .where((n) => n.group == group)
+        .toList();
+    final count = nutrients.where((n) => visibility[n.key] ?? true).length;
+    final allVisible = count == nutrients.length;
+    final bool? value = allVisible
+        ? true
+        : count == 0
+        ? false
+        : null;
+    return SizedBox(
+      width: 64,
+      child: Semantics(
+        identifier:
+            'nutrient-visibility-group-${group.name}-${info ? 'info' : 'daily'}',
+        label:
+            '${group.label(s)}, ${info ? s.nutrientVisibilityInfoLabel : s.nutrientVisibilityDailyLabel}',
+        child: Checkbox(
+          tristate: true,
+          value: value,
+          onChanged: _saving
+              ? null
+              : (_) => _toggle(nutrients.map((n) => n.key), !allVisible, info),
+        ),
+      ),
     );
   }
 }

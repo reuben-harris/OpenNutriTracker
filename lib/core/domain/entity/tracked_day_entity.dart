@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/data/dbo/tracked_day_dbo.dart';
@@ -16,28 +17,7 @@ class TrackedDayEntity extends Equatable {
   final double? proteinGoal;
   final double? proteinTracked;
 
-  // #173: user-set per-nutrient targets. Null means "fall back to the
-  // default reference"; non-null means the user has set their own goal
-  // in Settings → Calculations.
-  //
-  // Unit convention (mirrors TrackedDayDBO):
-  //   fibreGoal, satFatGoal, sugarsGoal               — grams
-  //   sodiumGoal, calciumGoal, ironGoal,
-  //   potassiumGoal, magnesiumGoal, vitaminB12Goal    — milligrams
-  //   vitaminDGoal                                    — micrograms
-  final double? fibreGoal;
-  final double? satFatGoal;
-  final double? sugarsGoal;
-  // Follow-up to #173: the remaining seven panel nutrients. The three
-  // D / B12 / Mg fields are wired here too even though their panel rows
-  // only land when #160's expansion follow-up rebases through.
-  final double? sodiumGoal;
-  final double? calciumGoal;
-  final double? ironGoal;
-  final double? potassiumGoal;
-  final double? vitaminDGoal;
-  final double? vitaminB12Goal;
-  final double? magnesiumGoal;
+  final Map<String, NutrientGoal> nutrientGoals;
 
   const TrackedDayEntity({
     required this.day,
@@ -49,16 +29,7 @@ class TrackedDayEntity extends Equatable {
     this.fatTracked,
     this.proteinGoal,
     this.proteinTracked,
-    this.fibreGoal,
-    this.satFatGoal,
-    this.sugarsGoal,
-    this.sodiumGoal,
-    this.calciumGoal,
-    this.ironGoal,
-    this.potassiumGoal,
-    this.vitaminDGoal,
-    this.vitaminB12Goal,
-    this.magnesiumGoal,
+    this.nutrientGoals = const {},
   });
 
   factory TrackedDayEntity.fromTrackedDayDBO(TrackedDayDBO trackedDayDBO) {
@@ -79,16 +50,7 @@ class TrackedDayEntity extends Equatable {
       fatTracked: finite(trackedDayDBO.fatTracked),
       proteinGoal: trackedDayDBO.proteinGoal,
       proteinTracked: finite(trackedDayDBO.proteinTracked),
-      fibreGoal: trackedDayDBO.fibreGoal,
-      satFatGoal: trackedDayDBO.satFatGoal,
-      sugarsGoal: trackedDayDBO.sugarsGoal,
-      sodiumGoal: trackedDayDBO.sodiumGoal,
-      calciumGoal: trackedDayDBO.calciumGoal,
-      ironGoal: trackedDayDBO.ironGoal,
-      potassiumGoal: trackedDayDBO.potassiumGoal,
-      vitaminDGoal: trackedDayDBO.vitaminDGoal,
-      vitaminB12Goal: trackedDayDBO.vitaminB12Goal,
-      magnesiumGoal: trackedDayDBO.magnesiumGoal,
+      nutrientGoals: Map.unmodifiable(trackedDayDBO.nutrientGoals),
     );
   }
 
@@ -129,24 +91,15 @@ class TrackedDayEntity extends Equatable {
 
   @override
   List<Object?> get props => [
-        day,
-        calorieGoal,
-        caloriesTracked,
-        carbsGoal,
-        carbsTracked,
-        fatGoal,
-        fatTracked,
-        proteinGoal,
-        proteinTracked,
-        fibreGoal,
-        satFatGoal,
-        sugarsGoal,
-        sodiumGoal,
-        calciumGoal,
-        ironGoal,
-        potassiumGoal,
-        vitaminDGoal,
-        vitaminB12Goal,
-        magnesiumGoal,
-      ];
+    day,
+    calorieGoal,
+    caloriesTracked,
+    carbsGoal,
+    carbsTracked,
+    fatGoal,
+    fatTracked,
+    proteinGoal,
+    proteinTracked,
+    nutrientGoals,
+  ];
 }

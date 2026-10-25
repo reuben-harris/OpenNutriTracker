@@ -87,7 +87,7 @@ class TrendsBloc extends Bloc<TrendsEvent, TrendsState> {
         }
         final nutrientsByDay = {
           for (final entry in grouped.entries)
-            entry.key: NutrientPanelTotals.fromIntakes(entry.value),
+            entry.key: NutrientTotals.fromIntakes(entry.value),
         };
 
         // Water totalled per logical day; the card fills missing days with 0.

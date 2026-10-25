@@ -93,19 +93,6 @@ class MealNutrimentsEntity extends Equatable {
 
   NutrientAmount? get proteinsPerUnit => _getValuePerUnit(proteins100);
 
-  /// Returns true when at least one of the extended micronutrient fields
-  /// (lipid profile / minerals / vitamins from #237) has a value.
-  bool get hasMicronutrientData => amounts.entries.any(
-    (e) =>
-        !const {
-          'energyKcal100',
-          'carbohydrates100',
-          'fat100',
-          'proteins100',
-        }.contains(e.key) &&
-        e.value != null,
-  );
-
   const MealNutrimentsEntity({
     required this.energyKcal100,
     required this.carbohydrates100,

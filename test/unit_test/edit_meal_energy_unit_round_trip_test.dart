@@ -60,6 +60,15 @@ void main() {
         (w.decoration?.labelText ?? '').startsWith(l10nEn.mealEnergyLabel),
   );
 
+  Finder control(String identifier) => find.byWidgetPredicate(
+    (widget) =>
+        widget is Semantics && widget.properties.identifier == identifier,
+  );
+  Finder field(String identifier) => find.descendant(
+    of: control(identifier),
+    matching: find.byType(TextField),
+  );
+
   Future<void> open(WidgetTester tester, {required bool kj}) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1;
@@ -156,6 +165,94 @@ void main() {
       units.dispose();
     });
   }
+
+  testWidgets('simple form retains all four editable energy and macro fields', (
+    tester,
+  ) async {
+    await open(tester, kj: false);
+    for (final (id, value) in [
+      ('energy', '150'),
+      ('carbohydrates', '20'),
+      ('fat', '3'),
+      ('protein', '10'),
+    ]) {
+      await tester.enterText(field('edit-meal-$id'), value);
+    }
+    await tester.tap(find.widgetWithText(FilledButton, l10nEn.buttonSaveLabel));
+    await tester.pumpAndSettle();
+    final saved = meals.saved!.nutriments;
+    expect(saved.energyKcal100, const NutrientAmount(150));
+    expect(saved.carbohydrates100, const NutrientAmount(20));
+    expect(saved.fat100, const NutrientAmount(3));
+    expect(saved.proteins100, const NutrientAmount(10));
+    await tester.pumpWidget(const SizedBox());
+    units.dispose();
+  });
+
+  testWidgets(
+    'advanced quantity and total controls scale a precise qualified nutrient',
+    (tester) async {
+      preferences.mode = CustomMealFormMode.advanced;
+      await open(tester, kj: false);
+      expect(control('edit-meal-unit-selector'), findsOneWidget);
+      await tester.enterText(field('edit-meal-quantity'), '200');
+      await tester.enterText(field('edit-meal-serving-quantity'), '50');
+      await tester.enterText(field('edit-meal-base-quantity'), '50');
+      await tester.pump();
+      await tester.tap(
+        find.descendant(
+          of: control('edit-meal-nutrients-mode'),
+          matching: find.text(l10nEn.mealNutrientsTotalLabel),
+        ),
+      );
+      await tester.pump();
+      await tester.scrollUntilVisible(
+        control('edit-meal-selenium'),
+        450,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.enterText(field('edit-meal-selenium'), '<0.00123456789');
+      await tester.tap(
+        find.widgetWithText(FilledButton, l10nEn.buttonSaveLabel),
+      );
+      await tester.pumpAndSettle();
+      final saved = meals.saved!;
+      expect(saved.mealQuantity, '200');
+      expect(saved.servingQuantity, 50);
+      expect(
+        saved.nutriments.selenium100!.value,
+        closeTo(0.000617283945, 1e-15),
+      );
+      expect(
+        saved.nutriments.selenium100!.qualification,
+        NutrientQualification.lessThan,
+      );
+      await tester.pumpWidget(const SizedBox());
+      units.dispose();
+    },
+  );
+
+  testWidgets(
+    'advanced form rejects an invalid nutrient instead of saving it as missing',
+    (tester) async {
+      preferences.mode = CustomMealFormMode.advanced;
+      await open(tester, kj: false);
+      await tester.scrollUntilVisible(
+        control('edit-meal-selenium'),
+        450,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.enterText(field('edit-meal-selenium'), 'invalid');
+      await tester.tap(
+        find.widgetWithText(FilledButton, l10nEn.buttonSaveLabel),
+      );
+      await tester.pumpAndSettle();
+      expect(meals.saved, isNull);
+      expect(find.text(l10nEn.nutrientInvalidAmountLabel), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      units.dispose();
+    },
+  );
 
   testWidgets(
     'stored kcal displays in kJ and survives unit changes without saving',

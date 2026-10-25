@@ -57,7 +57,8 @@ class ConfigDataSource {
       merged.mealKcalSharesPct = profile.mealKcalSharesPct;
       merged.dailyWaterGoalMl = profile.dailyWaterGoalMl;
       merged.overviewMacrosAsPercent = profile.overviewMacrosAsPercent;
-      merged.overviewNutrientsAsPercent = profile.overviewNutrientsAsPercent;
+      merged.overviewNutrientsWithoutGoal =
+          profile.overviewNutrientsWithoutGoal;
       merged.healthImportEnabled = profile.healthImportEnabled;
       merged.healthWorkoutKcalMultiplier = profile.healthWorkoutKcalMultiplier;
       merged.healthLastImportAt = profile.healthLastImportAt;
@@ -75,7 +76,7 @@ class ConfigDataSource {
       merged.mealKcalSharesPct = null;
       merged.dailyWaterGoalMl = null;
       merged.overviewMacrosAsPercent = null;
-      merged.overviewNutrientsAsPercent = null;
+      merged.overviewNutrientsWithoutGoal = null;
       merged.healthImportEnabled = null;
       merged.healthWorkoutKcalMultiplier = null;
       merged.healthLastImportAt = null;
@@ -215,8 +216,8 @@ class ConfigDataSource {
   Future<void> setOverviewMacrosAsPercent(bool value) =>
       _update((c) => c.overviewMacrosAsPercent = value);
 
-  Future<void> setOverviewNutrientsAsPercent(bool value) =>
-      _update((c) => c.overviewNutrientsAsPercent = value);
+  Future<void> setOverviewNutrientsWithoutGoal(bool value) =>
+      _update((c) => c.overviewNutrientsWithoutGoal = value);
 
   Future<void> setAmountArithmeticEnabled(bool value) async {
     await _update((c) => c.amountArithmeticEnabled = value);
@@ -250,16 +251,6 @@ class ConfigDataSource {
         mealKey: sortIndex,
       };
     });
-  }
-
-  Future<void> setConfigNutrientPanelVisibility(
-    Map<String, bool> visibility,
-  ) async {
-    // Persist a defensive copy — a caller-owned map mutating later would
-    // otherwise silently change the saved value.
-    await _update(
-      (c) => c.nutrientPanelVisibility = Map<String, bool>.from(visibility),
-    );
   }
 
   Future<void> setConfigDayStartOffsetHours(int hours) async {
@@ -356,6 +347,31 @@ class ConfigDataSource {
     final now = DateTime.now();
     return {for (final id in legacy) id: now, ...dated};
   }
+
+  Stream<ConfigDBO> watchConfig() async* {
+    yield _readMerged();
+    await for (final _ in _appBox.watch(key: _configKey)) {
+      yield _readMerged();
+    }
+  }
+
+  Future<void> setNutrientVisibility(
+    Iterable<String> keys,
+    bool visible, {
+    required bool info,
+  }) => _update((c) {
+    if (info) {
+      c.nutrientInfoVisibility = {
+        ...?c.nutrientInfoVisibility,
+        for (final key in keys) key: visible,
+      };
+    } else {
+      c.nutrientPanelVisibility = {
+        ...?c.nutrientPanelVisibility,
+        for (final key in keys) key: visible,
+      };
+    }
+  });
 
   Future<ConfigDBO> getConfig() async => _readMerged();
 }

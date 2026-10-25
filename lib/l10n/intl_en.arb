@@ -946,7 +946,7 @@
   "settingsNotificationsTimeLabel": "Reminder time: {time}",
   "settingsNutrientGoalsHint": "Personal targets and limits for today. Empty fields use the published reference where available.",
   "settingsNutrientGoalsLabel": "Nutrient goals",
-  "settingsNutrientsHelp": "Choose which additional nutrients appear in daily totals and Trends, and which appear in food, product and recipe information. Energy and macros are always shown.",
+  "settingsNutrientsHelp": "Choose which additional nutrients appear in daily totals and Trends (Daily), and which appear in food, product and recipe information (Info).",
   "settingsNutrientsLabel": "Nutrient visibility",
   "settingsNutrientsSubtitle": "Choose nutrients for daily totals and food information",
   "settingsPerMealKcalShareBreakfast": "Breakfast",
@@ -1402,5 +1402,21 @@
   "nutrientNoReferenceLabel": "No default reference",
   "nutrientUseDefaultLabel": "Use default",
   "nutrientInvalidAmountLabel": "Enter a valid non-negative amount",
-  "nutrientSettingsSaveFailedLabel": "Could not save nutrient settings. Please try again."
+  "nutrientSettingsSaveFailedLabel": "Could not save nutrient settings. Please try again.",
+  "nutrientGoalResetTitle": "Reset {nutrient}?",
+  "@nutrientGoalResetTitle": {
+    "placeholders": {
+      "nutrient": {
+        "type": "String"
+      }
+    }
+  },
+  "nutrientGoalResetContent": "Use the default target or limit for this nutrient? Save your changes to apply the reset.",
+  "nutrientGoalsResetAllLabel": "Reset all",
+  "nutrientGoalsResetAllTitle": "Reset all nutrient goals?",
+  "nutrientGoalsResetAllContent": "Use the default targets and limits for all nutrients? Save your changes to apply the reset.",
+  "unsavedChangesTitle": "Unsaved changes",
+  "unsavedChangesContent": "Would you like to save your changes before leaving?",
+  "discardAndLeaveLabel": "Discard and leave",
+  "saveAndLeaveLabel": "Save and leave"
 }

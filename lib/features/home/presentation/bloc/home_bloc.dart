@@ -202,7 +202,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           trackedDay: trackedDay,
           weight: weight,
           overviewMacrosAsPercent: configData.overviewMacrosAsPercent,
-          overviewNutrientsAsPercent: configData.overviewNutrientsAsPercent,
+          overviewNutrientsWithoutGoal: configData.overviewNutrientsWithoutGoal,
           totalKcalDaily: totalKcalGoal,
           totalKcalLeft: totalKcalLeft,
           totalKcalSupplied: totalKcalIntake,

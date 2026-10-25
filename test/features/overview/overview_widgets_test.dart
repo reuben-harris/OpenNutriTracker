@@ -1,4 +1,5 @@
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
+import 'package:opennutritracker/core/utils/calc/daily_nutrient_references.dart';
 import '../../helpers/pump_until.dart';
 import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
@@ -230,11 +231,7 @@ void main() {
                   asPercent: true,
                   onToggle: () {},
                 ),
-                DailyNutrientPanel(
-                  intakes: const [],
-                  asPercent: false,
-                  onToggle: () {},
-                ),
+                DailyNutrientPanel(intakes: const [], onViewChanged: (_) {}),
               ],
             ),
           ),
@@ -247,8 +244,18 @@ void main() {
       expect(find.byType(ExpansionTile), findsNothing);
       expect(find.text('150%'), findsOneWidget);
       expect(find.text('—'), findsOneWidget);
-      expect(find.byType(LinearProgressIndicator), findsNWidgets(13));
-      final sodiumAmount = find.textContaining('/ 2300mg');
+      expect(
+        find.byType(LinearProgressIndicator),
+        findsNWidgets(3 + DailyNutrientReferences.resolve().length),
+      );
+      expect(
+        find.byKey(const ValueKey('nutrition-row-iodine')),
+        findsOneWidget,
+      );
+      final sodiumAmount = find.descendant(
+        of: find.byKey(const ValueKey('nutrition-row-sodium')),
+        matching: find.textContaining('0%'),
+      );
       expect(sodiumAmount, findsOneWidget);
       expect(
         tester.renderObject<RenderParagraph>(sodiumAmount).didExceedMaxLines,

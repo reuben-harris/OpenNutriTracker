@@ -13,7 +13,7 @@ abstract class MealDetailState extends Equatable {
   final double dayKcalConsumed;
   final double dayKcalGoal;
   final double dayCarbsGoal, dayFatGoal, dayProteinGoal;
-  final Map<String, double> dayNutrientGoals;
+  final Map<String, NutrientGoal> dayNutrientGoals;
 
   /// Latest full product from hydration or an explicit refresh; null until
   /// either succeeds. The screen uses it for nutrition and serving options.
@@ -89,7 +89,7 @@ abstract class MealDetailState extends Equatable {
     double? dayCarbsGoal,
     double? dayFatGoal,
     double? dayProteinGoal,
-    Map<String, double>? dayNutrientGoals,
+    Map<String, NutrientGoal>? dayNutrientGoals,
     MealEntity? hydratedMeal,
     MealInformationLoadStatus? hydrationStatus,
     MealInformationLoadStatus? dailyTotalsStatus,

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/utils/calc/nutrient_totals.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -136,12 +137,9 @@ class HomePage extends StatelessWidget {
                   ],
                   selectedDay: state.day,
                   trackedDay: state.trackedDay,
-                  asPercent: state.overviewNutrientsAsPercent,
-                  onToggle: () => _toggle(
-                    context,
-                    !state.overviewNutrientsAsPercent,
-                    macros: false,
-                  ),
+                  withoutGoal: state.overviewNutrientsWithoutGoal,
+                  onViewChanged: (value) =>
+                      _toggle(context, value, macros: false),
                 ),
                 if (CalorieGoalCalc.isBelowRecommendedDailyKcalFloor(
                   goalKcal: state.totalKcalDaily,
@@ -222,7 +220,7 @@ class HomePage extends StatelessWidget {
       if (macros) {
         await config.setOverviewMacrosAsPercent(value);
       } else {
-        await config.setOverviewNutrientsAsPercent(value);
+        await config.setOverviewNutrientsWithoutGoal(value);
       }
       locator<HomeBloc>().add(const LoadItemsEvent());
     } catch (_) {

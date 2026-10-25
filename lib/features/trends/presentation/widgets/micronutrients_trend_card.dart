@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/presentation/widgets/nutrient_visibility_builder.dart';
+import 'package:opennutritracker/core/domain/entity/nutrients.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/utils/nutrient_amount_formatter.dart';
 import 'package:auto_size_text/auto_size_text.dart';
@@ -13,7 +15,7 @@ import 'package:opennutritracker/generated/l10n.dart';
 class MicronutrientsTrendCard extends StatefulWidget {
   final DateTime today;
   final int rangeDays;
-  final Map<DateTime, NutrientPanelTotals> nutrientsByDay;
+  final Map<DateTime, NutrientTotals> nutrientsByDay;
   final Map<String, bool> visibility;
 
   const MicronutrientsTrendCard({
@@ -30,89 +32,25 @@ class MicronutrientsTrendCard extends StatefulWidget {
 }
 
 class _MicronutrientsTrendCardState extends State<MicronutrientsTrendCard> {
-  String _selected = NutrientPanelKeys.fiber;
+  String _selected = NutrientKeys.fiber;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => NutrientVisibilityBuilder(
+    builder: (context, daily, info) =>
+        _build(context, {...widget.visibility, ...daily}),
+  );
+
+  Widget _build(BuildContext context, Map<String, bool> visibility) {
     final s = S.of(context);
     final theme = Theme.of(context);
     final palette = theme.brightness == Brightness.dark
         ? AppPalette.dark
         : AppPalette.light;
-    final options =
-        <
-              ({
-                String key,
-                String label,
-                String unit,
-                NutrientAmount? Function(NutrientPanelTotals) amount,
-              })
-            >[
-              (
-                key: NutrientPanelKeys.fiber,
-                label: s.fiberLabel,
-                unit: 'g',
-                amount: (n) => n.fiberG,
-              ),
-              (
-                key: NutrientPanelKeys.sodium,
-                label: s.sodiumLabel,
-                unit: 'mg',
-                amount: (n) => n.sodiumMg,
-              ),
-              (
-                key: NutrientPanelKeys.saturatedFat,
-                label: s.saturatedFatLabel,
-                unit: 'g',
-                amount: (n) => n.saturatedFatG,
-              ),
-              (
-                key: NutrientPanelKeys.sugar,
-                label: s.sugarLabel,
-                unit: 'g',
-                amount: (n) => n.sugarG,
-              ),
-              (
-                key: NutrientPanelKeys.calcium,
-                label: s.calciumLabel,
-                unit: 'mg',
-                amount: (n) => n.calciumMg,
-              ),
-              (
-                key: NutrientPanelKeys.iron,
-                label: s.ironLabel,
-                unit: 'mg',
-                amount: (n) => n.ironMg,
-              ),
-              (
-                key: NutrientPanelKeys.potassium,
-                label: s.potassiumLabel,
-                unit: 'mg',
-                amount: (n) => n.potassiumMg,
-              ),
-              (
-                key: NutrientPanelKeys.vitaminD,
-                label: s.vitaminDLabel,
-                unit: 'µg',
-                amount: (n) => n.vitaminDMcg,
-              ),
-              (
-                key: NutrientPanelKeys.vitaminB12,
-                label: s.vitaminB12Label,
-                unit: 'µg',
-                amount: (n) => n.vitaminB12Mcg,
-              ),
-              (
-                key: NutrientPanelKeys.magnesium,
-                label: s.magnesiumLabel,
-                unit: 'mg',
-                amount: (n) => n.magnesiumMg,
-              ),
-            ]
-            .where((n) => widget.visibility[n.key] ?? true)
-            .toList();
+    final options = Nutrients.additional
+        .where((n) => visibility[n.key] ?? true)
+        .toList();
     final title = AutoSizeText(
-      s.micronutrientsLabel,
+      s.totalNutrientsLabel,
       style: theme.textTheme.titleMedium,
       maxLines: 1,
       minFontSize: 12,
@@ -142,26 +80,23 @@ class _MicronutrientsTrendCardState extends State<MicronutrientsTrendCard> {
     );
     DateTime dateAt(int index) =>
         DateTime(start.year, start.month, start.day + index);
+    NutrientTotals dayTotals(int index) =>
+        widget.nutrientsByDay[dateAt(index)] ?? NutrientTotals.zero;
+    NutrientAmount? dayAmount(int index) =>
+        dayTotals(index).amounts[nutrient.field];
     final spots = [
       for (var i = 0; i < widget.rangeDays; i++)
-        FlSpot(i.toDouble(), switch (widget.nutrientsByDay[dateAt(i)]) {
-          final totals? => nutrient.amount(totals)?.calculationValue ?? 0,
-          null => 0,
-        }),
+        switch (dayAmount(i)) {
+          final amount? => FlSpot(i.toDouble(), amount.calculationValue),
+          null => FlSpot.nullSpot,
+        },
     ];
-    NutrientAmount? dayAmount(int index) =>
-        switch (widget.nutrientsByDay[dateAt(index)]) {
-          final totals? => nutrient.amount(totals),
-          null => null,
-        };
-    final accumulator = NutrientAccumulator();
-    for (var i = 0; i < widget.rangeDays; i++) {
-      accumulator.add(dayAmount(i));
-    }
-    final average = accumulator.total?.scale(1 / widget.rangeDays);
+    final average = NutrientTotals.averageDays([
+      for (var i = 0; i < widget.rangeDays; i++) dayTotals(i),
+    ]).amounts[nutrient.field];
     final maximum = spots.fold<double>(
       0,
-      (max, spot) => spot.y > max ? spot.y : max,
+      (max, spot) => !spot.isNull() && spot.y > max ? spot.y : max,
     );
     final locale = Localizations.localeOf(context).toString();
     String amount(NutrientAmount? value) => formatNutrientAmount(
@@ -199,7 +134,7 @@ class _MicronutrientsTrendCardState extends State<MicronutrientsTrendCard> {
                   DropdownMenuItem(
                     value: option.key,
                     child: AutoSizeText(
-                      option.label,
+                      option.label(s),
                       maxLines: 1,
                       minFontSize: 10,
                       overflow: TextOverflow.ellipsis,
@@ -223,7 +158,7 @@ class _MicronutrientsTrendCardState extends State<MicronutrientsTrendCard> {
           Semantics(
             identifier: 'trends-nutrients-chart',
             label:
-                '${nutrient.label}. $averageLabel. ${nutrientQualificationLabel(average, s)}',
+                '${nutrient.label(s)}. $averageLabel. ${nutrientQualificationLabel(average, s)}',
             child: SizedBox(
               height: 160,
               child: LineChart(

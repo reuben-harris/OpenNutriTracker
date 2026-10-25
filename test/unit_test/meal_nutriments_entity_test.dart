@@ -346,40 +346,6 @@ void main() {
     });
   });
 
-  group('MealNutrimentsEntity.hasMicronutrientData', () {
-    test('returns false when all micronutrients are null', () {
-      const entity = MealNutrimentsEntity(
-        energyKcal100: NutrientAmount(200),
-        carbohydrates100: NutrientAmount(30),
-        fat100: NutrientAmount(10),
-        proteins100: NutrientAmount(15),
-        sugars100: NutrientAmount(5),
-        saturatedFat100: NutrientAmount(3),
-        fiber100: NutrientAmount(2),
-      );
-      expect(entity.hasMicronutrientData, isFalse);
-    });
-
-    test('returns true when any micronutrient is non-null', () {
-      const entity = MealNutrimentsEntity(
-        energyKcal100: NutrientAmount(200),
-        carbohydrates100: NutrientAmount(30),
-        fat100: NutrientAmount(10),
-        proteins100: NutrientAmount(15),
-        sugars100: NutrientAmount(5),
-        saturatedFat100: NutrientAmount(3),
-        fiber100: NutrientAmount(2),
-        sodium100: NutrientAmount(120),
-      );
-      expect(entity.hasMicronutrientData, isTrue);
-    });
-
-    test('returns false for empty entity', () {
-      final entity = MealNutrimentsEntity.empty();
-      expect(entity.hasMicronutrientData, isFalse);
-    });
-  });
-
   group('MealNutrimentsEntity.fromMealNutrimentsDBO (#1254)', () {
     test('reads NaN and infinite values back as null', () {
       // What a custom meal saved with a base quantity of 0 stored: every

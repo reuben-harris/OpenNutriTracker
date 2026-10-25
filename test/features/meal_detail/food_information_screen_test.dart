@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
 import 'package:opennutritracker/core/presentation/widgets/share_qr_dialog.dart';
@@ -590,7 +591,13 @@ void main() {
         find.byKey(const ValueKey('meal-detail-macro-summary')),
         findsOneWidget,
       );
-      expect(find.textContaining('vitamin B12 - No data'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('nutrition-row-vitamin_b12')),
+          matching: find.textContaining('No data'),
+        ),
+        findsOneWidget,
+      );
       expect(_maxScrollOffset(tester), 0);
     },
   );
@@ -743,8 +750,8 @@ void main() {
       expect(bloc!.state.dayCarbsGoal, 250);
       expect(bloc!.state.dayFatGoal, 70);
       expect(bloc!.state.dayProteinGoal, 120);
-      expect(bloc!.state.dayNutrientGoals['saturated_fat'], 20);
-      expect(bloc!.state.dayNutrientGoals['sodium'], 1800);
+      expect(bloc!.state.dayNutrientGoals['saturated_fat']?.amount, 20);
+      expect(bloc!.state.dayNutrientGoals['sodium']?.amount, 1800);
       daily.tracked = null;
       bloc!.add(LoadDailyTotalsEvent(DateTime(2026, 10, 11)));
       await tester.pumpAndSettle();
@@ -771,8 +778,8 @@ void main() {
       users = _UnavailableUser();
       await pumpMealDetail(tester, _solidWithServing());
       expect(bloc!.state.dayCarbsGoal, 250);
-      expect(bloc!.state.dayNutrientGoals['sodium'], 1800);
-      expect(bloc!.state.dayNutrientGoals['fiber'], 30);
+      expect(bloc!.state.dayNutrientGoals['sodium']?.amount, 1800);
+      expect(bloc!.state.dayNutrientGoals['fiber']?.amount, 30);
     },
   );
 
@@ -904,6 +911,9 @@ void main() {
 }
 
 class _FakeGetConfigUsecase implements GetConfigUsecase {
+  @override
+  Stream<ConfigEntity> watchConfig() => Stream.fromFuture(getConfig());
+
   final bool Function() imperialProvider;
   _FakeGetConfigUsecase(this.imperialProvider);
 
@@ -986,7 +996,7 @@ class _FakeGetTrackedDayUsecase implements GetTrackedDayUsecase {
     carbsGoal: 250,
     fatGoal: 70,
     proteinGoal: 120,
-    sodiumGoal: 1800,
+    nutrientGoals: const {'sodium': NutrientGoal(1800, isLimit: true)},
   );
   @override
   Future<TrackedDayEntity?> getTrackedDay(DateTime day) async => tracked;

@@ -18,8 +18,8 @@ class AddConfigUsecase {
   Future<void> setOverviewMacrosAsPercent(bool value) =>
       _configRepository.setOverviewMacrosAsPercent(value);
 
-  Future<void> setOverviewNutrientsAsPercent(bool value) =>
-      _configRepository.setOverviewNutrientsAsPercent(value);
+  Future<void> setOverviewNutrientsWithoutGoal(bool value) =>
+      _configRepository.setOverviewNutrientsWithoutGoal(value);
 
   Future<void> setConfigAppTheme(AppThemeEntity appTheme) async {
     await _configRepository.setConfigAppTheme(appTheme);
@@ -85,12 +85,6 @@ class AddConfigUsecase {
     await _configRepository.setDiarySortPreference(mealKey, sortIndex);
   }
 
-  Future<void> setConfigNutrientPanelVisibility(
-    Map<String, bool> visibility,
-  ) async {
-    await _configRepository.setConfigNutrientPanelVisibility(visibility);
-  }
-
   Future<void> setConfigDayStartOffsetHours(int hours) async {
     await _configRepository.setConfigDayStartOffsetHours(hours);
   }
@@ -118,4 +112,10 @@ class AddConfigUsecase {
   Future<void> setConfigHealthWorkoutKcalMultiplier(double multiplier) async {
     await _configRepository.setConfigHealthWorkoutKcalMultiplier(multiplier);
   }
+
+  Future<void> setNutrientVisibility(
+    Iterable<String> keys,
+    bool visible, {
+    required bool info,
+  }) => _configRepository.setNutrientVisibility(keys, visible, info: info);
 }

@@ -17,7 +17,7 @@ class TrendsLoading extends TrendsState {
 
 class TrendsLoaded extends TrendsState {
   final DateTime today;
-  final Map<DateTime, NutrientPanelTotals> nutrientsByDay;
+  final Map<DateTime, NutrientTotals> nutrientsByDay;
   final Map<String, bool> nutrientVisibility;
   final int rangeDays; // the selected range chip: 7, 30, 90, or 0 for "All"
   final int windowDays; // effective span the charts plot over (resolved "All")
@@ -46,19 +46,19 @@ class TrendsLoaded extends TrendsState {
 
   @override
   List<Object?> get props => [
-        today,
-        nutrientsByDay,
-        nutrientVisibility,
-        rangeDays,
-        windowDays,
-        days,
-        priorWeek,
-        weight,
-        bodyWeightUnit,
-        targetWeightKg,
-        waterByDay,
-        waterGoalMl,
-      ];
+    today,
+    nutrientsByDay,
+    nutrientVisibility,
+    rangeDays,
+    windowDays,
+    days,
+    priorWeek,
+    weight,
+    bodyWeightUnit,
+    targetWeightKg,
+    waterByDay,
+    waterGoalMl,
+  ];
 }
 
 class TrendsFailed extends TrendsState {

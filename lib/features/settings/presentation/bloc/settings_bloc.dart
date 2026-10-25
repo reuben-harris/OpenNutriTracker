@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logging/logging.dart';
@@ -229,45 +230,18 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     await _addConfigUsecase.setConfigMealKcalSharesPct(shares);
   }
 
-  /// #173: read today's per-nutrient goal overrides from the stored
-  /// TrackedDayDBO row. The dialog uses these to pre-fill the sliders
-  /// so users see their previously-saved targets rather than defaults.
-  /// Returns nulls (and a null entity) when nothing has been logged
-  /// for the day yet.
+  /// Read today's personal nutrient goals; a missing day has no overrides.
   Future<TrackedDayEntity?> getTodayTrackedDay(DateTime day) async {
     return await _getTrackedDayUsecase.getTrackedDay(day);
   }
 
-  /// #173 (+follow-up): persist user-set per-nutrient goals to today's
-  /// tracked-day row. Must be called after ensuring the row exists (the
-  /// macro updateTrackedDay flow takes care of creating it). Accepts
-  /// the original three nutrients plus the seven from the follow-up.
+  /// Replace today's personal nutrient goals. Omitted keys use their default reference.
   Future<void> setTodayNutrientGoals(
-    DateTime day, {
-    double? fibreGoal,
-    double? satFatGoal,
-    double? sugarsGoal,
-    double? sodiumGoal,
-    double? calciumGoal,
-    double? ironGoal,
-    double? potassiumGoal,
-    double? vitaminDGoal,
-    double? vitaminB12Goal,
-    double? magnesiumGoal,
-  }) async {
-    await _addTrackedDayUsecase.updateDayNutrientGoals(
-      day,
-      fibreGoal: fibreGoal,
-      satFatGoal: satFatGoal,
-      sugarsGoal: sugarsGoal,
-      sodiumGoal: sodiumGoal,
-      calciumGoal: calciumGoal,
-      ironGoal: ironGoal,
-      potassiumGoal: potassiumGoal,
-      vitaminDGoal: vitaminDGoal,
-      vitaminB12Goal: vitaminB12Goal,
-      magnesiumGoal: magnesiumGoal,
-    );
+    DateTime day,
+    Map<String, NutrientGoal> goals,
+  ) async {
+    await updateTrackedDay(day);
+    await _addTrackedDayUsecase.updateDayNutrientGoals(day, goals);
   }
 
   Future<void> updateTrackedDay(DateTime day) async {
@@ -289,6 +263,14 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
         carbsGoal: totalCarbsGoal,
         fatGoal: totalFatGoal,
         proteinGoal: totalProteinGoal,
+      );
+    } else {
+      await _addTrackedDayUsecase.addNewTrackedDay(
+        day,
+        totalKcalGoal,
+        totalCarbsGoal,
+        totalFatGoal,
+        totalProteinGoal,
       );
     }
   }

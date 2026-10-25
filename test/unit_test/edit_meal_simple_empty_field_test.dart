@@ -1,4 +1,5 @@
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/dbo/meal_dbo.dart';
@@ -15,6 +16,61 @@ class _Custom extends Fake implements CustomMealDataSource {}
 class _Repository extends Fake implements ConfigRepository {}
 
 void main() {
+  test(
+    'advanced edits preserve precise amounts, bounds and untouched partial values',
+    () async {
+      final bloc = EditMealBloc(_Config(), _Custom(), _Repository());
+      addTearDown(bloc.close);
+      final old = MealEntity.empty();
+      final edited = bloc.createNewMealEntity(
+        old,
+        'Food',
+        '',
+        '100',
+        '100',
+        '50',
+        'g',
+        '',
+        '',
+        '',
+        '',
+        nutrientAmounts: const {
+          'selenium100': NutrientAmount(
+            0.00000123456789,
+            qualification: NutrientQualification.lessThan,
+            limit: 0.000002,
+          ),
+          'iodine100': NutrientAmount(5, isPartial: true),
+        },
+      );
+      expect(edited.nutriments.selenium100!.value, 0.00000246913578);
+      expect(edited.nutriments.selenium100!.limit, 0.000004);
+      expect(
+        edited.nutriments.selenium100!.qualification,
+        NutrientQualification.lessThan,
+      );
+      final renamed = bloc.createNewMealEntity(
+        edited,
+        'Renamed',
+        '',
+        '100',
+        '100',
+        '100',
+        'g',
+        '',
+        '',
+        '',
+        '',
+        nutrientAmounts: const {'selenium100': null},
+        editedNutrients: {'selenium100'},
+      );
+      expect(renamed.nutriments.selenium100, isNull);
+      expect(
+        renamed.nutriments.iodine100,
+        const NutrientAmount(10, isPartial: true),
+      );
+    },
+  );
   test(
     'untouched qualifications survive and explicit replacements become numeric',
     () async {

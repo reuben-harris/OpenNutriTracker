@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/get_user_usecase.dart';
 import 'package:opennutritracker/core/utils/calc/daily_nutrient_references.dart';
@@ -113,10 +114,10 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
             dayFatGoal: fat,
             dayProteinGoal: protein,
             dayNutrientGoals: {
-              'energy': goal,
-              'carbohydrates': carbs,
-              'fat': fat,
-              'protein': protein,
+              'energy': NutrientGoal(goal),
+              'carbohydrates': NutrientGoal(carbs),
+              'fat': NutrientGoal(fat),
+              'protein': NutrientGoal(protein),
               ...references,
             },
           ),

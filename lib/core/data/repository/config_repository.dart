@@ -21,8 +21,8 @@ class ConfigRepository {
   Future<void> setOverviewMacrosAsPercent(bool value) =>
       _configDataSource.setOverviewMacrosAsPercent(value);
 
-  Future<void> setOverviewNutrientsAsPercent(bool value) =>
-      _configDataSource.setOverviewNutrientsAsPercent(value);
+  Future<void> setOverviewNutrientsWithoutGoal(bool value) =>
+      _configDataSource.setOverviewNutrientsWithoutGoal(value);
 
   Future<AppThemeEntity> getConfigAppTheme() async {
     final appThemeDBO = await _configDataSource.getAppTheme();
@@ -115,12 +115,6 @@ class ConfigRepository {
     await _configDataSource.setDiarySortPreference(mealKey, sortIndex);
   }
 
-  Future<void> setConfigNutrientPanelVisibility(
-    Map<String, bool> visibility,
-  ) async {
-    await _configDataSource.setConfigNutrientPanelVisibility(visibility);
-  }
-
   Future<void> setConfigDayStartOffsetHours(int hours) async {
     await _configDataSource.setConfigDayStartOffsetHours(hours);
   }
@@ -170,4 +164,12 @@ class ConfigRepository {
   Future<void> pruneConfigHealthDeletedWorkouts(DateTime cutoff) async {
     await _configDataSource.pruneConfigHealthDeletedWorkouts(cutoff);
   }
+
+  Stream<ConfigEntity> watchConfig() =>
+      _configDataSource.watchConfig().map(ConfigEntity.fromConfigDBO);
+  Future<void> setNutrientVisibility(
+    Iterable<String> keys,
+    bool visible, {
+    required bool info,
+  }) => _configDataSource.setNutrientVisibility(keys, visible, info: info);
 }

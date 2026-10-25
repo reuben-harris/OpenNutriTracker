@@ -192,12 +192,12 @@ void main() {
         ingredient(meal(first.perHundredG.vitaminB12100!)),
       ]);
       expect(nested.perHundredG.vitaminB12100!.isQualified, isTrue);
-      final daily = NutrientPanelTotals.fromIntakes([
+      final daily = NutrientTotals.fromIntakes([
         intake(trace),
         intake(const NutrientAmount(2)),
       ], weekly: true);
-      expect(daily.vitaminB12Mcg?.value, closeTo(2 / 7, 1e-12));
-      expect(daily.vitaminB12Mcg?.isQualified, isTrue);
+      expect(daily.amounts['vitaminB12100']?.value, closeTo(2 / 7, 1e-12));
+      expect(daily.amounts['vitaminB12100']?.isQualified, isTrue);
     },
   );
   test(

@@ -151,7 +151,7 @@ class Nutrients {
       NutrientKeys.protein,
       'proteins100',
       'g',
-      NutrientGroup.other,
+      NutrientGroup.proteins,
       (s) => s.proteinLabel,
       core: true,
     ),
@@ -613,6 +613,9 @@ class Nutrients {
     ),
   ];
   static final additional = all.where((n) => !n.core).toList(growable: false);
+  static final additionalGroups = NutrientGroup.values
+      .where((group) => additional.any((n) => n.group == group))
+      .toList(growable: false);
   static final byKey = {for (final n in all) n.key: n};
   static final byField = {for (final n in all) n.field: n};
 }

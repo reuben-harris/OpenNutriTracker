@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrients.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:async';
@@ -98,7 +99,11 @@ void main() {
       await h.initialize();
       await h.configSource.setConfigDayStartOffsetHours(4);
       await h.configSource.setConfigDayStartOffsetMinutes(30);
-      await h.configSource.setConfigNutrientPanelVisibility({'sodium': false});
+      await h.configSource.setNutrientVisibility(
+        ['sodium'],
+        false,
+        info: false,
+      );
       bloc = makeBloc();
     });
     tearDown(() async {
@@ -124,13 +129,25 @@ void main() {
           state.nutrientsByDay.keys,
           unorderedEquals([DateTime(2026, 9, 22), DateTime(2026, 9, 28)]),
         );
-        expect(state.nutrientsByDay[DateTime(2026, 9, 22)]!.fiberG?.value, 7);
         expect(
-          state.nutrientsByDay[DateTime(2026, 9, 28)]!.fiberG?.value,
+          state
+              .nutrientsByDay[DateTime(2026, 9, 22)]!
+              .amounts['fiber100']
+              ?.value,
+          7,
+        );
+        expect(
+          state
+              .nutrientsByDay[DateTime(2026, 9, 28)]!
+              .amounts['fiber100']
+              ?.value,
           17.5,
         );
         expect(
-          state.nutrientsByDay[DateTime(2026, 9, 28)]!.sodiumMg?.value,
+          state
+              .nutrientsByDay[DateTime(2026, 9, 28)]!
+              .amounts['sodium100']
+              ?.value,
           87.5,
         );
         expect(state.nutrientVisibility['sodium'], false);
@@ -172,7 +189,7 @@ void main() {
     'nutrient graph plots portions, zero days, average and switches units',
     (tester) async {
       final today = DateTime(2026, 9, 29);
-      final totals = NutrientPanelTotals.fromIntakes([intake('today', today)]);
+      final totals = NutrientTotals.fromIntakes([intake('today', today)]);
       await tester.pumpWidget(
         app(
           MicronutrientsTrendCard(
@@ -186,15 +203,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Daily average: 2 g'), findsOneWidget);
       var chart = tester.widget<LineChart>(find.byType(LineChart));
-      expect(chart.data.lineBarsData.single.spots.map((s) => s.y), [
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        14,
-      ]);
+      expect(
+        chart.data.lineBarsData.single.spots
+            .take(6)
+            .every((s) => !s.isNull() && s.y == 0),
+        isTrue,
+      );
+      expect(chart.data.lineBarsData.single.spots.last.y, 14);
       await tester.tap(id('trends-nutrient-selector'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('sodium').last);
@@ -229,6 +244,58 @@ void main() {
     },
   );
 
+  testWidgets(
+    'empty days plot zero while a logged food without the nutrient leaves a gap',
+    (tester) async {
+      final today = DateTime(2026, 9, 29);
+      final unknownFood = IntakeEntity(
+        id: 'unknown',
+        type: IntakeTypeEntity.lunch,
+        dateTime: today,
+        quantity: const FoodAmountSelection(
+          100,
+          FoodAmountOption(unit: 'g', baseUnit: 'g', factor: 1),
+        ),
+        meal: MealEntity(
+          code: 'unknown',
+          name: 'Unknown food',
+          url: null,
+          mealQuantity: '100',
+          mealUnit: 'g',
+          servingQuantity: null,
+          servingUnit: null,
+          servingSize: null,
+          nutriments: MealNutrimentsEntity.empty(),
+          source: MealSourceEntity.custom,
+        ),
+      );
+      await tester.pumpWidget(
+        app(
+          MicronutrientsTrendCard(
+            today: today,
+            rangeDays: 3,
+            visibility: const {},
+            nutrientsByDay: {
+              DateTime(2026, 9, 28): NutrientTotals.fromIntakes([unknownFood]),
+              today: NutrientTotals.fromIntakes([intake('known', today)]),
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final spots = tester
+          .widget<LineChart>(find.byType(LineChart))
+          .data
+          .lineBarsData
+          .single
+          .spots;
+      expect(spots.first.y, 0);
+      expect(spots[1].isNull(), isTrue);
+      expect(spots.last.y, 14);
+      expect(find.text('Daily average: 4.7 g'), findsOneWidget);
+    },
+  );
+
   testWidgets('visibility, empty data and long labels fit compact large text', (
     tester,
   ) async {
@@ -245,8 +312,8 @@ void main() {
               rangeDays: 90,
               nutrientsByDay: const {},
               visibility: {
-                for (final key in NutrientPanelKeys.all)
-                  key: key == NutrientPanelKeys.saturatedFat,
+                for (final key in NutrientKeys.all)
+                  key: key == NutrientKeys.saturatedFat,
               },
             ),
           ),
@@ -281,12 +348,15 @@ void main() {
           today: DateTime(2026, 9, 29),
           rangeDays: 7,
           nutrientsByDay: const {},
-          visibility: {for (final key in NutrientPanelKeys.all) key: false},
+          visibility: {for (final key in NutrientKeys.all) key: false},
         ),
       ),
     );
     await tester.pumpAndSettle();
     expect(find.byType(LineChart), findsNothing);
-    expect(find.textContaining('All nutrients hidden'), findsOneWidget);
+    expect(
+      find.textContaining('All additional nutrients hidden'),
+      findsOneWidget,
+    );
   });
 }

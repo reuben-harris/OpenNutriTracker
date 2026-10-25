@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:opennutritracker/core/data/data_source/tracked_day_data_source.dart';
 import 'package:opennutritracker/core/data/dbo/tracked_day_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
@@ -33,8 +34,8 @@ class TrackedDayRepository {
     DateTime start,
     DateTime end,
   ) async {
-    final List<TrackedDayDBO> trackedDaysDBO =
-        await _trackedDayDataSource.getTrackedDaysInRange(start, end);
+    final List<TrackedDayDBO> trackedDaysDBO = await _trackedDayDataSource
+        .getTrackedDaysInRange(start, end);
 
     return trackedDaysDBO
         .map(
@@ -166,41 +167,27 @@ class TrackedDayRepository {
     );
   }
 
-  // #173 (+follow-up): persist user-set per-nutrient goals for the
-  // given day. Mirrors the macro-goal write path. Pass null for any
-  // nutrient you don't want to touch; the on-disk column keeps its
-  // current value in that case.
+  /// Replace today's personal nutrient goals. Omitted keys use their default reference.
   Future<void> updateDayNutrientGoals(
-    DateTime day, {
-    double? fibreGoal,
-    double? satFatGoal,
-    double? sugarsGoal,
-    double? sodiumGoal,
-    double? calciumGoal,
-    double? ironGoal,
-    double? potassiumGoal,
-    double? vitaminDGoal,
-    double? vitaminB12Goal,
-    double? magnesiumGoal,
-  }) async {
-    await _trackedDayDataSource.updateDayNutrientGoals(
-      day,
-      fibreGoal: fibreGoal,
-      satFatGoal: satFatGoal,
-      sugarsGoal: sugarsGoal,
-      sodiumGoal: sodiumGoal,
-      calciumGoal: calciumGoal,
-      ironGoal: ironGoal,
-      potassiumGoal: potassiumGoal,
-      vitaminDGoal: vitaminDGoal,
-      vitaminB12Goal: vitaminB12Goal,
-      magnesiumGoal: magnesiumGoal,
-    );
+    DateTime day,
+    Map<String, NutrientGoal> goals,
+  ) async {
+    await _trackedDayDataSource.updateDayNutrientGoals(day, goals);
   }
 
-  Future<void> reconcileDayTracked(DateTime day,
-      double calories, double carbs, double fat, double protein) async {
+  Future<void> reconcileDayTracked(
+    DateTime day,
+    double calories,
+    double carbs,
+    double fat,
+    double protein,
+  ) async {
     await _trackedDayDataSource.reconcileCaloriesAndMacrosTracked(
-        day, calories, carbs, fat, protein);
+      day,
+      calories,
+      carbs,
+      fat,
+      protein,
+    );
   }
 }

@@ -101,6 +101,12 @@ class _SourcesScreenState extends State<SourcesScreen> {
                 'National Academies Press.',
             url: URLConst.sourceNutrientReferenceIomURL,
           ),
+          _SourceLink(
+            citation:
+                'U.S. Food and Drug Administration. Daily Value and Percent Daily Value on the Nutrition and Supplement Facts Labels.',
+            url:
+                'https://www.fda.gov/food/nutrition-facts-label/daily-value-nutrition-and-supplement-facts-labels',
+          ),
         ],
       ),
     ];

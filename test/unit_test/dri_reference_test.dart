@@ -1,10 +1,10 @@
+import 'package:opennutritracker/core/domain/entity/nutrients.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 import 'package:opennutritracker/core/utils/calc/dri_reference.dart';
-import 'package:opennutritracker/features/diary/presentation/widgets/daily_nutrient_panel.dart';
 
 /// #245: the IOM Dietary Reference Intakes table should return the
 /// canonical adult RDA / AI / UL for a known life-stage, and should
@@ -27,7 +27,7 @@ void main() {
   group('getReferenceFor', () {
     test('male 25 — calcium matches the IOM 1000 mg RDA', () {
       final ref = getReferenceFor(
-        nutrient: NutrientPanelKeys.calcium,
+        nutrient: NutrientKeys.calcium,
         user: user(age: 25, sex: UserSexEntity.male),
       );
       expect(ref, isNotNull);
@@ -38,7 +38,7 @@ void main() {
 
     test('male 25 — iron is 8 mg (IOM RDA for adult men)', () {
       final ref = getReferenceFor(
-        nutrient: NutrientPanelKeys.iron,
+        nutrient: NutrientKeys.iron,
         user: user(age: 25, sex: UserSexEntity.male),
       );
       expect(ref!.amount, 8);
@@ -46,7 +46,7 @@ void main() {
 
     test('female 25 — iron is 18 mg (IOM RDA for menstruating women)', () {
       final ref = getReferenceFor(
-        nutrient: NutrientPanelKeys.iron,
+        nutrient: NutrientKeys.iron,
         user: user(age: 25, sex: UserSexEntity.female),
       );
       expect(ref!.amount, 18);
@@ -54,7 +54,7 @@ void main() {
 
     test('female 60 — iron drops to 8 mg post-menopause', () {
       final ref = getReferenceFor(
-        nutrient: NutrientPanelKeys.iron,
+        nutrient: NutrientKeys.iron,
         user: user(age: 60, sex: UserSexEntity.female),
       );
       expect(ref!.amount, 8);
@@ -62,7 +62,7 @@ void main() {
 
     test('male 75 — vitamin D climbs to 20 µg in the 71+ band', () {
       final ref = getReferenceFor(
-        nutrient: NutrientPanelKeys.vitaminD,
+        nutrient: NutrientKeys.vitaminD,
         user: user(age: 75, sex: UserSexEntity.male),
       );
       expect(ref!.amount, 20);
@@ -71,7 +71,7 @@ void main() {
 
     test('nutrient with no IOM RDA returns null (saturated fat)', () {
       final ref = getReferenceFor(
-        nutrient: NutrientPanelKeys.saturatedFat,
+        nutrient: NutrientKeys.saturatedFat,
         user: user(age: 25, sex: UserSexEntity.male),
       );
       expect(ref, isNull);
@@ -79,7 +79,7 @@ void main() {
 
     test('nutrient with no IOM RDA returns null (sugar)', () {
       final ref = getReferenceFor(
-        nutrient: NutrientPanelKeys.sugar,
+        nutrient: NutrientKeys.sugar,
         user: user(age: 25, sex: UserSexEntity.female),
       );
       expect(ref, isNull);

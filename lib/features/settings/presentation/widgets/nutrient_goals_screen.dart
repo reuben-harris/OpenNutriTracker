@@ -1,29 +1,24 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:opennutritracker/core/domain/entity/user_entity.dart';
-import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
+import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
+import 'package:opennutritracker/core/domain/entity/nutrients.dart';
+import 'package:opennutritracker/core/presentation/sources_screen.dart';
+import 'package:opennutritracker/core/presentation/widgets/nutrient_group_header.dart';
+import 'package:opennutritracker/core/styles/app_palette.dart';
+import 'package:opennutritracker/core/utils/calc/daily_nutrient_references.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
-import 'package:opennutritracker/core/utils/calc/daily_nutrient_references.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:opennutritracker/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 
-/// #173 + follow-up: full screen rather than a dialog because the ten
-/// nutrient sliders are tall enough to need real scroll room on a
-/// phone. Each row is a label + direct text input + description +
-/// slider, persisted to today's TrackedDayDBO row so the diary panel
-/// can read it back as a reference value.
-///
-/// Iron and magnesium use sex-specific defaults.
 class NutrientGoalsScreen extends StatefulWidget {
   final SettingsBloc settingsBloc;
   final ProfileBloc profileBloc;
   final DiaryBloc diaryBloc;
   final CalendarDayBloc calendarDayBloc;
   final HomeBloc homeBloc;
-
   const NutrientGoalsScreen({
     super.key,
     required this.settingsBloc,
@@ -32,586 +27,452 @@ class NutrientGoalsScreen extends StatefulWidget {
     required this.calendarDayBloc,
     required this.homeBloc,
   });
-
   @override
   State<NutrientGoalsScreen> createState() => _NutrientGoalsScreenState();
 }
 
+enum _LeaveAction { discard, save }
+
 class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
-  static const double _fibreMin = 0;
-  static const double _fibreMax = 80;
-  static const int _fibreDivisions = 80;
-  static const double _satFatMin = 0;
-  static const double _satFatMax = 60;
-  static const int _satFatDivisions = 60;
-  static const double _sugarsMin = 0;
-  static const double _sugarsMax = 150;
-  static const int _sugarsDivisions = 150;
-  static const double _sodiumMin = 0;
-  static const double _sodiumMax = 3000;
-  static const int _sodiumDivisions = 60;
-  static const double _calciumMin = 0;
-  static const double _calciumMax = 1500;
-  static const int _calciumDivisions = 60;
-  static const double _ironMin = 0;
-  static const double _ironMax = 30;
-  static const int _ironDivisions = 60;
-  static const double _potassiumMin = 0;
-  static const double _potassiumMax = 5000;
-  static const int _potassiumDivisions = 100;
-  static const double _magnesiumMin = 0;
-  static const double _magnesiumMax = 600;
-  static const int _magnesiumDivisions = 60;
-  static const double _vitaminDMin = 0;
-  static const double _vitaminDMax = 50;
-  static const int _vitaminDDivisions = 100;
-  static const double _vitaminB12Min = 0;
-  static const double _vitaminB12Max = 10;
-  static const int _vitaminB12Divisions = 100;
+  final _form = GlobalKey<FormState>();
+  final _controllers = {
+    for (final n in Nutrients.additional) n.key: TextEditingController(),
+  };
+  final _limits = <String, bool>{};
+  Map<String, NutrientGoal> _defaults = {};
+  Map<String, String> _savedTexts = {};
+  Map<String, bool> _savedLimits = {};
+  bool _loaded = false, _saving = false, _loadFailed = false;
+  bool _leaveDialogOpen = false;
+  late final DateTime _day = DateTime.now();
 
-  double? _fibre;
-  double? _satFat;
-  double? _sugars;
-  double? _sodium;
-  double? _calcium;
-  double? _iron;
-  double? _potassium;
-  double? _magnesium;
-  double? _vitaminD;
-  double? _vitaminB12;
-  UserEntity? _user;
-  bool _loaded = false;
+  bool get _dirty =>
+      _loaded &&
+      Nutrients.additional.any(
+        (n) =>
+            _controllers[n.key]!.text != _savedTexts[n.key] ||
+            _limits[n.key] != _savedLimits[n.key],
+      );
 
-  late final TextEditingController _fibreController;
-  late final TextEditingController _satFatController;
-  late final TextEditingController _sugarsController;
-  late final TextEditingController _sodiumController;
-  late final TextEditingController _calciumController;
-  late final TextEditingController _ironController;
-  late final TextEditingController _potassiumController;
-  late final TextEditingController _magnesiumController;
-  late final TextEditingController _vitaminDController;
-  late final TextEditingController _vitaminB12Controller;
+  String _amountText(double amount) =>
+      amount.toString().replaceFirst(RegExp(r'\.0$'), '');
+
+  void _rememberSavedValues() {
+    _savedTexts = {
+      for (final entry in _controllers.entries) entry.key: entry.value.text,
+    };
+    _savedLimits = Map.of(_limits);
+  }
 
   @override
   void initState() {
     super.initState();
-    _fibreController = TextEditingController();
-    _satFatController = TextEditingController();
-    _sugarsController = TextEditingController();
-    _sodiumController = TextEditingController();
-    _calciumController = TextEditingController();
-    _ironController = TextEditingController();
-    _potassiumController = TextEditingController();
-    _magnesiumController = TextEditingController();
-    _vitaminDController = TextEditingController();
-    _vitaminB12Controller = TextEditingController();
     _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final user = await widget.profileBloc.getUser();
+      final today = await widget.settingsBloc.getTodayTrackedDay(_day);
+      if (!mounted) return;
+      _defaults = DailyNutrientReferences.resolve(user: user);
+      for (final n in Nutrients.additional) {
+        final goal = today?.nutrientGoals[n.key];
+        _controllers[n.key]!.text = goal == null
+            ? ''
+            : _amountText(goal.amount);
+        _limits[n.key] = goal?.isLimit ?? n.goalKind == NutrientGoalKind.limit;
+      }
+      _rememberSavedValues();
+      setState(() => _loaded = true);
+    } catch (_) {
+      if (mounted) setState(() => _loadFailed = true);
+    }
   }
 
   @override
   void dispose() {
-    _fibreController.dispose();
-    _satFatController.dispose();
-    _sugarsController.dispose();
-    _sodiumController.dispose();
-    _calciumController.dispose();
-    _ironController.dispose();
-    _potassiumController.dispose();
-    _magnesiumController.dispose();
-    _vitaminDController.dispose();
-    _vitaminB12Controller.dispose();
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  /// Default iron goal; preserves the fallback while no user is loaded.
-  double _ironDefaultForSex() {
-    switch (_user?.sex) {
-      case UserSexEntity.female:
-        return 18.0;
-      case UserSexEntity.male:
-        return 8.0;
-      case null:
-        return 14.0;
+  Future<void> _confirmReset([NutrientDefinition? nutrient]) async {
+    final s = S.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        scrollable: true,
+        title: Text(
+          nutrient == null
+              ? s.nutrientGoalsResetAllTitle
+              : s.nutrientGoalResetTitle(nutrient.label(s)),
+        ),
+        content: Text(
+          nutrient == null
+              ? s.nutrientGoalsResetAllContent
+              : s.nutrientGoalResetContent,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(s.dialogCancelLabel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(s.buttonResetLabel),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      for (final n in nutrient == null ? Nutrients.additional : [nutrient]) {
+        _controllers[n.key]!.clear();
+        _limits[n.key] = n.goalKind == NutrientGoalKind.limit;
+      }
+    });
+  }
+
+  String? _amountError(String? text) {
+    if (text == null || text.trim().isEmpty) return null;
+    final value = double.tryParse(text.trim());
+    return value != null && value.isFinite && value >= 0
+        ? null
+        : S.of(context).nutrientInvalidAmountLabel;
+  }
+
+  Future<bool> _save() async {
+    if (_saving || !_loaded) return false;
+    final validForm = _form.currentState?.validate() ?? false;
+    // A scrolled-out field may be unmounted, but its value must still validate.
+    final validAmounts = _controllers.values.every(
+      (c) => _amountError(c.text) == null,
+    );
+    if (!validForm || !validAmounts) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(S.of(context).nutrientInvalidAmountLabel)),
+      );
+      return false;
+    }
+    setState(() => _saving = true);
+    try {
+      final goals = <String, NutrientGoal>{};
+      for (final n in Nutrients.additional) {
+        final value = double.tryParse(_controllers[n.key]!.text.trim());
+        if (value != null) {
+          goals[n.key] = NutrientGoal(value, isLimit: _limits[n.key]!);
+        }
+      }
+      await widget.settingsBloc.setTodayNutrientGoals(_day, goals);
+      if (!mounted) return true;
+      widget.settingsBloc.add(LoadSettingsEvent());
+      widget.homeBloc.add(const LoadItemsEvent());
+      widget.diaryBloc.add(const LoadDiaryYearEvent());
+      widget.calendarDayBloc.add(RefreshCalendarDayEvent());
+      _rememberSavedValues();
+      return true;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(S.of(context).nutrientSettingsSaveFailedLabel),
+          ),
+        );
+      }
+      return false;
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
-  /// Default magnesium goal; preserves the fallback while no user is loaded.
-  double _magnesiumDefaultForSex() {
-    switch (_user?.sex) {
-      case UserSexEntity.female:
-        return 310.0;
-      case UserSexEntity.male:
-        return 400.0;
-      case null:
-        return 355.0;
+  Future<void> _saveAndLeave() async {
+    if (await _save() && mounted) Navigator.of(context).pop();
+  }
+
+  Future<void> _confirmLeave() async {
+    if (_leaveDialogOpen || _saving) return;
+    FocusScope.of(context).unfocus();
+    _leaveDialogOpen = true;
+    try {
+      final s = S.of(context);
+      final action = await showDialog<_LeaveAction>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          scrollable: true,
+          title: Text(s.unsavedChangesTitle),
+          content: Text(s.unsavedChangesContent),
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(_LeaveAction.discard),
+              child: Text(s.discardAndLeaveLabel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(s.dialogCancelLabel),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(_LeaveAction.save),
+              child: Text(s.saveAndLeaveLabel),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (action == _LeaveAction.discard) {
+        Navigator.of(context).pop();
+      } else if (action == _LeaveAction.save) {
+        await _saveAndLeave();
+      }
+    } finally {
+      _leaveDialogOpen = false;
     }
   }
 
-  String _formatGoal(double value) =>
-      value >= 10 ? value.round().toString() : value.toStringAsFixed(1);
-
-  Future<void> _load() async {
-    final user = await widget.profileBloc.getUser();
-    final today = await widget.settingsBloc.getTodayTrackedDay(DateTime.now());
-    if (!mounted) return;
-    setState(() {
-      _user = user;
-      _fibre = today?.fibreGoal;
-      _satFat = today?.satFatGoal;
-      _sugars = today?.sugarsGoal;
-      _sodium = today?.sodiumGoal;
-      _calcium = today?.calciumGoal;
-      _iron = today?.ironGoal;
-      _potassium = today?.potassiumGoal;
-      _magnesium = today?.magnesiumGoal;
-      _vitaminD = today?.vitaminDGoal;
-      _vitaminB12 = today?.vitaminB12Goal;
-      _loaded = true;
-    });
-    _syncControllers();
-  }
-
-  void _syncControllers() {
-    _fibreController.text = (_fibre ?? DailyNutrientReferences.defaultFibreRefG)
-        .round()
-        .toString();
-    _satFatController.text =
-        (_satFat ?? DailyNutrientReferences.defaultSaturatedFatRefG)
-            .round()
-            .toString();
-    _sugarsController.text =
-        (_sugars ?? DailyNutrientReferences.defaultSugarRefG)
-            .round()
-            .toString();
-    _sodiumController.text =
-        (_sodium ?? DailyNutrientReferences.defaultSodiumRefMg)
-            .round()
-            .toString();
-    _calciumController.text =
-        (_calcium ?? DailyNutrientReferences.defaultCalciumRefMg)
-            .round()
-            .toString();
-    _ironController.text = _formatGoal(_iron ?? _ironDefaultForSex());
-    _potassiumController.text =
-        (_potassium ?? DailyNutrientReferences.defaultPotassiumRefMg)
-            .round()
-            .toString();
-    _magnesiumController.text = _formatGoal(
-      _magnesium ?? _magnesiumDefaultForSex(),
+  Widget _goalRow(NutrientDefinition n) {
+    final s = S.of(context);
+    final theme = Theme.of(context);
+    final palette = theme.brightness == Brightness.dark
+        ? AppPalette.dark
+        : AppPalette.light;
+    final controller = _controllers[n.key]!;
+    final reference = _defaults[n.key];
+    final id = n.key.replaceAll('_', '-');
+    final inputStyle = theme.textTheme.bodyMedium?.copyWith(height: 1);
+    final decoration = InputDecoration(
+      isDense: true,
+      filled: true,
+      fillColor: palette.surface,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      constraints: const BoxConstraints(minHeight: 48),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
     );
-    _vitaminDController.text = _formatGoal(
-      _vitaminD ?? DailyNutrientReferences.defaultVitaminDRefUg,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            n.label(s),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final kindWidth = MediaQuery.textScalerOf(
+                context,
+              ).scale(96).clamp(96.0, constraints.maxWidth / 2);
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Semantics(
+                      identifier: 'nutrient-goal-$id',
+                      label: n.label(s),
+                      child: TextFormField(
+                        controller: controller,
+                        enabled: !_saving,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        style: inputStyle,
+                        decoration: decoration.copyWith(
+                          suffixText: n.unit,
+                          hintText: reference == null
+                              ? '—'
+                              : _amountText(reference.amount),
+                        ),
+                        validator: _amountError,
+                        onChanged: (text) => setState(() {
+                          if (text.trim().isEmpty) {
+                            _limits[n.key] =
+                                n.goalKind == NutrientGoalKind.limit;
+                          }
+                        }),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: kindWidth,
+                    child: Semantics(
+                      identifier: 'nutrient-goal-kind-$id',
+                      label: n.label(s),
+                      child: DropdownButtonFormField<bool>(
+                        key: ValueKey('${n.key}-${_limits[n.key]}'),
+                        initialValue: _limits[n.key],
+                        isExpanded: true,
+                        decoration: decoration,
+                        style: inputStyle,
+                        items: [
+                          DropdownMenuItem(
+                            value: false,
+                            child: Text(
+                              s.nutrientGoalTargetLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: true,
+                            child: Text(
+                              s.nutrientGoalLimitLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                        onChanged:
+                            _saving ||
+                                (controller.text.trim().isEmpty &&
+                                    reference == null)
+                            ? null
+                            : (value) {
+                                if (value == null || value == _limits[n.key]) {
+                                  return;
+                                }
+                                setState(() {
+                                  _limits[n.key] = value;
+                                  if (controller.text.trim().isEmpty &&
+                                      reference != null) {
+                                    controller.text = _amountText(
+                                      reference.amount,
+                                    );
+                                  }
+                                });
+                              },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 48,
+                    child: Semantics(
+                      identifier: 'nutrient-goal-reset-$id',
+                      child: IconButton(
+                        tooltip: s.nutrientUseDefaultLabel,
+                        onPressed:
+                            _saving ||
+                                (controller.text.isEmpty &&
+                                    _limits[n.key] ==
+                                        (n.goalKind == NutrientGoalKind.limit))
+                            ? null
+                            : () => _confirmReset(n),
+                        icon: const Icon(Icons.restore_rounded, size: 20),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
-    _vitaminB12Controller.text = _formatGoal(
-      _vitaminB12 ?? DailyNutrientReferences.defaultVitaminB12RefUg,
-    );
-  }
-
-  void _resetAll() {
-    setState(() {
-      _fibre = null;
-      _satFat = null;
-      _sugars = null;
-      _sodium = null;
-      _calcium = null;
-      _iron = null;
-      _potassium = null;
-      _magnesium = null;
-      _vitaminD = null;
-      _vitaminB12 = null;
-    });
-    _syncControllers();
-  }
-
-  Future<void> _save() async {
-    // Make sure today's tracked-day row exists before we write per-
-    // nutrient values onto it. updateTrackedDay creates the row from
-    // current macro goals if missing, or refreshes the macro columns
-    // on the existing one.
-    await widget.settingsBloc.updateTrackedDay(DateTime.now());
-    await widget.settingsBloc.setTodayNutrientGoals(
-      DateTime.now(),
-      fibreGoal: _fibre,
-      satFatGoal: _satFat,
-      sugarsGoal: _sugars,
-      sodiumGoal: _sodium,
-      calciumGoal: _calcium,
-      ironGoal: _iron,
-      potassiumGoal: _potassium,
-      magnesiumGoal: _magnesium,
-      vitaminDGoal: _vitaminD,
-      vitaminB12Goal: _vitaminB12,
-    );
-    widget.settingsBloc.add(LoadSettingsEvent());
-    widget.homeBloc.add(const LoadItemsEvent());
-    widget.diaryBloc.add(const LoadDiaryYearEvent());
-    widget.calendarDayBloc.add(RefreshCalendarDayEvent());
-    if (!mounted) return;
-    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
     final s = S.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        // Grow the bar with the text scale so the title can wrap to two lines
-        // beside the actions rather than clipping at large font sizes.
-        toolbarHeight: MediaQuery.textScalerOf(context).scale(kToolbarHeight),
-        title: Text(
-          s.settingsNutrientGoalsLabel,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        actions: [
-          Semantics(
-            identifier: 'nutrient-goals-reset',
-            child: TextButton(
-              onPressed: _loaded ? _resetAll : null,
-              child: Text(s.buttonResetLabel),
-            ),
+    return PopScope(
+      canPop: !_dirty && !_saving,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !_saving) _confirmLeave();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: AutoSizeText(
+            s.settingsNutrientGoalsLabel,
+            maxLines: 2,
+            minFontSize: 12,
+            overflow: TextOverflow.ellipsis,
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 0, 16, 0),
-            child: Semantics(
+          actions: [
+            Semantics(
+              identifier: 'nutrient-goals-sources',
+              child: IconButton(
+                tooltip: s.sourcesIconTooltip,
+                onPressed: _saving
+                    ? null
+                    : () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const SourcesScreen(),
+                        ),
+                      ),
+                icon: const Icon(Icons.info_outline_rounded),
+              ),
+            ),
+            Semantics(
+              identifier: 'nutrient-goals-reset',
+              child: IconButton(
+                tooltip: s.nutrientGoalsResetAllLabel,
+                onPressed: _saving || !_loaded ? null : () => _confirmReset(),
+                icon: const Icon(Icons.restore_rounded),
+              ),
+            ),
+            Semantics(
               identifier: 'nutrient-goals-save',
-              child: FilledButton(
-                onPressed: _loaded ? _save : null,
-                child: Text(s.buttonSaveLabel),
+              child: IconButton(
+                tooltip: s.buttonSaveLabel,
+                onPressed: _saving || !_loaded ? null : _saveAndLeave,
+                icon: _saving
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.check_rounded),
               ),
             ),
-          ),
-        ],
-      ),
-      body: !_loaded
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  s.settingsNutrientGoalsHint,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 12),
-                _NutrientRow(
-                  label: s.settingsFibreGoalLabel,
-                  description: s.settingsFibreGoalDescription,
-                  value: _fibre ?? DailyNutrientReferences.defaultFibreRefG,
-                  min: _fibreMin,
-                  max: _fibreMax,
-                  divisions: _fibreDivisions,
-                  controller: _fibreController,
-                  identifier: 'nutrient-fibre-slider',
-                  onSliderChanged: (v) => setState(() => _fibre = v),
-                  onTextSubmitted: () => _applyText(
-                    _fibreController,
-                    _fibreMin,
-                    _fibreMax,
-                    (v) => _fibre = v,
+          ],
+        ),
+        body: _loadFailed
+            ? Center(
+                child: Semantics(
+                  identifier: 'nutrient-goals-retry',
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() => _loadFailed = false);
+                      _load();
+                    },
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(s.retryLabel),
                   ),
                 ),
-                _NutrientRow(
-                  label: s.settingsSaturatedFatGoalLabel,
-                  description: s.settingsSaturatedFatGoalDescription,
-                  value:
-                      _satFat ??
-                      DailyNutrientReferences.defaultSaturatedFatRefG,
-                  min: _satFatMin,
-                  max: _satFatMax,
-                  divisions: _satFatDivisions,
-                  controller: _satFatController,
-                  identifier: 'nutrient-sat-fat-slider',
-                  onSliderChanged: (v) => setState(() => _satFat = v),
-                  onTextSubmitted: () => _applyText(
-                    _satFatController,
-                    _satFatMin,
-                    _satFatMax,
-                    (v) => _satFat = v,
+              )
+            : !_loaded
+            ? const Center(child: CircularProgressIndicator())
+            : Form(
+                key: _form,
+                child: Semantics(
+                  identifier: 'nutrient-goals-list',
+                  label: s.settingsNutrientGoalsLabel,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      Text(
+                        s.settingsNutrientGoalsHint,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      for (final group in Nutrients.additionalGroups) ...[
+                        NutrientGroupHeader(group: group),
+                        for (final n in Nutrients.additional.where(
+                          (n) => n.group == group,
+                        ))
+                          _goalRow(n),
+                      ],
+                    ],
                   ),
-                ),
-                _NutrientRow(
-                  label: s.settingsSugarsGoalLabel,
-                  description: s.settingsSugarsGoalDescription,
-                  value: _sugars ?? DailyNutrientReferences.defaultSugarRefG,
-                  min: _sugarsMin,
-                  max: _sugarsMax,
-                  divisions: _sugarsDivisions,
-                  controller: _sugarsController,
-                  identifier: 'nutrient-sugars-slider',
-                  onSliderChanged: (v) => setState(() => _sugars = v),
-                  onTextSubmitted: () => _applyText(
-                    _sugarsController,
-                    _sugarsMin,
-                    _sugarsMax,
-                    (v) => _sugars = v,
-                  ),
-                ),
-                _NutrientRow(
-                  label: s.settingsSodiumGoalLabel,
-                  description: s.settingsSodiumGoalDescription,
-                  value: _sodium ?? DailyNutrientReferences.defaultSodiumRefMg,
-                  min: _sodiumMin,
-                  max: _sodiumMax,
-                  divisions: _sodiumDivisions,
-                  controller: _sodiumController,
-                  unit: 'mg',
-                  identifier: 'nutrient-sodium-slider',
-                  onSliderChanged: (v) => setState(() => _sodium = v),
-                  onTextSubmitted: () => _applyText(
-                    _sodiumController,
-                    _sodiumMin,
-                    _sodiumMax,
-                    (v) => _sodium = v,
-                  ),
-                ),
-                _NutrientRow(
-                  label: s.settingsCalciumGoalLabel,
-                  description: s.settingsCalciumGoalDescription,
-                  value:
-                      _calcium ?? DailyNutrientReferences.defaultCalciumRefMg,
-                  min: _calciumMin,
-                  max: _calciumMax,
-                  divisions: _calciumDivisions,
-                  controller: _calciumController,
-                  unit: 'mg',
-                  identifier: 'nutrient-calcium-slider',
-                  onSliderChanged: (v) => setState(() => _calcium = v),
-                  onTextSubmitted: () => _applyText(
-                    _calciumController,
-                    _calciumMin,
-                    _calciumMax,
-                    (v) => _calcium = v,
-                  ),
-                ),
-                _NutrientRow(
-                  label: s.settingsIronGoalLabel,
-                  description: s.settingsIronGoalDescription,
-                  value: _iron ?? _ironDefaultForSex(),
-                  min: _ironMin,
-                  max: _ironMax,
-                  divisions: _ironDivisions,
-                  controller: _ironController,
-                  unit: 'mg',
-                  decimalStep: true,
-                  identifier: 'nutrient-iron-slider',
-                  onSliderChanged: (v) => setState(() => _iron = v),
-                  onTextSubmitted: () => _applyText(
-                    _ironController,
-                    _ironMin,
-                    _ironMax,
-                    (v) => _iron = v,
-                    decimalStep: true,
-                  ),
-                ),
-                _NutrientRow(
-                  label: s.settingsPotassiumGoalLabel,
-                  description: s.settingsPotassiumGoalDescription,
-                  value:
-                      _potassium ??
-                      DailyNutrientReferences.defaultPotassiumRefMg,
-                  min: _potassiumMin,
-                  max: _potassiumMax,
-                  divisions: _potassiumDivisions,
-                  controller: _potassiumController,
-                  unit: 'mg',
-                  identifier: 'nutrient-potassium-slider',
-                  onSliderChanged: (v) => setState(() => _potassium = v),
-                  onTextSubmitted: () => _applyText(
-                    _potassiumController,
-                    _potassiumMin,
-                    _potassiumMax,
-                    (v) => _potassium = v,
-                  ),
-                ),
-                _NutrientRow(
-                  label: s.settingsMagnesiumGoalLabel,
-                  description: s.settingsMagnesiumGoalDescription,
-                  value: _magnesium ?? _magnesiumDefaultForSex(),
-                  min: _magnesiumMin,
-                  max: _magnesiumMax,
-                  divisions: _magnesiumDivisions,
-                  controller: _magnesiumController,
-                  unit: 'mg',
-                  identifier: 'nutrient-magnesium-slider',
-                  onSliderChanged: (v) => setState(() => _magnesium = v),
-                  onTextSubmitted: () => _applyText(
-                    _magnesiumController,
-                    _magnesiumMin,
-                    _magnesiumMax,
-                    (v) => _magnesium = v,
-                  ),
-                ),
-                _NutrientRow(
-                  label: s.settingsVitaminDGoalLabel,
-                  description: s.settingsVitaminDGoalDescription,
-                  value:
-                      _vitaminD ?? DailyNutrientReferences.defaultVitaminDRefUg,
-                  min: _vitaminDMin,
-                  max: _vitaminDMax,
-                  divisions: _vitaminDDivisions,
-                  controller: _vitaminDController,
-                  unit: 'µg',
-                  decimalStep: true,
-                  identifier: 'nutrient-vitamin-d-slider',
-                  onSliderChanged: (v) => setState(() => _vitaminD = v),
-                  onTextSubmitted: () => _applyText(
-                    _vitaminDController,
-                    _vitaminDMin,
-                    _vitaminDMax,
-                    (v) => _vitaminD = v,
-                    decimalStep: true,
-                  ),
-                ),
-                _NutrientRow(
-                  label: s.settingsVitaminB12GoalLabel,
-                  description: s.settingsVitaminB12GoalDescription,
-                  value:
-                      _vitaminB12 ??
-                      DailyNutrientReferences.defaultVitaminB12RefUg,
-                  min: _vitaminB12Min,
-                  max: _vitaminB12Max,
-                  divisions: _vitaminB12Divisions,
-                  controller: _vitaminB12Controller,
-                  unit: 'µg',
-                  decimalStep: true,
-                  identifier: 'nutrient-vitamin-b12-slider',
-                  onSliderChanged: (v) => setState(() => _vitaminB12 = v),
-                  onTextSubmitted: () => _applyText(
-                    _vitaminB12Controller,
-                    _vitaminB12Min,
-                    _vitaminB12Max,
-                    (v) => _vitaminB12 = v,
-                    decimalStep: true,
-                  ),
-                ),
-                const SizedBox(height: 32),
-              ],
-            ),
-    );
-  }
-
-  /// Direct text-input clamp: malformed parses ignore the input and
-  /// leave the slider where it was; valid ones snap into the row's
-  /// declared min/max range.
-  void _applyText(
-    TextEditingController controller,
-    double min,
-    double max,
-    void Function(double) setter, {
-    bool decimalStep = false,
-  }) {
-    final parsed = double.tryParse(controller.text);
-    if (parsed == null) return;
-    final clamped = parsed.clamp(min, max).toDouble();
-    setState(() => setter(clamped));
-    controller.text = decimalStep
-        ? clamped.toStringAsFixed(1)
-        : clamped.round().toString();
-  }
-}
-
-class _NutrientRow extends StatelessWidget {
-  final String label;
-  final String description;
-  final double value;
-  final double min;
-  final double max;
-  final int divisions;
-  final TextEditingController controller;
-  final String identifier;
-  final String unit;
-  final bool decimalStep;
-  final ValueChanged<double> onSliderChanged;
-  final VoidCallback onTextSubmitted;
-
-  const _NutrientRow({
-    required this.label,
-    required this.description,
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.divisions,
-    required this.controller,
-    required this.identifier,
-    required this.onSliderChanged,
-    required this.onTextSubmitted,
-    this.unit = 'g',
-    this.decimalStep = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final clamped = value.clamp(min, max).toDouble();
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text(label)),
-              SizedBox(
-                // Scale with the user's text setting so the value and unit
-                // suffix stay readable at large font scales.
-                width: MediaQuery.textScalerOf(context).scale(124),
-                child: TextField(
-                  controller: controller,
-                  keyboardType: TextInputType.numberWithOptions(
-                    decimal: decimalStep,
-                  ),
-                  inputFormatters: decimalStep
-                      ? [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d*\.?\d*'),
-                          ),
-                        ]
-                      : [FilteringTextInputFormatter.digitsOnly],
-                  textAlign: TextAlign.right,
-                  decoration: InputDecoration(
-                    suffixText: unit,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 12,
-                    ),
-                  ),
-                  onSubmitted: (_) => onTextSubmitted(),
-                  onEditingComplete: onTextSubmitted,
                 ),
               ),
-            ],
-          ),
-          if (description.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 2.0),
-              child: Text(
-                description,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-            ),
-          Semantics(
-            identifier: identifier,
-            child: Slider(
-              min: min,
-              max: max,
-              value: clamped,
-              divisions: divisions,
-              onChanged: (v) {
-                final step = (max - min) / divisions;
-                final snapped = ((v - min) / step).round() * step + min;
-                controller.text = decimalStep
-                    ? snapped.toStringAsFixed(1)
-                    : snapped.round().toString();
-                onSliderChanged(snapped);
-              },
-            ),
-          ),
-        ],
       ),
     );
   }

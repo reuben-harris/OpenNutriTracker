@@ -39,11 +39,7 @@ class ConfigDBO extends HiveObject {
   String? customMealFormMode; // #232: 'simple' or 'advanced'; null means default (simple)
   @HiveField(19)
   int? dayStartOffsetHours; // #139: 0-23, null means default (0 = wall-clock midnight)
-  // #160 follow-up: per-nutrient show/hide map for the daily nutrient panel.
-  // Keys are nutrient identifiers from [DailyNutrientPanel]; values are
-  // explicit user overrides. A nutrient not present in the map (or a null
-  // map altogether) means "use the default visibility", which is currently
-  // visible for every nutrient — see [ConfigEntity.isNutrientVisible].
+  // Shared Daily visibility overrides. Missing keys default to visible.
   @HiveField(22)
   Map<String, bool>? nutrientPanelVisibility;
 
@@ -137,14 +133,19 @@ class ConfigDBO extends HiveObject {
 
   @HiveField(40)
   bool? overviewMacrosAsPercent;
-  @HiveField(41)
-  bool? overviewNutrientsAsPercent;
+  // Field 41 (the nutrient percentage toggle) is retired.
 
   @HiveField(42)
   bool? amountArithmeticEnabled;
 
   @HiveField(43)
   Map<String, bool>? catalogueSourceOverrides;
+
+  @HiveField(44)
+  Map<String, bool>? nutrientInfoVisibility;
+
+  @HiveField(45)
+  bool? overviewNutrientsWithoutGoal;
 
   ConfigDBO(
     this.selectedAppTheme, {
@@ -160,6 +161,7 @@ class ConfigDBO extends HiveObject {
     this.dayStartOffsetHours,
     this.diarySortPreferences,
     this.nutrientPanelVisibility,
+    this.nutrientInfoVisibility,
     this.dayStartOffsetMinutes,
     this.dailyWaterGoalMl,
     this.useMaterialYou,
@@ -176,7 +178,7 @@ class ConfigDBO extends HiveObject {
     this.amountArithmeticEnabled,
     this.catalogueSourceOverrides,
     this.overviewMacrosAsPercent,
-    this.overviewNutrientsAsPercent,
+    this.overviewNutrientsWithoutGoal,
   });
 
   factory ConfigDBO.empty() => ConfigDBO(AppThemeDBO.system);
@@ -187,8 +189,10 @@ class ConfigDBO extends HiveObject {
     catalogueSourceOverrides: Map<String, bool>.from(
       entity.catalogueSourceOverrides,
     ),
+    nutrientPanelVisibility: Map.of(entity.nutrientPanelVisibility),
+    nutrientInfoVisibility: Map.of(entity.nutrientInfoVisibility),
     overviewMacrosAsPercent: entity.overviewMacrosAsPercent,
-    overviewNutrientsAsPercent: entity.overviewNutrientsAsPercent,
+    overviewNutrientsWithoutGoal: entity.overviewNutrientsWithoutGoal,
     usesImperialUnits: entity.usesImperialUnits,
     usesImperialFoodUnits: entity.usesImperialFoodUnits,
     usesImperialHeightUnits: entity.usesImperialHeightUnits,

@@ -103,8 +103,7 @@ class IntakeVerticalList extends StatefulWidget {
 
 class _IntakeVerticalListState extends State<IntakeVerticalList> {
   bool _creatingRecipe = false;
-  NutrientPanelTotals get totals =>
-      NutrientPanelTotals.fromIntakes(widget.intakeList);
+  NutrientTotals get totals => NutrientTotals.fromIntakes(widget.intakeList);
   bool get hasQualifications => [
     totals.energyKcal,
     totals.carbsG,

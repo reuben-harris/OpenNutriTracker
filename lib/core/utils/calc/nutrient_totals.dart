@@ -1,70 +1,66 @@
-import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
-import 'package:opennutritracker/core/domain/entity/config_entity.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
+import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
+import 'package:opennutritracker/core/domain/entity/nutrients.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 
-/// Pure-function helper that aggregates a list of intakes into per-nutrient
-/// totals. Pulled out of the widget so unit tests can exercise it directly
-/// without spinning up a Flutter binding. `weekly: true` divides every total
-/// by 7 to convert a seven-day window into an average daily intake.
-class NutrientPanelTotals {
-  final NutrientAmount? energyKcal, carbsG, fatG, proteinG;
-  final NutrientAmount? fiberG;
-  final NutrientAmount? sodiumMg;
-  final NutrientAmount? saturatedFatG;
-  final NutrientAmount? sugarG;
-  final NutrientAmount? calciumMg;
-  final NutrientAmount? ironMg;
-  final NutrientAmount? potassiumMg;
-  final NutrientAmount? vitaminDMcg;
-  final NutrientAmount? vitaminB12Mcg;
-  final NutrientAmount? magnesiumMg;
+/// One pass over intakes aggregates every supported nutrient without dropping
+/// source qualifications or confusing missing measurements with zero.
+class NutrientTotals {
+  final Map<String, NutrientAmount?> amounts;
+  const NutrientTotals(this.amounts);
 
-  const NutrientPanelTotals({
-    this.energyKcal,
-    this.carbsG,
-    this.fatG,
-    this.proteinG,
-    required this.fiberG,
-    required this.sodiumMg,
-    required this.saturatedFatG,
-    required this.sugarG,
-    required this.calciumMg,
-    required this.ironMg,
-    required this.potassiumMg,
-    required this.vitaminDMcg,
-    required this.vitaminB12Mcg,
-    required this.magnesiumMg,
-  });
+  /// A day without logged food has known zero totals; absent values on foods
+  /// remain unknown and must never use this as a replacement.
+  static final zero = NutrientTotals(
+    Map.unmodifiable({
+      for (final n in Nutrients.all) n.field: const NutrientAmount(0),
+    }),
+  );
 
-  factory NutrientPanelTotals.fromIntakes(
+  NutrientAmount? get energyKcal => amounts['energyKcal100'];
+  NutrientAmount? get carbsG => amounts['carbohydrates100'];
+  NutrientAmount? get fatG => amounts['fat100'];
+  NutrientAmount? get proteinG => amounts['proteins100'];
+
+  factory NutrientTotals.fromIntakes(
     List<IntakeEntity> intakes, {
     bool weekly = false,
   }) {
-    final divisor = weekly ? 7.0 : 1.0;
-    NutrientAmount? sum(NutrientAmount? Function(MealNutrimentsEntity n) pick) {
-      final acc = NutrientAccumulator();
-      for (final intake in intakes) {
-        acc.add(pick(intake.meal.nutriments), scale: intake.nutritionScale);
+    if (intakes.isEmpty) return zero;
+    final accumulators = {
+      for (final n in Nutrients.all) n.field: NutrientAccumulator(),
+    };
+    for (final intake in intakes) {
+      final values = intake.meal.nutriments.amounts;
+      for (final entry in accumulators.entries) {
+        entry.value.add(values[entry.key], scale: intake.nutritionScale);
       }
-      return acc.total?.scale(1 / divisor);
     }
+    return NutrientTotals(
+      Map.unmodifiable({
+        for (final entry in accumulators.entries)
+          entry.key: entry.value.total?.scale(weekly ? 1 / 7 : 1),
+      }),
+    );
+  }
 
-    return NutrientPanelTotals(
-      energyKcal: sum((n) => n.energyKcal100),
-      carbsG: sum((n) => n.carbohydrates100),
-      fatG: sum((n) => n.fat100),
-      proteinG: sum((n) => n.proteins100),
-      fiberG: sum((n) => n.fiber100),
-      sodiumMg: sum((n) => n.sodium100),
-      saturatedFatG: sum((n) => n.saturatedFat100),
-      sugarG: sum((n) => n.sugars100),
-      calciumMg: sum((n) => n.calcium100),
-      ironMg: sum((n) => n.iron100),
-      potassiumMg: sum((n) => n.potassium100),
-      vitaminDMcg: sum((n) => n.vitaminD100),
-      vitaminB12Mcg: sum((n) => n.vitaminB12100),
-      magnesiumMg: sum((n) => n.magnesium100),
+  factory NutrientTotals.averageDays(Iterable<NutrientTotals> days) {
+    final accumulators = {
+      for (final n in Nutrients.all) n.field: NutrientAccumulator(),
+    };
+    var count = 0;
+    for (final day in days) {
+      count++;
+      for (final entry in accumulators.entries) {
+        entry.value.add(day.amounts[entry.key]);
+      }
+    }
+    if (count == 0) return zero;
+    return NutrientTotals(
+      Map.unmodifiable({
+        for (final entry in accumulators.entries)
+          entry.key: entry.value.total?.scale(1 / count),
+      }),
     );
   }
 }
@@ -74,40 +70,10 @@ NutrientAmount? intakeNutrientTotal(
   NutrientAmount? Function(MealNutrimentsEntity) pick,
 ) {
   final accumulator = NutrientAccumulator();
+  var hasIntakes = false;
   for (final intake in intakes) {
+    hasIntakes = true;
     accumulator.add(pick(intake.meal.nutriments), scale: intake.nutritionScale);
   }
-  return accumulator.total;
-}
-
-/// Stable identifiers for the panel's nutrient rows. These are the keys the
-/// per-nutrient visibility map uses on [ConfigEntity], so renaming any of
-/// them is a backward-incompatible change: existing visibility overrides
-/// would silently lose their associations.
-class NutrientPanelKeys {
-  NutrientPanelKeys._();
-
-  static const String fiber = 'fiber';
-  static const String sodium = 'sodium';
-  static const String saturatedFat = 'saturated_fat';
-  static const String sugar = 'sugar';
-  static const String calcium = 'calcium';
-  static const String iron = 'iron';
-  static const String potassium = 'potassium';
-  static const String vitaminD = 'vitamin_d';
-  static const String vitaminB12 = 'vitamin_b12';
-  static const String magnesium = 'magnesium';
-
-  static const List<String> all = <String>[
-    fiber,
-    sodium,
-    saturatedFat,
-    sugar,
-    calcium,
-    iron,
-    potassium,
-    vitaminD,
-    vitaminB12,
-    magnesium,
-  ];
+  return hasIntakes ? accumulator.total : const NutrientAmount(0);
 }

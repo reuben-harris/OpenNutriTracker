@@ -28,15 +28,15 @@ void main() {
   });
 
   test(
-    'old configs and JSON without fields default independently to units',
+    'missing overview preferences default to macro amounts and nutrient goals',
     () {
       final dbo = ConfigDBO.empty();
       final json = dbo.toJson()
         ..remove('overviewMacrosAsPercent')
-        ..remove('overviewNutrientsAsPercent');
+        ..remove('overviewNutrientsWithoutGoal');
       final config = ConfigEntity.fromConfigDBO(ConfigDBO.fromJson(json));
       expect(config.overviewMacrosAsPercent, isFalse);
-      expect(config.overviewNutrientsAsPercent, isFalse);
+      expect(config.overviewNutrientsWithoutGoal, isFalse);
     },
   );
 
@@ -54,9 +54,12 @@ void main() {
       var firstRepo = repository(first);
       var secondRepo = repository(second);
       await AddConfigUsecase(firstRepo).setOverviewMacrosAsPercent(true);
-      expect((await firstRepo.getConfig()).overviewNutrientsAsPercent, isFalse);
+      expect(
+        (await firstRepo.getConfig()).overviewNutrientsWithoutGoal,
+        isFalse,
+      );
       expect((await secondRepo.getConfig()).overviewMacrosAsPercent, isFalse);
-      await AddConfigUsecase(secondRepo).setOverviewNutrientsAsPercent(true);
+      await AddConfigUsecase(secondRepo).setOverviewNutrientsWithoutGoal(true);
       await Hive.close();
       app = await Hive.openBox<ConfigDBO>('app');
       first = await Hive.openBox<ConfigDBO>('first');
@@ -64,11 +67,20 @@ void main() {
       firstRepo = repository(first);
       secondRepo = repository(second);
       expect((await firstRepo.getConfig()).overviewMacrosAsPercent, isTrue);
-      expect((await firstRepo.getConfig()).overviewNutrientsAsPercent, isFalse);
+      expect(
+        (await firstRepo.getConfig()).overviewNutrientsWithoutGoal,
+        isFalse,
+      );
       expect((await secondRepo.getConfig()).overviewMacrosAsPercent, isFalse);
-      expect((await secondRepo.getConfig()).overviewNutrientsAsPercent, isTrue);
+      expect(
+        (await secondRepo.getConfig()).overviewNutrientsWithoutGoal,
+        isTrue,
+      );
       await AddConfigUsecase(firstRepo).setOverviewMacrosAsPercent(false);
-      expect((await secondRepo.getConfig()).overviewNutrientsAsPercent, isTrue);
+      expect(
+        (await secondRepo.getConfig()).overviewNutrientsWithoutGoal,
+        isTrue,
+      );
     },
   );
 

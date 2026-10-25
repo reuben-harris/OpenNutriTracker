@@ -6,6 +6,11 @@ class GetConfigUsecase {
 
   GetConfigUsecase(this._configRepository);
 
+  Stream<ConfigEntity> watchConfig() async* {
+    yield await getConfig();
+    yield* _configRepository.watchConfig();
+  }
+
   Future<ConfigEntity> getConfig() async {
     return await _configRepository.getConfig();
   }
