@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:opennutritracker/core/data/data_source/user_activity_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/config_dbo.dart';
-import 'package:opennutritracker/core/data/dbo/fasting_session_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/intake_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/tracked_day_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/user_dbo.dart';
@@ -94,7 +93,6 @@ class _TestHiveDBProvider extends HiveDBProvider {
   final Box<TrackedDayDBO> trackedDay;
   final Box<WeightLogDBO> weight;
   final Box<WaterIntakeDBO> water;
-  final Box<FastingSessionDBO> fasting;
   final Box<ConfigDBO> sharedAppConfig;
 
   _TestHiveDBProvider({
@@ -106,7 +104,6 @@ class _TestHiveDBProvider extends HiveDBProvider {
     required this.trackedDay,
     required this.weight,
     required this.water,
-    required this.fasting,
     required this.sharedAppConfig,
   });
 
@@ -126,8 +123,6 @@ class _TestHiveDBProvider extends HiveDBProvider {
   Box<WeightLogDBO> get weightLogBox => weight;
   @override
   Box<WaterIntakeDBO> get waterIntakeBox => water;
-  @override
-  Box<FastingSessionDBO> get fastingBox => fasting;
   @override
   Box<ConfigDBO> get appConfigBox => sharedAppConfig;
 }
@@ -158,7 +153,6 @@ void main() {
       trackedDay: await Hive.openBox<TrackedDayDBO>('wipe_tracked_$tag'),
       weight: await Hive.openBox<WeightLogDBO>('wipe_weight_$tag'),
       water: await Hive.openBox<WaterIntakeDBO>('wipe_water_$tag'),
-      fasting: await Hive.openBox<FastingSessionDBO>('wipe_fasting_$tag'),
       sharedAppConfig: appConfigBox,
     );
 

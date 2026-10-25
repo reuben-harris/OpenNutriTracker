@@ -11,7 +11,6 @@ import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/daily_nutrient_panel.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/features/home/presentation/widgets/dashboard_widget.dart';
-import 'package:opennutritracker/features/home/presentation/widgets/fasting_home_chip.dart';
 import 'package:opennutritracker/features/home/presentation/widgets/overview_macros.dart';
 import 'package:opennutritracker/features/profile/presentation/utils/profile_display_format.dart';
 import 'package:opennutritracker/generated/l10n.dart';
@@ -50,7 +49,6 @@ class HomePage extends StatelessWidget {
               key: const PageStorageKey('overview-scroll'),
               padding: const EdgeInsets.only(bottom: 80),
               children: [
-                if (selection.isToday) FastingHomeChip(key: ObjectKey(state)),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                   child: Wrap(

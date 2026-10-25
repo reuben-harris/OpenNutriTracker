@@ -61,11 +61,6 @@ class ConfigEntity extends Equatable {
   // sex-based default at read time. Once the user has touched the
   // setting, their override is persisted and survives a profile edit.
   final int? dailyWaterGoalMl;
-  // #84: whether the user has acknowledged the one-time content warning
-  // shown before the fasting timer becomes usable. Defaults to false; the
-  // warning is shown until the user explicitly taps "I understand, enable
-  // timer", which flips this to true.
-  final bool fastingWarningAcknowledged;
   // #415: whether to harmonise the app palette with the user's system
   // wallpaper colours. Effective only on Android 12+ — every other
   // platform falls back to the static palette regardless of this value.
@@ -230,7 +225,6 @@ class ConfigEntity extends Equatable {
     this.dayStartOffsetHours = 0,
     this.dayStartOffsetMinutes = 0,
     this.dailyWaterGoalMl,
-    this.fastingWarningAcknowledged = false,
     this.useMaterialYou = true,
     this.accentColor,
     this.scannerPortraitLock,
@@ -304,7 +298,6 @@ class ConfigEntity extends Equatable {
     dayStartOffsetHours: _normaliseOffsetHours(dbo.dayStartOffsetHours),
     dayStartOffsetMinutes: _normaliseOffsetMinutes(dbo.dayStartOffsetMinutes),
     dailyWaterGoalMl: _normaliseWaterGoal(dbo.dailyWaterGoalMl),
-    fastingWarningAcknowledged: dbo.fastingWarningAcknowledged ?? false,
     useMaterialYou: dbo.useMaterialYou ?? true,
     accentColor: _normaliseAccentColor(dbo.accentColor),
     scannerPortraitLock: dbo.scannerPortraitLock,
@@ -414,7 +407,6 @@ class ConfigEntity extends Equatable {
     dayStartOffsetHours,
     dayStartOffsetMinutes,
     dailyWaterGoalMl,
-    fastingWarningAcknowledged,
     useMaterialYou,
     accentColor,
     scannerPortraitLock,

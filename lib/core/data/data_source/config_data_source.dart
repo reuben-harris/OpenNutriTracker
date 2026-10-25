@@ -286,10 +286,6 @@ class ConfigDataSource {
     await _update((c) => c.dailyWaterGoalMl = goalMl);
   }
 
-  Future<void> setFastingWarningAcknowledged(bool acknowledged) async {
-    await _update((c) => c.fastingWarningAcknowledged = acknowledged);
-  }
-
   Future<void> setConfigUseMaterialYou(bool useMaterialYou) async {
     await _update((c) => c.useMaterialYou = useMaterialYou);
   }
