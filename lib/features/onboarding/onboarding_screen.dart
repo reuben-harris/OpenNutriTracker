@@ -191,7 +191,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         bodyWidget: OnboardingIntroPageBody(
           setPageContent: _setIntroPageData,
           initialAcceptedPolicy: _introPageButtonActive,
-          initialAcceptedDataCollection: selection.acceptDataCollection,
         ),
         footer: HighlightButton(
           buttonLabel: S.of(context).buttonStartLabel,
@@ -343,13 +342,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _introKey.currentState?.animateScroll(page.index);
   }
 
-  void _setIntroPageData(bool active, bool acceptedDataCollection) {
-    setState(() {
-      _onboardingBloc.userSelection.acceptDataCollection =
-          acceptedDataCollection;
-
-      _introPageButtonActive = active;
-    });
+  void _setIntroPageData(bool active) {
+    setState(() => _introPageButtonActive = active);
   }
 
   void _setAboutYouPageData(
@@ -470,8 +464,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _onOverviewStartButtonPressed(BuildContext context) async {
     final userEntity = _onboardingBloc.userSelection.toUserEntity();
-    final hasAcceptedDataCollection =
-        _onboardingBloc.userSelection.acceptDataCollection;
     final heightImperial = _onboardingBloc.userSelection.heightUsesImperial;
     final bodyWeightUnit = _onboardingBloc.userSelection.bodyWeightUnit;
     final foodImperial = _onboardingBloc.userSelection.foodUsesImperial;
@@ -479,7 +471,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       final dailyReminderEnabled = await _setUpDailyReminder(context);
       await _onboardingBloc.saveOnboardingData(
         userEntity,
-        hasAcceptedDataCollection,
         heightImperial,
         bodyWeightUnit,
         foodImperial,

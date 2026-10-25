@@ -216,8 +216,7 @@ void main() {
       // belongs to the 24th — as the diary lists it.
       await configBox.put(
         'ConfigKey',
-        ConfigDBO(false, false, false, AppThemeDBO.system)
-          ..dayStartOffsetHours = 4,
+        ConfigDBO(false, false, AppThemeDBO.system)..dayStartOffsetHours = 4,
       );
       await intakeBox.addAll([
         _intake('after-midnight', _okMeal(), DateTime(2026, 9, 25, 2)),

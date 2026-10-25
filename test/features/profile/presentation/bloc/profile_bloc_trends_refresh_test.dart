@@ -87,7 +87,6 @@ void main() {
     ConfigEntity config = const ConfigEntity(
       false,
       false,
-      false,
       AppThemeEntity.system,
     ),
   }) {
@@ -107,7 +106,6 @@ void main() {
       final profileBloc = buildProfileBloc(
         UserEntityFixtures.youngSedentaryMaleWantingToMaintainWeight,
         config: ConfigEntity(
-          false,
           false,
           false,
           AppThemeEntity.system,

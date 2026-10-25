@@ -13,12 +13,10 @@ class OnboardingIntroPageBody extends StatefulWidget {
     super.key,
     required this.setPageContent,
     this.initialAcceptedPolicy = false,
-    this.initialAcceptedDataCollection = false,
   });
 
-  final Function(bool active, bool acceptedDataCollection) setPageContent;
+  final ValueChanged<bool> setPageContent;
   final bool initialAcceptedPolicy;
-  final bool initialAcceptedDataCollection;
 
   @override
   State<OnboardingIntroPageBody> createState() =>
@@ -27,7 +25,6 @@ class OnboardingIntroPageBody extends StatefulWidget {
 
 class _OnboardingIntroPageBodyState extends State<OnboardingIntroPageBody> {
   late bool _acceptedPolicy = widget.initialAcceptedPolicy;
-  late bool _acceptedDataCollection = widget.initialAcceptedDataCollection;
 
   @override
   Widget build(BuildContext context) {
@@ -89,21 +86,6 @@ class _OnboardingIntroPageBodyState extends State<OnboardingIntroPageBody> {
                     ),
                   ),
                 ),
-                ListTile(
-                  onTap: () => _toggleDataCollection(),
-                  title: Text(
-                    S.of(context).dataCollectionLabel,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  leading: Semantics(
-                    identifier: 'onboarding-checkbox-data',
-                    child: Checkbox(
-                      value: _acceptedDataCollection,
-                      onChanged: (value) => _toggleDataCollection(),
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 16.0),
                 TextButton.icon(
                   onPressed: () => _openSources(context),
@@ -123,14 +105,7 @@ class _OnboardingIntroPageBodyState extends State<OnboardingIntroPageBody> {
   void _togglePolicy() {
     setState(() {
       _acceptedPolicy = !_acceptedPolicy;
-      widget.setPageContent(_acceptedPolicy, _acceptedDataCollection);
-    });
-  }
-
-  void _toggleDataCollection() {
-    setState(() {
-      _acceptedDataCollection = !_acceptedDataCollection;
-      widget.setPageContent(_acceptedPolicy, _acceptedDataCollection);
+      widget.setPageContent(_acceptedPolicy);
     });
   }
 

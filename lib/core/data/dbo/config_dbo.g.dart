@@ -19,7 +19,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
     return ConfigDBO(
         fields[0] as bool,
         fields[1] as bool,
-        fields[2] as bool,
         fields[3] as AppThemeDBO,
         usesImperialUnits: fields[4] == null ? false : fields[4] as bool?,
         userKcalAdjustment: (fields[5] as num?)?.toDouble(),
@@ -63,13 +62,11 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
   @override
   void write(BinaryWriter writer, ConfigDBO obj) {
     writer
-      ..writeByte(40)
+      ..writeByte(39)
       ..writeByte(0)
       ..write(obj.hasAcceptedDisclaimer)
       ..writeByte(1)
       ..write(obj.hasAcceptedPolicy)
-      ..writeByte(2)
-      ..write(obj.hasAcceptedSendAnonymousData)
       ..writeByte(3)
       ..write(obj.selectedAppTheme)
       ..writeByte(4)
@@ -165,7 +162,6 @@ ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
     ConfigDBO(
         json['hasAcceptedDisclaimer'] as bool,
         json['hasAcceptedPolicy'] as bool,
-        json['hasAcceptedSendAnonymousData'] as bool,
         $enumDecode(_$AppThemeDBOEnumMap, json['selectedAppTheme']),
         usesImperialUnits: json['usesImperialUnits'] as bool? ?? false,
         userKcalAdjustment: (json['userKcalAdjustment'] as num?)?.toDouble(),
@@ -228,7 +224,6 @@ ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$ConfigDBOToJson(ConfigDBO instance) => <String, dynamic>{
   'hasAcceptedDisclaimer': instance.hasAcceptedDisclaimer,
   'hasAcceptedPolicy': instance.hasAcceptedPolicy,
-  'hasAcceptedSendAnonymousData': instance.hasAcceptedSendAnonymousData,
   'selectedAppTheme': _$AppThemeDBOEnumMap[instance.selectedAppTheme]!,
   'usesImperialUnits': instance.usesImperialUnits,
   'userKcalAdjustment': instance.userKcalAdjustment,

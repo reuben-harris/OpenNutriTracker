@@ -25,14 +25,6 @@ class AddConfigUsecase {
     await _configRepository.setConfigDisclaimer(hasAcceptedDisclaimer);
   }
 
-  Future<void> setConfigHasAcceptedAnonymousData(
-    bool hasAcceptedAnonymousData,
-  ) async {
-    await _configRepository.setConfigHasAcceptedAnonymousData(
-      hasAcceptedAnonymousData,
-    );
-  }
-
   Future<void> setConfigHasAcceptedPolicy(bool hasAcceptedPolicy) async {
     await _configRepository.setConfigHasAcceptedPolicy(hasAcceptedPolicy);
   }

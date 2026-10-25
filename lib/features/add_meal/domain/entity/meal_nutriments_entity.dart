@@ -383,7 +383,7 @@ bool isNutrimentsConsistent(MealNutrimentsEntity nutriments) =>
     validateNutriments(nutriments).isConsistent;
 
 /// Full validation result. Use this when you need the failing rule name —
-/// for example, to log a Sentry breadcrumb at the call site that dropped the
+/// for example, to log the reason at the call site that dropped the
 /// item from search results.
 NutrimentsValidationResult validateNutriments(MealNutrimentsEntity nutriments) {
   final sugars = nutriments.sugars100?.isQualified == false

@@ -61,7 +61,7 @@ class HiveDBProvider extends ChangeNotifier {
   // active.
   static const profileBoxName = 'ProfileBox';
   // #471: app-wide settings shared across every profile (theme, language,
-  // units, notifications, anonymous-data consent, view preferences, ...).
+  // units, notifications, view preferences, ...).
   // Only the genuinely personal nutrition goals live in the per-profile
   // ConfigBox; everything else is read from here.
   static const appConfigBoxName = 'AppConfigBox';

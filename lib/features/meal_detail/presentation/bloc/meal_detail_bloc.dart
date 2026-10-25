@@ -22,7 +22,6 @@ import 'package:opennutritracker/core/domain/usecase/get_tracked_day_usecase.dar
 import 'package:opennutritracker/core/utils/id_generator.dart';
 import 'package:opennutritracker/features/add_meal/data/repository/products_repository.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 part 'meal_detail_event.dart';
 
@@ -124,7 +123,6 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
         );
       } catch (e) {
         log.severe('Error loading daily totals: $e');
-        Sentry.captureException(e);
         if (!emit.isDone) {
           emit(
             state.copyWith(

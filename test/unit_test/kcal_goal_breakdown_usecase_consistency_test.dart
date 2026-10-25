@@ -73,7 +73,6 @@ void main() {
   const config = ConfigEntity(
     false,
     false,
-    false,
     AppThemeEntity.system,
     userKcalAdjustment: 120,
     userCarbGoalPct: 0.5,

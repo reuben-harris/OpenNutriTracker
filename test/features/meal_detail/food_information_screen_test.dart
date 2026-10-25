@@ -912,7 +912,6 @@ class _FakeGetConfigUsecase implements GetConfigUsecase {
     return ConfigEntity(
       true,
       true,
-      false,
       AppThemeEntity.system,
       usesImperialFoodUnits: imperialProvider(),
     );

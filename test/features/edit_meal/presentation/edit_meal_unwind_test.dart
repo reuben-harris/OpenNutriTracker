@@ -228,7 +228,7 @@ void main() {
 class _FakeGetConfigUsecase implements GetConfigUsecase {
   @override
   Future<ConfigEntity> getConfig() async =>
-      const ConfigEntity(true, true, false, AppThemeEntity.system);
+      const ConfigEntity(true, true, AppThemeEntity.system);
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>

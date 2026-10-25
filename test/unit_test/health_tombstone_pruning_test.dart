@@ -200,7 +200,6 @@ void main() {
       final dbo = ConfigDBO(
         false,
         true,
-        false,
         AppThemeDBO.system,
         healthDeletedExternalIds: ids,
       );
@@ -249,7 +248,6 @@ void main() {
         ConfigDBO(
           false,
           true,
-          false,
           AppThemeDBO.system,
           healthDeletedExternalIds: ['legacy-1', 'legacy-2'],
         ),
@@ -267,7 +265,6 @@ void main() {
         ConfigDBO(
           false,
           true,
-          false,
           AppThemeDBO.system,
           healthDeletedExternalIds: ['legacy-1'],
           healthDeletedWorkouts: {'dated-1': now},

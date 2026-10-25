@@ -16,7 +16,6 @@ import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dar
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 /// Fast path for logging an activity by typing the time spent and the
 /// calories burned directly, for people whose tracker (a step counter,
@@ -110,14 +109,13 @@ class _QuickAddActivityBottomSheetState
       // Resolve the message before navigating: the push below tears down
       // this sheet, so reading from context afterwards is unsafe.
       final addedMessage = S.of(context).quickAddActivityAddedSnack;
-      Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
-        NavigationOptions.mainRoute,
-        (route) => false,
-      );
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).pushNamedAndRemoveUntil(NavigationOptions.mainRoute, (route) => false);
       scaffoldMessenger.showSnackBar(SnackBar(content: Text(addedMessage)));
     } catch (e, st) {
       _log.severe('Quick Add activity save failed', e, st);
-      Sentry.captureException(e, stackTrace: st);
       if (!mounted) return;
       setState(() => _saving = false);
     }
@@ -129,7 +127,9 @@ class _QuickAddActivityBottomSheetState
     final s = S.of(context);
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
           Dimens.spacing24,
@@ -145,9 +145,9 @@ class _QuickAddActivityBottomSheetState
               padding: const EdgeInsets.only(bottom: Dimens.spacing16),
               child: Text(
                 s.quickAddActivityTitleLabel,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -179,7 +179,9 @@ class _QuickAddActivityBottomSheetState
               child: FilledButton(
                 style: FilledButton.styleFrom(
                   shape: Dimens.shapeM,
-                  padding: const EdgeInsets.symmetric(vertical: Dimens.spacing16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: Dimens.spacing16,
+                  ),
                 ),
                 onPressed: _canSubmit ? _onSubmit : null,
                 child: _saving
@@ -215,8 +217,9 @@ class _QuickAddActivityBottomSheetState
         child: TextField(
           controller: controller,
           autofocus: autofocus,
-          textCapitalization:
-              numeric ? TextCapitalization.none : TextCapitalization.sentences,
+          textCapitalization: numeric
+              ? TextCapitalization.none
+              : TextCapitalization.sentences,
           keyboardType: numeric
               ? const TextInputType.numberWithOptions(decimal: true)
               : TextInputType.text,
@@ -229,11 +232,17 @@ class _QuickAddActivityBottomSheetState
             fillColor: palette.surfaceMuted,
             border: OutlineInputBorder(
               borderRadius: Dimens.borderRadiusM,
-              borderSide: BorderSide(color: palette.border, width: Dimens.hairline),
+              borderSide: BorderSide(
+                color: palette.border,
+                width: Dimens.hairline,
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: Dimens.borderRadiusM,
-              borderSide: BorderSide(color: palette.border, width: Dimens.hairline),
+              borderSide: BorderSide(
+                color: palette.border,
+                width: Dimens.hairline,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: Dimens.borderRadiusM,

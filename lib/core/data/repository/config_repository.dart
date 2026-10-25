@@ -28,24 +28,12 @@ class ConfigRepository {
     await _configDataSource.setConfigDisclaimer(hasAcceptedDisclaimer);
   }
 
-  Future<void> setConfigHasAcceptedAnonymousData(
-    bool hasAcceptedAnonymousData,
-  ) async {
-    await _configDataSource.setConfigAcceptedAnonymousData(
-      hasAcceptedAnonymousData,
-    );
-  }
-
   Future<void> setConfigHasAcceptedPolicy(bool hasAcceptedPolicy) async {
     await _configDataSource.setConfigAcceptedPolicy(hasAcceptedPolicy);
   }
 
   Future<void> setConfigPolicyNoticeRevisionSeen(int revision) async {
     await _configDataSource.setConfigPolicyNoticeRevisionSeen(revision);
-  }
-
-  Future<bool> getConfigHasAcceptedAnonymousData() async {
-    return await _configDataSource.getHasAcceptedAnonymousData();
   }
 
   Future<AppThemeEntity> getConfigAppTheme() async {

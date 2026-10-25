@@ -22,8 +22,6 @@ class UserDataMaskEntity {
   /// regardless of the display unit the user picked.
   double? targetWeight;
 
-  bool acceptDataCollection = false;
-
   /// Whether the user chose to display and enter height in imperial feet.
   bool heightUsesImperial = false;
 
@@ -57,7 +55,6 @@ class UserDataMaskEntity {
     this.activity,
     this.goal,
     this.targetWeight,
-    this.acceptDataCollection = false,
     this.heightUsesImperial = false,
     this.bodyWeightUnit = BodyWeightUnit.kg,
     this.foodUsesImperial = false,

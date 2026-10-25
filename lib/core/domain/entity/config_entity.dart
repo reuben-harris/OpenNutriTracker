@@ -25,7 +25,6 @@ class ConfigEntity extends Equatable {
 
   final bool hasAcceptedDisclaimer;
   final bool hasAcceptedPolicy;
-  final bool hasAcceptedSendAnonymousData;
   final AppThemeEntity appTheme;
   // Legacy single switch, kept as the fallback the three split preferences
   // derive from when the user has never touched them (see [fromConfigDBO]).
@@ -218,7 +217,6 @@ class ConfigEntity extends Equatable {
   const ConfigEntity(
     this.hasAcceptedDisclaimer,
     this.hasAcceptedPolicy,
-    this.hasAcceptedSendAnonymousData,
     this.appTheme, {
     this.usesImperialUnits = false,
     this.usesImperialFoodUnits = false,
@@ -287,7 +285,6 @@ class ConfigEntity extends Equatable {
   factory ConfigEntity.fromConfigDBO(ConfigDBO dbo) => ConfigEntity(
     dbo.hasAcceptedDisclaimer,
     dbo.hasAcceptedPolicy,
-    dbo.hasAcceptedSendAnonymousData,
     AppThemeEntity.fromAppThemeDBO(dbo.selectedAppTheme),
     usesImperialUnits: dbo.usesImperialUnits ?? false,
     usesImperialFoodUnits:
@@ -409,7 +406,6 @@ class ConfigEntity extends Equatable {
   List<Object?> get props => [
     hasAcceptedDisclaimer,
     hasAcceptedPolicy,
-    hasAcceptedSendAnonymousData,
     usesImperialUnits,
     usesImperialFoodUnits,
     usesImperialHeightUnits,
