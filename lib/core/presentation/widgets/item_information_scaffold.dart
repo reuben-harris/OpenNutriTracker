@@ -5,7 +5,6 @@ import 'package:opennutritracker/core/presentation/widgets/food_image.dart';
 import 'package:opennutritracker/core/presentation/widgets/image_full_screen.dart';
 import 'package:opennutritracker/core/presentation/widgets/loading_content.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
-import 'package:opennutritracker/core/utils/demo/unsplash_attribution.dart';
 import 'package:opennutritracker/core/utils/navigation_options.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'package:opennutritracker/generated/l10n.dart';
@@ -120,7 +119,6 @@ class ItemInformationScaffold extends StatelessWidget {
                           ),
                         ],
                       ),
-                      UnsplashCreditLine(imageUrl: meal.mainImageUrl),
                       const SizedBox(height: 16),
                     ],
                   ),

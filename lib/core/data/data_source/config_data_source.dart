@@ -310,10 +310,6 @@ class ConfigDataSource {
     await _update((c) => c.fastingWarningAcknowledged = acknowledged);
   }
 
-  Future<void> setIsDemoData(bool isDemoData) async {
-    await _update((c) => c.isDemoData = isDemoData);
-  }
-
   Future<void> setConfigUseMaterialYou(bool useMaterialYou) async {
     await _update((c) => c.useMaterialYou = useMaterialYou);
   }

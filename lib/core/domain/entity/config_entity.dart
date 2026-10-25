@@ -82,12 +82,6 @@ class ConfigEntity extends Equatable {
   // taps the in-scanner toggle, their choice is stored here and sticks.
   final bool? scannerPortraitLock;
 
-  /// True only when the active profile holds sample data seeded from the
-  /// onboarding "try it with sample data" link, not a real user's own
-  /// data — drives the Home screen's demo-mode banner. See
-  /// `lib/core/utils/demo/demo_seeder.dart`.
-  final bool isDemoData;
-
   /// Whether workouts are imported from Health Connect / Apple Health.
   /// Off until the user opts in, so no health data is read by default.
   final bool healthImportEnabled;
@@ -253,7 +247,6 @@ class ConfigEntity extends Equatable {
     this.useMaterialYou = true,
     this.accentColor,
     this.scannerPortraitLock,
-    this.isDemoData = false,
     this.healthImportEnabled = false,
     this.healthWorkoutKcalMultiplier,
     this.healthLastImportAt,
@@ -331,7 +324,6 @@ class ConfigEntity extends Equatable {
     useMaterialYou: dbo.useMaterialYou ?? true,
     accentColor: _normaliseAccentColor(dbo.accentColor),
     scannerPortraitLock: dbo.scannerPortraitLock,
-    isDemoData: dbo.isDemoData ?? false,
     healthImportEnabled: dbo.healthImportEnabled ?? false,
     healthWorkoutKcalMultiplier: _normaliseHealthMultiplier(
       dbo.healthWorkoutKcalMultiplier,
@@ -445,7 +437,6 @@ class ConfigEntity extends Equatable {
     useMaterialYou,
     accentColor,
     scannerPortraitLock,
-    isDemoData,
     healthImportEnabled,
     healthWorkoutKcalMultiplier,
     healthLastImportAt,

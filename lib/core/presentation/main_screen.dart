@@ -7,7 +7,6 @@ import 'package:opennutritracker/core/domain/usecase/add_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/import_workouts_usecase.dart';
 import 'package:opennutritracker/core/presentation/bloc/selected_day_cubit.dart';
-import 'package:opennutritracker/core/presentation/widgets/demo_mode_banner.dart';
 import 'package:opennutritracker/core/presentation/widgets/disclaimer_dialog.dart';
 import 'package:opennutritracker/core/presentation/widgets/main_appbar.dart';
 import 'package:opennutritracker/core/presentation/widgets/selected_day_header.dart';
@@ -76,7 +75,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   _MainDestination _selectedDestination = _MainDestination.diary;
-  bool _isDemoData = false;
   bool _ready = false;
 
   /// Guards against two lifecycle events asking the platform at once. The
@@ -108,10 +106,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  // Checked once per screen instance rather than kept live — leaving demo mode
-  // always replaces this whole screen with the onboarding route (see
-  // DemoModeBanner), so there is no in-place transition to react to.
-  //
   // The policy-change notice #887 specified is deliberately **not** shown for
   // revision 1. #887's reasoning stands on the record and was not refuted —
   // the corrections name recipients that were always receiving data, so users
@@ -128,7 +122,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     await locator<SelectedDayCubit>().initialize();
     if (!mounted) return;
     setState(() {
-      _isDemoData = config.isDemoData;
       _ready = true;
     });
     _refreshRecords();
@@ -196,7 +189,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       ),
       body: Column(
         children: [
-          if (_isDemoData) const DemoModeBanner(),
           if (_ready && _selectedDestination.showsSelectedDay)
             const SelectedDayHeader(),
           Expanded(

@@ -28,14 +28,9 @@ const aiProbeMealLine = 'two eggs and a slice of toast';
 
 /// The bundled photograph a photo probe is run against.
 ///
-/// A sliced loaf on a board: one unambiguous food, filling the frame, no
-/// composed dish to argue about. The other demo photos include a tempura
-/// rice bowl and a bowl of yoghurt with garnish scattered around it, either
-/// of which would make a *correct* answer look like a wrong one.
-///
-/// Already shipped for Try Demo and declared in `pubspec.yaml`, so probing
-/// costs no app size.
-const aiProbePhotoAsset = 'assets/demo/meals/1552056413-b8b5eed0170b.jpg';
+/// A sliced loaf on a board provides one unambiguous food for the probe.
+/// Photo: Youjeen Cho, https://unsplash.com/@youjeencho (Unsplash License).
+const aiProbePhotoAsset = 'assets/ai/probe_meal.jpg';
 
 /// How many requests a full probe makes, one after another.
 ///

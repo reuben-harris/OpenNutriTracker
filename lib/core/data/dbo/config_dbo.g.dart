@@ -44,7 +44,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
         usesImperialFoodUnits: fields[28] as bool?,
         usesImperialHeightUnits: fields[29] as bool?,
         bodyWeightUnitIndex: (fields[30] as num?)?.toInt(),
-        isDemoData: fields[32] as bool?,
         healthImportEnabled: fields[33] as bool?,
         healthWorkoutKcalMultiplier: (fields[34] as num?)?.toDouble(),
         healthLastImportAt: fields[35] as DateTime?,
@@ -64,7 +63,7 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
   @override
   void write(BinaryWriter writer, ConfigDBO obj) {
     writer
-      ..writeByte(41)
+      ..writeByte(40)
       ..writeByte(0)
       ..write(obj.hasAcceptedDisclaimer)
       ..writeByte(1)
@@ -125,8 +124,6 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
       ..write(obj.usesImperialHeightUnits)
       ..writeByte(30)
       ..write(obj.bodyWeightUnitIndex)
-      ..writeByte(32)
-      ..write(obj.isDemoData)
       ..writeByte(33)
       ..write(obj.healthImportEnabled)
       ..writeByte(34)
@@ -200,7 +197,6 @@ ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
         usesImperialFoodUnits: json['usesImperialFoodUnits'] as bool?,
         usesImperialHeightUnits: json['usesImperialHeightUnits'] as bool?,
         bodyWeightUnitIndex: (json['bodyWeightUnitIndex'] as num?)?.toInt(),
-        isDemoData: json['isDemoData'] as bool?,
         healthImportEnabled: json['healthImportEnabled'] as bool?,
         healthWorkoutKcalMultiplier:
             (json['healthWorkoutKcalMultiplier'] as num?)?.toDouble(),
@@ -260,7 +256,6 @@ Map<String, dynamic> _$ConfigDBOToJson(ConfigDBO instance) => <String, dynamic>{
   'usesImperialFoodUnits': instance.usesImperialFoodUnits,
   'usesImperialHeightUnits': instance.usesImperialHeightUnits,
   'bodyWeightUnitIndex': instance.bodyWeightUnitIndex,
-  'isDemoData': instance.isDemoData,
   'healthImportEnabled': instance.healthImportEnabled,
   'healthWorkoutKcalMultiplier': instance.healthWorkoutKcalMultiplier,
   'healthLastImportAt': instance.healthLastImportAt?.toIso8601String(),

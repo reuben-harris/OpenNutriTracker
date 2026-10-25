@@ -139,10 +139,6 @@ class AddConfigUsecase {
     await _configRepository.setConfigAccentColor(value);
   }
 
-  Future<void> setConfigIsDemoData(bool isDemoData) async {
-    await _configRepository.setIsDemoData(isDemoData);
-  }
-
   Future<void> setConfigHealthImportEnabled(bool enabled) async {
     await _configRepository.setConfigHealthImportEnabled(enabled);
   }

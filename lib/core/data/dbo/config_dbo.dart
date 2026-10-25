@@ -34,7 +34,7 @@ class ConfigDBO extends HiveObject {
   int? notificationHour;
   @HiveField(12)
   int? notificationMinute;
-  // Field 13 is retired; keep all other Hive field IDs stable.
+  // Fields 13 and 32 are retired; keep all other Hive field IDs stable.
   @HiveField(14)
   bool? showMealMacros;
   @HiveField(15)
@@ -112,8 +112,6 @@ class ConfigDBO extends HiveObject {
   // BodyWeightUnit enum index. Null means "derive from usesImperialUnits".
   @HiveField(30)
   int? bodyWeightUnitIndex;
-  @HiveField(32)
-  bool? isDemoData;
   // Opt-in workout import from Health Connect (Android) / Apple Health (iOS).
   // Null means the user has never enabled it, which reads as off — no health
   // data is touched until they say so.
@@ -206,7 +204,6 @@ class ConfigDBO extends HiveObject {
     this.usesImperialFoodUnits,
     this.usesImperialHeightUnits,
     this.bodyWeightUnitIndex,
-    this.isDemoData,
     this.healthImportEnabled,
     this.healthWorkoutKcalMultiplier,
     this.healthLastImportAt,
