@@ -8,6 +8,10 @@ abstract class ScannerEvent extends Equatable {
   List<Object?> get props => [];
 }
 
+class ScannerResetEvent extends ScannerEvent {
+  const ScannerResetEvent();
+}
+
 class ScannerLoadProductEvent extends ScannerEvent {
   final String barcode;
 

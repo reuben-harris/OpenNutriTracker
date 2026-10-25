@@ -33,6 +33,7 @@ class _ScannerScreenState extends State<ScannerScreen>
   final log = Logger('ScannerScreen');
 
   String? _scannedBarcode;
+  bool _initialBarcodeConsumed = false;
   IntakeTypeEntity? _intakeTypeEntity;
   DateTime? _day;
   bool _pickMode = false;
@@ -87,9 +88,14 @@ class _ScannerScreenState extends State<ScannerScreen>
     _intakeTypeEntity = args.intakeTypeEntity;
     _day = args.day;
     _pickMode = args.pickMode;
-    if (args.initialBarcode != null && _scannedBarcode == null) {
-      _scannedBarcode = args.initialBarcode;
-      _scannerBloc.add(ScannerLoadProductEvent(barcode: args.initialBarcode!));
+    if (!_initialBarcodeConsumed) {
+      _initialBarcodeConsumed = true;
+      if (args.initialBarcode != null) {
+        _scannedBarcode = args.initialBarcode;
+        _scannerBloc.add(
+          ScannerLoadProductEvent(barcode: args.initialBarcode!),
+        );
+      }
     }
     super.didChangeDependencies();
   }
@@ -135,6 +141,14 @@ class _ScannerScreenState extends State<ScannerScreen>
                     ? S.of(context).errorProductNotFound
                     : S.of(context).errorFetchingProductData,
                 onRefreshPressed: _onRefreshButtonPressed,
+                secondaryAction: Semantics(
+                  identifier: 'scanner-scan-barcode',
+                  child: OutlinedButton.icon(
+                    onPressed: _onScanBarcodePressed,
+                    icon: const Icon(Icons.barcode_reader),
+                    label: Text(S.of(context).noResultsScanBarcode),
+                  ),
+                ),
               ),
             ),
           );
@@ -337,6 +351,12 @@ class _ScannerScreenState extends State<ScannerScreen>
           );
       }
     });
+  }
+
+  void _onScanBarcodePressed() {
+    _scannedBarcode = null;
+    _navigatedAfterLoad = false;
+    _scannerBloc.add(const ScannerResetEvent());
   }
 
   void _onRefreshButtonPressed() {
