@@ -63,8 +63,9 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   }
 
   Future<void> setNutrientPolicies(Map<String, NutrientPolicy> policies) async {
-    if (policies.values.any((p) => !p.valid))
+    if (policies.values.any((p) => !p.valid)) {
       throw ArgumentError('Invalid nutrient policy');
+    }
     final user = await getUser();
     user.nutrientPolicies = Map.of(policies);
     await updateUser(user);

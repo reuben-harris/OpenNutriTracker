@@ -309,8 +309,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       builder: (_) => const LifeStageHistoryScreen(),
                     ),
                   );
-                  if (context.mounted)
+                  if (context.mounted) {
                     context.read<ProfileBloc>().add(LoadProfileEvent());
+                  }
                 },
               ),
             _ProfileTile(

@@ -39,8 +39,9 @@ class LifeStagePeriod {
   static List<LifeStagePeriod> validated(Iterable<LifeStagePeriod> periods) {
     final sorted = periods.toList()..sort((a, b) => a.start.compareTo(b.start));
     for (var i = 1; i < sorted.length; i++) {
-      if (sorted[i - 1].overlaps(sorted[i]))
+      if (sorted[i - 1].overlaps(sorted[i])) {
         throw ArgumentError('Life-stage periods overlap');
+      }
     }
     return sorted;
   }

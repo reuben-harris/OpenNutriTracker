@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/presentation/widgets/nutrient_visibility_controls.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/domain/entity/nutrients.dart';
 import 'package:opennutritracker/core/domain/usecase/add_config_usecase.dart';
@@ -92,38 +93,7 @@ class _NutrientVisibilityScreenState extends State<NutrientVisibilityScreen> {
                 for (final n in Nutrients.additional.where(
                   (n) => n.group == group,
                 ))
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          n.label(s),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      for (final isInfo in [false, true])
-                        SizedBox(
-                          width: 64,
-                          child: Semantics(
-                            identifier:
-                                'nutrient-visibility-${n.key.replaceAll('_', '-')}-${isInfo ? 'info' : 'daily'}',
-                            label:
-                                '${n.label(s)}, ${isInfo ? s.nutrientVisibilityInfoLabel : s.nutrientVisibilityDailyLabel}',
-                            child: Checkbox(
-                              value:
-                                  (isInfo
-                                      ? config.nutrientInfoVisibility
-                                      : config.nutrientPanelVisibility)[n
-                                      .key] ??
-                                  true,
-                              onChanged: _saving
-                                  ? null
-                                  : (value) => _toggle([n.key], value!, isInfo),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                  NutrientVisibilityControls(nutrient: n, config: config),
               ],
             ],
           ),

@@ -1,12 +1,18 @@
+import 'dart:convert';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
-import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
-import 'package:opennutritracker/core/domain/entity/nutrients.dart';
-import 'package:opennutritracker/core/presentation/sources_screen.dart';
-import 'package:opennutritracker/core/presentation/widgets/nutrient_group_header.dart';
-import 'package:opennutritracker/core/styles/app_palette.dart';
-import 'package:opennutritracker/core/nutrition/nutrient_goal_resolver.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
+import 'package:opennutritracker/core/domain/entity/nutrients.dart';
+import 'package:opennutritracker/core/domain/entity/user_entity.dart';
+import 'package:opennutritracker/core/domain/entity/weight_log_entity.dart';
+import 'package:opennutritracker/core/domain/usecase/get_weight_log_usecase.dart';
+import 'package:opennutritracker/core/nutrition/nutrient_goal_resolver.dart';
+import 'package:opennutritracker/core/nutrition/references/reference_catalogue.dart';
+import 'package:opennutritracker/core/presentation/sources_screen.dart';
+import 'package:opennutritracker/core/presentation/widgets/nutrient_reference_details.dart';
+import 'package:opennutritracker/core/presentation/widgets/nutrient_visibility_builder.dart';
+import 'package:opennutritracker/core/presentation/widgets/nutrient_visibility_controls.dart';
+import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
@@ -34,37 +40,73 @@ class NutrientGoalsScreen extends StatefulWidget {
 
 enum _LeaveAction { discard, save }
 
-class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
-  final _form = GlobalKey<FormState>();
-  final _controllers = {
-    for (final n in Nutrients.additional) n.key: TextEditingController(),
-  };
-  final _limits = <String, bool>{};
-  Map<String, NutrientGoal> _defaults = {};
-  Map<String, String> _savedTexts = {};
-  Map<String, bool> _savedLimits = {};
-  bool _loaded = false, _saving = false, _loadFailed = false;
-  bool _leaveDialogOpen = false;
-  late final DateTime _day = DateTime.now();
-
-  bool get _dirty =>
-      _loaded &&
-      Nutrients.additional.any(
-        (n) =>
-            _controllers[n.key]!.text != _savedTexts[n.key] ||
-            _limits[n.key] != _savedLimits[n.key],
-      );
-
-  String _amountText(double amount) =>
-      amount.toString().replaceFirst(RegExp(r'\.0$'), '');
-
-  void _rememberSavedValues() {
-    _savedTexts = {
-      for (final entry in _controllers.entries) entry.key: entry.value.text,
-    };
-    _savedLimits = Map.of(_limits);
+class _Draft {
+  NutrientPolicy policy;
+  final TextEditingController target, upper;
+  _Draft(this.policy)
+    : target = TextEditingController(text: policy.target?.toString() ?? ''),
+      upper = TextEditingController(text: policy.upper?.toString() ?? '');
+  NutrientPolicy get value => NutrientPolicy(
+    source: policy.source,
+    autoAdjust: policy.autoAdjust,
+    adequacyMode: policy.adequacyMode,
+    upperMode: policy.upperMode,
+    target: double.tryParse(target.text.trim()),
+    upper: double.tryParse(upper.text.trim()),
+    frozenReference: policy.frozenReference,
+    frozenOn: policy.frozenOn,
+  );
+  String get signature =>
+      jsonEncode([policy.toJson(), target.text, upper.text]);
+  void restore(NutrientPolicy value) {
+    policy = value;
+    target.text = value.target?.toString() ?? '';
+    upper.text = value.upper?.toString() ?? '';
   }
 
+  void dispose() {
+    target.dispose();
+    upper.dispose();
+  }
+}
+
+class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
+  final _drafts = <String, _Draft>{};
+  Map<String, String> _saved = {};
+  final _scroll = ScrollController();
+  UserEntity? _user;
+  List<WeightLogEntity> _weights = [];
+  NutrientDefinition _selected = Nutrients.byKey[NutrientKeys.fiber]!;
+  bool _loaded = false,
+      _saving = false,
+      _loadFailed = false,
+      _leaveDialogOpen = false,
+      _allowLeave = false;
+  late final DateTime _today = DateTime.now();
+  bool get _dirty =>
+      _loaded && _drafts.entries.any((e) => e.value.signature != _saved[e.key]);
+  _Draft get _draft => _drafts[_selected.key]!;
+  NutrientReferenceRange _resolve(String key, NutrientPolicy policy) =>
+      NutrientGoalResolver.resolveOne(
+        nutrient: key,
+        policy: policy.valid
+            ? policy
+            : policy.copyWith(
+                adequacyMode: ThresholdMode.reference,
+                upperMode: ThresholdMode.reference,
+              ),
+        user: _user,
+        day: _today,
+        weights: _weights,
+      );
+  ReferenceSelection _preview(String key, ReferenceRegion region) =>
+      NutrientGoalResolver.reference(
+        nutrient: key,
+        policy: NutrientPolicy(source: region.name),
+        user: _user!,
+        day: _today,
+        weights: _weights,
+      );
   @override
   void initState() {
     super.initState();
@@ -74,150 +116,193 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
   Future<void> _load() async {
     try {
       final user = await widget.profileBloc.getUser();
-
+      final weights = locator.isRegistered<GetWeightLogUsecase>()
+          ? await locator<GetWeightLogUsecase>().getAllEntries()
+          : <WeightLogEntity>[];
       if (!mounted) return;
-      _defaults = {
-        for (final entry in NutrientGoalResolver.resolve(
-          user: user,
-          day: _day,
-        ).entries)
-          if (entry.value.primary?.comparable == true)
-            entry.key: NutrientGoal(
-              entry.value.primary!.amount,
-              isLimit: entry.value.primary!.upper,
-            ),
-      };
+      _user = user;
+      _weights = weights;
       for (final n in Nutrients.additional) {
-        final policy = user.nutrientPolicies[n.key];
-        final goal = policy?.adequacyMode == ThresholdMode.custom
-            ? NutrientGoal(policy!.target!)
-            : policy?.upperMode == ThresholdMode.custom
-            ? NutrientGoal(policy!.upper!, isLimit: true)
-            : null;
-        _controllers[n.key]!.text = goal == null
-            ? ''
-            : _amountText(goal.amount);
-        _limits[n.key] = goal?.isLimit ?? n.goalKind == NutrientGoalKind.limit;
+        _drafts[n.key] = _Draft(
+          user.nutrientPolicies[n.key] ?? const NutrientPolicy(),
+        );
       }
-      _rememberSavedValues();
+      _remember();
       setState(() => _loaded = true);
     } catch (_) {
       if (mounted) setState(() => _loadFailed = true);
     }
   }
 
+  void _remember() {
+    _saved = {for (final e in _drafts.entries) e.key: e.value.signature};
+  }
+
   @override
   void dispose() {
-    for (final c in _controllers.values) {
-      c.dispose();
+    for (final d in _drafts.values) {
+      d.dispose();
     }
+    _scroll.dispose();
     super.dispose();
   }
 
-  Future<void> _confirmReset([NutrientDefinition? nutrient]) async {
+  void _changeSource(ReferenceRegion region) {
+    var policy = _draft.policy.copyWith(region: region);
+    if (!policy.autoAdjust)
+      policy = NutrientGoalResolver.freeze(
+        nutrient: _selected.key,
+        policy: policy,
+        user: _user!,
+        today: _today,
+        weights: _weights,
+      );
+    setState(() => _draft.policy = policy);
+  }
+
+  Future<bool> _confirm(String title, String content) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          scrollable: true,
+          title: Text(title),
+          content: Text(content),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, false),
+              child: Text(S.of(dialog).dialogCancelLabel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialog, true),
+              child: Text(S.of(dialog).buttonResetLabel),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+  Future<void> _reset() async {
     final s = S.of(context);
-    final confirmed = await showDialog<bool>(
+    final source = await showModalBottomSheet<ReferenceRegion>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        scrollable: true,
-        title: Text(
-          nutrient == null
-              ? s.nutrientGoalsResetAllTitle
-              : s.nutrientGoalResetTitle(nutrient.label(s)),
-        ),
-        content: Text(
-          nutrient == null
-              ? s.nutrientGoalsResetAllContent
-              : s.nutrientGoalResetContent,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(s.dialogCancelLabel),
+      isScrollControlled: true,
+      builder: (sheet) => SafeArea(
+        child: FractionallySizedBox(
+          heightFactor: .85,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Text(
+                s.nutrientResetSource,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              for (final region in ReferenceRegion.values)
+                Semantics(
+                  identifier:
+                      'nutrient-source-${region == ReferenceRegion.nzAustralia ? 'nz-australia' : 'us-canada'}',
+                  child: Card(
+                    child: InkWell(
+                      onTap: () => Navigator.pop(sheet, region),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              ReferenceSource.forRegion(region).name,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                            NutrientReferenceDetails(
+                              reference: _preview(_selected.key, region),
+                              compact: true,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(s.buttonResetLabel),
-          ),
-        ],
+        ),
       ),
     );
-    if (!mounted || confirmed != true) return;
-    FocusScope.of(context).unfocus();
+    if (source == null || !mounted) return;
+    final confirmed = await _confirm(
+      s.nutrientGoalResetTitle(_selected.label(s)),
+      s.nutrientRestoreConfirm,
+    );
+    if (!confirmed || !mounted) return;
+    setState(() => _draft.restore(NutrientPolicy(source: source.name)));
+  }
+
+  Future<void> _resetAll() async {
+    final s = S.of(context);
+    if (!await _confirm(
+          s.nutrientGoalsResetAllTitle,
+          s.nutrientGoalsResetAllContent,
+        ) ||
+        !mounted)
+      return;
     setState(() {
-      for (final n in nutrient == null ? Nutrients.additional : [nutrient]) {
-        _controllers[n.key]!.clear();
-        _limits[n.key] = n.goalKind == NutrientGoalKind.limit;
+      for (final draft in _drafts.values) {
+        draft.restore(NutrientPolicy(source: draft.policy.source));
       }
     });
   }
 
-  String? _amountError(String? text) {
-    if (text == null || text.trim().isEmpty) return null;
-    final value = double.tryParse(text.trim());
-    return value != null && value.isFinite && value >= 0
-        ? null
-        : S.of(context).nutrientInvalidAmountLabel;
-  }
-
   Future<bool> _save() async {
     if (_saving || !_loaded) return false;
-    final validForm = _form.currentState?.validate() ?? false;
-    // A scrolled-out field may be unmounted, but its value must still validate.
-    final validAmounts = _controllers.values.every(
-      (c) => _amountError(c.text) == null,
-    );
-    if (!validForm || !validAmounts) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(S.of(context).nutrientInvalidAmountLabel)),
-      );
-      return false;
+    for (final n in Nutrients.additional) {
+      final policy = _drafts[n.key]!.value;
+      if (!policy.valid || _resolve(n.key, policy).contradictory) {
+        setState(() => _selected = n);
+        _scroll.jumpTo(0);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              !policy.valid
+                  ? S.of(context).nutrientPositiveTarget
+                  : S.of(context).nutrientContradictory,
+            ),
+          ),
+        );
+        return false;
+      }
     }
     setState(() => _saving = true);
     try {
-      final user = await widget.profileBloc.getUser();
-      final goals = Map<String, NutrientPolicy>.of(user.nutrientPolicies);
-      for (final n in Nutrients.additional) {
-        final value = double.tryParse(_controllers[n.key]!.text.trim());
-        if (value != null) {
-          goals[n.key] = (goals[n.key] ?? const NutrientPolicy()).copyWith(
-            adequacyMode: _limits[n.key]!
-                ? ThresholdMode.reference
-                : ThresholdMode.custom,
-            upperMode: _limits[n.key]!
-                ? ThresholdMode.custom
-                : ThresholdMode.reference,
-            target: value,
-            upper: value,
-          );
-        } else {
-          goals[n.key] = const NutrientPolicy();
-        }
-      }
-      await widget.profileBloc.setNutrientPolicies(goals);
+      await widget.profileBloc.setNutrientPolicies({
+        for (final e in _drafts.entries) e.key: e.value.value,
+      });
       if (!mounted) return true;
       widget.settingsBloc.add(LoadSettingsEvent());
       widget.homeBloc.add(const LoadItemsEvent());
       widget.diaryBloc.add(const LoadDiaryYearEvent());
       widget.calendarDayBloc.add(RefreshCalendarDayEvent());
-      _rememberSavedValues();
+      _remember();
       return true;
     } catch (_) {
-      if (mounted) {
+      if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(S.of(context).nutrientSettingsSaveFailedLabel),
           ),
         );
-      }
       return false;
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
+  void _leave() {
+    setState(() => _allowLeave = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.pop(context);
+    });
+  }
+
   Future<void> _saveAndLeave() async {
-    if (await _save() && mounted) Navigator.of(context).pop();
+    if (await _save() && mounted) _leave();
   }
 
   Future<void> _confirmLeave() async {
@@ -228,181 +313,105 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
       final s = S.of(context);
       final action = await showDialog<_LeaveAction>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
+        builder: (dialog) => AlertDialog(
           scrollable: true,
           title: Text(s.unsavedChangesTitle),
           content: Text(s.unsavedChangesContent),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(_LeaveAction.discard),
+              onPressed: () => Navigator.pop(dialog, _LeaveAction.discard),
               child: Text(s.discardAndLeaveLabel),
             ),
             TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
+              onPressed: () => Navigator.pop(dialog),
               child: Text(s.dialogCancelLabel),
             ),
             FilledButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(_LeaveAction.save),
+              onPressed: () => Navigator.pop(dialog, _LeaveAction.save),
               child: Text(s.saveAndLeaveLabel),
             ),
           ],
         ),
       );
       if (!mounted) return;
-      if (action == _LeaveAction.discard) {
-        Navigator.of(context).pop();
-      } else if (action == _LeaveAction.save) {
-        await _saveAndLeave();
-      }
+      if (action == _LeaveAction.discard) _leave();
+      if (action == _LeaveAction.save) await _saveAndLeave();
     } finally {
       _leaveDialogOpen = false;
     }
   }
 
-  Widget _goalRow(NutrientDefinition n) {
+  Widget _threshold(bool upper) {
     final s = S.of(context);
-    final theme = Theme.of(context);
-    final palette = theme.brightness == Brightness.dark
-        ? AppPalette.dark
-        : AppPalette.light;
-    final controller = _controllers[n.key]!;
-    final reference = _defaults[n.key];
-    final id = n.key.replaceAll('_', '-');
-    final inputStyle = theme.textTheme.bodyMedium?.copyWith(height: 1);
-    final decoration = InputDecoration(
-      isDense: true,
-      filled: true,
-      fillColor: palette.surface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      constraints: const BoxConstraints(minHeight: 48),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-    );
+    final d = _draft;
+    final mode = upper ? d.policy.upperMode : d.policy.adequacyMode;
+    final id = upper ? 'upper' : 'adequacy';
+    final value = _resolve(_selected.key, d.value);
+    final reference = upper ? value.upper : value.adequacy;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            n.label(s),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
+            upper ? s.nutrientUpperLevels : s.nutrientAdequacy,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          Semantics(
+            identifier: 'nutrient-$id-mode',
+            child: DropdownButtonFormField<ThresholdMode>(
+              key: ValueKey('${_selected.key}-$id-$mode'),
+              initialValue: mode,
+              isExpanded: true,
+              items: [
+                DropdownMenuItem(
+                  value: ThresholdMode.reference,
+                  child: Text(s.nutrientFollowReference),
+                ),
+                DropdownMenuItem(
+                  value: ThresholdMode.custom,
+                  child: Text(
+                    upper ? s.nutrientCustomUpper : s.nutrientCustomTarget,
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: ThresholdMode.unset,
+                  child: Text(s.nutrientUnset),
+                ),
+              ],
+              onChanged: _saving
+                  ? null
+                  : (next) => setState(
+                      () => d.policy = upper
+                          ? d.policy.copyWith(upperMode: next)
+                          : d.policy.copyWith(adequacyMode: next),
+                    ),
             ),
           ),
-          const SizedBox(height: 6),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final kindWidth = MediaQuery.textScalerOf(
-                context,
-              ).scale(96).clamp(96.0, constraints.maxWidth / 2);
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Semantics(
-                      identifier: 'nutrient-goal-$id',
-                      label: n.label(s),
-                      child: TextFormField(
-                        controller: controller,
-                        enabled: !_saving,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        autovalidateMode: AutovalidateMode.onUserInteraction,
-                        style: inputStyle,
-                        decoration: decoration.copyWith(
-                          suffixText: n.unit,
-                          hintText: reference == null
-                              ? '—'
-                              : _amountText(reference.amount),
-                        ),
-                        validator: _amountError,
-                        onChanged: (text) => setState(() {
-                          if (text.trim().isEmpty) {
-                            _limits[n.key] =
-                                n.goalKind == NutrientGoalKind.limit;
-                          }
-                        }),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: kindWidth,
-                    child: Semantics(
-                      identifier: 'nutrient-goal-kind-$id',
-                      label: n.label(s),
-                      child: DropdownButtonFormField<bool>(
-                        key: ValueKey('${n.key}-${_limits[n.key]}'),
-                        initialValue: _limits[n.key],
-                        isExpanded: true,
-                        decoration: decoration,
-                        style: inputStyle,
-                        items: [
-                          DropdownMenuItem(
-                            value: false,
-                            child: Text(
-                              s.nutrientGoalTargetLabel,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: true,
-                            child: Text(
-                              s.nutrientGoalLimitLabel,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                        onChanged:
-                            _saving ||
-                                (controller.text.trim().isEmpty &&
-                                    reference == null)
-                            ? null
-                            : (value) {
-                                if (value == null || value == _limits[n.key]) {
-                                  return;
-                                }
-                                setState(() {
-                                  _limits[n.key] = value;
-                                  if (controller.text.trim().isEmpty &&
-                                      reference != null) {
-                                    controller.text = _amountText(
-                                      reference.amount,
-                                    );
-                                  }
-                                });
-                              },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 48,
-                    child: Semantics(
-                      identifier: 'nutrient-goal-reset-$id',
-                      child: IconButton(
-                        tooltip: s.nutrientUseDefaultLabel,
-                        onPressed:
-                            _saving ||
-                                (controller.text.isEmpty &&
-                                    _limits[n.key] ==
-                                        (n.goalKind == NutrientGoalKind.limit))
-                            ? null
-                            : () => _confirmReset(n),
-                        icon: const Icon(Icons.restore_rounded, size: 20),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+          if (mode == ThresholdMode.custom)
+            Semantics(
+              identifier: 'nutrient-$id-amount',
+              child: TextField(
+                controller: upper ? d.upper : d.target,
+                enabled: !_saving,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: upper
+                      ? s.nutrientCustomUpper
+                      : s.nutrientCustomTarget,
+                  suffixText: _selected.unit,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          if (mode == ThresholdMode.reference)
+            Text(
+              reference == null
+                  ? referenceUnavailableLabel(value.unavailable, s)
+                  : referenceAmountLabel(reference, s),
+            ),
         ],
       ),
     );
@@ -412,7 +421,7 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
   Widget build(BuildContext context) {
     final s = S.of(context);
     return PopScope(
-      canPop: !_dirty && !_saving,
+      canPop: _allowLeave || !_dirty && !_saving,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && !_saving) _confirmLeave();
       },
@@ -422,29 +431,29 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
             s.settingsNutrientGoalsLabel,
             maxLines: 2,
             minFontSize: 12,
-            overflow: TextOverflow.ellipsis,
           ),
           actions: [
             Semantics(
               identifier: 'nutrient-goals-sources',
               child: IconButton(
                 tooltip: s.sourcesIconTooltip,
-                onPressed: _saving
-                    ? null
-                    : () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const SourcesScreen(),
-                        ),
-                      ),
-                icon: const Icon(Icons.info_outline_rounded),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => SourcesScreen(
+                      referenceRegion: _loaded ? _draft.policy.region : null,
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.info_outline),
               ),
             ),
             Semantics(
               identifier: 'nutrient-goals-reset',
               child: IconButton(
                 tooltip: s.nutrientGoalsResetAllLabel,
-                onPressed: _saving || !_loaded ? null : () => _confirmReset(),
-                icon: const Icon(Icons.restore_rounded),
+                onPressed: _saving || !_loaded ? null : _resetAll,
+                icon: const Icon(Icons.restore),
               ),
             ),
             Semantics(
@@ -457,7 +466,7 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
                         dimension: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.check_rounded),
+                    : const Icon(Icons.check),
               ),
             ),
           ],
@@ -466,37 +475,169 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
             ? Center(
                 child: Semantics(
                   identifier: 'nutrient-goals-retry',
-                  child: TextButton.icon(
+                  child: TextButton(
                     onPressed: () {
                       setState(() => _loadFailed = false);
                       _load();
                     },
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: Text(s.retryLabel),
+                    child: Text(s.retryLabel),
                   ),
                 ),
               )
             : !_loaded
             ? const Center(child: CircularProgressIndicator())
-            : Form(
-                key: _form,
-                child: Semantics(
-                  identifier: 'nutrient-goals-list',
+            : NutrientVisibilityBuilder(
+                builder: (context, config) => Semantics(
+                  identifier: 'nutrient-goals-detail',
                   label: s.settingsNutrientGoalsLabel,
                   child: ListView(
+                    controller: _scroll,
                     padding: const EdgeInsets.all(16),
                     children: [
-                      Text(
-                        s.settingsNutrientGoalsHint,
-                        style: Theme.of(context).textTheme.bodySmall,
+                      LayoutBuilder(
+                        builder: (context, constraints) => Semantics(
+                          identifier: 'nutrient-selector',
+                          child: DropdownMenu<NutrientDefinition>(
+                            key: ValueKey(_selected.key),
+                            initialSelection: _selected,
+                            width: constraints.maxWidth,
+                            enableFilter: true,
+                            enableSearch: true,
+                            requestFocusOnTap: true,
+                            label: Text(s.nutrientSearch),
+                            dropdownMenuEntries: [
+                              for (final n in Nutrients.additional)
+                                DropdownMenuEntry(value: n, label: n.label(s)),
+                            ],
+                            onSelected: _saving
+                                ? null
+                                : (n) {
+                                    if (n != null)
+                                      setState(() => _selected = n);
+                                  },
+                          ),
+                        ),
                       ),
-                      for (final group in Nutrients.additionalGroups) ...[
-                        NutrientGroupHeader(group: group),
-                        for (final n in Nutrients.additional.where(
-                          (n) => n.group == group,
-                        ))
-                          _goalRow(n),
-                      ],
+                      const SizedBox(height: 16),
+                      Text(s.settingsNutrientGoalsHint),
+                      const SizedBox(height: 16),
+                      AutoSizeText(
+                        _selected.label(s),
+                        maxLines: 2,
+                        minFontSize: 14,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      Semantics(
+                        identifier: 'nutrient-reference-source',
+                        child: DropdownButtonFormField<ReferenceRegion>(
+                          key: ValueKey(
+                            '${_selected.key}-${_draft.policy.source}',
+                          ),
+                          initialValue: _draft.policy.region,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: s.nutrientSource,
+                          ),
+                          items: [
+                            for (final r in ReferenceRegion.values)
+                              DropdownMenuItem(
+                                value: r,
+                                child: Text(ReferenceSource.forRegion(r).name),
+                              ),
+                          ],
+                          onChanged: _saving
+                              ? null
+                              : (r) {
+                                  if (r != null) _changeSource(r);
+                                },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        s.nutrientPublishedReferences,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      NutrientReferenceDetails(
+                        reference: _resolve(
+                          _selected.key,
+                          _draft.value,
+                        ).reference,
+                        unavailable: _resolve(
+                          _selected.key,
+                          _draft.value,
+                        ).unavailable,
+                      ),
+                      if (ReferenceCatalogue.series(
+                            _draft.policy.region,
+                          ).any((row) => row.nutrient == _selected.key) ||
+                          _draft.policy.frozenReference != null ||
+                          _resolve(
+                                _selected.key,
+                                _draft.value,
+                              ).reference?.calculation ==
+                              ReferenceCalculation.weightFormula)
+                        Semantics(
+                          identifier: 'nutrient-auto-adjust',
+                          child: SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(s.nutrientAutoAdjust),
+                            subtitle: Text(s.nutrientAutoAdjustHelp),
+                            value: _draft.policy.autoAdjust,
+                            onChanged: _saving
+                                ? null
+                                : (enabled) => setState(
+                                    () => _draft.policy = enabled
+                                        ? _draft.policy.copyWith(
+                                            autoAdjust: true,
+                                          )
+                                        : NutrientGoalResolver.freeze(
+                                            nutrient: _selected.key,
+                                            policy: _draft.policy,
+                                            user: _user!,
+                                            today: _today,
+                                            weights: _weights,
+                                          ),
+                                  ),
+                          ),
+                        ),
+                      if (!_draft.policy.autoAdjust)
+                        Text(
+                          '${s.referenceFrozen}: ${_draft.policy.frozenOn?.toIso8601String().split('T').first ?? '—'}',
+                        ),
+                      const Divider(),
+                      Text(
+                        s.nutrientActiveThresholds,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      _threshold(false),
+                      _threshold(true),
+                      Semantics(
+                        identifier: 'nutrient-goal-reset',
+                        child: OutlinedButton.icon(
+                          onPressed: _saving ? null : _reset,
+                          icon: const Icon(Icons.restore),
+                          label: Text(s.nutrientUseDefaultLabel),
+                        ),
+                      ),
+                      const Divider(),
+                      Text(s.nutrientVisibilityImmediate),
+                      Row(
+                        children: [
+                          const Expanded(child: SizedBox()),
+                          for (final label in [
+                            s.nutrientVisibilityDailyLabel,
+                            s.nutrientVisibilityInfoLabel,
+                          ])
+                            SizedBox(
+                              width: 64,
+                              child: Text(label, textAlign: TextAlign.center),
+                            ),
+                        ],
+                      ),
+                      NutrientVisibilityControls(
+                        nutrient: _selected,
+                        config: config,
+                      ),
                     ],
                   ),
                 ),

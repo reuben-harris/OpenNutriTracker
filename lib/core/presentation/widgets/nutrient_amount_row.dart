@@ -57,18 +57,18 @@ class NutrientAmountRow extends StatelessWidget {
     final displayed = energy
         ? EnergyDisplay.convertAmount(context, finiteAmount)
         : finiteAmount;
-    final target = goal == null || !goal!.amount.isFinite
+    final target = goal == null || !goal.amount.isFinite
         ? null
         : energy
-        ? EnergyDisplay.convert(context, goal!.amount)
-        : goal!.amount;
+        ? EnergyDisplay.convert(context, goal.amount)
+        : goal.amount;
     final ratio =
         finiteAmount == null ||
             goal == null ||
-            !goal!.amount.isFinite ||
-            goal!.amount <= 0
+            !goal.amount.isFinite ||
+            goal.amount <= 0
         ? null
-        : finiteAmount.calculationValue / goal!.amount;
+        : finiteAmount.calculationValue / goal.amount;
     final amountText = formatNutrientAmount(
       displayed,
       s,

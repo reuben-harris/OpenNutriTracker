@@ -248,7 +248,7 @@ class ReferenceCatalogue {
             : row.perKg
             ? coefficient * weightKg! / 1000
             : coefficient;
-        if (amount != null)
+        if (amount != null) {
           values.add(
             PublishedReference(
               amount: amount,
@@ -259,8 +259,9 @@ class ReferenceCatalogue {
               scope: row.adequacyScope,
             ),
           );
+        }
         final upper = row.upper.isEmpty ? null : row.upper[index];
-        if (upper != null)
+        if (upper != null) {
           values.add(
             PublishedReference(
               amount: upper,
@@ -272,6 +273,7 @@ class ReferenceCatalogue {
               upper: true,
             ),
           );
+        }
       }
       if (nutrient == NutrientKeys.sodium &&
           region == ReferenceRegion.usCanada) {
@@ -300,7 +302,7 @@ class ReferenceCatalogue {
             table: 'Table 9 (2017 amendment)',
           ),
         );
-        if (age >= 18)
+        if (age >= 18) {
           values.add(
             const PublishedReference(
               amount: 2000,
@@ -311,6 +313,7 @@ class ReferenceCatalogue {
               upper: true,
             ),
           );
+        }
       }
     }
     return ReferenceSelection(

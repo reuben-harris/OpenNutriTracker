@@ -102,8 +102,9 @@ class NutrientGoalResolver {
     required DateTime day,
     Iterable<WeightLogEntity> weights = const [],
   }) {
-    if (!policy.valid)
+    if (!policy.valid) {
       return const NutrientReferenceRange(unavailable: 'policy');
+    }
     final selected = !policy.autoAdjust
         ? policy.frozenReference == null
               ? null

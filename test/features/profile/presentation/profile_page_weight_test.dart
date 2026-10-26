@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
 import '../../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -53,6 +54,11 @@ class _FakeProfileBloc extends Bloc<ProfileEvent, ProfileState>
 
   @override
   Future<void> setCaloriesTaperEnabled(bool enabled) async {}
+
+  @override
+  Future<void> setNutrientPolicies(
+    Map<String, NutrientPolicy> policies,
+  ) async {}
 
   @override
   Future<void> updateUser(UserEntity userEntity) async {

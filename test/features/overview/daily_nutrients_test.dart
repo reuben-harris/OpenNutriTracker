@@ -1,5 +1,4 @@
 import 'package:opennutritracker/core/domain/entity/nutrients.dart';
-import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/nutrition/nutrient_goal_resolver.dart';
 import '../../helpers/pump_until.dart';

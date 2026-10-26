@@ -1,4 +1,3 @@
-import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/presentation/widgets/app_card.dart';
 import 'package:opennutritracker/core/presentation/widgets/share_qr_dialog.dart';

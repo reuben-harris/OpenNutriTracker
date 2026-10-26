@@ -9,8 +9,9 @@ class UserRepository {
   UserRepository(this._userDataSource);
 
   Future<void> updateUserData(UserEntity userEntity) async {
-    if (userEntity.nutrientPolicies.values.any((p) => !p.valid))
+    if (userEntity.nutrientPolicies.values.any((p) => !p.valid)) {
       throw ArgumentError('Invalid nutrient policy');
+    }
     final previous = await hasUserData() ? await getUserData() : null;
     if (previous == null || previous.heightCM != userEntity.heightCM) {
       userEntity.recordHeight(
@@ -23,8 +24,9 @@ class UserRepository {
 
   Future<void> restoreUserData(UserDBO user) {
     UserEntity.fromUserDBO(user); // Validate periods before accepting a backup.
-    if (user.nutrientPolicies.values.any((p) => !p.valid))
+    if (user.nutrientPolicies.values.any((p) => !p.valid)) {
       throw ArgumentError('Invalid nutrient policy');
+    }
     return _userDataSource.saveUserData(user);
   }
 
