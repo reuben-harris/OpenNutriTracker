@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/domain/entity/nutrients.dart';
+import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dart';
 import 'dart:convert';
@@ -30,7 +32,7 @@ import 'package:opennutritracker/core/utils/csv_row_parser.dart';
 class CsvDataExporter {
   // Intake columns. Order matters for the generated CSV; the parser is
   // header-driven and tolerates re-ordering.
-  static const intakeColumns = <String>[
+  static final intakeColumns = <String>[
     'id',
     'date_time',
     'type',
@@ -46,30 +48,8 @@ class CsvDataExporter {
     'meal_thumbnail_url',
     'meal_main_image_url',
     'meal_url',
-    'kcal_per_100g',
-    'carbs_per_100g',
-    'fat_per_100g',
-    'protein_per_100g',
-    'sugars_per_100g',
-    'saturated_fat_per_100g',
-    'fiber_per_100g',
-    'monounsaturated_fat_per_100g',
-    'polyunsaturated_fat_per_100g',
-    'trans_fat_per_100g',
-    'cholesterol_per_100g',
-    'sodium_per_100g',
-    'potassium_per_100g',
-    'magnesium_per_100g',
-    'calcium_per_100g',
-    'iron_per_100g',
-    'zinc_per_100g',
-    'phosphorus_per_100g',
-    'vitamin_a_per_100g',
-    'vitamin_c_per_100g',
-    'vitamin_d_per_100g',
-    'vitamin_b6_per_100g',
-    'vitamin_b12_per_100g',
-    'niacin_per_100g',
+    for (final nutrient in Nutrients.all) nutrient.csvColumn,
+
     // Appended after the original nutrient columns; older CSVs still parse.
     // Mirrors `MealDBO.dataVersion`: a row with `meal_source` of `off`
     // and no value
@@ -127,7 +107,9 @@ class CsvDataExporter {
     buf.writeln(intakeColumns.join(','));
     for (final intake in intakes) {
       final meal = intake.meal;
-      final n = meal.nutriments;
+      final nutrition = MealNutrimentsEntity.fromMealNutrimentsDBO(
+        meal.nutriments,
+      );
       final cells = <String>[
         _cell(intake.id),
         _cell(intake.dateTime.toIso8601String()),
@@ -144,30 +126,8 @@ class CsvDataExporter {
         _cell(meal.thumbnailImageUrl),
         _cell(meal.mainImageUrl),
         _cell(meal.url),
-        _nutrientCell(n.energyKcal100),
-        _nutrientCell(n.carbohydrates100),
-        _nutrientCell(n.fat100),
-        _nutrientCell(n.proteins100),
-        _nutrientCell(n.sugars100),
-        _nutrientCell(n.saturatedFat100),
-        _nutrientCell(n.fiber100),
-        _nutrientCell(n.monounsaturatedFat100),
-        _nutrientCell(n.polyunsaturatedFat100),
-        _nutrientCell(n.transFat100),
-        _nutrientCell(n.cholesterol100),
-        _nutrientCell(n.sodium100),
-        _nutrientCell(n.potassium100),
-        _nutrientCell(n.magnesium100),
-        _nutrientCell(n.calcium100),
-        _nutrientCell(n.iron100),
-        _nutrientCell(n.zinc100),
-        _nutrientCell(n.phosphorus100),
-        _nutrientCell(n.vitaminA100),
-        _nutrientCell(n.vitaminC100),
-        _nutrientCell(n.vitaminD100),
-        _nutrientCell(n.vitaminB6100),
-        _nutrientCell(n.vitaminB12100),
-        _nutrientCell(n.niacin100),
+        for (final nutrient in Nutrients.all)
+          _nutrientCell(nutrient.amount(nutrition)),
         _num(meal.dataVersion?.toDouble()),
         _cell(
           intake.recipeSnapshot == null
@@ -248,35 +208,13 @@ class CsvDataExporter {
     final out = <IntakeDBO>[];
     for (var i = 1; i < rows.length; i++) {
       final row = _zip(header, rows[i]);
-      final nutriments = MealNutrimentsDBO(
-        energyKcal100: _parseNutrient(row['kcal_per_100g']),
-        carbohydrates100: _parseNutrient(row['carbs_per_100g']),
-        fat100: _parseNutrient(row['fat_per_100g']),
-        proteins100: _parseNutrient(row['protein_per_100g']),
-        sugars100: _parseNutrient(row['sugars_per_100g']),
-        saturatedFat100: _parseNutrient(row['saturated_fat_per_100g']),
-        fiber100: _parseNutrient(row['fiber_per_100g']),
-        monounsaturatedFat100: _parseNutrient(
-          row['monounsaturated_fat_per_100g'],
-        ),
-        polyunsaturatedFat100: _parseNutrient(
-          row['polyunsaturated_fat_per_100g'],
-        ),
-        transFat100: _parseNutrient(row['trans_fat_per_100g']),
-        cholesterol100: _parseNutrient(row['cholesterol_per_100g']),
-        sodium100: _parseNutrient(row['sodium_per_100g']),
-        potassium100: _parseNutrient(row['potassium_per_100g']),
-        magnesium100: _parseNutrient(row['magnesium_per_100g']),
-        calcium100: _parseNutrient(row['calcium_per_100g']),
-        iron100: _parseNutrient(row['iron_per_100g']),
-        zinc100: _parseNutrient(row['zinc_per_100g']),
-        phosphorus100: _parseNutrient(row['phosphorus_per_100g']),
-        vitaminA100: _parseNutrient(row['vitamin_a_per_100g']),
-        vitaminC100: _parseNutrient(row['vitamin_c_per_100g']),
-        vitaminD100: _parseNutrient(row['vitamin_d_per_100g']),
-        vitaminB6100: _parseNutrient(row['vitamin_b6_per_100g']),
-        vitaminB12100: _parseNutrient(row['vitamin_b12_per_100g']),
-        niacin100: _parseNutrient(row['niacin_per_100g']),
+      final nutriments = MealNutrimentsDBO.fromProductNutrimentsEntity(
+        MealNutrimentsEntity.fromAmounts({
+          for (final nutrient in Nutrients.all)
+            nutrient.field: CsvRowParser.parseNutrientOrNull(
+              row[nutrient.csvColumn],
+            ),
+        }),
       );
       final meal = MealDBO(
         code: _nullable(row['meal_code']),
@@ -456,16 +394,9 @@ class CsvDataExporter {
 
   static String _nutrientCell(NutrientAmount? amount) => amount == null
       ? ''
-      : amount.isQualified
+      : amount.isQualified || amount.isPartial
       ? _cell(jsonEncode(amount.toJson()))
       : _num(amount.value);
-
-  static NutrientAmount? _parseNutrient(String? cell) {
-    if (cell == null || cell.isEmpty) return null;
-    return NutrientAmount.fromSource(
-      cell.startsWith('{') ? jsonDecode(cell) : cell,
-    );
-  }
 
   static String? _nullable(String? cell) {
     if (cell == null) return null;

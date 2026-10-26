@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/data/dbo/user_dbo.dart';
+import 'package:opennutritracker/core/data/repository/user_repository.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -27,6 +29,7 @@ typedef PickImportFile = Future<PlatformFile?> Function();
 Future<PlatformFile?> _pickAnyFile() => FilePicker.pickFile(type: FileType.any);
 
 class ImportDataUsecase {
+  final UserRepository _userRepository;
   final UserActivityRepository _userActivityRepository;
   final IntakeRepository _intakeRepository;
   final TrackedDayRepository _trackedDayRepository;
@@ -46,8 +49,10 @@ class ImportDataUsecase {
     this._recipeRepository,
     this._weightLogRepository,
     this._customActivityTemplateRepository, {
+    required UserRepository userRepository,
     PickImportFile pickFile = _pickAnyFile,
-  }) : _pickFile = pickFile;
+  }) : _pickFile = pickFile,
+       _userRepository = userRepository;
 
   /// Imports user activity, intake, tracked day, and (optionally) recipe,
   /// weight log or Custom activity template data from a zip file
@@ -68,6 +73,15 @@ class ImportDataUsecase {
     String customActivityTemplateJsonFileName,
   ) async {
     final archive = await _pickAndDecodeArchive();
+
+    final bodyFile = archive.findFile('profile_body.json');
+    if (bodyFile != null) {
+      final user = UserDBO.fromJson(
+        jsonDecode(utf8.decode(bodyFile.content as List<int>))
+            as Map<String, dynamic>,
+      );
+      await _userRepository.restoreUserData(user);
+    }
 
     // Extract and process user activity data
     final userActivityFile = archive.findFile(userActivityJsonFileName);

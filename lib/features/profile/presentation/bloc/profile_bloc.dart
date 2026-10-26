@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
@@ -61,6 +62,16 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     await updateUser(user);
   }
 
+  Future<void> setNutrientPolicies(Map<String, NutrientPolicy> policies) async {
+    if (policies.values.any((p) => !p.valid)) {
+      throw ArgumentError('Invalid nutrient policy');
+    }
+    final user = await getUser();
+    user.nutrientPolicies = Map.of(policies);
+    await _addUserUsecase.addUser(user);
+    _refreshViews();
+  }
+
   Future<void> updateUser(UserEntity userEntity) async {
     // Update user in DB
     await _addUserUsecase.addUser(userEntity);
@@ -68,6 +79,10 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     // Update Tracked Day
     await _updateTrackedDayCalorieGoal(userEntity, DateTime.now());
 
+    _refreshViews();
+  }
+
+  void _refreshViews() {
     // Refresh Profile
     add(LoadProfileEvent());
     // Refresh Home Page

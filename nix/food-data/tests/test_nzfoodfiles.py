@@ -101,6 +101,44 @@ class NZTest(unittest.TestCase):
         self.assertEqual(cells[1]['raw_value'], '1.2300')
         self.assertEqual(cells[1]['formula'], '1+0.23')
 
+    def test_expanded_nutrients_keep_units_precision_and_source_values(self):
+        self.nutrients += [
+            ['Q1', 'MN', '1234.5000', 'µg', 'W', '', '', '', '', ''],
+            ['Q1', 'FOLDFE', '123.4500', 'µg', 'W', '', '', '', '', ''],
+            ['Q1', 'TOCPHA', '0.00100', 'mg', 'W', '', '', '', '', ''],
+            ['Q1', 'FAPUN3', '0', 'g', 'W', '', 'TR', '', '', ''],
+        ]
+        self.write_nutrients()
+        db, _ = self.build()
+        values = json.loads(db.execute('SELECT nutrition FROM food').fetchone()[0])
+        self.assertEqual(values['manganese100'], '1.2345')
+        self.assertEqual(values['folateDfe100'], '123.4500')
+        self.assertEqual(values['vitaminE100'], '0.00100')
+        self.assertEqual(values['omega3100']['qualification'], 'trace')
+        self.assertNotIn('vitaminK1100', values)
+        raw = {r['Component Identifier']: r for r in self.records(db, 'UnabridgedDataFT')}
+        self.assertEqual(raw['MN']['Value'], '1234.5000')
+        self.assertEqual(raw['MN']['Unit Code'], 'µg')
+
+    def test_amino_acids_use_food_weight_basis_and_preserve_source_profiles(self):
+        with (self.files / 'UnabridgedCodes').open('a') as stream:
+            stream.write('HISN~Histidine per nitrogen~mg~N\n')
+        self.nutrients += [
+            ['Q1', 'HIS_G', '0.0012300', 'g', 'W', '', '', '', '', ''],
+            ['Q1', 'HISN', '999.99', 'mg', 'N', '', '', '', '', ''],
+            ['Q1', 'CYS_G', '0.00', 'g', 'W', '', '', '', '', ''],
+        ]
+        self.write_nutrients()
+        db, _ = self.build()
+        values = json.loads(db.execute('SELECT nutrition FROM food').fetchone()[0])
+        self.assertEqual(values['histidine100'], '0.0012300')
+        self.assertEqual(values['cystine100'], '0.00')
+        self.assertNotIn('cysteine100', values)
+        self.assertNotIn('glutamine100', values)
+        raw = {r['Component Identifier']: r for r in self.records(db, 'UnabridgedDataFT')}
+        self.assertEqual(raw['HISN']['Value'], '999.99')
+        self.assertEqual(raw['HISN']['Matrix Unit Code'], 'N')
+
     def test_qualifications_without_invented_limits(self):
         for code, qualification in [('TR', 'trace'), ('BL', 'belowDetection'),
                                     ('BLX', 'belowDetectionOrQuantification'), ('BQ', 'belowQuantification')]:

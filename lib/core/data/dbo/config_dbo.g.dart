@@ -30,6 +30,8 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
         dayStartOffsetHours: (fields[19] as num?)?.toInt(),
         diarySortPreferences: (fields[21] as Map?)?.cast<String, int>(),
         nutrientPanelVisibility: (fields[22] as Map?)?.cast<String, bool>(),
+        nutrientInfoVisibility: (fields[44] as Map?)?.cast<String, bool>(),
+        showMissingNutrientsInInfo: fields[46] as bool?,
         dayStartOffsetMinutes: (fields[23] as num?)?.toInt(),
         dailyWaterGoalMl: (fields[24] as num?)?.toInt(),
         useMaterialYou: fields[20] as bool?,
@@ -46,7 +48,7 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
         amountArithmeticEnabled: fields[42] as bool?,
         catalogueSourceOverrides: (fields[43] as Map?)?.cast<String, bool>(),
         overviewMacrosAsPercent: fields[40] as bool?,
-        overviewNutrientsAsPercent: fields[41] as bool?,
+        overviewNutrientView: fields[47] as String?,
       )
       ..userCarbGoalPct = (fields[6] as num?)?.toDouble()
       ..userProteinGoalPct = (fields[7] as num?)?.toDouble()
@@ -56,7 +58,7 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
   @override
   void write(BinaryWriter writer, ConfigDBO obj) {
     writer
-      ..writeByte(33)
+      ..writeByte(35)
       ..writeByte(3)
       ..write(obj.selectedAppTheme)
       ..writeByte(4)
@@ -117,12 +119,16 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
       ..write(obj.healthDeletedWorkouts)
       ..writeByte(40)
       ..write(obj.overviewMacrosAsPercent)
-      ..writeByte(41)
-      ..write(obj.overviewNutrientsAsPercent)
       ..writeByte(42)
       ..write(obj.amountArithmeticEnabled)
       ..writeByte(43)
-      ..write(obj.catalogueSourceOverrides);
+      ..write(obj.catalogueSourceOverrides)
+      ..writeByte(44)
+      ..write(obj.nutrientInfoVisibility)
+      ..writeByte(46)
+      ..write(obj.showMissingNutrientsInInfo)
+      ..writeByte(47)
+      ..write(obj.overviewNutrientView);
   }
 
   @override
@@ -162,6 +168,11 @@ ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
             (json['nutrientPanelVisibility'] as Map<String, dynamic>?)?.map(
               (k, e) => MapEntry(k, e as bool),
             ),
+        nutrientInfoVisibility:
+            (json['nutrientInfoVisibility'] as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(k, e as bool),
+            ),
+        showMissingNutrientsInInfo: json['showMissingNutrientsInInfo'] as bool?,
         dayStartOffsetMinutes: (json['dayStartOffsetMinutes'] as num?)?.toInt(),
         dailyWaterGoalMl: (json['dailyWaterGoalMl'] as num?)?.toInt(),
         useMaterialYou: json['useMaterialYou'] as bool?,
@@ -190,7 +201,7 @@ ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
               (k, e) => MapEntry(k, e as bool),
             ),
         overviewMacrosAsPercent: json['overviewMacrosAsPercent'] as bool?,
-        overviewNutrientsAsPercent: json['overviewNutrientsAsPercent'] as bool?,
+        overviewNutrientView: json['overviewNutrientView'] as String?,
       )
       ..userCarbGoalPct = (json['userCarbGoalPct'] as num?)?.toDouble()
       ..userProteinGoalPct = (json['userProteinGoalPct'] as num?)?.toDouble()
@@ -229,9 +240,11 @@ Map<String, dynamic> _$ConfigDBOToJson(ConfigDBO instance) => <String, dynamic>{
     (k, e) => MapEntry(k, e.toIso8601String()),
   ),
   'overviewMacrosAsPercent': instance.overviewMacrosAsPercent,
-  'overviewNutrientsAsPercent': instance.overviewNutrientsAsPercent,
   'amountArithmeticEnabled': instance.amountArithmeticEnabled,
   'catalogueSourceOverrides': instance.catalogueSourceOverrides,
+  'nutrientInfoVisibility': instance.nutrientInfoVisibility,
+  'overviewNutrientView': instance.overviewNutrientView,
+  'showMissingNutrientsInInfo': instance.showMissingNutrientsInInfo,
 };
 
 const _$AppThemeDBOEnumMap = {

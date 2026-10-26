@@ -305,7 +305,6 @@ Future<void> initLocator() async {
       locator(),
       locator(),
       locator(),
-      locator(), // #173: GetTrackedDayUsecase for nutrient-goal pre-fill
     ),
   );
   locator.registerFactory(
@@ -355,6 +354,7 @@ Future<void> initLocator() async {
       recipeRepository: locator(),
       catalogue: locator(),
       getUserUsecase: locator(),
+      getWeightLogUsecase: locator(),
     ),
   );
   locator.registerFactory<ScannerBloc>(() => ScannerBloc(locator(), locator()));
@@ -571,6 +571,7 @@ Future<void> initLocator() async {
       locator(),
       locator(),
       locator(),
+      userRepository: locator(),
     ),
   );
   locator.registerLazySingleton(
@@ -581,6 +582,7 @@ Future<void> initLocator() async {
       locator(),
       locator(),
       locator(),
+      userRepository: locator(),
     ),
   );
   locator.registerLazySingleton(() => ImportMealsCsvUsecase(locator()));

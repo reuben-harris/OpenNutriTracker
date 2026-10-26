@@ -1,5 +1,6 @@
 """Import the unabridged FOODfiles data without altering published values."""
 
+from decimal import Decimal
 import argparse
 import hashlib
 import json
@@ -31,6 +32,49 @@ MAPPING = {
     'phosphorus100': ('P', 'mg'), 'vitaminA100': ('VITA_RAE', 'µg'),
     'vitaminC100': ('VITC', 'mg'), 'vitaminD100': ('VITD', 'µg'),
     'vitaminB6100': ('VITB6A', 'mg'), 'vitaminB12100': ('VITB12', 'µg'), 'niacin100': ('NIA', 'mg'),
+    'thiamin100': ('THIA', 'mg'),
+    'riboflavin100': ('RIBF', 'mg'),
+    'pantothenicAcid100': ('PANTAC', 'mg'),
+    'biotin100': ('BIOT', 'µg'),
+    'folateDfe100': ('FOLDFE', 'µg'),
+    'vitaminE100': ('TOCPHA', 'mg'),
+    'copper100': ('CU', 'mg'),
+    'manganese100': ('MN', 'µg'),
+    'selenium100': ('SE', 'µg'),
+    'iodine100': ('ID', 'µg'),
+    'choline100': ('CHOLN', 'mg'),
+    'omega3100': ('FAPUN3', 'g'),
+    'alphaLinolenicAcid100': ('F18D3CN3', 'g'),
+    'epa100': ('F20D5CN3', 'g'),
+    'dha100': ('F22D6CN3', 'g'),
+    'omega6100': ('FAPUN6', 'g'),
+    'linoleicAcid100': ('F18D2CN6', 'g'),
+    'addedSugars100': ('SUGAD', 'g'),
+    'starch100': ('STARCH', 'g'),
+    'caffeine100': ('CAFFN', 'mg'),
+    'alcohol100': ('ALC', 'g'),
+    # Published grams per 100 g of food, never the mg/g nitrogen profiles.
+    'histidine100': ('HIS_G', 'g'),
+    'isoleucine100': ('ILE_G', 'g'),
+    'leucine100': ('LEU_G', 'g'),
+    'lysine100': ('LYS_G', 'g'),
+    'methionine100': ('MET_G', 'g'),
+    'phenylalanine100': ('PHE_G', 'g'),
+    'threonine100': ('THR_G', 'g'),
+    'tryptophan100': ('TRP_G', 'g'),
+    'valine100': ('VAL_G', 'g'),
+    'alanine100': ('ALA_G', 'g'),
+    'arginine100': ('ARG_G', 'g'),
+    'asparagine100': ('ASN_G', 'g'),
+    'asparticAcid100': ('ASP_G', 'g'),
+    'cystine100': ('CYS_G', 'g'),
+    'glutamicAcid100': ('GLU_G', 'g'),
+    'glycine100': ('GLY_G', 'g'),
+    'hydroxyproline100': ('HYP_G', 'g'),
+    'proline100': ('PRO_G', 'g'),
+    'serine100': ('SER_G', 'g'),
+    'tyrosine100': ('TYR_G', 'g'),
+
 }
 S = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
 R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
@@ -167,6 +211,9 @@ def import_files(directory, pin, output, lock):
             if (row['Unit Code'], row['Matrix Unit Code']) != (definition['Unit Code'], definition['Matrix Unit Code']):
                 raise ValidationError(f'Component units or basis differ: {key}')
             amount = decimal_value(row['Value'])
+            # FOODfiles publishes manganese in µg; the app displays mg.
+            if component == 'MN' and amount is not None:
+                amount = str(Decimal(amount) / Decimal(1000))
             if component in mapped:
                 nutrition[identity][mapped[component]] = project_amount(amount, row['Value Type Code'])
             nutrient_count += 1

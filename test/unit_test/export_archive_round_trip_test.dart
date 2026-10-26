@@ -1,3 +1,8 @@
+import 'package:opennutritracker/core/domain/entity/height_reading.dart';
+import 'package:opennutritracker/core/domain/entity/life_stage_period.dart';
+import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
+import 'package:opennutritracker/core/data/dbo/user_dbo.dart';
+import '../helpers/memory_user_repository.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'dart:io';
 import 'dart:convert';
@@ -196,6 +201,26 @@ void main() {
         dateTime: DateTime(2026, 9, 4),
       );
 
+      final body = MemoryUserRepository();
+      body.body.heightHistory = [
+        HeightReading(date: DateTime(2025, 3), centimetres: 170.125),
+      ];
+      body.body.lifeStagePeriods = [
+        LifeStagePeriod(
+          stage: LifeStage.pregnancy,
+          start: DateTime(2025, 1),
+          end: DateTime(2025, 9),
+        ),
+      ];
+      body.body.nutrientPolicies = {
+        'calcium': const NutrientPolicy(
+          source: 'nzAustralia',
+          adequacyMode: ThresholdMode.custom,
+          target: 1000.125,
+          upperMode: ThresholdMode.custom,
+          upper: 2400,
+        ),
+      };
       final usecase = ExportDataUsecase(
         _StubUserActivityRepository(),
         _StubIntakeRepository([intake]),
@@ -204,6 +229,7 @@ void main() {
         _StubCustomMealDataSource([]),
         _StubWeightLogRepository(),
         _StubTemplateRepository(),
+        userRepository: body,
       );
 
       final archive = await usecase.assembleArchive(
@@ -231,6 +257,17 @@ void main() {
 
       final zipBytes = ZipEncoder().encode(archive);
       final restored = ZipDecoder().decodeBytes(zipBytes);
+      final bodyJson =
+          jsonDecode(
+                utf8.decode(
+                  restored.findFile('profile_body.json')!.content as List<int>,
+                ),
+              )
+              as Map<String, dynamic>;
+      final restoredBody = UserDBO.fromJson(bodyJson);
+      expect(restoredBody.heightHistory!.single.centimetres, 170.125);
+      expect(restoredBody.lifeStagePeriods.single.end, DateTime(2025, 9));
+      expect(restoredBody.nutrientPolicies['calcium']!.target, 1000.125);
       final intakeJson =
           jsonDecode(
                 utf8.decode(
@@ -289,6 +326,7 @@ void main() {
       _StubCustomMealDataSource([]),
       _StubWeightLogRepository(),
       _StubTemplateRepository(),
+      userRepository: MemoryUserRepository(),
     );
 
     final archive = await usecase.assembleArchive(

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_view.dart';
 import 'package:equatable/equatable.dart';
 import 'package:opennutritracker/core/data/dbo/config_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
@@ -44,13 +45,14 @@ class ConfigEntity extends Equatable {
   final Map<String, int> mealKcalSharesPct; // #150
   final Map<String, int>? diarySortPreferences;
   final bool overviewMacrosAsPercent;
-  final bool overviewNutrientsAsPercent;
-  // #160 follow-up: per-nutrient show/hide overrides for the daily panel.
-  // Keys are nutrient identifiers (see `DailyNutrientPanel.nutrientKeys`),
-  // values are explicit user overrides. A nutrient not present in this map
-  // falls back to the default, which is currently "visible" for every
-  // nutrient — see [isNutrientVisible].
+  final NutrientView overviewNutrientView;
+  // Independent display overrides shared across profiles. Missing keys are
+  // visible; Daily controls the daily totals and Trends, Info controls item tables.
   final Map<String, bool> nutrientPanelVisibility;
+  final Map<String, bool> nutrientInfoVisibility;
+
+  /// Shared across profiles and all food information tables.
+  final bool showMissingNutrientsInInfo;
   final int dayStartOffsetHours; // #139: 0-23, default 0 (wall-clock midnight)
   final int
   dayStartOffsetMinutes; // #139 follow-up: 0-59, composes additively with hours
@@ -214,8 +216,10 @@ class ConfigEntity extends Equatable {
     this.mealKcalSharesPct = defaultMealKcalSharesPct,
     this.diarySortPreferences,
     this.overviewMacrosAsPercent = false,
-    this.overviewNutrientsAsPercent = false,
+    this.overviewNutrientView = NutrientView.adequacy,
     this.nutrientPanelVisibility = const <String, bool>{},
+    this.nutrientInfoVisibility = const <String, bool>{},
+    this.showMissingNutrientsInInfo = false,
     this.dayStartOffsetHours = 0,
     this.dayStartOffsetMinutes = 0,
     this.dailyWaterGoalMl,
@@ -283,9 +287,14 @@ class ConfigEntity extends Equatable {
         _sanitiseShares(dbo.mealKcalSharesPct) ?? defaultMealKcalSharesPct,
     diarySortPreferences: dbo.diarySortPreferences,
     overviewMacrosAsPercent: dbo.overviewMacrosAsPercent ?? false,
-    overviewNutrientsAsPercent: dbo.overviewNutrientsAsPercent ?? false,
+    overviewNutrientView: NutrientView.values.byName(
+      dbo.overviewNutrientView ?? 'adequacy',
+    ),
     nutrientPanelVisibility:
         dbo.nutrientPanelVisibility ?? const <String, bool>{},
+    nutrientInfoVisibility:
+        dbo.nutrientInfoVisibility ?? const <String, bool>{},
+    showMissingNutrientsInInfo: dbo.showMissingNutrientsInInfo ?? false,
     dayStartOffsetHours: _normaliseOffsetHours(dbo.dayStartOffsetHours),
     dayStartOffsetMinutes: _normaliseOffsetMinutes(dbo.dayStartOffsetMinutes),
     dailyWaterGoalMl: _normaliseWaterGoal(dbo.dailyWaterGoalMl),
@@ -390,8 +399,10 @@ class ConfigEntity extends Equatable {
     mealKcalSharesPct,
     diarySortPreferences,
     overviewMacrosAsPercent,
-    overviewNutrientsAsPercent,
+    overviewNutrientView,
     nutrientPanelVisibility,
+    nutrientInfoVisibility,
+    showMissingNutrientsInInfo,
     dayStartOffsetHours,
     dayStartOffsetMinutes,
     dailyWaterGoalMl,

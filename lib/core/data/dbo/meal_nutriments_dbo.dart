@@ -60,6 +60,97 @@ class MealNutrimentsDBO extends HiveObject {
   @HiveField(23)
   final NutrientAmount? niacin100; // mg (B3)
 
+  @HiveField(24)
+  final NutrientAmount? thiamin100;
+  @HiveField(25)
+  final NutrientAmount? riboflavin100;
+  @HiveField(26)
+  final NutrientAmount? pantothenicAcid100;
+  @HiveField(27)
+  final NutrientAmount? biotin100;
+  @HiveField(28)
+  final NutrientAmount? folateDfe100;
+  @HiveField(29)
+  final NutrientAmount? vitaminE100;
+  @HiveField(30)
+  final NutrientAmount? vitaminK1100;
+  @HiveField(31)
+  final NutrientAmount? copper100;
+  @HiveField(32)
+  final NutrientAmount? manganese100;
+  @HiveField(33)
+  final NutrientAmount? selenium100;
+  @HiveField(34)
+  final NutrientAmount? iodine100;
+  @HiveField(35)
+  final NutrientAmount? choline100;
+  @HiveField(36)
+  final NutrientAmount? omega3100;
+  @HiveField(37)
+  final NutrientAmount? alphaLinolenicAcid100;
+  @HiveField(38)
+  final NutrientAmount? epa100;
+  @HiveField(39)
+  final NutrientAmount? dha100;
+  @HiveField(40)
+  final NutrientAmount? omega6100;
+  @HiveField(41)
+  final NutrientAmount? linoleicAcid100;
+  @HiveField(42)
+  final NutrientAmount? addedSugars100;
+  @HiveField(43)
+  final NutrientAmount? starch100;
+  @HiveField(44)
+  final NutrientAmount? caffeine100;
+  @HiveField(45)
+  final NutrientAmount? alcohol100;
+
+  // Individual amino acids, grams per 100 g of food.
+  @HiveField(46)
+  final NutrientAmount? histidine100;
+  @HiveField(47)
+  final NutrientAmount? isoleucine100;
+  @HiveField(48)
+  final NutrientAmount? leucine100;
+  @HiveField(49)
+  final NutrientAmount? lysine100;
+  @HiveField(50)
+  final NutrientAmount? methionine100;
+  @HiveField(51)
+  final NutrientAmount? phenylalanine100;
+  @HiveField(52)
+  final NutrientAmount? threonine100;
+  @HiveField(53)
+  final NutrientAmount? tryptophan100;
+  @HiveField(54)
+  final NutrientAmount? valine100;
+  @HiveField(55)
+  final NutrientAmount? alanine100;
+  @HiveField(56)
+  final NutrientAmount? arginine100;
+  @HiveField(57)
+  final NutrientAmount? asparagine100;
+  @HiveField(58)
+  final NutrientAmount? asparticAcid100;
+  @HiveField(59)
+  final NutrientAmount? cysteine100;
+  @HiveField(60)
+  final NutrientAmount? cystine100;
+  @HiveField(61)
+  final NutrientAmount? glutamicAcid100;
+  @HiveField(62)
+  final NutrientAmount? glutamine100;
+  @HiveField(63)
+  final NutrientAmount? glycine100;
+  @HiveField(64)
+  final NutrientAmount? hydroxyproline100;
+  @HiveField(65)
+  final NutrientAmount? proline100;
+  @HiveField(66)
+  final NutrientAmount? serine100;
+  @HiveField(67)
+  final NutrientAmount? tyrosine100;
+
   MealNutrimentsDBO({
     required this.energyKcal100,
     required this.carbohydrates100,
@@ -85,6 +176,50 @@ class MealNutrimentsDBO extends HiveObject {
     this.vitaminB6100,
     this.vitaminB12100,
     this.niacin100,
+    this.thiamin100,
+    this.riboflavin100,
+    this.pantothenicAcid100,
+    this.biotin100,
+    this.folateDfe100,
+    this.vitaminE100,
+    this.vitaminK1100,
+    this.copper100,
+    this.manganese100,
+    this.selenium100,
+    this.iodine100,
+    this.choline100,
+    this.omega3100,
+    this.alphaLinolenicAcid100,
+    this.epa100,
+    this.dha100,
+    this.omega6100,
+    this.linoleicAcid100,
+    this.addedSugars100,
+    this.starch100,
+    this.caffeine100,
+    this.alcohol100,
+    this.histidine100,
+    this.isoleucine100,
+    this.leucine100,
+    this.lysine100,
+    this.methionine100,
+    this.phenylalanine100,
+    this.threonine100,
+    this.tryptophan100,
+    this.valine100,
+    this.alanine100,
+    this.arginine100,
+    this.asparagine100,
+    this.asparticAcid100,
+    this.cysteine100,
+    this.cystine100,
+    this.glutamicAcid100,
+    this.glutamine100,
+    this.glycine100,
+    this.hydroxyproline100,
+    this.proline100,
+    this.serine100,
+    this.tyrosine100,
   });
 
   factory MealNutrimentsDBO.fromProductNutrimentsEntity(
@@ -115,6 +250,50 @@ class MealNutrimentsDBO extends HiveObject {
       vitaminB6100: nutriments.vitaminB6100,
       vitaminB12100: nutriments.vitaminB12100,
       niacin100: nutriments.niacin100,
+      thiamin100: nutriments.thiamin100,
+      riboflavin100: nutriments.riboflavin100,
+      pantothenicAcid100: nutriments.pantothenicAcid100,
+      biotin100: nutriments.biotin100,
+      folateDfe100: nutriments.folateDfe100,
+      vitaminE100: nutriments.vitaminE100,
+      vitaminK1100: nutriments.vitaminK1100,
+      copper100: nutriments.copper100,
+      manganese100: nutriments.manganese100,
+      selenium100: nutriments.selenium100,
+      iodine100: nutriments.iodine100,
+      choline100: nutriments.choline100,
+      omega3100: nutriments.omega3100,
+      alphaLinolenicAcid100: nutriments.alphaLinolenicAcid100,
+      epa100: nutriments.epa100,
+      dha100: nutriments.dha100,
+      omega6100: nutriments.omega6100,
+      linoleicAcid100: nutriments.linoleicAcid100,
+      addedSugars100: nutriments.addedSugars100,
+      starch100: nutriments.starch100,
+      caffeine100: nutriments.caffeine100,
+      alcohol100: nutriments.alcohol100,
+      histidine100: nutriments.histidine100,
+      isoleucine100: nutriments.isoleucine100,
+      leucine100: nutriments.leucine100,
+      lysine100: nutriments.lysine100,
+      methionine100: nutriments.methionine100,
+      phenylalanine100: nutriments.phenylalanine100,
+      threonine100: nutriments.threonine100,
+      tryptophan100: nutriments.tryptophan100,
+      valine100: nutriments.valine100,
+      alanine100: nutriments.alanine100,
+      arginine100: nutriments.arginine100,
+      asparagine100: nutriments.asparagine100,
+      asparticAcid100: nutriments.asparticAcid100,
+      cysteine100: nutriments.cysteine100,
+      cystine100: nutriments.cystine100,
+      glutamicAcid100: nutriments.glutamicAcid100,
+      glutamine100: nutriments.glutamine100,
+      glycine100: nutriments.glycine100,
+      hydroxyproline100: nutriments.hydroxyproline100,
+      proline100: nutriments.proline100,
+      serine100: nutriments.serine100,
+      tyrosine100: nutriments.tyrosine100,
     );
   }
 

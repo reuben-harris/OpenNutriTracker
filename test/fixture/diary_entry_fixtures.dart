@@ -68,3 +68,16 @@ IntakeEntity diaryEntry({
     recipeSnapshot: saved,
   );
 }
+
+MealEntity nutrientFood(MealNutrimentsEntity amounts) => MealEntity(
+  code: 'fixture',
+  name: 'Food',
+  url: null,
+  mealQuantity: null,
+  mealUnit: 'g',
+  servingQuantity: null,
+  servingUnit: null,
+  servingSize: null,
+  source: MealSourceEntity.custom,
+  nutriments: amounts,
+);

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/nutrition/references/reference_catalogue.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 import 'package:opennutritracker/core/presentation/widgets/error_dialog.dart';
@@ -14,8 +15,9 @@ import 'package:url_launcher/url_launcher.dart';
 /// and the onboarding introduction — so anyone scanning the app for citations
 /// (Apple's reviewers included) can find them within one tap.
 class SourcesScreen extends StatefulWidget {
-  const SourcesScreen({super.key, this.catalogue});
+  const SourcesScreen({super.key, this.catalogue, this.referenceRegion});
   final FoodCatalogue? catalogue;
+  final ReferenceRegion? referenceRegion;
 
   @override
   State<SourcesScreen> createState() => _SourcesScreenState();
@@ -39,7 +41,28 @@ class _SourcesScreenState extends State<SourcesScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = S.of(context);
+    final referenceSources = ReferenceSource.all.toList()
+      ..sort(
+        (a, b) => a.region == widget.referenceRegion
+            ? -1
+            : b.region == widget.referenceRegion
+            ? 1
+            : 0,
+      );
     final entries = <_SourceEntry>[
+      for (final source in referenceSources)
+        _SourceEntry(
+          title: '${l10n.sourcesNutrientReferenceTitle} — ${source.name}',
+          description:
+              '${source.edition}\n${l10n.regionalReferenceDescription}',
+          sources: [
+            _SourceLink(
+              citation: source.attribution,
+              url: source.url,
+              identifier: 'source-nutrient-${source.region.name}',
+            ),
+          ],
+        ),
       _SourceEntry(
         title: l10n.sourcesEnergyTitle,
         description: l10n.sourcesEnergyDescription,
@@ -90,19 +113,6 @@ class _SourcesScreenState extends State<SourcesScreen> {
           ),
         ],
       ),
-      _SourceEntry(
-        title: l10n.sourcesNutrientReferenceTitle,
-        description: l10n.sourcesNutrientReferenceDescription,
-        sources: const [
-          _SourceLink(
-            citation:
-                'Institute of Medicine. Dietary Reference Intakes: The '
-                'Essential Guide to Nutrient Requirements. Summary Report. '
-                'National Academies Press.',
-            url: URLConst.sourceNutrientReferenceIomURL,
-          ),
-        ],
-      ),
     ];
 
     return Scaffold(
@@ -118,6 +128,8 @@ class _SourcesScreenState extends State<SourcesScreen> {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: Dimens.spacing16),
+          if (widget.referenceRegion != null)
+            ...entries.map((entry) => _SourceCard(entry: entry)),
           FutureBuilder<List<CatalogueSource>>(
             future: _catalogueSources,
             builder: (context, snapshot) {
@@ -165,7 +177,8 @@ class _SourcesScreenState extends State<SourcesScreen> {
               );
             },
           ),
-          ...entries.map((entry) => _SourceCard(entry: entry)),
+          if (widget.referenceRegion == null)
+            ...entries.map((entry) => _SourceCard(entry: entry)),
         ],
       ),
     );

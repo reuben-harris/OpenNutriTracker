@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_view.dart';
 import 'package:opennutritracker/core/data/data_source/config_data_source.dart';
 import 'package:opennutritracker/core/data/dbo/app_theme_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/config_dbo.dart';
@@ -18,11 +19,14 @@ class ConfigRepository {
     await _configDataSource.addConfig(configDBO);
   }
 
+  Future<void> setShowMissingNutrientsInInfo(bool value) =>
+      _configDataSource.setShowMissingNutrientsInInfo(value);
+
   Future<void> setOverviewMacrosAsPercent(bool value) =>
       _configDataSource.setOverviewMacrosAsPercent(value);
 
-  Future<void> setOverviewNutrientsAsPercent(bool value) =>
-      _configDataSource.setOverviewNutrientsAsPercent(value);
+  Future<void> setOverviewNutrientView(NutrientView value) =>
+      _configDataSource.setOverviewNutrientView(value);
 
   Future<AppThemeEntity> getConfigAppTheme() async {
     final appThemeDBO = await _configDataSource.getAppTheme();
@@ -115,12 +119,6 @@ class ConfigRepository {
     await _configDataSource.setDiarySortPreference(mealKey, sortIndex);
   }
 
-  Future<void> setConfigNutrientPanelVisibility(
-    Map<String, bool> visibility,
-  ) async {
-    await _configDataSource.setConfigNutrientPanelVisibility(visibility);
-  }
-
   Future<void> setConfigDayStartOffsetHours(int hours) async {
     await _configDataSource.setConfigDayStartOffsetHours(hours);
   }
@@ -170,4 +168,12 @@ class ConfigRepository {
   Future<void> pruneConfigHealthDeletedWorkouts(DateTime cutoff) async {
     await _configDataSource.pruneConfigHealthDeletedWorkouts(cutoff);
   }
+
+  Stream<ConfigEntity> watchConfig() =>
+      _configDataSource.watchConfig().map(ConfigEntity.fromConfigDBO);
+  Future<void> setNutrientVisibility(
+    Iterable<String> keys,
+    bool visible, {
+    required bool info,
+  }) => _configDataSource.setNutrientVisibility(keys, visible, info: info);
 }

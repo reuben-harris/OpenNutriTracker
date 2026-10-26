@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 /// A warm-neutral canvas with a gentle surface ladder carries the app; depth
 /// comes from hairline borders and soft shadows, not colour. A single vivid
 /// [accent] (a fresh leaf-green by default, nodding to the nutrition brand) is
-/// the only loud colour and is user-overridable via the accent picker / Material
-/// You. The macro trio (carbs amber, fat coral, protein teal) stays fixed so the
-/// dashboard always reads the same, whatever accent is chosen.
+/// user-overridable via the accent picker / Material You. The macro trio
+/// (carbs amber, fat coral, protein teal) and nutrient status colours stay fixed
+/// so their meaning remains consistent with any accent.
 class AppPalette {
   final Brightness brightness;
   final Color canvas; // scaffold background
@@ -45,6 +45,16 @@ class AppPalette {
   Color get fat => fatColor;
   Color get protein => proteinColor;
   Color get micronutrients => micronutrientsColor;
+
+  Color get nutrientProgressNeutral => brightness == Brightness.light
+      ? const Color(0xFF827C73)
+      : const Color(0xFFA39E94);
+  Color get nutrientTargetReached => brightness == Brightness.light
+      ? const Color(0xFF0E7A4D)
+      : const Color(0xFF34D08A);
+  Color get nutrientLimitReached => brightness == Brightness.light
+      ? const Color(0xFFC4453A)
+      : const Color(0xFFFF9387);
 
   static const light = AppPalette(
     brightness: Brightness.light,
@@ -84,8 +94,8 @@ class AppPalette {
   );
 
   /// Returns a copy with the accent swapped for [newAccent] (accent picker or a
-  /// harmonized Material You primary). The neutral canvas, surfaces and macro
-  /// colours are untouched, so only the one vivid role follows the user.
+  /// harmonized Material You primary). The canvas, surfaces, macro and nutrient
+  /// status colours retain their fixed roles.
   AppPalette withAccent(Color newAccent) {
     final onNew =
         ThemeData.estimateBrightnessForColor(newAccent) == Brightness.dark

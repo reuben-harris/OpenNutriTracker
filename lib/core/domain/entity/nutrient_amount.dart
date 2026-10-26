@@ -41,10 +41,14 @@ class NutrientAmount extends Equatable {
   @HiveField(2)
   final double? limit;
 
+  @HiveField(3)
+  final bool isPartial;
+
   const NutrientAmount(
     this.value, {
     this.qualification = NutrientQualification.none,
     this.limit,
+    this.isPartial = false,
   });
 
   bool get isQualified => qualification != NutrientQualification.none;
@@ -55,6 +59,7 @@ class NutrientAmount extends Equatable {
   NutrientAmount scale(num factor) => NutrientAmount(
     calculationValue * factor,
     qualification: qualification,
+    isPartial: isPartial,
     limit: limit == null ? null : limit! * factor,
   );
 
@@ -69,12 +74,14 @@ class NutrientAmount extends Equatable {
       json['qualification'] as String,
     ),
     limit: (json['limit'] as num?)?.toDouble(),
+    isPartial: json['isPartial'] as bool? ?? false,
   );
 
   Map<String, dynamic> toJson() => {
     'value': value,
     'qualification': qualification.name,
     'limit': limit,
+    'isPartial': isPartial,
   };
 
   /// Catalogue decimals retain their original spelling until this boundary.
@@ -115,19 +122,25 @@ class NutrientAmount extends Equatable {
   }
 
   @override
-  List<Object?> get props => [value, qualification, limit];
+  List<Object?> get props => [value, qualification, limit, isPartial];
 }
 
 /// Never combines mathematical bounds. Qualified inputs qualify the sum.
 class NutrientAccumulator {
   double _value = 0;
   bool _present = false;
+  bool _partial = false;
   bool _qualified = false;
   bool _trace = false;
   bool _onlyTraceAndZero = true;
 
   void add(NutrientAmount? amount, {double scale = 1}) {
-    if (amount == null || scale == 0) return;
+    if (scale == 0) return;
+    if (amount == null) {
+      _partial = true;
+      return;
+    }
+    _partial |= amount.isPartial;
     _present = true;
     _value += amount.calculationValue * scale;
     _qualified |= amount.isQualified;
@@ -141,6 +154,7 @@ class NutrientAccumulator {
       ? null
       : NutrientAmount(
           _value,
+          isPartial: _partial,
           qualification: _trace && _onlyTraceAndZero
               ? NutrientQualification.trace
               : _qualified

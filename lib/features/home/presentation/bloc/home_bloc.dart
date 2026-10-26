@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_view.dart';
 import 'dart:async';
 
 import 'package:collection/collection.dart';
@@ -202,7 +203,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           trackedDay: trackedDay,
           weight: weight,
           overviewMacrosAsPercent: configData.overviewMacrosAsPercent,
-          overviewNutrientsAsPercent: configData.overviewNutrientsAsPercent,
+          overviewNutrientView: configData.overviewNutrientView,
           totalKcalDaily: totalKcalGoal,
           totalKcalLeft: totalKcalLeft,
           totalKcalSupplied: totalKcalIntake,

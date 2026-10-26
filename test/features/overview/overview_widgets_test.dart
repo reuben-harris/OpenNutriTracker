@@ -1,4 +1,7 @@
+import '../../fixture/user_entity_fixtures.dart';
+import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
+import 'package:opennutritracker/core/nutrition/nutrient_goal_resolver.dart';
 import '../../helpers/pump_until.dart';
 import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
@@ -57,6 +60,13 @@ import 'package:opennutritracker/features/trends/presentation/bloc/trends_bloc.d
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
 import '../../helpers/overview_diary_harness.dart';
+
+class ReferenceUser extends Fake implements GetUserUsecase {
+  final UserEntity user =
+      UserEntityFixtures.youngSedentaryMaleWantingToMaintainWeight;
+  @override
+  Future<UserEntity> getUserData() async => user;
+}
 
 class QuietProfile extends Fake implements ProfileBloc {
   @override
@@ -208,6 +218,7 @@ void main() {
   testWidgets(
     'stacked macros and permanently expanded nutrients fit compact large text',
     (tester) async {
+      locator.registerSingleton<GetUserUsecase>(ReferenceUser());
       tester.view.physicalSize = const Size(360, 900);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
@@ -230,11 +241,7 @@ void main() {
                   asPercent: true,
                   onToggle: () {},
                 ),
-                DailyNutrientPanel(
-                  intakes: const [],
-                  asPercent: false,
-                  onToggle: () {},
-                ),
+                DailyNutrientPanel(intakes: const [], onViewChanged: (_) {}),
               ],
             ),
           ),
@@ -247,8 +254,24 @@ void main() {
       expect(find.byType(ExpansionTile), findsNothing);
       expect(find.text('150%'), findsOneWidget);
       expect(find.text('—'), findsOneWidget);
-      expect(find.byType(LinearProgressIndicator), findsNWidgets(13));
-      final sodiumAmount = find.textContaining('/ 2300mg');
+      expect(
+        find.byType(LinearProgressIndicator),
+        findsNWidgets(
+          3 +
+              NutrientGoalResolver.resolve(
+                day: DateTime.now(),
+                user: ReferenceUser().user,
+              ).values.where((r) => r.adequacy?.comparable == true).length,
+        ),
+      );
+      expect(
+        find.byKey(const ValueKey('nutrition-row-iodine')),
+        findsOneWidget,
+      );
+      final sodiumAmount = find.descendant(
+        of: find.byKey(const ValueKey('nutrition-row-sodium')),
+        matching: find.textContaining('0%'),
+      );
       expect(sodiumAmount, findsOneWidget);
       expect(
         tester.renderObject<RenderParagraph>(sodiumAmount).didExceedMaxLines,

@@ -8,7 +8,7 @@ import sqlite3
 import tempfile
 from pathlib import Path
 
-from catalogue import canonical, database, SourceRecords
+from catalogue import canonical, database, SourceRecords, NUTRIENTS, ValidationError
 from . import importer
 
 MAPPING = {
@@ -21,6 +21,98 @@ MAPPING = {
     'iron100': (1089,), 'zinc100': (1095,), 'phosphorus100': (1091,),
     'vitaminA100': (1106,), 'vitaminC100': (1162,), 'vitaminD100': (1114,),
     'vitaminB6100': (1175,), 'vitaminB12100': (1178,), 'niacin100': (1167,),
+    'thiamin100': (1165,),
+    'riboflavin100': (1166,),
+    'pantothenicAcid100': (1170,),
+    'biotin100': (1176,),
+    'folateDfe100': (1190,),
+    'vitaminE100': (1109,),
+    'vitaminK1100': (1185,),
+    'copper100': (1098,),
+    'manganese100': (1101,),
+    'selenium100': (1103,),
+    'iodine100': (1100,),
+    'choline100': (1180,),
+    'alphaLinolenicAcid100': (1404,),
+    'epa100': (1278,),
+    'dha100': (1272,),
+    'linoleicAcid100': (1316,),
+    'addedSugars100': (1235,),
+    'starch100': (1009,),
+    'caffeine100': (1057,),
+    'alcohol100': (1018,),
+    # Individual amino acids; keep combined source definitions separate.
+    'histidine100': (1221,),
+    'isoleucine100': (1212,),
+    'leucine100': (1213,),
+    'lysine100': (1214,),
+    'methionine100': (1215,),
+    'phenylalanine100': (1217,),
+    'threonine100': (1211,),
+    'tryptophan100': (1210,),
+    'valine100': (1219,),
+    'alanine100': (1222,),
+    'arginine100': (1220,),
+    'asparagine100': (1231,),
+    'asparticAcid100': (1223,),
+    'cysteine100': (1232,),
+    'cystine100': (1216,),
+    'glutamicAcid100': (1224,),
+    'glutamine100': (1233,),
+    'glycine100': (1225,),
+    'hydroxyproline100': (1228,),
+    'proline100': (1226,),
+    'serine100': (1227,),
+    'tyrosine100': (1218,),
+
+}
+
+
+# Published USDA units for the newly projected nutrient definitions. Never
+# reinterpret a changed definition merely because its ID still matches.
+PROJECTED_UNITS = {
+    1165: 'MG',
+    1166: 'MG',
+    1170: 'MG',
+    1176: 'UG',
+    1190: 'UG',
+    1109: 'MG',
+    1185: 'UG',
+    1098: 'MG',
+    1101: 'MG',
+    1103: 'UG',
+    1100: 'UG',
+    1180: 'MG',
+    1404: 'G',
+    1278: 'G',
+    1272: 'G',
+    1316: 'G',
+    1235: 'G',
+    1009: 'G',
+    1057: 'MG',
+    1018: 'G',
+    1221: 'G',
+    1212: 'G',
+    1213: 'G',
+    1214: 'G',
+    1215: 'G',
+    1217: 'G',
+    1211: 'G',
+    1210: 'G',
+    1219: 'G',
+    1222: 'G',
+    1220: 'G',
+    1231: 'G',
+    1223: 'G',
+    1232: 'G',
+    1216: 'G',
+    1224: 'G',
+    1233: 'G',
+    1225: 'G',
+    1228: 'G',
+    1226: 'G',
+    1227: 'G',
+    1218: 'G',
 }
 
 
@@ -39,6 +131,9 @@ def portion_label(row):
 
 def project(raw, output, lock):
     raw.row_factory = sqlite3.Row
+    for identity, unit in raw.execute('SELECT id, unit_name FROM nutrient'):
+        if identity in PROJECTED_UNITS and unit.upper() != PROJECTED_UNITS[identity]:
+            raise ValidationError(f'Unsupported USDA nutrient unit: {identity}/{unit}')
     with database(output) as db:
         db.execute('INSERT INTO catalogue_source VALUES (?, ?, ?, ?, ?, ?, ?)', (
             'usda', 'FoodData Central', canonical({k: p['release'] for k, p in lock['sources'].items()}),
@@ -57,8 +152,9 @@ def project(raw, output, lock):
             amounts = {}
             for nutrient in raw.execute('SELECT nutrient_id, amount FROM food_nutrient WHERE fdc_id=? ORDER BY nutrient_id, id', (identity,)):
                 amounts.setdefault(nutrient['nutrient_id'], nutrient['amount'])
-            nutrition = {key: next((amounts[n] for n in ids if amounts.get(n) is not None), None)
-                         for key, ids in MAPPING.items()}
+            nutrition = {key: None for key in NUTRIENTS}
+            nutrition.update({key: next((amounts[n] for n in ids if amounts.get(n) is not None), None)
+                         for key, ids in MAPPING.items()})
             db.execute('INSERT INTO food VALUES (?, ?, ?, ?, ?, ?, ?, ?)', (
                 code, 'usda', str(identity), 'en', food['description'], '',
                 f'https://fdc.nal.usda.gov/fdc-app.html#/food-details/{identity}/nutrients', canonical(nutrition),

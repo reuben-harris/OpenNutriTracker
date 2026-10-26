@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
 import '../../../helpers/locator_test_setup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -53,6 +54,11 @@ class _FakeProfileBloc extends Bloc<ProfileEvent, ProfileState>
 
   @override
   Future<void> setCaloriesTaperEnabled(bool enabled) async {}
+
+  @override
+  Future<void> setNutrientPolicies(
+    Map<String, NutrientPolicy> policies,
+  ) async {}
 
   @override
   Future<void> updateUser(UserEntity userEntity) async {
@@ -162,6 +168,27 @@ void main() {
     await fakeProfileBloc.close();
     await GetIt.instance.resetScope();
   });
+
+  testWidgets(
+    'male profiles retain a muted life-stage entry with an availability message',
+    (tester) async {
+      await tester.pumpWidget(_wrap(const ProfilePage()));
+      await tester.pumpAndSettle();
+      final control = find.byWidgetPredicate(
+        (w) =>
+            w is Semantics &&
+            w.properties.identifier == 'profile-life-stage-history',
+      );
+      await tester.scrollUntilVisible(control, 300);
+      await tester.pumpAndSettle();
+      final icon = find.descendant(of: control, matching: find.byType(Opacity));
+      expect(tester.widget<Opacity>(icon).opacity, 0.38);
+      await tester.tap(control);
+      await tester.pumpAndSettle();
+      expect(find.text(l10nEn.lifeStageFemaleOnly), findsOneWidget);
+      expect(find.byType(ProfilePage), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'You contains profile controls without library or settings entries',

@@ -1,9 +1,25 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
+import 'package:opennutritracker/core/domain/entity/life_stage_period.dart';
+import 'package:opennutritracker/core/domain/entity/height_reading.dart';
 import 'package:opennutritracker/core/data/dbo/user_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 
 class UserEntity {
+  List<LifeStagePeriod> _lifeStagePeriods;
+  List<LifeStagePeriod> get lifeStagePeriods =>
+      List.unmodifiable(_lifeStagePeriods);
+  set lifeStagePeriods(List<LifeStagePeriod> periods) =>
+      _lifeStagePeriods = LifeStagePeriod.validated(periods);
+  LifeStage? lifeStageOn(DateTime day) => sex == UserSexEntity.female
+      ? _lifeStagePeriods
+            .where((period) => period.contains(day))
+            .firstOrNull
+            ?.stage
+      : null;
+  List<HeightReading> heightHistory;
+  Map<String, NutrientPolicy> nutrientPolicies;
   DateTime birthday;
   double heightCM;
   double weightKG;
@@ -26,19 +42,27 @@ class UserEntity {
   bool caloriesTaperEnabled;
 
   UserEntity({
+    Map<String, NutrientPolicy> nutrientPolicies = const {},
     required this.birthday,
     required this.heightCM,
     required this.weightKG,
     required this.sex,
     required this.goal,
     required this.pal,
+    List<LifeStagePeriod> lifeStagePeriods = const [],
+    List<HeightReading>? heightHistory,
     this.weeklyWeightGoalKg,
     this.targetWeightKg,
     this.caloriesTaperEnabled = false,
-  });
+  }) : nutrientPolicies = Map.of(nutrientPolicies),
+       _lifeStagePeriods = LifeStagePeriod.validated(lifeStagePeriods),
+       heightHistory = List.of(heightHistory ?? []);
 
   factory UserEntity.fromUserDBO(UserDBO userDBO) {
     return UserEntity(
+      lifeStagePeriods: userDBO.lifeStagePeriods,
+      heightHistory: userDBO.heightHistory,
+      nutrientPolicies: userDBO.nutrientPolicies,
       birthday: userDBO.birthday,
       heightCM: userDBO.heightCM,
       weightKG: userDBO.weightKG,
@@ -51,5 +75,29 @@ class UserEntity {
     );
   }
 
-  int get age => DateTime.now().difference(birthday).inDays ~/ 365;
+  void recordHeight(HeightReading reading, {DateTime? today}) {
+    heightHistory.removeWhere((e) => e.date == reading.date);
+    heightHistory.add(reading);
+    heightHistory.sort((a, b) => a.date.compareTo(b.date));
+    final now = today ?? DateTime.now();
+    if (reading.date == DateTime(now.year, now.month, now.day)) {
+      heightCM = reading.centimetres;
+    }
+  }
+
+  HeightReading? heightOnOrBefore(DateTime day) {
+    final date = DateTime(day.year, day.month, day.day);
+    final eligible = heightHistory.where((e) => !e.date.isAfter(date)).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    return eligible.firstOrNull;
+  }
+
+  int ageOn(DateTime day) =>
+      day.year -
+      birthday.year -
+      (day.month < birthday.month ||
+              day.month == birthday.month && day.day < birthday.day
+          ? 1
+          : 0);
+  int get age => ageOn(DateTime.now());
 }

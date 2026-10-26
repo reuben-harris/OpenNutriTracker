@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrients.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'dart:convert';
@@ -199,19 +200,26 @@ class JsonRecipeImporter {
           servingQuantity: null,
           servingUnit: null,
           servingSize: null,
-          nutriments: MealNutrimentsEntity(
-            energyKcal100: NutrientAmount.fromNumber(kcal100),
-            carbohydrates100: NutrientAmount.fromNumber(
-              _asDouble(ing[_kIngCarbs]),
-            ),
-            fat100: NutrientAmount.fromNumber(_asDouble(ing[_kIngFat])),
-            proteins100: NutrientAmount.fromNumber(
-              _asDouble(ing[_kIngProtein]),
-            ),
-            sugars100: null,
-            saturatedFat100: null,
-            fiber100: null,
-          ),
+          nutriments: MealNutrimentsEntity.fromAmounts({
+            ...MealNutrimentsEntity(
+              energyKcal100: NutrientAmount.fromNumber(kcal100),
+              carbohydrates100: NutrientAmount.fromNumber(
+                _asDouble(ing[_kIngCarbs]),
+              ),
+              fat100: NutrientAmount.fromNumber(_asDouble(ing[_kIngFat])),
+              proteins100: NutrientAmount.fromNumber(
+                _asDouble(ing[_kIngProtein]),
+              ),
+              sugars100: null,
+              saturatedFat100: null,
+              fiber100: null,
+            ).amounts,
+            for (final n in Nutrients.additional)
+              if ((ing['nutrients'] as Map?)?[n.key] != null)
+                n.field: NutrientAmount.fromSource(
+                  (ing['nutrients'] as Map?)?[n.key],
+                ),
+          }),
           source: MealSourceEntity.custom,
         );
 

@@ -93,6 +93,54 @@ class OFFProductNutrimentsDTO {
   @JsonKey(name: 'vitamin-pp_100g')
   final dynamic niacin_100g;
 
+  @JsonKey(name: 'vitamin-b1_100g')
+  final dynamic vitamin_b1_100g;
+  @JsonKey(name: 'vitamin-b2_100g')
+  final dynamic vitamin_b2_100g;
+  @JsonKey(name: 'pantothenic-acid_100g')
+  final dynamic pantothenic_acid_100g;
+  @JsonKey(name: 'biotin_100g')
+  final dynamic biotin_100g;
+  @JsonKey(name: 'copper_100g')
+  final dynamic copper_100g;
+  @JsonKey(name: 'manganese_100g')
+  final dynamic manganese_100g;
+  @JsonKey(name: 'selenium_100g')
+  final dynamic selenium_100g;
+  @JsonKey(name: 'iodine_100g')
+  final dynamic iodine_100g;
+  @JsonKey(name: 'choline_100g')
+  final dynamic choline_100g;
+  @JsonKey(name: 'omega-3-fat_100g')
+  final dynamic omega_3_fat_100g;
+  @JsonKey(name: 'alpha-linolenic-acid_100g')
+  final dynamic alpha_linolenic_acid_100g;
+  @JsonKey(name: 'eicosapentaenoic-acid_100g')
+  final dynamic eicosapentaenoic_acid_100g;
+  @JsonKey(name: 'docosahexaenoic-acid_100g')
+  final dynamic docosahexaenoic_acid_100g;
+  @JsonKey(name: 'omega-6-fat_100g')
+  final dynamic omega_6_fat_100g;
+  @JsonKey(name: 'linoleic-acid_100g')
+  final dynamic linoleic_acid_100g;
+  @JsonKey(name: 'added-sugars_100g')
+  final dynamic added_sugars_100g;
+  @JsonKey(name: 'starch_100g')
+  final dynamic starch_100g;
+  @JsonKey(name: 'caffeine_100g')
+  final dynamic caffeine_100g;
+  @JsonKey(name: 'l-isoleucine_100g')
+  final dynamic l_isoleucine_100g;
+  @JsonKey(name: 'l-leucine_100g')
+  final dynamic l_leucine_100g;
+  @JsonKey(name: 'l-valine_100g')
+  final dynamic l_valine_100g;
+  @JsonKey(name: 'l-arginine_100g')
+  final dynamic l_arginine_100g;
+  @JsonKey(name: 'l-cysteine_100g')
+  final dynamic l_cysteine_100g;
+  @JsonKey(name: 'l-glutamine_100g')
+  final dynamic l_glutamine_100g;
   OFFProductNutrimentsDTO({
     this.modifiers = const {},
     //required this.energy_kcal,
@@ -147,6 +195,30 @@ class OFFProductNutrimentsDTO {
     this.vitamin_b6_100g,
     this.vitamin_b12_100g,
     this.niacin_100g,
+    this.vitamin_b1_100g,
+    this.vitamin_b2_100g,
+    this.pantothenic_acid_100g,
+    this.biotin_100g,
+    this.copper_100g,
+    this.manganese_100g,
+    this.selenium_100g,
+    this.iodine_100g,
+    this.choline_100g,
+    this.omega_3_fat_100g,
+    this.alpha_linolenic_acid_100g,
+    this.eicosapentaenoic_acid_100g,
+    this.docosahexaenoic_acid_100g,
+    this.omega_6_fat_100g,
+    this.linoleic_acid_100g,
+    this.added_sugars_100g,
+    this.starch_100g,
+    this.caffeine_100g,
+    this.l_isoleucine_100g,
+    this.l_leucine_100g,
+    this.l_valine_100g,
+    this.l_arginine_100g,
+    this.l_cysteine_100g,
+    this.l_glutamine_100g,
   });
 
   factory OFFProductNutrimentsDTO.fromJson(Map<String, dynamic> json) =>

@@ -39,6 +39,51 @@ class MealNutrimentsEntity extends Equatable {
   final NutrientAmount? vitaminB12100; // µg
   final NutrientAmount? niacin100; // mg (B3)
 
+  final NutrientAmount? thiamin100;
+  final NutrientAmount? riboflavin100;
+  final NutrientAmount? pantothenicAcid100;
+  final NutrientAmount? biotin100;
+  final NutrientAmount? folateDfe100;
+  final NutrientAmount? vitaminE100;
+  final NutrientAmount? vitaminK1100;
+  final NutrientAmount? copper100;
+  final NutrientAmount? manganese100;
+  final NutrientAmount? selenium100;
+  final NutrientAmount? iodine100;
+  final NutrientAmount? choline100;
+  final NutrientAmount? omega3100;
+  final NutrientAmount? alphaLinolenicAcid100;
+  final NutrientAmount? epa100;
+  final NutrientAmount? dha100;
+  final NutrientAmount? omega6100;
+  final NutrientAmount? linoleicAcid100;
+  final NutrientAmount? addedSugars100;
+  final NutrientAmount? starch100;
+  final NutrientAmount? caffeine100;
+  final NutrientAmount? alcohol100;
+  final NutrientAmount? histidine100;
+  final NutrientAmount? isoleucine100;
+  final NutrientAmount? leucine100;
+  final NutrientAmount? lysine100;
+  final NutrientAmount? methionine100;
+  final NutrientAmount? phenylalanine100;
+  final NutrientAmount? threonine100;
+  final NutrientAmount? tryptophan100;
+  final NutrientAmount? valine100;
+  final NutrientAmount? alanine100;
+  final NutrientAmount? arginine100;
+  final NutrientAmount? asparagine100;
+  final NutrientAmount? asparticAcid100;
+  final NutrientAmount? cysteine100;
+  final NutrientAmount? cystine100;
+  final NutrientAmount? glutamicAcid100;
+  final NutrientAmount? glutamine100;
+  final NutrientAmount? glycine100;
+  final NutrientAmount? hydroxyproline100;
+  final NutrientAmount? proline100;
+  final NutrientAmount? serine100;
+  final NutrientAmount? tyrosine100;
+
   NutrientAmount? get energyPerUnit => _getValuePerUnit(energyKcal100);
 
   NutrientAmount? get carbohydratesPerUnit =>
@@ -47,27 +92,6 @@ class MealNutrimentsEntity extends Equatable {
   NutrientAmount? get fatPerUnit => _getValuePerUnit(fat100);
 
   NutrientAmount? get proteinsPerUnit => _getValuePerUnit(proteins100);
-
-  /// Returns true when at least one of the extended micronutrient fields
-  /// (lipid profile / minerals / vitamins from #237) has a value.
-  bool get hasMicronutrientData =>
-      monounsaturatedFat100 != null ||
-      polyunsaturatedFat100 != null ||
-      transFat100 != null ||
-      cholesterol100 != null ||
-      sodium100 != null ||
-      potassium100 != null ||
-      magnesium100 != null ||
-      calcium100 != null ||
-      iron100 != null ||
-      zinc100 != null ||
-      phosphorus100 != null ||
-      vitaminA100 != null ||
-      vitaminC100 != null ||
-      vitaminD100 != null ||
-      vitaminB6100 != null ||
-      vitaminB12100 != null ||
-      niacin100 != null;
 
   const MealNutrimentsEntity({
     required this.energyKcal100,
@@ -94,6 +118,50 @@ class MealNutrimentsEntity extends Equatable {
     this.vitaminB6100,
     this.vitaminB12100,
     this.niacin100,
+    this.thiamin100,
+    this.riboflavin100,
+    this.pantothenicAcid100,
+    this.biotin100,
+    this.folateDfe100,
+    this.vitaminE100,
+    this.vitaminK1100,
+    this.copper100,
+    this.manganese100,
+    this.selenium100,
+    this.iodine100,
+    this.choline100,
+    this.omega3100,
+    this.alphaLinolenicAcid100,
+    this.epa100,
+    this.dha100,
+    this.omega6100,
+    this.linoleicAcid100,
+    this.addedSugars100,
+    this.starch100,
+    this.caffeine100,
+    this.alcohol100,
+    this.histidine100,
+    this.isoleucine100,
+    this.leucine100,
+    this.lysine100,
+    this.methionine100,
+    this.phenylalanine100,
+    this.threonine100,
+    this.tryptophan100,
+    this.valine100,
+    this.alanine100,
+    this.arginine100,
+    this.asparagine100,
+    this.asparticAcid100,
+    this.cysteine100,
+    this.cystine100,
+    this.glutamicAcid100,
+    this.glutamine100,
+    this.glycine100,
+    this.hydroxyproline100,
+    this.proline100,
+    this.serine100,
+    this.tyrosine100,
   });
 
   factory MealNutrimentsEntity.empty() => const MealNutrimentsEntity(
@@ -140,6 +208,50 @@ class MealNutrimentsEntity extends Equatable {
       vitaminB6100: finite(nutriments.vitaminB6100),
       vitaminB12100: finite(nutriments.vitaminB12100),
       niacin100: finite(nutriments.niacin100),
+      thiamin100: finite(nutriments.thiamin100),
+      riboflavin100: finite(nutriments.riboflavin100),
+      pantothenicAcid100: finite(nutriments.pantothenicAcid100),
+      biotin100: finite(nutriments.biotin100),
+      folateDfe100: finite(nutriments.folateDfe100),
+      vitaminE100: finite(nutriments.vitaminE100),
+      vitaminK1100: finite(nutriments.vitaminK1100),
+      copper100: finite(nutriments.copper100),
+      manganese100: finite(nutriments.manganese100),
+      selenium100: finite(nutriments.selenium100),
+      iodine100: finite(nutriments.iodine100),
+      choline100: finite(nutriments.choline100),
+      omega3100: finite(nutriments.omega3100),
+      alphaLinolenicAcid100: finite(nutriments.alphaLinolenicAcid100),
+      epa100: finite(nutriments.epa100),
+      dha100: finite(nutriments.dha100),
+      omega6100: finite(nutriments.omega6100),
+      linoleicAcid100: finite(nutriments.linoleicAcid100),
+      addedSugars100: finite(nutriments.addedSugars100),
+      starch100: finite(nutriments.starch100),
+      caffeine100: finite(nutriments.caffeine100),
+      alcohol100: finite(nutriments.alcohol100),
+      histidine100: finite(nutriments.histidine100),
+      isoleucine100: finite(nutriments.isoleucine100),
+      leucine100: finite(nutriments.leucine100),
+      lysine100: finite(nutriments.lysine100),
+      methionine100: finite(nutriments.methionine100),
+      phenylalanine100: finite(nutriments.phenylalanine100),
+      threonine100: finite(nutriments.threonine100),
+      tryptophan100: finite(nutriments.tryptophan100),
+      valine100: finite(nutriments.valine100),
+      alanine100: finite(nutriments.alanine100),
+      arginine100: finite(nutriments.arginine100),
+      asparagine100: finite(nutriments.asparagine100),
+      asparticAcid100: finite(nutriments.asparticAcid100),
+      cysteine100: finite(nutriments.cysteine100),
+      cystine100: finite(nutriments.cystine100),
+      glutamicAcid100: finite(nutriments.glutamicAcid100),
+      glutamine100: finite(nutriments.glutamine100),
+      glycine100: finite(nutriments.glycine100),
+      hydroxyproline100: finite(nutriments.hydroxyproline100),
+      proline100: finite(nutriments.proline100),
+      serine100: finite(nutriments.serine100),
+      tyrosine100: finite(nutriments.tyrosine100),
     );
   }
 
@@ -245,41 +357,184 @@ class MealNutrimentsEntity extends Equatable {
         offNutriments.niacin_100g,
         modifier: offNutriments.modifiers['vitamin-pp'],
       )?.scale(1000),
+      thiamin100: NutrientAmount.fromSource(
+        offNutriments.vitamin_b1_100g,
+        modifier: offNutriments.modifiers['vitamin-b1'],
+      )?.scale(1000),
+      riboflavin100: NutrientAmount.fromSource(
+        offNutriments.vitamin_b2_100g,
+        modifier: offNutriments.modifiers['vitamin-b2'],
+      )?.scale(1000),
+      pantothenicAcid100: NutrientAmount.fromSource(
+        offNutriments.pantothenic_acid_100g,
+        modifier: offNutriments.modifiers['pantothenic-acid'],
+      )?.scale(1000),
+      biotin100: NutrientAmount.fromSource(
+        offNutriments.biotin_100g,
+        modifier: offNutriments.modifiers['biotin'],
+      )?.scale(1000000),
+      copper100: NutrientAmount.fromSource(
+        offNutriments.copper_100g,
+        modifier: offNutriments.modifiers['copper'],
+      )?.scale(1000),
+      manganese100: NutrientAmount.fromSource(
+        offNutriments.manganese_100g,
+        modifier: offNutriments.modifiers['manganese'],
+      )?.scale(1000),
+      selenium100: NutrientAmount.fromSource(
+        offNutriments.selenium_100g,
+        modifier: offNutriments.modifiers['selenium'],
+      )?.scale(1000000),
+      iodine100: NutrientAmount.fromSource(
+        offNutriments.iodine_100g,
+        modifier: offNutriments.modifiers['iodine'],
+      )?.scale(1000000),
+      choline100: NutrientAmount.fromSource(
+        offNutriments.choline_100g,
+        modifier: offNutriments.modifiers['choline'],
+      )?.scale(1000),
+      omega3100: NutrientAmount.fromSource(
+        offNutriments.omega_3_fat_100g,
+        modifier: offNutriments.modifiers['omega-3-fat'],
+      )?.scale(1),
+      alphaLinolenicAcid100: NutrientAmount.fromSource(
+        offNutriments.alpha_linolenic_acid_100g,
+        modifier: offNutriments.modifiers['alpha-linolenic-acid'],
+      )?.scale(1),
+      epa100: NutrientAmount.fromSource(
+        offNutriments.eicosapentaenoic_acid_100g,
+        modifier: offNutriments.modifiers['eicosapentaenoic-acid'],
+      )?.scale(1),
+      dha100: NutrientAmount.fromSource(
+        offNutriments.docosahexaenoic_acid_100g,
+        modifier: offNutriments.modifiers['docosahexaenoic-acid'],
+      )?.scale(1),
+      omega6100: NutrientAmount.fromSource(
+        offNutriments.omega_6_fat_100g,
+        modifier: offNutriments.modifiers['omega-6-fat'],
+      )?.scale(1),
+      linoleicAcid100: NutrientAmount.fromSource(
+        offNutriments.linoleic_acid_100g,
+        modifier: offNutriments.modifiers['linoleic-acid'],
+      )?.scale(1),
+      addedSugars100: NutrientAmount.fromSource(
+        offNutriments.added_sugars_100g,
+        modifier: offNutriments.modifiers['added-sugars'],
+      )?.scale(1),
+      starch100: NutrientAmount.fromSource(
+        offNutriments.starch_100g,
+        modifier: offNutriments.modifiers['starch'],
+      )?.scale(1),
+      isoleucine100: NutrientAmount.fromSource(
+        offNutriments.l_isoleucine_100g,
+        modifier: offNutriments.modifiers['l-isoleucine'],
+      ),
+      leucine100: NutrientAmount.fromSource(
+        offNutriments.l_leucine_100g,
+        modifier: offNutriments.modifiers['l-leucine'],
+      ),
+      valine100: NutrientAmount.fromSource(
+        offNutriments.l_valine_100g,
+        modifier: offNutriments.modifiers['l-valine'],
+      ),
+      arginine100: NutrientAmount.fromSource(
+        offNutriments.l_arginine_100g,
+        modifier: offNutriments.modifiers['l-arginine'],
+      ),
+      cysteine100: NutrientAmount.fromSource(
+        offNutriments.l_cysteine_100g,
+        modifier: offNutriments.modifiers['l-cysteine'],
+      ),
+      glutamine100: NutrientAmount.fromSource(
+        offNutriments.l_glutamine_100g,
+        modifier: offNutriments.modifiers['l-glutamine'],
+      ),
+      caffeine100: NutrientAmount.fromSource(
+        offNutriments.caffeine_100g,
+        modifier: offNutriments.modifiers['caffeine'],
+      )?.scale(1000),
     );
   }
 
-  /// The catalogue build has already selected nutrients and converted units.
-  factory MealNutrimentsEntity.fromCatalogue(Map<String, dynamic> values) {
-    NutrientAmount? amount(String key) =>
-        NutrientAmount.fromSource(values[key]);
+  /// Values are in the app's canonical units per 100 g or 100 ml.
+  factory MealNutrimentsEntity.fromAmounts(
+    Map<String, NutrientAmount?> amounts,
+  ) => MealNutrimentsEntity(
+    energyKcal100: amounts['energyKcal100'],
+    carbohydrates100: amounts['carbohydrates100'],
+    fat100: amounts['fat100'],
+    proteins100: amounts['proteins100'],
+    sugars100: amounts['sugars100'],
+    saturatedFat100: amounts['saturatedFat100'],
+    fiber100: amounts['fiber100'],
+    monounsaturatedFat100: amounts['monounsaturatedFat100'],
+    polyunsaturatedFat100: amounts['polyunsaturatedFat100'],
+    transFat100: amounts['transFat100'],
+    cholesterol100: amounts['cholesterol100'],
+    sodium100: amounts['sodium100'],
+    potassium100: amounts['potassium100'],
+    magnesium100: amounts['magnesium100'],
+    calcium100: amounts['calcium100'],
+    iron100: amounts['iron100'],
+    zinc100: amounts['zinc100'],
+    phosphorus100: amounts['phosphorus100'],
+    vitaminA100: amounts['vitaminA100'],
+    vitaminC100: amounts['vitaminC100'],
+    vitaminD100: amounts['vitaminD100'],
+    vitaminB6100: amounts['vitaminB6100'],
+    vitaminB12100: amounts['vitaminB12100'],
+    niacin100: amounts['niacin100'],
+    thiamin100: amounts['thiamin100'],
+    riboflavin100: amounts['riboflavin100'],
+    pantothenicAcid100: amounts['pantothenicAcid100'],
+    biotin100: amounts['biotin100'],
+    folateDfe100: amounts['folateDfe100'],
+    vitaminE100: amounts['vitaminE100'],
+    vitaminK1100: amounts['vitaminK1100'],
+    copper100: amounts['copper100'],
+    manganese100: amounts['manganese100'],
+    selenium100: amounts['selenium100'],
+    iodine100: amounts['iodine100'],
+    choline100: amounts['choline100'],
+    omega3100: amounts['omega3100'],
+    alphaLinolenicAcid100: amounts['alphaLinolenicAcid100'],
+    epa100: amounts['epa100'],
+    dha100: amounts['dha100'],
+    omega6100: amounts['omega6100'],
+    linoleicAcid100: amounts['linoleicAcid100'],
+    addedSugars100: amounts['addedSugars100'],
+    starch100: amounts['starch100'],
+    caffeine100: amounts['caffeine100'],
+    alcohol100: amounts['alcohol100'],
+    histidine100: amounts['histidine100'],
+    isoleucine100: amounts['isoleucine100'],
+    leucine100: amounts['leucine100'],
+    lysine100: amounts['lysine100'],
+    methionine100: amounts['methionine100'],
+    phenylalanine100: amounts['phenylalanine100'],
+    threonine100: amounts['threonine100'],
+    tryptophan100: amounts['tryptophan100'],
+    valine100: amounts['valine100'],
+    alanine100: amounts['alanine100'],
+    arginine100: amounts['arginine100'],
+    asparagine100: amounts['asparagine100'],
+    asparticAcid100: amounts['asparticAcid100'],
+    cysteine100: amounts['cysteine100'],
+    cystine100: amounts['cystine100'],
+    glutamicAcid100: amounts['glutamicAcid100'],
+    glutamine100: amounts['glutamine100'],
+    glycine100: amounts['glycine100'],
+    hydroxyproline100: amounts['hydroxyproline100'],
+    proline100: amounts['proline100'],
+    serine100: amounts['serine100'],
+    tyrosine100: amounts['tyrosine100'],
+  );
 
-    return MealNutrimentsEntity(
-      energyKcal100: amount('energyKcal100'),
-      carbohydrates100: amount('carbohydrates100'),
-      fat100: amount('fat100'),
-      proteins100: amount('proteins100'),
-      sugars100: amount('sugars100'),
-      saturatedFat100: amount('saturatedFat100'),
-      fiber100: amount('fiber100'),
-      monounsaturatedFat100: amount('monounsaturatedFat100'),
-      polyunsaturatedFat100: amount('polyunsaturatedFat100'),
-      transFat100: amount('transFat100'),
-      cholesterol100: amount('cholesterol100'),
-      sodium100: amount('sodium100'),
-      potassium100: amount('potassium100'),
-      magnesium100: amount('magnesium100'),
-      calcium100: amount('calcium100'),
-      iron100: amount('iron100'),
-      zinc100: amount('zinc100'),
-      phosphorus100: amount('phosphorus100'),
-      vitaminA100: amount('vitaminA100'),
-      vitaminC100: amount('vitaminC100'),
-      vitaminD100: amount('vitaminD100'),
-      vitaminB6100: amount('vitaminB6100'),
-      vitaminB12100: amount('vitaminB12100'),
-      niacin100: amount('niacin100'),
-    );
-  }
+  factory MealNutrimentsEntity.fromCatalogue(Map<String, dynamic> values) =>
+      MealNutrimentsEntity.fromAmounts({
+        for (final entry in values.entries)
+          entry.key: NutrientAmount.fromSource(entry.value),
+      });
 
   static NutrientAmount? _getValuePerUnit(NutrientAmount? valuePer100) {
     if (valuePer100 != null) {
@@ -317,35 +572,54 @@ class MealNutrimentsEntity extends Equatable {
     'vitaminB6100': vitaminB6100,
     'vitaminB12100': vitaminB12100,
     'niacin100': niacin100,
+    'thiamin100': thiamin100,
+    'riboflavin100': riboflavin100,
+    'pantothenicAcid100': pantothenicAcid100,
+    'biotin100': biotin100,
+    'folateDfe100': folateDfe100,
+    'vitaminE100': vitaminE100,
+    'vitaminK1100': vitaminK1100,
+    'copper100': copper100,
+    'manganese100': manganese100,
+    'selenium100': selenium100,
+    'iodine100': iodine100,
+    'choline100': choline100,
+    'omega3100': omega3100,
+    'alphaLinolenicAcid100': alphaLinolenicAcid100,
+    'epa100': epa100,
+    'dha100': dha100,
+    'omega6100': omega6100,
+    'linoleicAcid100': linoleicAcid100,
+    'addedSugars100': addedSugars100,
+    'starch100': starch100,
+    'caffeine100': caffeine100,
+    'alcohol100': alcohol100,
+    'histidine100': histidine100,
+    'isoleucine100': isoleucine100,
+    'leucine100': leucine100,
+    'lysine100': lysine100,
+    'methionine100': methionine100,
+    'phenylalanine100': phenylalanine100,
+    'threonine100': threonine100,
+    'tryptophan100': tryptophan100,
+    'valine100': valine100,
+    'alanine100': alanine100,
+    'arginine100': arginine100,
+    'asparagine100': asparagine100,
+    'asparticAcid100': asparticAcid100,
+    'cysteine100': cysteine100,
+    'cystine100': cystine100,
+    'glutamicAcid100': glutamicAcid100,
+    'glutamine100': glutamine100,
+    'glycine100': glycine100,
+    'hydroxyproline100': hydroxyproline100,
+    'proline100': proline100,
+    'serine100': serine100,
+    'tyrosine100': tyrosine100,
   };
 
   @override
-  List<Object?> get props => [
-    energyKcal100,
-    carbohydrates100,
-    fat100,
-    proteins100,
-    sugars100,
-    saturatedFat100,
-    fiber100,
-    monounsaturatedFat100,
-    polyunsaturatedFat100,
-    transFat100,
-    cholesterol100,
-    sodium100,
-    potassium100,
-    magnesium100,
-    calcium100,
-    iron100,
-    zinc100,
-    phosphorus100,
-    vitaminA100,
-    vitaminC100,
-    vitaminD100,
-    vitaminB6100,
-    vitaminB12100,
-    niacin100,
-  ];
+  List<Object?> get props => [amounts];
 }
 
 class NutrimentsValidationResult {

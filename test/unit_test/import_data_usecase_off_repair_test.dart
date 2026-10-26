@@ -1,3 +1,7 @@
+import 'package:opennutritracker/core/domain/entity/height_reading.dart';
+import 'package:opennutritracker/core/domain/entity/life_stage_period.dart';
+import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
+import '../helpers/memory_user_repository.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -205,6 +209,7 @@ void main() {
   late Box<WeightLogDBO> weightLogBox;
   late Box<CustomActivityTemplateDBO> templateBox;
   late ImportDataUsecase usecase;
+  late MemoryUserRepository importedBody;
   late File Function(String name, List<int> bytes) write;
 
   setUp(() async {
@@ -236,6 +241,7 @@ void main() {
     );
     write = (name, bytes) =>
         File('${tempDir.path}/$name')..writeAsBytesSync(bytes);
+    importedBody = MemoryUserRepository();
     usecase = ImportDataUsecase(
       UserActivityRepository(UserActivityDataSource(provider)),
       IntakeRepository(IntakeDataSource(provider)),
@@ -247,6 +253,7 @@ void main() {
       ),
       pickFile: () async =>
           _PickedFile('backup.zip', File('${tempDir.path}/backup.zip').uri),
+      userRepository: importedBody,
     );
   });
 
@@ -277,6 +284,46 @@ void main() {
     ExportImportBloc.recipeJsonFileName,
     ExportImportBloc.weightLogJsonFileName,
     ExportImportBloc.customActivityTemplateJsonFileName,
+  );
+
+  test(
+    'JSON import restores dated body history and profile policies',
+    () async {
+      final body = MemoryUserRepository().body;
+      body.heightHistory = [
+        HeightReading(date: DateTime(2025, 1), centimetres: 165.125),
+      ];
+      body.lifeStagePeriods = [
+        LifeStagePeriod(
+          stage: LifeStage.breastfeeding,
+          start: DateTime(2025, 4),
+        ),
+      ];
+      body.nutrientPolicies = {
+        'iron': const NutrientPolicy(
+          source: 'nzAustralia',
+          upperMode: ThresholdMode.custom,
+          upper: 25.5,
+        ),
+      };
+      write(
+        'backup.zip',
+        zipWith({
+          'profile_body.json': jsonEncode(body.toJson()),
+          ExportImportBloc.userActivityJsonFileName: '[]',
+          ExportImportBloc.userIntakeJsonFileName: '[]',
+          ExportImportBloc.trackedDayJsonFileName: '[]',
+        }),
+      );
+      expect(await importJson(), isTrue);
+      expect(importedBody.body.heightHistory!.single.centimetres, 165.125);
+      expect(
+        importedBody.body.lifeStagePeriods.single.stage,
+        LifeStage.breastfeeding,
+      );
+      expect(importedBody.body.nutrientPolicies['iron']!.source, 'nzAustralia');
+      expect(importedBody.body.nutrientPolicies['iron']!.upper, 25.5);
+    },
   );
 
   test('a JSON bundle from a build before #775 lands with its Open Food Facts '

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/utils/calc/nutrient_totals.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -121,10 +122,12 @@ class HomePage extends StatelessWidget {
                   fatGoal: state.totalFatsGoal,
                   proteinGoal: state.totalProteinsGoal,
                   asPercent: state.overviewMacrosAsPercent,
-                  onToggle: () => _toggle(
+                  onToggle: () => _saveDisplay(
                     context,
-                    !state.overviewMacrosAsPercent,
-                    macros: true,
+                    () =>
+                        locator<AddConfigUsecase>().setOverviewMacrosAsPercent(
+                          !state.overviewMacrosAsPercent,
+                        ),
                   ),
                 ),
                 DailyNutrientPanel(
@@ -136,11 +139,12 @@ class HomePage extends StatelessWidget {
                   ],
                   selectedDay: state.day,
                   trackedDay: state.trackedDay,
-                  asPercent: state.overviewNutrientsAsPercent,
-                  onToggle: () => _toggle(
+                  view: state.overviewNutrientView,
+                  onViewChanged: (value) => _saveDisplay(
                     context,
-                    !state.overviewNutrientsAsPercent,
-                    macros: false,
+                    () => locator<AddConfigUsecase>().setOverviewNutrientView(
+                      value,
+                    ),
                   ),
                 ),
                 if (CalorieGoalCalc.isBelowRecommendedDailyKcalFloor(
@@ -212,18 +216,12 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Future<void> _toggle(
+  Future<void> _saveDisplay(
     BuildContext context,
-    bool value, {
-    required bool macros,
-  }) async {
-    final config = locator<AddConfigUsecase>();
+    Future<void> Function() save,
+  ) async {
     try {
-      if (macros) {
-        await config.setOverviewMacrosAsPercent(value);
-      } else {
-        await config.setOverviewNutrientsAsPercent(value);
-      }
+      await save();
       locator<HomeBloc>().add(const LoadItemsEvent());
     } catch (_) {
       if (context.mounted) {

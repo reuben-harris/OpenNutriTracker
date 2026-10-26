@@ -227,6 +227,9 @@ void main() {
 
 class _FakeGetConfigUsecase implements GetConfigUsecase {
   @override
+  Stream<ConfigEntity> watchConfig() => Stream.fromFuture(getConfig());
+
+  @override
   Future<ConfigEntity> getConfig() async =>
       const ConfigEntity(AppThemeEntity.system);
 

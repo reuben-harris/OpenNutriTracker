@@ -153,7 +153,7 @@ class DiaryPastePreview extends StatelessWidget {
     List<IntakeEntity> entries,
     AppPalette palette,
   ) {
-    final totals = NutrientPanelTotals.fromIntakes(entries);
+    final totals = NutrientTotals.fromIntakes(entries);
     final s = S.of(context);
     final textTheme = Theme.of(context).textTheme;
     return Column(

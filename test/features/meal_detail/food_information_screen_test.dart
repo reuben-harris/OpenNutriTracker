@@ -53,6 +53,9 @@ import 'package:opennutritracker/features/meal_detail/meal_detail_screen.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
+import 'package:opennutritracker/core/domain/usecase/add_config_usecase.dart';
+import '../../helpers/overview_diary_harness.dart';
+import '../../helpers/pump_until.dart';
 
 const _nutriments = MealNutrimentsEntity(
   energyKcal100: NutrientAmount(100),
@@ -269,6 +272,44 @@ void main() {
     );
     return saves;
   }
+
+  testWidgets('food and recipe info share both eye-toggle choices', (
+    tester,
+  ) async {
+    final h = OverviewDiaryHarness();
+    await tester.runAsync(h.initialize);
+    await getIt.unregister<GetConfigUsecase>();
+    getIt.registerSingleton<GetConfigUsecase>(h.getConfig);
+    getIt.registerSingleton<AddConfigUsecase>(AddConfigUsecase(h.config));
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox());
+      await pumpUntilComplete(
+        tester,
+        h.dispose(),
+        reason: 'closing shared info preferences',
+      );
+    });
+    final missing = find.byKey(const ValueKey('nutrition-row-vitamin_b12'));
+    await pumpMealDetail(tester, _solidWithServing());
+    final show = find.byTooltip('Show nutrients with no data');
+    await pumpUntil(tester, () => show.evaluate().isNotEmpty);
+    expect(missing, findsNothing);
+    await tester.ensureVisible(show);
+    await tester.tap(show);
+    await pumpUntil(tester, () => missing.evaluate().isNotEmpty);
+    await tester.pumpWidget(const SizedBox());
+    await openRecipe(tester);
+    final hide = find.byTooltip('Hide nutrients with no data');
+    await pumpUntil(tester, () => hide.evaluate().isNotEmpty);
+    expect(missing, findsOneWidget);
+    await tester.ensureVisible(hide);
+    await tester.tap(hide);
+    await pumpUntil(tester, () => missing.evaluate().isEmpty);
+    await tester.pumpWidget(const SizedBox());
+    await pumpMealDetail(tester, _solidWithServing());
+    await pumpUntil(tester, () => show.evaluate().isNotEmpty);
+    expect(missing, findsNothing);
+  });
 
   testWidgets(
     'recipe reuses nutrition and logging, and details edits save on leaving',
@@ -590,7 +631,11 @@ void main() {
         find.byKey(const ValueKey('meal-detail-macro-summary')),
         findsOneWidget,
       );
-      expect(find.textContaining('vitamin B12 - No data'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('nutrition-row-vitamin_b12')),
+        findsNothing,
+      );
+      expect(find.byTooltip('Show nutrients with no data'), findsOneWidget);
       expect(_maxScrollOffset(tester), 0);
     },
   );
@@ -743,8 +788,8 @@ void main() {
       expect(bloc!.state.dayCarbsGoal, 250);
       expect(bloc!.state.dayFatGoal, 70);
       expect(bloc!.state.dayProteinGoal, 120);
-      expect(bloc!.state.dayNutrientGoals['saturated_fat'], 20);
-      expect(bloc!.state.dayNutrientGoals['sodium'], 1800);
+      expect(bloc!.state.nutrientReferences['saturated_fat']!.hasGoal, isFalse);
+      expect(bloc!.state.nutrientReferences['sodium']!.unavailable, 'profile');
       daily.tracked = null;
       bloc!.add(LoadDailyTotalsEvent(DateTime(2026, 10, 11)));
       await tester.pumpAndSettle();
@@ -766,13 +811,13 @@ void main() {
     },
   );
   testWidgets(
-    'missing user data preserves stored daily goals and reference defaults',
+    'missing user data preserves core daily goals and marks additional references unavailable',
     (tester) async {
       users = _UnavailableUser();
       await pumpMealDetail(tester, _solidWithServing());
       expect(bloc!.state.dayCarbsGoal, 250);
-      expect(bloc!.state.dayNutrientGoals['sodium'], 1800);
-      expect(bloc!.state.dayNutrientGoals['fiber'], 30);
+      expect(bloc!.state.nutrientReferences['sodium']!.unavailable, 'profile');
+      expect(bloc!.state.nutrientReferences['fiber']!.unavailable, 'profile');
     },
   );
 
@@ -904,6 +949,9 @@ void main() {
 }
 
 class _FakeGetConfigUsecase implements GetConfigUsecase {
+  @override
+  Stream<ConfigEntity> watchConfig() => Stream.fromFuture(getConfig());
+
   final bool Function() imperialProvider;
   _FakeGetConfigUsecase(this.imperialProvider);
 
@@ -986,7 +1034,6 @@ class _FakeGetTrackedDayUsecase implements GetTrackedDayUsecase {
     carbsGoal: 250,
     fatGoal: 70,
     proteinGoal: 120,
-    sodiumGoal: 1800,
   );
   @override
   Future<TrackedDayEntity?> getTrackedDay(DateTime day) async => tracked;
