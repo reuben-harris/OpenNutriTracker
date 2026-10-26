@@ -4,13 +4,11 @@ import 'package:logging/logging.dart';
 import 'package:opennutritracker/core/utils/food_cache_maintenance.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
-import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/add_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/add_tracked_day_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_kcal_goal_usecase.dart';
 import 'package:opennutritracker/core/domain/usecase/get_macro_goal_usecase.dart';
-import 'package:opennutritracker/core/domain/usecase/get_tracked_day_usecase.dart';
 import 'package:opennutritracker/core/utils/app_const.dart';
 
 part 'settings_event.dart';
@@ -26,11 +24,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   final GetKcalGoalUsecase _getKcalGoalUsecase;
   final GetMacroGoalUsecase _getMacroGoalUsecase;
   final FoodCacheMaintenance _foodCache;
-  // #173: needed so the Calculations dialog can pre-fill its
-  // fibre / sat-fat / sugar sliders with the user's existing per-day
-  // overrides rather than always starting from defaults.
-  final GetTrackedDayUsecase _getTrackedDayUsecase;
-
   SettingsBloc(
     this._getConfigUsecase,
     this._addConfigUsecase,
@@ -38,7 +31,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     this._getKcalGoalUsecase,
     this._getMacroGoalUsecase,
     this._foodCache,
-    this._getTrackedDayUsecase,
   ) : super(SettingsInitial()) {
     on<LoadSettingsEvent>((event, emit) async {
       emit(SettingsLoadingState());
@@ -227,11 +219,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
 
   Future<void> setMealKcalSharesPct(Map<String, int> shares) async {
     await _addConfigUsecase.setConfigMealKcalSharesPct(shares);
-  }
-
-  /// Read today's personal nutrient goals; a missing day has no overrides.
-  Future<TrackedDayEntity?> getTodayTrackedDay(DateTime day) async {
-    return await _getTrackedDayUsecase.getTrackedDay(day);
   }
 
   Future<void> updateTrackedDay(DateTime day) async {

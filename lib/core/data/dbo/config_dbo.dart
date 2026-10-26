@@ -144,8 +144,9 @@ class ConfigDBO extends HiveObject {
   @HiveField(44)
   Map<String, bool>? nutrientInfoVisibility;
 
-  @HiveField(45)
-  bool? overviewNutrientsWithoutGoal;
+  // Field 45 (the old two-way nutrient filter) is retired.
+  @HiveField(47)
+  String? overviewNutrientView;
 
   @HiveField(46)
   bool? showMissingNutrientsInInfo;
@@ -182,7 +183,7 @@ class ConfigDBO extends HiveObject {
     this.amountArithmeticEnabled,
     this.catalogueSourceOverrides,
     this.overviewMacrosAsPercent,
-    this.overviewNutrientsWithoutGoal,
+    this.overviewNutrientView,
   });
 
   factory ConfigDBO.empty() => ConfigDBO(AppThemeDBO.system);
@@ -197,7 +198,7 @@ class ConfigDBO extends HiveObject {
     nutrientInfoVisibility: Map.of(entity.nutrientInfoVisibility),
     showMissingNutrientsInInfo: entity.showMissingNutrientsInInfo,
     overviewMacrosAsPercent: entity.overviewMacrosAsPercent,
-    overviewNutrientsWithoutGoal: entity.overviewNutrientsWithoutGoal,
+    overviewNutrientView: entity.overviewNutrientView.name,
     usesImperialUnits: entity.usesImperialUnits,
     usesImperialFoodUnits: entity.usesImperialFoodUnits,
     usesImperialHeightUnits: entity.usesImperialHeightUnits,

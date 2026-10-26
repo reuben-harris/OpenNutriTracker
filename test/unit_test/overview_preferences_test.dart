@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_view.dart';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
@@ -33,10 +34,10 @@ void main() {
       final dbo = ConfigDBO.empty();
       final json = dbo.toJson()
         ..remove('overviewMacrosAsPercent')
-        ..remove('overviewNutrientsWithoutGoal');
+        ..remove('overviewNutrientView');
       final config = ConfigEntity.fromConfigDBO(ConfigDBO.fromJson(json));
       expect(config.overviewMacrosAsPercent, isFalse);
-      expect(config.overviewNutrientsWithoutGoal, isFalse);
+      expect(config.overviewNutrientView, NutrientView.adequacy);
     },
   );
 
@@ -55,11 +56,13 @@ void main() {
       var secondRepo = repository(second);
       await AddConfigUsecase(firstRepo).setOverviewMacrosAsPercent(true);
       expect(
-        (await firstRepo.getConfig()).overviewNutrientsWithoutGoal,
-        isFalse,
+        (await firstRepo.getConfig()).overviewNutrientView,
+        NutrientView.adequacy,
       );
       expect((await secondRepo.getConfig()).overviewMacrosAsPercent, isFalse);
-      await AddConfigUsecase(secondRepo).setOverviewNutrientsWithoutGoal(true);
+      await AddConfigUsecase(
+        secondRepo,
+      ).setOverviewNutrientView(NutrientView.upper);
       await Hive.close();
       app = await Hive.openBox<ConfigDBO>('app');
       first = await Hive.openBox<ConfigDBO>('first');
@@ -68,18 +71,18 @@ void main() {
       secondRepo = repository(second);
       expect((await firstRepo.getConfig()).overviewMacrosAsPercent, isTrue);
       expect(
-        (await firstRepo.getConfig()).overviewNutrientsWithoutGoal,
-        isFalse,
+        (await firstRepo.getConfig()).overviewNutrientView,
+        NutrientView.adequacy,
       );
       expect((await secondRepo.getConfig()).overviewMacrosAsPercent, isFalse);
       expect(
-        (await secondRepo.getConfig()).overviewNutrientsWithoutGoal,
-        isTrue,
+        (await secondRepo.getConfig()).overviewNutrientView,
+        NutrientView.upper,
       );
       await AddConfigUsecase(firstRepo).setOverviewMacrosAsPercent(false);
       expect(
-        (await secondRepo.getConfig()).overviewNutrientsWithoutGoal,
-        isTrue,
+        (await secondRepo.getConfig()).overviewNutrientView,
+        NutrientView.upper,
       );
     },
   );

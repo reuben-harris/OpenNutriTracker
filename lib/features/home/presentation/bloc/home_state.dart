@@ -19,7 +19,7 @@ class HomeLoadedState extends HomeState {
   final TrackedDayEntity? trackedDay;
   final WeightLogEntity? weight;
   final bool overviewMacrosAsPercent;
-  final bool overviewNutrientsWithoutGoal;
+  final NutrientView overviewNutrientView;
   final double totalKcalDaily;
   final double totalKcalLeft;
   final double totalKcalSupplied;
@@ -68,7 +68,7 @@ class HomeLoadedState extends HomeState {
     required this.trackedDay,
     required this.weight,
     required this.overviewMacrosAsPercent,
-    required this.overviewNutrientsWithoutGoal,
+    required this.overviewNutrientView,
     required this.totalKcalDaily,
     required this.totalKcalLeft,
     required this.totalKcalSupplied,
@@ -108,7 +108,7 @@ class HomeLoadedState extends HomeState {
     trackedDay,
     weight,
     overviewMacrosAsPercent,
-    overviewNutrientsWithoutGoal,
+    overviewNutrientView,
     totalKcalLeft,
     totalKcalSupplied,
     totalKcalBurned,

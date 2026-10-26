@@ -89,6 +89,7 @@ class _HeightHistoryScreenState extends State<HeightHistoryScreen> {
                 Expanded(
                   child: HistoryEntries(
                     identifier: 'height-history-entries',
+                    label: s.heightHistoryTitle,
                     emptyLabel: s.heightHistoryEmpty,
                     count: entries.length,
                     itemBuilder: (context, index) {

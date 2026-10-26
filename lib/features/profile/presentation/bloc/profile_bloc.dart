@@ -68,7 +68,8 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     }
     final user = await getUser();
     user.nutrientPolicies = Map.of(policies);
-    await updateUser(user);
+    await _addUserUsecase.addUser(user);
+    _refreshViews();
   }
 
   Future<void> updateUser(UserEntity userEntity) async {
@@ -78,6 +79,10 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     // Update Tracked Day
     await _updateTrackedDayCalorieGoal(userEntity, DateTime.now());
 
+    _refreshViews();
+  }
+
+  void _refreshViews() {
     // Refresh Profile
     add(LoadProfileEvent());
     // Refresh Home Page

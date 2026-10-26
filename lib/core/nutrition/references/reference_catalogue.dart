@@ -19,6 +19,8 @@ enum IntakeScope {
   nicotinicAcid,
   nicotinamide,
   combinedFattyAcids,
+  energyPercentage,
+  combinedSaturatedTrans,
 }
 
 enum ReferenceCalculation { constant, cohort, weightFormula }
@@ -127,6 +129,12 @@ class ReferenceSelection {
   final ReferenceCalculation calculation;
   final String? equation;
   final String? savedEdition, savedSourceUrl;
+  final DateTime? measurementDate;
+  List<String> get dependencies => calculation == ReferenceCalculation.constant
+      ? const []
+      : calculation == ReferenceCalculation.weightFormula
+      ? const ['age', 'sex', 'life-stage', 'weight']
+      : const ['age', 'sex', 'life-stage'];
   String get edition => savedEdition ?? source.edition;
   String get sourceUrl => savedSourceUrl ?? source.url;
   const ReferenceSelection({
@@ -142,6 +150,7 @@ class ReferenceSelection {
     this.equation,
     this.savedEdition,
     this.savedSourceUrl,
+    this.measurementDate,
   });
   ReferenceSource get source => ReferenceSource.forRegion(region);
   Map<String, dynamic> toJson() => {
@@ -157,6 +166,7 @@ class ReferenceSelection {
     'equation': equation,
     'edition': edition,
     'sourceUrl': sourceUrl,
+    'measurementDate': measurementDate?.toIso8601String(),
   };
   factory ReferenceSelection.fromJson(Map<String, dynamic> json) =>
       ReferenceSelection(
@@ -182,6 +192,9 @@ class ReferenceSelection {
         equation: json['equation'] as String?,
         savedEdition: json['edition'] as String?,
         savedSourceUrl: json['sourceUrl'] as String?,
+        measurementDate: json['measurementDate'] == null
+            ? null
+            : DateTime.parse(json['measurementDate'] as String),
       );
 }
 
@@ -198,6 +211,7 @@ class ReferenceCatalogue {
     required UserSexEntity sex,
     LifeStage? stage,
     double? weightKg,
+    DateTime? measurementDate,
   }) {
     final band = age <= 13
         ? 0
@@ -222,11 +236,14 @@ class ReferenceCatalogue {
                   : age <= 30
                   ? 1
                   : 2);
+    final rows = series(region).where((s) => s.nutrient == nutrient);
+    final weightFormula = rows.any((row) => row.perKg);
     final valid =
         age >= 13 &&
         (stage == null ||
-            sex == UserSexEntity.female && age >= stageMin && age <= 50);
-    final rows = series(region).where((s) => s.nutrient == nutrient);
+            sex == UserSexEntity.female &&
+                age >= (weightFormula ? 13 : stageMin) &&
+                (weightFormula || age <= 50));
     final values = <PublishedReference>[];
     String? equation;
     bool missingWeight = false;
@@ -316,18 +333,75 @@ class ReferenceCatalogue {
         }
       }
     }
+    final qualitative =
+        region == ReferenceRegion.usCanada &&
+        {
+          NutrientKeys.saturatedFat,
+          NutrientKeys.transFat,
+          NutrientKeys.cholesterol,
+        }.contains(nutrient);
+    final energyGuidance =
+        region == ReferenceRegion.usCanada &&
+        nutrient == NutrientKeys.addedSugars;
+    final combinedFatGuidance =
+        region == ReferenceRegion.nzAustralia &&
+        {NutrientKeys.saturatedFat, NutrientKeys.transFat}.contains(nutrient) &&
+        age > 14;
+    if (valid && energyGuidance) {
+      values.add(
+        const PublishedReference(
+          amount: 25,
+          term: 'Maximal intake guidance',
+          unit: '% energy',
+          definition: 'Added sugars',
+          table: 'Macronutrients, additional recommendations',
+          scope: IntakeScope.energyPercentage,
+          upper: true,
+        ),
+      );
+    }
+    if (valid && combinedFatGuidance) {
+      values.add(
+        const PublishedReference(
+          amount: 10,
+          term: 'AMDR guidance',
+          unit: '% energy',
+          definition: 'Saturated and trans fats combined',
+          table: 'Table 24',
+          scope: IntakeScope.combinedSaturatedTrans,
+          upper: true,
+        ),
+      );
+    }
     return ReferenceSelection(
       region: region,
       age: age,
-      minAge: stage != null && age <= 18 ? stageMin : min,
-      maxAge: stage != null && age <= 18 ? 18 : max,
+      minAge: weightFormula && stage != null
+          ? 13
+          : weightFormula && age >= 19
+          ? 19
+          : stage != null && age <= 18
+          ? stageMin
+          : region == ReferenceRegion.nzAustralia &&
+                nutrient == NutrientKeys.calcium &&
+                age == 13
+          ? 12
+          : min,
+      maxAge: weightFormula && (stage != null || age >= 19)
+          ? null
+          : stage != null && age <= 18
+          ? 18
+          : max,
       sex: sex,
       stage: stage,
       values: values,
-      calculation: equation == null
+      calculation: energyGuidance
+          ? ReferenceCalculation.constant
+          : equation == null
           ? ReferenceCalculation.cohort
           : ReferenceCalculation.weightFormula,
       equation: equation,
+      measurementDate: equation == null ? null : measurementDate,
       savedEdition: equation == null
           ? null
           : 'IOM (2006), Essential Guide, Appendix E, pp. 461–465',
@@ -339,6 +413,8 @@ class ReferenceCatalogue {
           ? 'cohort'
           : missingWeight
           ? 'weight'
+          : qualitative
+          ? 'qualitative'
           : values.isEmpty
           ? ({
                   'methionine',

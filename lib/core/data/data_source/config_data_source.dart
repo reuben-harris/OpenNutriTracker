@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_view.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:opennutritracker/core/data/dbo/app_theme_dbo.dart';
@@ -57,8 +58,7 @@ class ConfigDataSource {
       merged.mealKcalSharesPct = profile.mealKcalSharesPct;
       merged.dailyWaterGoalMl = profile.dailyWaterGoalMl;
       merged.overviewMacrosAsPercent = profile.overviewMacrosAsPercent;
-      merged.overviewNutrientsWithoutGoal =
-          profile.overviewNutrientsWithoutGoal;
+      merged.overviewNutrientView = profile.overviewNutrientView;
       merged.healthImportEnabled = profile.healthImportEnabled;
       merged.healthWorkoutKcalMultiplier = profile.healthWorkoutKcalMultiplier;
       merged.healthLastImportAt = profile.healthLastImportAt;
@@ -76,7 +76,7 @@ class ConfigDataSource {
       merged.mealKcalSharesPct = null;
       merged.dailyWaterGoalMl = null;
       merged.overviewMacrosAsPercent = null;
-      merged.overviewNutrientsWithoutGoal = null;
+      merged.overviewNutrientView = null;
       merged.healthImportEnabled = null;
       merged.healthWorkoutKcalMultiplier = null;
       merged.healthLastImportAt = null;
@@ -219,8 +219,8 @@ class ConfigDataSource {
   Future<void> setOverviewMacrosAsPercent(bool value) =>
       _update((c) => c.overviewMacrosAsPercent = value);
 
-  Future<void> setOverviewNutrientsWithoutGoal(bool value) =>
-      _update((c) => c.overviewNutrientsWithoutGoal = value);
+  Future<void> setOverviewNutrientView(NutrientView value) =>
+      _update((c) => c.overviewNutrientView = value.name);
 
   Future<void> setAmountArithmeticEnabled(bool value) async {
     await _update((c) => c.amountArithmeticEnabled = value);

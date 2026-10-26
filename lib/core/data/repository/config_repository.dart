@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_view.dart';
 import 'package:opennutritracker/core/data/data_source/config_data_source.dart';
 import 'package:opennutritracker/core/data/dbo/app_theme_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/config_dbo.dart';
@@ -24,8 +25,8 @@ class ConfigRepository {
   Future<void> setOverviewMacrosAsPercent(bool value) =>
       _configDataSource.setOverviewMacrosAsPercent(value);
 
-  Future<void> setOverviewNutrientsWithoutGoal(bool value) =>
-      _configDataSource.setOverviewNutrientsWithoutGoal(value);
+  Future<void> setOverviewNutrientView(NutrientView value) =>
+      _configDataSource.setOverviewNutrientView(value);
 
   Future<AppThemeEntity> getConfigAppTheme() async {
     final appThemeDBO = await _configDataSource.getAppTheme();

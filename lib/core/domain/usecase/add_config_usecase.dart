@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_view.dart';
 import 'package:opennutritracker/core/data/repository/config_repository.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
@@ -21,8 +22,8 @@ class AddConfigUsecase {
   Future<void> setOverviewMacrosAsPercent(bool value) =>
       _configRepository.setOverviewMacrosAsPercent(value);
 
-  Future<void> setOverviewNutrientsWithoutGoal(bool value) =>
-      _configRepository.setOverviewNutrientsWithoutGoal(value);
+  Future<void> setOverviewNutrientView(NutrientView value) =>
+      _configRepository.setOverviewNutrientView(value);
 
   Future<void> setConfigAppTheme(AppThemeEntity appTheme) async {
     await _configRepository.setConfigAppTheme(appTheme);

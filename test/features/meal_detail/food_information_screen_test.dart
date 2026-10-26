@@ -788,8 +788,8 @@ void main() {
       expect(bloc!.state.dayCarbsGoal, 250);
       expect(bloc!.state.dayFatGoal, 70);
       expect(bloc!.state.dayProteinGoal, 120);
-      expect(bloc!.state.dayCoreGoals['saturated_fat']?.amount, 20);
-      expect(bloc!.state.dayCoreGoals['sodium']?.amount, 1800);
+      expect(bloc!.state.nutrientReferences['saturated_fat']!.hasGoal, isFalse);
+      expect(bloc!.state.nutrientReferences['sodium']!.unavailable, 'profile');
       daily.tracked = null;
       bloc!.add(LoadDailyTotalsEvent(DateTime(2026, 10, 11)));
       await tester.pumpAndSettle();
@@ -811,13 +811,13 @@ void main() {
     },
   );
   testWidgets(
-    'missing user data preserves stored daily goals and reference defaults',
+    'missing user data preserves core daily goals and marks additional references unavailable',
     (tester) async {
       users = _UnavailableUser();
       await pumpMealDetail(tester, _solidWithServing());
       expect(bloc!.state.dayCarbsGoal, 250);
-      expect(bloc!.state.dayCoreGoals['sodium']?.amount, 1800);
-      expect(bloc!.state.dayCoreGoals['fiber']?.amount, 30);
+      expect(bloc!.state.nutrientReferences['sodium']!.unavailable, 'profile');
+      expect(bloc!.state.nutrientReferences['fiber']!.unavailable, 'profile');
     },
   );
 

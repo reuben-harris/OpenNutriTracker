@@ -122,10 +122,12 @@ class HomePage extends StatelessWidget {
                   fatGoal: state.totalFatsGoal,
                   proteinGoal: state.totalProteinsGoal,
                   asPercent: state.overviewMacrosAsPercent,
-                  onToggle: () => _toggle(
+                  onToggle: () => _saveDisplay(
                     context,
-                    !state.overviewMacrosAsPercent,
-                    macros: true,
+                    () =>
+                        locator<AddConfigUsecase>().setOverviewMacrosAsPercent(
+                          !state.overviewMacrosAsPercent,
+                        ),
                   ),
                 ),
                 DailyNutrientPanel(
@@ -137,9 +139,13 @@ class HomePage extends StatelessWidget {
                   ],
                   selectedDay: state.day,
                   trackedDay: state.trackedDay,
-                  withoutGoal: state.overviewNutrientsWithoutGoal,
-                  onViewChanged: (value) =>
-                      _toggle(context, value, macros: false),
+                  view: state.overviewNutrientView,
+                  onViewChanged: (value) => _saveDisplay(
+                    context,
+                    () => locator<AddConfigUsecase>().setOverviewNutrientView(
+                      value,
+                    ),
+                  ),
                 ),
                 if (CalorieGoalCalc.isBelowRecommendedDailyKcalFloor(
                   goalKcal: state.totalKcalDaily,
@@ -210,18 +216,12 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Future<void> _toggle(
+  Future<void> _saveDisplay(
     BuildContext context,
-    bool value, {
-    required bool macros,
-  }) async {
-    final config = locator<AddConfigUsecase>();
+    Future<void> Function() save,
+  ) async {
     try {
-      if (macros) {
-        await config.setOverviewMacrosAsPercent(value);
-      } else {
-        await config.setOverviewNutrientsWithoutGoal(value);
-      }
+      await save();
       locator<HomeBloc>().add(const LoadItemsEvent());
     } catch (_) {
       if (context.mounted) {

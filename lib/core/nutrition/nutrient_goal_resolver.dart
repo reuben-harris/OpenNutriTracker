@@ -56,6 +56,7 @@ class NutrientGoalResolver {
       sex: user.sex,
       stage: user.lifeStageOn(date),
       weightKg: eligible.firstOrNull?.weightKg,
+      measurementDate: eligible.firstOrNull?.date,
     );
   }
 

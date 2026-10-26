@@ -128,6 +128,8 @@ class _SourcesScreenState extends State<SourcesScreen> {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: Dimens.spacing16),
+          if (widget.referenceRegion != null)
+            ...entries.map((entry) => _SourceCard(entry: entry)),
           FutureBuilder<List<CatalogueSource>>(
             future: _catalogueSources,
             builder: (context, snapshot) {
@@ -175,7 +177,8 @@ class _SourcesScreenState extends State<SourcesScreen> {
               );
             },
           ),
-          ...entries.map((entry) => _SourceCard(entry: entry)),
+          if (widget.referenceRegion == null)
+            ...entries.map((entry) => _SourceCard(entry: entry)),
         ],
       ),
     );

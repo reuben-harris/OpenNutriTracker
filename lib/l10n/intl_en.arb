@@ -1489,5 +1489,8 @@
   "nutrientAtAdequacy": "At or above adequacy threshold",
   "nutrientNoAssessment": "No comparable assessment",
   "nutrientClose": "Close",
-  "lifeStageFemaleOnly": "Pregnancy and breastfeeding settings are available when Female is selected in your profile."
+  "lifeStageFemaleOnly": "Pregnancy and breastfeeding settings are available when Female is selected in your profile.",
+  "referenceQualitativeFats": "The source recommends keeping saturated fatty acids, trans fatty acids and dietary cholesterol as low as possible while consuming a nutritionally adequate diet. It sets no numerical individual threshold.",
+  "referenceEnergyPercentage": "Percentage of total energy intake; a gram total alone is not comparable",
+  "referenceCombinedSaturatedTrans": "Saturated and trans fats combined as a percentage of energy; neither individual gram total is comparable"
 }

@@ -69,6 +69,7 @@ class HistoryRangeSelector extends StatelessWidget {
 class HistoryEntries extends StatelessWidget {
   final String identifier;
   final String emptyLabel;
+  final String label;
   final int count;
   final IndexedWidgetBuilder itemBuilder;
   final Widget? header;
@@ -76,6 +77,7 @@ class HistoryEntries extends StatelessWidget {
     super.key,
     required this.identifier,
     required this.emptyLabel,
+    required this.label,
     required this.count,
     required this.itemBuilder,
     this.header,
@@ -83,7 +85,7 @@ class HistoryEntries extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     identifier: identifier,
-    label: emptyLabel,
+    label: label,
     child: count == 0 && header == null
         ? Center(
             child: Padding(

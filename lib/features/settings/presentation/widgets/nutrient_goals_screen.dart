@@ -1,3 +1,5 @@
+import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
+import 'package:opennutritracker/core/utils/calc/day_boundary_calc.dart';
 import 'dart:convert';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
@@ -82,7 +84,7 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
       _loadFailed = false,
       _leaveDialogOpen = false,
       _allowLeave = false;
-  late final DateTime _today = DateTime.now();
+  late DateTime _today;
   bool get _dirty =>
       _loaded && _drafts.entries.any((e) => e.value.signature != _saved[e.key]);
   _Draft get _draft => _drafts[_selected.key]!;
@@ -116,6 +118,13 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
   Future<void> _load() async {
     try {
       final user = await widget.profileBloc.getUser();
+      final config = locator.isRegistered<GetConfigUsecase>()
+          ? await locator<GetConfigUsecase>().getConfig()
+          : null;
+      _today = DayBoundaryCalc.currentLogicalDayLabel(
+        config?.dayStartOffsetHours ?? 0,
+        config?.dayStartOffsetMinutes ?? 0,
+      );
       final weights = locator.isRegistered<GetWeightLogUsecase>()
           ? await locator<GetWeightLogUsecase>().getAllEntries()
           : <WeightLogEntity>[];
@@ -149,7 +158,7 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
 
   void _changeSource(ReferenceRegion region) {
     var policy = _draft.policy.copyWith(region: region);
-    if (!policy.autoAdjust)
+    if (!policy.autoAdjust) {
       policy = NutrientGoalResolver.freeze(
         nutrient: _selected.key,
         policy: policy,
@@ -157,6 +166,7 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
         today: _today,
         weights: _weights,
       );
+    }
     setState(() => _draft.policy = policy);
   }
 
@@ -241,8 +251,9 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
           s.nutrientGoalsResetAllTitle,
           s.nutrientGoalsResetAllContent,
         ) ||
-        !mounted)
+        !mounted) {
       return;
+    }
     setState(() {
       for (final draft in _drafts.values) {
         draft.restore(NutrientPolicy(source: draft.policy.source));
@@ -282,12 +293,13 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
       _remember();
       return true;
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(S.of(context).nutrientSettingsSaveFailedLabel),
           ),
         );
+      }
       return false;
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -512,8 +524,9 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
                             onSelected: _saving
                                 ? null
                                 : (n) {
-                                    if (n != null)
+                                    if (n != null) {
                                       setState(() => _selected = n);
+                                    }
                                   },
                           ),
                         ),

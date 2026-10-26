@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_view.dart';
 import 'package:equatable/equatable.dart';
 import 'package:opennutritracker/core/data/dbo/config_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
@@ -44,7 +45,7 @@ class ConfigEntity extends Equatable {
   final Map<String, int> mealKcalSharesPct; // #150
   final Map<String, int>? diarySortPreferences;
   final bool overviewMacrosAsPercent;
-  final bool overviewNutrientsWithoutGoal;
+  final NutrientView overviewNutrientView;
   // Independent display overrides shared across profiles. Missing keys are
   // visible; Daily controls the daily totals and Trends, Info controls item tables.
   final Map<String, bool> nutrientPanelVisibility;
@@ -215,7 +216,7 @@ class ConfigEntity extends Equatable {
     this.mealKcalSharesPct = defaultMealKcalSharesPct,
     this.diarySortPreferences,
     this.overviewMacrosAsPercent = false,
-    this.overviewNutrientsWithoutGoal = false,
+    this.overviewNutrientView = NutrientView.adequacy,
     this.nutrientPanelVisibility = const <String, bool>{},
     this.nutrientInfoVisibility = const <String, bool>{},
     this.showMissingNutrientsInInfo = false,
@@ -286,7 +287,9 @@ class ConfigEntity extends Equatable {
         _sanitiseShares(dbo.mealKcalSharesPct) ?? defaultMealKcalSharesPct,
     diarySortPreferences: dbo.diarySortPreferences,
     overviewMacrosAsPercent: dbo.overviewMacrosAsPercent ?? false,
-    overviewNutrientsWithoutGoal: dbo.overviewNutrientsWithoutGoal ?? false,
+    overviewNutrientView: NutrientView.values.byName(
+      dbo.overviewNutrientView ?? 'adequacy',
+    ),
     nutrientPanelVisibility:
         dbo.nutrientPanelVisibility ?? const <String, bool>{},
     nutrientInfoVisibility:
@@ -396,7 +399,7 @@ class ConfigEntity extends Equatable {
     mealKcalSharesPct,
     diarySortPreferences,
     overviewMacrosAsPercent,
-    overviewNutrientsWithoutGoal,
+    overviewNutrientView,
     nutrientPanelVisibility,
     nutrientInfoVisibility,
     showMissingNutrientsInInfo,

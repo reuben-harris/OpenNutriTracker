@@ -31,12 +31,13 @@ class _NutrientVisibilityControlsState
         info: info,
       );
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(S.of(context).nutrientSettingsSaveFailedLabel),
           ),
         );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }

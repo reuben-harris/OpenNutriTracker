@@ -15,6 +15,7 @@ String referenceUnavailableLabel(String? reason, S s) => switch (reason) {
   'combined-amino' => s.referenceCombinedAmino,
   'frozen' => s.referenceMissingFrozen,
   'policy' => s.nutrientInvalidAmountLabel,
+  'qualitative' => s.referenceQualitativeFats,
   _ => s.referenceNotEstablished,
 };
 String referenceScopeLabel(IntakeScope scope, S s) => switch (scope) {
@@ -30,6 +31,8 @@ String referenceScopeLabel(IntakeScope scope, S s) => switch (scope) {
   IntakeScope.nicotinicAcid => s.referenceNicotinicAcid,
   IntakeScope.nicotinamide => s.referenceNicotinamide,
   IntakeScope.combinedFattyAcids => s.referenceCombinedFattyAcids,
+  IntakeScope.energyPercentage => s.referenceEnergyPercentage,
+  IntakeScope.combinedSaturatedTrans => s.referenceCombinedSaturatedTrans,
 };
 String referenceAmountLabel(PublishedReference value, S s) =>
     '${referenceTermLabel(value.term, s)}: ${nutrientNumber(value.amount)}${value.rangeEnd == null ? '' : '–${nutrientNumber(value.rangeEnd!)}'} ${value.unit}';
@@ -90,6 +93,10 @@ class NutrientReferenceDetails extends StatelessWidget {
           if (r.calculation == ReferenceCalculation.cohort && !compact)
             Text(s.referenceCohortExplanation),
           if (r.equation != null) SelectableText(r.equation!),
+          if (r.measurementDate != null)
+            Text(
+              '${s.weightHistoryDateLabel}: ${r.measurementDate!.toIso8601String().split("T").first}',
+            ),
         ],
         if (unavailable != null || r?.gap != null || r == null)
           Text(referenceUnavailableLabel(unavailable ?? r?.gap, s)),

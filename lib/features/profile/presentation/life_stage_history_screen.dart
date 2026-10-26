@@ -76,32 +76,37 @@ class _LifeStageHistoryScreenState extends State<LifeStageHistoryScreen> {
                 Expanded(
                   child: HistoryEntries(
                     identifier: 'life-stage-history-entries',
+                    label: s.lifeStageHistoryTitle,
                     emptyLabel: s.lifeStageEmpty,
                     count: entries.length,
                     itemBuilder: (context, index) {
                       final period = entries[index];
-                      return ListTile(
-                        leading: const Icon(Icons.timeline),
-                        title: Text(lifeStageLabel(period.stage, s)),
-                        subtitle: Text(
-                          '${DateFormat.yMMMd().format(period.start)} – ${period.end == null ? s.lifeStageOngoing : DateFormat.yMMMd().format(period.end!)}',
-                        ),
-                        onTap: enabled ? () => _edit(period) : null,
-                        trailing: Semantics(
-                          identifier: 'life-stage-delete-$index',
-                          child: IconButton(
-                            tooltip: s.historyDeleteLabel,
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: !enabled
-                                ? null
-                                : () async {
-                                    _user!.lifeStagePeriods = _user!
-                                        .lifeStagePeriods
-                                        .where((p) => p != period)
-                                        .toList();
-                                    await _repository.updateUserData(_user!);
-                                    await _load();
-                                  },
+                      return Semantics(
+                        identifier:
+                            'life-stage-period-${period.start.toIso8601String().split('T').first}',
+                        child: ListTile(
+                          leading: const Icon(Icons.timeline),
+                          title: Text(lifeStageLabel(period.stage, s)),
+                          subtitle: Text(
+                            '${DateFormat.yMMMd().format(period.start)} – ${period.end == null ? s.lifeStageOngoing : DateFormat.yMMMd().format(period.end!)}',
+                          ),
+                          onTap: enabled ? () => _edit(period) : null,
+                          trailing: Semantics(
+                            identifier: 'life-stage-delete-$index',
+                            child: IconButton(
+                              tooltip: s.historyDeleteLabel,
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: !enabled
+                                  ? null
+                                  : () async {
+                                      _user!.lifeStagePeriods = _user!
+                                          .lifeStagePeriods
+                                          .where((p) => p != period)
+                                          .toList();
+                                      await _repository.updateUserData(_user!);
+                                      await _load();
+                                    },
+                            ),
                           ),
                         ),
                       );

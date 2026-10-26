@@ -14,6 +14,7 @@ import 'package:opennutritracker/generated/l10n.dart';
 class MealDetailNutrimentsTable extends StatefulWidget {
   final MealEntity product;
   final double baseAmount;
+  final DateTime? viewedDay;
   final bool reference;
   final Map<String, NutrientGoal> goals;
   final Map<String, NutrientReferenceRange> nutrientReferences;
@@ -23,6 +24,7 @@ class MealDetailNutrimentsTable extends StatefulWidget {
     required this.baseAmount,
     required this.reference,
     this.goals = const {},
+    this.viewedDay,
     this.nutrientReferences = const {},
   });
   @override
@@ -72,6 +74,7 @@ class _MealDetailNutrimentsTableState extends State<MealDetailNutrimentsTable> {
             ?.scale(widget.reference ? 1 : widget.baseAmount / 100),
         goal: widget.goals[n.key],
         referenceRange: widget.nutrientReferences[n.key],
+        viewedDay: widget.viewedDay,
         showPercentage: true,
       );
       return AppCard(

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_view.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/domain/entity/intake_entity.dart';
@@ -16,8 +17,8 @@ import 'package:opennutritracker/generated/l10n.dart';
 
 class DailyNutrientPanel extends StatefulWidget {
   final List<IntakeEntity> intakes;
-  final bool withoutGoal;
-  final ValueChanged<bool>? onViewChanged;
+  final NutrientView view;
+  final ValueChanged<NutrientView>? onViewChanged;
   final DateTime? selectedDay;
   final TrackedDayEntity? trackedDay;
   const DailyNutrientPanel({
@@ -25,7 +26,7 @@ class DailyNutrientPanel extends StatefulWidget {
     required this.intakes,
     this.selectedDay,
     this.trackedDay,
-    this.withoutGoal = false,
+    this.view = NutrientView.adequacy,
     this.onViewChanged,
   });
   @override
@@ -34,7 +35,7 @@ class DailyNutrientPanel extends StatefulWidget {
 
 class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
   late Future<Map<String, NutrientReferenceRange>> _goals = _loadGoals();
-  late bool _withoutGoal = widget.withoutGoal;
+  late NutrientView _view = widget.view;
   Future<Map<String, NutrientReferenceRange>> _loadGoals() async {
     final user = locator.isRegistered<GetUserUsecase>()
         ? await locator<GetUserUsecase>().getUserData()
@@ -52,8 +53,8 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
   @override
   void didUpdateWidget(covariant DailyNutrientPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.withoutGoal != widget.withoutGoal) {
-      _withoutGoal = widget.withoutGoal;
+    if (oldWidget.view != widget.view) {
+      _view = widget.view;
     }
     if (oldWidget.intakes != widget.intakes ||
         oldWidget.selectedDay != widget.selectedDay) {
@@ -73,13 +74,8 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
             final enabled = Nutrients.additional
                 .where((n) => config.nutrientPanelVisibility[n.key] ?? true)
                 .toList();
-            bool hasGoal(NutrientDefinition n) {
-              final goal = goals[n.key];
-              return goal?.hasGoal ?? false;
-            }
-
             final nutrients = enabled
-                .where((n) => hasGoal(n) != _withoutGoal)
+                .where((n) => _view.includes(goals[n.key]))
                 .toList();
             return Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -100,24 +96,24 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
                     const SizedBox(height: 12),
                     Semantics(
                       identifier: 'overview-nutrients-view',
-                      child: SegmentedButton<bool>(
-                        showSelectedIcon: false,
-                        segments: [
-                          ButtonSegment(
-                            value: false,
-                            label: Text(s.nutrientGoalsViewLabel),
-                          ),
-                          ButtonSegment(
-                            value: true,
-                            label: Text(s.nutrientNoGoalViewLabel),
-                          ),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          for (final view in NutrientView.values)
+                            Semantics(
+                              identifier:
+                                  'overview-nutrients-${view.name.replaceAll('noGoal', 'no-goal')}',
+                              child: ChoiceChip(
+                                label: Text(view.label(s)),
+                                selected: _view == view,
+                                onSelected: (_) {
+                                  setState(() => _view = view);
+                                  widget.onViewChanged?.call(view);
+                                },
+                              ),
+                            ),
                         ],
-                        selected: {_withoutGoal},
-                        onSelectionChanged: (selection) {
-                          final value = selection.single;
-                          setState(() => _withoutGoal = value);
-                          widget.onViewChanged?.call(value);
-                        },
                       ),
                     ),
                     if (nutrients.isEmpty)
@@ -126,7 +122,7 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
                         child: Text(
                           enabled.isEmpty
                               ? s.nutrientPanelAllHiddenLabel
-                              : _withoutGoal
+                              : _view == NutrientView.noGoal
                               ? s.nutrientNoGoalViewEmptyLabel
                               : s.nutrientGoalsViewEmptyLabel,
                         ),
@@ -140,9 +136,16 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
                           NutrientAmountRow(
                             nutrient: n,
                             amount: totals.amounts[n.field],
-                            referenceRange: _withoutGoal ? null : goals[n.key],
-                            asPercent: !_withoutGoal,
-                            showProgress: !_withoutGoal,
+                            referenceRange: goals[n.key],
+                            referenceView: _view,
+                            viewedDay:
+                                widget.selectedDay ??
+                                widget.trackedDay?.day ??
+                                DateTime.now(),
+                            asPercent: _view != NutrientView.noGoal,
+                            showProgress:
+                                _view.threshold(goals[n.key])?.comparable ==
+                                true,
                           ),
                       ],
                     if (nutrients.any(

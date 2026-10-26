@@ -48,7 +48,7 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
         amountArithmeticEnabled: fields[42] as bool?,
         catalogueSourceOverrides: (fields[43] as Map?)?.cast<String, bool>(),
         overviewMacrosAsPercent: fields[40] as bool?,
-        overviewNutrientsWithoutGoal: fields[45] as bool?,
+        overviewNutrientView: fields[47] as String?,
       )
       ..userCarbGoalPct = (fields[6] as num?)?.toDouble()
       ..userProteinGoalPct = (fields[7] as num?)?.toDouble()
@@ -125,10 +125,10 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
       ..write(obj.catalogueSourceOverrides)
       ..writeByte(44)
       ..write(obj.nutrientInfoVisibility)
-      ..writeByte(45)
-      ..write(obj.overviewNutrientsWithoutGoal)
       ..writeByte(46)
-      ..write(obj.showMissingNutrientsInInfo);
+      ..write(obj.showMissingNutrientsInInfo)
+      ..writeByte(47)
+      ..write(obj.overviewNutrientView);
   }
 
   @override
@@ -201,8 +201,7 @@ ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
               (k, e) => MapEntry(k, e as bool),
             ),
         overviewMacrosAsPercent: json['overviewMacrosAsPercent'] as bool?,
-        overviewNutrientsWithoutGoal:
-            json['overviewNutrientsWithoutGoal'] as bool?,
+        overviewNutrientView: json['overviewNutrientView'] as String?,
       )
       ..userCarbGoalPct = (json['userCarbGoalPct'] as num?)?.toDouble()
       ..userProteinGoalPct = (json['userProteinGoalPct'] as num?)?.toDouble()
@@ -244,7 +243,7 @@ Map<String, dynamic> _$ConfigDBOToJson(ConfigDBO instance) => <String, dynamic>{
   'amountArithmeticEnabled': instance.amountArithmeticEnabled,
   'catalogueSourceOverrides': instance.catalogueSourceOverrides,
   'nutrientInfoVisibility': instance.nutrientInfoVisibility,
-  'overviewNutrientsWithoutGoal': instance.overviewNutrientsWithoutGoal,
+  'overviewNutrientView': instance.overviewNutrientView,
   'showMissingNutrientsInInfo': instance.showMissingNutrientsInInfo,
 };
 

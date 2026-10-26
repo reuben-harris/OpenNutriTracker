@@ -146,6 +146,7 @@ class _WeightHistoryScreenState extends State<WeightHistoryScreen> {
           ? const Center(child: CircularProgressIndicator())
           : HistoryEntries(
               identifier: 'weight-history-entries',
+              label: S.of(context).profileWeightHistoryTitle,
               emptyLabel: S.of(context).weightHistoryNoEntries,
               count: _entries.length,
               header: _entries.isEmpty
@@ -179,17 +180,26 @@ class _WeightHistoryScreenState extends State<WeightHistoryScreen> {
       Localizations.localeOf(context).toLanguageTag(),
     ).format(entry.date);
 
-    return ListTile(
-      onTap: () => _onAddEntry(existing: entry),
-      title: Text(displayStr),
-      subtitle: Text(
-        entry.note?.isNotEmpty == true
-            ? '$dateLabel  •  ${entry.note}'
-            : dateLabel,
-      ),
-      trailing: IconButton(
-        icon: const Icon(Icons.delete_outline),
-        onPressed: () => _onDelete(entry),
+    return Semantics(
+      identifier:
+          'weight-history-entry-${entry.date.toIso8601String().split('T').first}',
+      child: ListTile(
+        onTap: () => _onAddEntry(existing: entry),
+        title: Text(displayStr),
+        subtitle: Text(
+          entry.note?.isNotEmpty == true
+              ? '$dateLabel  •  ${entry.note}'
+              : dateLabel,
+        ),
+        trailing: Semantics(
+          identifier:
+              'weight-history-delete-${entry.date.toIso8601String().split('T').first}',
+          child: IconButton(
+            tooltip: S.of(context).historyDeleteLabel,
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () => _onDelete(entry),
+          ),
+        ),
       ),
     );
   }

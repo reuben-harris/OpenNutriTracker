@@ -197,6 +197,7 @@ class _FoodNutritionInformationState extends State<FoodNutritionInformation> {
             baseAmount: _selection?.baseAmount ?? 0,
             reference: _reference,
             goals: state.dayCoreGoals,
+            viewedDay: widget.day,
             nutrientReferences: state.nutrientReferences,
           ),
           const SizedBox(height: 12),

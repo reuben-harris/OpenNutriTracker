@@ -17,13 +17,16 @@ import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dar
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:opennutritracker/features/diary/presentation/widgets/daily_nutrient_panel.dart';
 import '../../helpers/overview_diary_harness.dart';
-import 'overview_widgets_test.dart' show app;
+import 'overview_widgets_test.dart' show app, ReferenceUser;
+import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
 
 void main() {
   useTestLocator();
   testWidgets(
     'an empty day shows zero amounts and progress for every enabled nutrient',
     (tester) async {
+      final users = ReferenceUser();
+      locator.registerSingleton<GetUserUsecase>(users);
       await tester.pumpWidget(
         app(
           const SingleChildScrollView(child: DailyNutrientPanel(intakes: [])),
@@ -33,7 +36,12 @@ void main() {
       expect(find.textContaining('No data'), findsNothing);
       expect(
         find.byType(LinearProgressIndicator),
-        findsNWidgets(NutrientGoalResolver.resolve(day: DateTime.now()).length),
+        findsNWidgets(
+          NutrientGoalResolver.resolve(
+            day: DateTime.now(),
+            user: users.user,
+          ).values.where((r) => r.adequacy?.comparable == true).length,
+        ),
       );
       for (final bar in tester.widgetList<LinearProgressIndicator>(
         find.byType(LinearProgressIndicator),
@@ -45,7 +53,7 @@ void main() {
         find.byKey(const ValueKey('nutrition-row-histidine')),
         findsNothing,
       );
-      await tester.tap(find.text('No target'));
+      await tester.tap(find.text('No goal'));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('nutrition-row-fiber')), findsNothing);
       expect(
@@ -85,6 +93,14 @@ void main() {
       );
       await tester.runAsync(() async {
         await h.initialize();
+        final user = await h.user.getUserData();
+        user.nutrientPolicies = {
+          'fiber': const NutrientPolicy(
+            adequacyMode: ThresholdMode.custom,
+            target: 10,
+          ),
+        };
+        await h.user.updateUserData(user);
         await h.configSource.setConfigDayStartOffsetHours(4);
         await h.configSource.setConfigDayStartOffsetMinutes(30);
         for (final n in Nutrients.additional) {
@@ -144,13 +160,17 @@ void main() {
           ),
         ),
       );
-      await pumpUntil(tester, () => find.text('700%').evaluate().isNotEmpty);
-      expect(find.text('700%'), findsOneWidget);
+      await pumpUntil(
+        tester,
+        () => find.textContaining('700%').evaluate().isNotEmpty,
+      );
+      expect(find.textContaining('700%'), findsOneWidget);
       final fiberRow = find.byKey(const ValueKey('nutrition-row-fiber'));
       await tester.ensureVisible(fiberRow);
-      await tester.tap(find.text('700%'));
+      await tester.tap(find.textContaining('700%'));
       await tester.pump();
-      expect(find.text('70 g / 10.00 g'), findsOneWidget);
+      expect(find.textContaining('Recorded amount: 70 g'), findsOneWidget);
+      expect(find.textContaining('Custom target: 10.00 g'), findsOneWidget);
       expect(find.text('sodium'), findsNothing);
       expect(find.text('Week'), findsNothing);
       expect(find.text('Day'), findsNothing);

@@ -44,7 +44,7 @@ void main() {
               );
               expect(
                 bar.color,
-                ratio >= 1 ? reached : neutral,
+                (isLimit ? ratio > 1 : ratio >= 1) ? reached : neutral,
                 reason: 'ratio=$ratio, accent=$accent',
               );
               expect(bar.value, ratio.clamp(0.0, 1.0));
