@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/life_stage_period.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:opennutritracker/core/domain/entity/height_reading.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
@@ -39,6 +40,9 @@ class UserDBO extends HiveObject {
   @HiveField(10)
   List<HeightReading>? heightHistory;
 
+  @HiveField(11)
+  List<LifeStagePeriod> lifeStagePeriods;
+
   UserDBO({
     required this.birthday,
     required this.heightCM,
@@ -47,6 +51,7 @@ class UserDBO extends HiveObject {
     required this.goal,
     required this.pal,
     this.heightHistory,
+    this.lifeStagePeriods = const [],
     this.weeklyWeightGoalKg,
     this.targetWeightKg,
     this.caloriesTaperEnabled = false,
@@ -58,6 +63,7 @@ class UserDBO extends HiveObject {
 
   factory UserDBO.fromUserEntity(UserEntity entity) {
     return UserDBO(
+      lifeStagePeriods: entity.lifeStagePeriods,
       heightHistory: entity.heightHistory,
       birthday: entity.birthday,
       heightCM: entity.heightCM,

@@ -19,8 +19,10 @@ class UserRepository {
     await _userDataSource.saveUserData(userDBO);
   }
 
-  Future<void> restoreUserData(UserDBO user) =>
-      _userDataSource.saveUserData(user);
+  Future<void> restoreUserData(UserDBO user) {
+    UserEntity.fromUserDBO(user); // Validate periods before accepting a backup.
+    return _userDataSource.saveUserData(user);
+  }
 
   Future<bool> hasUserData() async => await _userDataSource.hasUserData();
 

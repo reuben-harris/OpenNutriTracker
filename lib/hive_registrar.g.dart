@@ -24,6 +24,7 @@ import 'package:opennutritracker/core/data/dbo/user_weight_goal_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/water_intake_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/weight_log_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/height_reading.dart';
+import 'package:opennutritracker/core/domain/entity/life_stage_period.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 
@@ -35,6 +36,8 @@ extension HiveRegistrar on HiveInterface {
     registerAdapter(HeightReadingAdapter());
     registerAdapter(IntakeDBOAdapter());
     registerAdapter(IntakeTypeDBOAdapter());
+    registerAdapter(LifeStageAdapter());
+    registerAdapter(LifeStagePeriodAdapter());
     registerAdapter(MealDBOAdapter());
     registerAdapter(MealNutrimentsDBOAdapter());
     registerAdapter(MealPortionDBOAdapter());
@@ -66,6 +69,8 @@ extension IsolatedHiveRegistrar on IsolatedHiveInterface {
     registerAdapter(HeightReadingAdapter());
     registerAdapter(IntakeDBOAdapter());
     registerAdapter(IntakeTypeDBOAdapter());
+    registerAdapter(LifeStageAdapter());
+    registerAdapter(LifeStagePeriodAdapter());
     registerAdapter(MealDBOAdapter());
     registerAdapter(MealNutrimentsDBOAdapter());
     registerAdapter(MealPortionDBOAdapter());

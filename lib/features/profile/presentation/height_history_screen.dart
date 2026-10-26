@@ -31,11 +31,12 @@ class _HeightHistoryScreenState extends State<HeightHistoryScreen> {
     final user = await _repository.getUserData();
     final imperial =
         (await locator<ConfigRepository>().getConfig()).usesImperialHeightUnits;
-    if (mounted)
+    if (mounted) {
       setState(() {
         _user = user;
         _imperial = imperial;
       });
+    }
   }
 
   Future<void> _edit([HeightReading? existing]) async {
@@ -49,8 +50,9 @@ class _HeightHistoryScreenState extends State<HeightHistoryScreen> {
       ),
     );
     if (reading == null) return;
-    if (existing != null)
+    if (existing != null) {
       _user!.heightHistory.removeWhere((e) => e.date == existing.date);
+    }
     _user!.recordHeight(reading);
     await _repository.updateUserData(_user!);
     await _load();

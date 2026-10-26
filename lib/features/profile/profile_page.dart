@@ -1,3 +1,4 @@
+import 'package:opennutritracker/features/profile/presentation/life_stage_history_screen.dart';
 import 'package:opennutritracker/features/profile/presentation/height_history_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -290,6 +291,28 @@ class _ProfilePageState extends State<ProfilePage> {
                 }
               },
             ),
+            if (user.sex == UserSexEntity.female)
+              _ProfileTile(
+                identifier: 'profile-life-stage-history',
+                palette: palette,
+                icon: Icons.timeline,
+                title: S.of(context).lifeStageHistoryTitle,
+                subtitle: user.lifeStageOn(DateTime.now()) == null
+                    ? null
+                    : lifeStageLabel(
+                        user.lifeStageOn(DateTime.now())!,
+                        S.of(context),
+                      ),
+                onTap: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const LifeStageHistoryScreen(),
+                    ),
+                  );
+                  if (context.mounted)
+                    context.read<ProfileBloc>().add(LoadProfileEvent());
+                },
+              ),
             _ProfileTile(
               identifier: 'profile-age',
               palette: palette,

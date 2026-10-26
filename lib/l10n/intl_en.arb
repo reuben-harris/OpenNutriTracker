@@ -1425,5 +1425,14 @@
   "saveAndLeaveLabel": "Save and leave",
   "heightHistoryTitle": "Height history",
   "heightHistoryEmpty": "No height readings in this period.",
-  "historyDeleteLabel": "Delete entry"
+  "historyDeleteLabel": "Delete entry",
+  "lifeStageHistoryTitle": "Pregnancy & breastfeeding",
+  "pregnancyLabel": "Pregnancy",
+  "breastfeedingLabel": "Breastfeeding",
+  "lifeStageExplanation": "These periods affect nutrient references. They do not add pregnancy or breastfeeding calorie calculations. Start and end days are included; gaps mean neither stage.",
+  "lifeStageEmpty": "No pregnancy or breastfeeding periods.",
+  "lifeStageOngoing": "Ongoing",
+  "lifeStageStart": "Start date",
+  "lifeStageEnd": "End date",
+  "lifeStageInvalid": "Choose an end on or after the start, without overlapping another period."
 }

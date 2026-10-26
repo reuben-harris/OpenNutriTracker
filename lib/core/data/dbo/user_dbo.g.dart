@@ -24,6 +24,9 @@ class UserDBOAdapter extends TypeAdapter<UserDBO> {
       goal: fields[4] as UserWeightGoalDBO,
       pal: fields[5] as UserPALDBO,
       heightHistory: (fields[10] as List?)?.cast<HeightReading>(),
+      lifeStagePeriods: fields[11] == null
+          ? const []
+          : (fields[11] as List).cast<LifeStagePeriod>(),
       weeklyWeightGoalKg: (fields[6] as num?)?.toDouble(),
       targetWeightKg: (fields[8] as num?)?.toDouble(),
       caloriesTaperEnabled: fields[9] == null ? false : fields[9] as bool,
@@ -33,7 +36,7 @@ class UserDBOAdapter extends TypeAdapter<UserDBO> {
   @override
   void write(BinaryWriter writer, UserDBO obj) {
     writer
-      ..writeByte(10)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.birthday)
       ..writeByte(1)
@@ -53,7 +56,9 @@ class UserDBOAdapter extends TypeAdapter<UserDBO> {
       ..writeByte(9)
       ..write(obj.caloriesTaperEnabled)
       ..writeByte(10)
-      ..write(obj.heightHistory);
+      ..write(obj.heightHistory)
+      ..writeByte(11)
+      ..write(obj.lifeStagePeriods);
   }
 
   @override
@@ -81,6 +86,11 @@ UserDBO _$UserDBOFromJson(Map<String, dynamic> json) => UserDBO(
   heightHistory: (json['heightHistory'] as List<dynamic>?)
       ?.map((e) => HeightReading.fromJson(e as Map<String, dynamic>))
       .toList(),
+  lifeStagePeriods:
+      (json['lifeStagePeriods'] as List<dynamic>?)
+          ?.map((e) => LifeStagePeriod.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
   weeklyWeightGoalKg: (json['weeklyWeightGoalKg'] as num?)?.toDouble(),
   targetWeightKg: (json['targetWeightKg'] as num?)?.toDouble(),
   caloriesTaperEnabled: json['caloriesTaperEnabled'] as bool? ?? false,
@@ -97,6 +107,7 @@ Map<String, dynamic> _$UserDBOToJson(UserDBO instance) => <String, dynamic>{
   'targetWeightKg': instance.targetWeightKg,
   'caloriesTaperEnabled': instance.caloriesTaperEnabled,
   'heightHistory': instance.heightHistory?.map((e) => e.toJson()).toList(),
+  'lifeStagePeriods': instance.lifeStagePeriods.map((e) => e.toJson()).toList(),
 };
 
 const _$UserSexDBOEnumMap = {

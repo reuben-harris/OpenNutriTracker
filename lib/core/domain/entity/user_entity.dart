@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/life_stage_period.dart';
 import 'package:opennutritracker/core/domain/entity/height_reading.dart';
 import 'package:opennutritracker/core/data/dbo/user_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/user_sex_entity.dart';
@@ -5,6 +6,17 @@ import 'package:opennutritracker/core/domain/entity/user_pal_entity.dart';
 import 'package:opennutritracker/core/domain/entity/user_weight_goal_entity.dart';
 
 class UserEntity {
+  List<LifeStagePeriod> _lifeStagePeriods;
+  List<LifeStagePeriod> get lifeStagePeriods =>
+      List.unmodifiable(_lifeStagePeriods);
+  set lifeStagePeriods(List<LifeStagePeriod> periods) =>
+      _lifeStagePeriods = LifeStagePeriod.validated(periods);
+  LifeStage? lifeStageOn(DateTime day) => sex == UserSexEntity.female
+      ? _lifeStagePeriods
+            .where((period) => period.contains(day))
+            .firstOrNull
+            ?.stage
+      : null;
   List<HeightReading> heightHistory;
   DateTime birthday;
   double heightCM;
@@ -34,14 +46,17 @@ class UserEntity {
     required this.sex,
     required this.goal,
     required this.pal,
+    List<LifeStagePeriod> lifeStagePeriods = const [],
     List<HeightReading>? heightHistory,
     this.weeklyWeightGoalKg,
     this.targetWeightKg,
     this.caloriesTaperEnabled = false,
-  }) : heightHistory = List.of(heightHistory ?? []);
+  }) : _lifeStagePeriods = LifeStagePeriod.validated(lifeStagePeriods),
+       heightHistory = List.of(heightHistory ?? []);
 
   factory UserEntity.fromUserDBO(UserDBO userDBO) {
     return UserEntity(
+      lifeStagePeriods: userDBO.lifeStagePeriods,
       heightHistory: userDBO.heightHistory,
       birthday: userDBO.birthday,
       heightCM: userDBO.heightCM,
