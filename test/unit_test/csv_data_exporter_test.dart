@@ -1,5 +1,4 @@
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
-import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:opennutritracker/core/data/data_source/user_activity_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/intake_dbo.dart';
@@ -233,21 +232,6 @@ void main() {
   });
 
   group('CsvDataExporter tracked-day round-trip', () {
-    test('personal nutrient targets and limits survive a CSV backup', () {
-      final day = TrackedDayDBO(
-        day: DateTime.utc(2026, 10, 26),
-        calorieGoal: 2000,
-        caloriesTracked: 0,
-        nutrientGoals: const {
-          'selenium': NutrientGoal(55.125),
-          'added_sugars': NutrientGoal(40, isLimit: true),
-        },
-      );
-      final restored = CsvDataExporter.parseTrackedDaysFromCsv(
-        CsvDataExporter.trackedDaysToCsv([day]),
-      ).single;
-      expect(restored.nutrientGoals, day.nutrientGoals);
-    });
     test('a full tracked-day row survives a CSV round-trip', () {
       final day = TrackedDayDBO(
         day: DateTime.utc(2026, 5, 13),

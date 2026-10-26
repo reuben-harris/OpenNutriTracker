@@ -789,8 +789,8 @@ void main() {
       expect(bloc!.state.dayCarbsGoal, 250);
       expect(bloc!.state.dayFatGoal, 70);
       expect(bloc!.state.dayProteinGoal, 120);
-      expect(bloc!.state.dayNutrientGoals['saturated_fat']?.amount, 20);
-      expect(bloc!.state.dayNutrientGoals['sodium']?.amount, 1800);
+      expect(bloc!.state.dayCoreGoals['saturated_fat']?.amount, 20);
+      expect(bloc!.state.dayCoreGoals['sodium']?.amount, 1800);
       daily.tracked = null;
       bloc!.add(LoadDailyTotalsEvent(DateTime(2026, 10, 11)));
       await tester.pumpAndSettle();
@@ -817,8 +817,8 @@ void main() {
       users = _UnavailableUser();
       await pumpMealDetail(tester, _solidWithServing());
       expect(bloc!.state.dayCarbsGoal, 250);
-      expect(bloc!.state.dayNutrientGoals['sodium']?.amount, 1800);
-      expect(bloc!.state.dayNutrientGoals['fiber']?.amount, 30);
+      expect(bloc!.state.dayCoreGoals['sodium']?.amount, 1800);
+      expect(bloc!.state.dayCoreGoals['fiber']?.amount, 30);
     },
   );
 
@@ -1035,7 +1035,6 @@ class _FakeGetTrackedDayUsecase implements GetTrackedDayUsecase {
     carbsGoal: 250,
     fatGoal: 70,
     proteinGoal: 120,
-    nutrientGoals: const {'sodium': NutrientGoal(1800, isLimit: true)},
   );
   @override
   Future<TrackedDayEntity?> getTrackedDay(DateTime day) async => tracked;

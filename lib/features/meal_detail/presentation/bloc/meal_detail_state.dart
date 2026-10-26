@@ -13,7 +13,8 @@ abstract class MealDetailState extends Equatable {
   final double dayKcalConsumed;
   final double dayKcalGoal;
   final double dayCarbsGoal, dayFatGoal, dayProteinGoal;
-  final Map<String, NutrientGoal> dayNutrientGoals;
+  final Map<String, NutrientGoal> dayCoreGoals;
+  final Map<String, NutrientReferenceRange> nutrientReferences;
 
   /// Latest full product from hydration or an explicit refresh; null until
   /// either succeeds. The screen uses it for nutrition and serving options.
@@ -52,7 +53,8 @@ abstract class MealDetailState extends Equatable {
     this.dayCarbsGoal = 0,
     this.dayFatGoal = 0,
     this.dayProteinGoal = 0,
-    this.dayNutrientGoals = const {},
+    this.dayCoreGoals = const {},
+    this.nutrientReferences = const {},
     this.hydratedMeal,
     this.hydrationStatus = MealInformationLoadStatus.initial,
     this.dailyTotalsStatus = MealInformationLoadStatus.initial,
@@ -71,7 +73,8 @@ abstract class MealDetailState extends Equatable {
     dayCarbsGoal,
     dayFatGoal,
     dayProteinGoal,
-    dayNutrientGoals,
+    dayCoreGoals,
+    nutrientReferences,
     hydratedMeal,
     hydrationStatus,
     dailyTotalsStatus,
@@ -89,7 +92,8 @@ abstract class MealDetailState extends Equatable {
     double? dayCarbsGoal,
     double? dayFatGoal,
     double? dayProteinGoal,
-    Map<String, NutrientGoal>? dayNutrientGoals,
+    Map<String, NutrientGoal>? dayCoreGoals,
+    Map<String, NutrientReferenceRange>? nutrientReferences,
     MealEntity? hydratedMeal,
     MealInformationLoadStatus? hydrationStatus,
     MealInformationLoadStatus? dailyTotalsStatus,
@@ -106,7 +110,8 @@ abstract class MealDetailState extends Equatable {
       dayCarbsGoal: dayCarbsGoal ?? this.dayCarbsGoal,
       dayFatGoal: dayFatGoal ?? this.dayFatGoal,
       dayProteinGoal: dayProteinGoal ?? this.dayProteinGoal,
-      dayNutrientGoals: dayNutrientGoals ?? this.dayNutrientGoals,
+      dayCoreGoals: dayCoreGoals ?? this.dayCoreGoals,
+      nutrientReferences: nutrientReferences ?? this.nutrientReferences,
       hydratedMeal: hydratedMeal ?? this.hydratedMeal,
       hydrationStatus: hydrationStatus ?? this.hydrationStatus,
       dailyTotalsStatus: dailyTotalsStatus ?? this.dailyTotalsStatus,
@@ -127,7 +132,8 @@ class MealDetailInitial extends MealDetailState {
     super.dayCarbsGoal,
     super.dayFatGoal,
     super.dayProteinGoal,
-    super.dayNutrientGoals,
+    super.dayCoreGoals,
+    super.nutrientReferences,
     super.hydratedMeal,
     super.hydrationStatus,
     super.dailyTotalsStatus,

@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
 import 'package:opennutritracker/core/domain/entity/life_stage_period.dart';
 import 'package:opennutritracker/core/domain/entity/height_reading.dart';
 import 'package:opennutritracker/core/data/dbo/user_dbo.dart';
@@ -18,6 +19,7 @@ class UserEntity {
             ?.stage
       : null;
   List<HeightReading> heightHistory;
+  Map<String, NutrientPolicy> nutrientPolicies;
   DateTime birthday;
   double heightCM;
   double weightKG;
@@ -40,6 +42,7 @@ class UserEntity {
   bool caloriesTaperEnabled;
 
   UserEntity({
+    Map<String, NutrientPolicy> nutrientPolicies = const {},
     required this.birthday,
     required this.heightCM,
     required this.weightKG,
@@ -51,13 +54,15 @@ class UserEntity {
     this.weeklyWeightGoalKg,
     this.targetWeightKg,
     this.caloriesTaperEnabled = false,
-  }) : _lifeStagePeriods = LifeStagePeriod.validated(lifeStagePeriods),
+  }) : nutrientPolicies = Map.of(nutrientPolicies),
+       _lifeStagePeriods = LifeStagePeriod.validated(lifeStagePeriods),
        heightHistory = List.of(heightHistory ?? []);
 
   factory UserEntity.fromUserDBO(UserDBO userDBO) {
     return UserEntity(
       lifeStagePeriods: userDBO.lifeStagePeriods,
       heightHistory: userDBO.heightHistory,
+      nutrientPolicies: userDBO.nutrientPolicies,
       birthday: userDBO.birthday,
       heightCM: userDBO.heightCM,
       weightKG: userDBO.weightKG,
@@ -87,5 +92,12 @@ class UserEntity {
     return eligible.firstOrNull;
   }
 
-  int get age => DateTime.now().difference(birthday).inDays ~/ 365;
+  int ageOn(DateTime day) =>
+      day.year -
+      birthday.year -
+      (day.month < birthday.month ||
+              day.month == birthday.month && day.day < birthday.day
+          ? 1
+          : 0);
+  int get age => ageOn(DateTime.now());
 }

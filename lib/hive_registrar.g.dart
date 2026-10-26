@@ -27,6 +27,7 @@ import 'package:opennutritracker/core/domain/entity/height_reading.dart';
 import 'package:opennutritracker/core/domain/entity/life_stage_period.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
+import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
 
 extension HiveRegistrar on HiveInterface {
   void registerAdapters() {
@@ -44,12 +45,14 @@ extension HiveRegistrar on HiveInterface {
     registerAdapter(MealSourceDBOAdapter());
     registerAdapter(NutrientAmountAdapter());
     registerAdapter(NutrientGoalAdapter());
+    registerAdapter(NutrientPolicyAdapter());
     registerAdapter(NutrientQualificationAdapter());
     registerAdapter(PhysicalActivityDBOAdapter());
     registerAdapter(PhysicalActivityTypeDBOAdapter());
     registerAdapter(ProfileDBOAdapter());
     registerAdapter(RecipeDBOAdapter());
     registerAdapter(RecipeIngredientDBOAdapter());
+    registerAdapter(ThresholdModeAdapter());
     registerAdapter(TrackedDayDBOAdapter());
     registerAdapter(UserActivityDBOAdapter());
     registerAdapter(UserDBOAdapter());
@@ -77,12 +80,14 @@ extension IsolatedHiveRegistrar on IsolatedHiveInterface {
     registerAdapter(MealSourceDBOAdapter());
     registerAdapter(NutrientAmountAdapter());
     registerAdapter(NutrientGoalAdapter());
+    registerAdapter(NutrientPolicyAdapter());
     registerAdapter(NutrientQualificationAdapter());
     registerAdapter(PhysicalActivityDBOAdapter());
     registerAdapter(PhysicalActivityTypeDBOAdapter());
     registerAdapter(ProfileDBOAdapter());
     registerAdapter(RecipeDBOAdapter());
     registerAdapter(RecipeIngredientDBOAdapter());
+    registerAdapter(ThresholdModeAdapter());
     registerAdapter(TrackedDayDBOAdapter());
     registerAdapter(UserActivityDBOAdapter());
     registerAdapter(UserDBOAdapter());

@@ -325,6 +325,13 @@ class ReferenceCatalogue {
           ? ReferenceCalculation.cohort
           : ReferenceCalculation.weightFormula,
       equation: equation,
+      savedEdition: equation == null
+          ? null
+          : 'IOM (2006), Essential Guide, Appendix E, pp. 461–465',
+      savedSourceUrl: equation == null
+          ? null
+          : 'https://www.nationalacademies.org/read/11537/chapter/53',
+
       gap: !valid
           ? 'cohort'
           : missingWeight

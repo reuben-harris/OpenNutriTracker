@@ -23,6 +23,9 @@ class UserDBOAdapter extends TypeAdapter<UserDBO> {
       sex: fields[3] as UserSexDBO,
       goal: fields[4] as UserWeightGoalDBO,
       pal: fields[5] as UserPALDBO,
+      nutrientPolicies: fields[12] == null
+          ? const {}
+          : (fields[12] as Map).cast<String, NutrientPolicy>(),
       heightHistory: (fields[10] as List?)?.cast<HeightReading>(),
       lifeStagePeriods: fields[11] == null
           ? const []
@@ -36,7 +39,7 @@ class UserDBOAdapter extends TypeAdapter<UserDBO> {
   @override
   void write(BinaryWriter writer, UserDBO obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.birthday)
       ..writeByte(1)
@@ -58,7 +61,9 @@ class UserDBOAdapter extends TypeAdapter<UserDBO> {
       ..writeByte(10)
       ..write(obj.heightHistory)
       ..writeByte(11)
-      ..write(obj.lifeStagePeriods);
+      ..write(obj.lifeStagePeriods)
+      ..writeByte(12)
+      ..write(obj.nutrientPolicies);
   }
 
   @override
@@ -83,6 +88,12 @@ UserDBO _$UserDBOFromJson(Map<String, dynamic> json) => UserDBO(
   sex: $enumDecode(_$UserSexDBOEnumMap, json['sex']),
   goal: $enumDecode(_$UserWeightGoalDBOEnumMap, json['goal']),
   pal: $enumDecode(_$UserPALDBOEnumMap, json['pal']),
+  nutrientPolicies:
+      (json['nutrientPolicies'] as Map<String, dynamic>?)?.map(
+        (k, e) =>
+            MapEntry(k, NutrientPolicy.fromJson(e as Map<String, dynamic>)),
+      ) ??
+      const {},
   heightHistory: (json['heightHistory'] as List<dynamic>?)
       ?.map((e) => HeightReading.fromJson(e as Map<String, dynamic>))
       .toList(),
@@ -108,6 +119,9 @@ Map<String, dynamic> _$UserDBOToJson(UserDBO instance) => <String, dynamic>{
   'caloriesTaperEnabled': instance.caloriesTaperEnabled,
   'heightHistory': instance.heightHistory?.map((e) => e.toJson()).toList(),
   'lifeStagePeriods': instance.lifeStagePeriods.map((e) => e.toJson()).toList(),
+  'nutrientPolicies': instance.nutrientPolicies.map(
+    (k, e) => MapEntry(k, e.toJson()),
+  ),
 };
 
 const _$UserSexDBOEnumMap = {

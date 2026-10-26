@@ -355,6 +355,7 @@ Future<void> initLocator() async {
       recipeRepository: locator(),
       catalogue: locator(),
       getUserUsecase: locator(),
+      getWeightLogUsecase: locator(),
     ),
   );
   locator.registerFactory<ScannerBloc>(() => ScannerBloc(locator(), locator()));

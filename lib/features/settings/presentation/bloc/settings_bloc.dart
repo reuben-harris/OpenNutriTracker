@@ -1,4 +1,3 @@
-import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:logging/logging.dart';
@@ -233,15 +232,6 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   /// Read today's personal nutrient goals; a missing day has no overrides.
   Future<TrackedDayEntity?> getTodayTrackedDay(DateTime day) async {
     return await _getTrackedDayUsecase.getTrackedDay(day);
-  }
-
-  /// Replace today's personal nutrient goals. Omitted keys use their default reference.
-  Future<void> setTodayNutrientGoals(
-    DateTime day,
-    Map<String, NutrientGoal> goals,
-  ) async {
-    await updateTrackedDay(day);
-    await _addTrackedDayUsecase.updateDayNutrientGoals(day, goals);
   }
 
   Future<void> updateTrackedDay(DateTime day) async {

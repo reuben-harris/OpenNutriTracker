@@ -5,7 +5,8 @@ import 'package:opennutritracker/core/domain/entity/nutrients.dart';
 import 'package:opennutritracker/core/presentation/sources_screen.dart';
 import 'package:opennutritracker/core/presentation/widgets/nutrient_group_header.dart';
 import 'package:opennutritracker/core/styles/app_palette.dart';
-import 'package:opennutritracker/core/utils/calc/daily_nutrient_references.dart';
+import 'package:opennutritracker/core/nutrition/nutrient_goal_resolver.dart';
+import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/calendar_day_bloc.dart';
 import 'package:opennutritracker/features/diary/presentation/bloc/diary_bloc.dart';
 import 'package:opennutritracker/features/home/presentation/bloc/home_bloc.dart';
@@ -73,11 +74,26 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
   Future<void> _load() async {
     try {
       final user = await widget.profileBloc.getUser();
-      final today = await widget.settingsBloc.getTodayTrackedDay(_day);
+
       if (!mounted) return;
-      _defaults = DailyNutrientReferences.resolve(user: user);
+      _defaults = {
+        for (final entry in NutrientGoalResolver.resolve(
+          user: user,
+          day: _day,
+        ).entries)
+          if (entry.value.primary?.comparable == true)
+            entry.key: NutrientGoal(
+              entry.value.primary!.amount,
+              isLimit: entry.value.primary!.upper,
+            ),
+      };
       for (final n in Nutrients.additional) {
-        final goal = today?.nutrientGoals[n.key];
+        final policy = user.nutrientPolicies[n.key];
+        final goal = policy?.adequacyMode == ThresholdMode.custom
+            ? NutrientGoal(policy!.target!)
+            : policy?.upperMode == ThresholdMode.custom
+            ? NutrientGoal(policy!.upper!, isLimit: true)
+            : null;
         _controllers[n.key]!.text = goal == null
             ? ''
             : _amountText(goal.amount);
@@ -159,14 +175,26 @@ class _NutrientGoalsScreenState extends State<NutrientGoalsScreen> {
     }
     setState(() => _saving = true);
     try {
-      final goals = <String, NutrientGoal>{};
+      final user = await widget.profileBloc.getUser();
+      final goals = Map<String, NutrientPolicy>.of(user.nutrientPolicies);
       for (final n in Nutrients.additional) {
         final value = double.tryParse(_controllers[n.key]!.text.trim());
         if (value != null) {
-          goals[n.key] = NutrientGoal(value, isLimit: _limits[n.key]!);
+          goals[n.key] = (goals[n.key] ?? const NutrientPolicy()).copyWith(
+            adequacyMode: _limits[n.key]!
+                ? ThresholdMode.reference
+                : ThresholdMode.custom,
+            upperMode: _limits[n.key]!
+                ? ThresholdMode.custom
+                : ThresholdMode.reference,
+            target: value,
+            upper: value,
+          );
+        } else {
+          goals[n.key] = const NutrientPolicy();
         }
       }
-      await widget.settingsBloc.setTodayNutrientGoals(_day, goals);
+      await widget.profileBloc.setNutrientPolicies(goals);
       if (!mounted) return true;
       widget.settingsBloc.add(LoadSettingsEvent());
       widget.homeBloc.add(const LoadItemsEvent());

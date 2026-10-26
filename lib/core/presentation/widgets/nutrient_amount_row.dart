@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/nutrition/nutrient_goal_resolver.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
@@ -25,12 +26,14 @@ class NutrientAmountRow extends StatelessWidget {
   final NutrientDefinition nutrient;
   final NutrientAmount? amount;
   final NutrientGoal? goal;
+  final NutrientReferenceRange? referenceRange;
   final bool asPercent, showPercentage, showProgress;
   const NutrientAmountRow({
     super.key,
     required this.nutrient,
     required this.amount,
     this.goal,
+    this.referenceRange,
     this.asPercent = false,
     this.showPercentage = false,
     this.showProgress = true,
@@ -38,6 +41,12 @@ class NutrientAmountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final reference = referenceRange?.primary;
+    final goal = referenceRange == null
+        ? this.goal
+        : reference?.comparable == true
+        ? NutrientGoal(reference!.amount, isLimit: reference.upper)
+        : null;
     final s = S.of(context);
     final palette = Theme.of(context).brightness == Brightness.dark
         ? AppPalette.dark

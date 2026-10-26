@@ -1,7 +1,7 @@
 import 'package:opennutritracker/core/domain/entity/nutrients.dart';
-import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
+import 'package:opennutritracker/core/domain/entity/nutrient_policy.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
-import 'package:opennutritracker/core/utils/calc/daily_nutrient_references.dart';
+import 'package:opennutritracker/core/nutrition/nutrient_goal_resolver.dart';
 import '../../helpers/pump_until.dart';
 import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
@@ -34,7 +34,7 @@ void main() {
       expect(find.textContaining('No data'), findsNothing);
       expect(
         find.byType(LinearProgressIndicator),
-        findsNWidgets(DailyNutrientReferences.resolve().length),
+        findsNWidgets(NutrientGoalResolver.resolve(day: DateTime.now()).length),
       );
       for (final bar in tester.widgetList<LinearProgressIndicator>(
         find.byType(LinearProgressIndicator),
@@ -140,7 +140,6 @@ void main() {
                 day: anchor,
                 calorieGoal: 2000,
                 caloriesTracked: 100,
-                nutrientGoals: const {'fiber': NutrientGoal(10)},
               ),
             ),
           ),

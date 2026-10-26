@@ -1,4 +1,3 @@
-import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:opennutritracker/core/data/data_source/tracked_day_data_source.dart';
 import 'package:opennutritracker/core/data/dbo/tracked_day_dbo.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
@@ -165,14 +164,6 @@ class TrackedDayRepository {
       fatAmount: fatTracked,
       proteinAmount: proteinTracked,
     );
-  }
-
-  /// Replace today's personal nutrient goals. Omitted keys use their default reference.
-  Future<void> updateDayNutrientGoals(
-    DateTime day,
-    Map<String, NutrientGoal> goals,
-  ) async {
-    await _trackedDayDataSource.updateDayNutrientGoals(day, goals);
   }
 
   Future<void> reconcileDayTracked(

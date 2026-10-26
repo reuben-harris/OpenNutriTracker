@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/nutrition/nutrient_goal_resolver.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:opennutritracker/core/domain/entity/nutrients.dart';
@@ -15,12 +16,14 @@ class MealDetailNutrimentsTable extends StatefulWidget {
   final double baseAmount;
   final bool reference;
   final Map<String, NutrientGoal> goals;
+  final Map<String, NutrientReferenceRange> nutrientReferences;
   const MealDetailNutrimentsTable({
     super.key,
     required this.product,
     required this.baseAmount,
     required this.reference,
     this.goals = const {},
+    this.nutrientReferences = const {},
   });
   @override
   State<MealDetailNutrimentsTable> createState() =>
@@ -68,6 +71,7 @@ class _MealDetailNutrimentsTableState extends State<MealDetailNutrimentsTable> {
             .amount(widget.product.nutriments)
             ?.scale(widget.reference ? 1 : widget.baseAmount / 100),
         goal: widget.goals[n.key],
+        referenceRange: widget.nutrientReferences[n.key],
         showPercentage: true,
       );
       return AppCard(

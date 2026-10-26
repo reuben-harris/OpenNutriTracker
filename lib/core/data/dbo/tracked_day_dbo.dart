@@ -1,4 +1,3 @@
-import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:opennutritracker/core/domain/entity/tracked_day_entity.dart';
@@ -27,9 +26,7 @@ class TrackedDayDBO extends HiveObject {
   @HiveField(8)
   double? proteinTracked;
 
-  // Fields 9–18 are retired individual nutrient goals.
-  @HiveField(19)
-  Map<String, NutrientGoal> nutrientGoals;
+  // Fields 9–19 are retired additional-nutrient day overrides.
 
   TrackedDayDBO({
     required this.day,
@@ -41,7 +38,6 @@ class TrackedDayDBO extends HiveObject {
     this.fatTracked,
     this.proteinGoal,
     this.proteinTracked,
-    this.nutrientGoals = const {},
   });
 
   factory TrackedDayDBO.fromTrackedDayEntity(TrackedDayEntity entity) {
@@ -55,7 +51,6 @@ class TrackedDayDBO extends HiveObject {
       fatTracked: entity.fatTracked,
       proteinGoal: entity.proteinGoal,
       proteinTracked: entity.proteinTracked,
-      nutrientGoals: Map.of(entity.nutrientGoals),
     );
   }
 

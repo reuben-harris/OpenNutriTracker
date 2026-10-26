@@ -1,4 +1,3 @@
-import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/core/data/dbo/tracked_day_dbo.dart';
@@ -17,8 +16,6 @@ class TrackedDayEntity extends Equatable {
   final double? proteinGoal;
   final double? proteinTracked;
 
-  final Map<String, NutrientGoal> nutrientGoals;
-
   const TrackedDayEntity({
     required this.day,
     required this.calorieGoal,
@@ -29,7 +26,6 @@ class TrackedDayEntity extends Equatable {
     this.fatTracked,
     this.proteinGoal,
     this.proteinTracked,
-    this.nutrientGoals = const {},
   });
 
   factory TrackedDayEntity.fromTrackedDayDBO(TrackedDayDBO trackedDayDBO) {
@@ -50,7 +46,6 @@ class TrackedDayEntity extends Equatable {
       fatTracked: finite(trackedDayDBO.fatTracked),
       proteinGoal: trackedDayDBO.proteinGoal,
       proteinTracked: finite(trackedDayDBO.proteinTracked),
-      nutrientGoals: Map.unmodifiable(trackedDayDBO.nutrientGoals),
     );
   }
 
@@ -100,6 +95,5 @@ class TrackedDayEntity extends Equatable {
     fatTracked,
     proteinGoal,
     proteinTracked,
-    nutrientGoals,
   ];
 }

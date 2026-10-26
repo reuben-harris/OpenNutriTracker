@@ -1,7 +1,8 @@
 import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/get_user_usecase.dart';
-import 'package:opennutritracker/core/utils/calc/daily_nutrient_references.dart';
+import 'package:opennutritracker/core/nutrition/nutrient_goal_resolver.dart';
+import 'package:opennutritracker/core/domain/usecase/get_weight_log_usecase.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
 import 'package:opennutritracker/features/add_meal/data/food_catalogue.dart';
 import 'dart:async';
@@ -40,6 +41,7 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
   final RecipeRepository? _recipeRepository;
   final FoodCatalogue? _catalogue;
   final GetUserUsecase? _getUserUsecase;
+  final GetWeightLogUsecase? _getWeightLogUsecase;
 
   int _mealRequest = 0;
   Future<void>? _hydrationCacheWrite;
@@ -55,9 +57,11 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
     RecipeRepository? recipeRepository,
     FoodCatalogue? catalogue,
     GetUserUsecase? getUserUsecase,
+    GetWeightLogUsecase? getWeightLogUsecase,
   }) : _recipeRepository = recipeRepository,
        _catalogue = catalogue,
        _getUserUsecase = getUserUsecase,
+       _getWeightLogUsecase = getWeightLogUsecase,
        super(const MealDetailInitial()) {
     on<UpdateKcalEvent>((event, emit) {
       event.selection.validate();
@@ -100,8 +104,9 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
             stack,
           );
         }
-        final references = DailyNutrientReferences.resolve(
-          trackedDay: tracked,
+        final references = NutrientGoalResolver.resolve(
+          day: event.day,
+          weights: await _getWeightLogUsecase?.getAllEntries() ?? const [],
           user: user,
         );
         if (emit.isDone) return;
@@ -113,12 +118,12 @@ class MealDetailBloc extends Bloc<MealDetailEvent, MealDetailState> {
             dayCarbsGoal: carbs,
             dayFatGoal: fat,
             dayProteinGoal: protein,
-            dayNutrientGoals: {
+            nutrientReferences: references,
+            dayCoreGoals: {
               'energy': NutrientGoal(goal),
               'carbohydrates': NutrientGoal(carbs),
               'fat': NutrientGoal(fat),
               'protein': NutrientGoal(protein),
-              ...references,
             },
           ),
         );

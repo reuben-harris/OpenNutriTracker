@@ -1,4 +1,3 @@
-import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:opennutritracker/core/data/repository/tracked_day_repository.dart';
 
 class AddTrackedDayUsecase {
@@ -122,15 +121,6 @@ class AddTrackedDayUsecase {
     );
   }
 
-  /// Replace today's personal nutrient goals. Omitted keys use their default reference.
-  Future<void> updateDayNutrientGoals(
-    DateTime day,
-    Map<String, NutrientGoal> goals,
-  ) async {
-    await _trackedDayRepository.updateDayNutrientGoals(day, goals);
-  }
-
-  /// Overwrite cached tracked values with actual sums to fix stale data (#182)
   Future<void> reconcileDayTracked(
     DateTime day,
     double calories,

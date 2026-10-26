@@ -1,4 +1,3 @@
-import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:logging/logging.dart';
 import 'package:opennutritracker/core/data/dbo/tracked_day_dbo.dart';
@@ -219,19 +218,6 @@ class TrackedDayDataSource {
       }
       await updateDay.save();
     }
-  }
-
-  /// Replace today's personal nutrient goals. Omitted keys use their default reference.
-  Future<void> updateDayNutrientGoals(
-    DateTime day,
-    Map<String, NutrientGoal> goals,
-  ) async {
-    final updateDay = await getTrackedDay(day);
-    if (updateDay == null) {
-      throw StateError('Tracked day must exist before saving nutrient goals');
-    }
-    updateDay.nutrientGoals = Map.of(goals);
-    await updateDay.save();
   }
 
   Future<void> reconcileCaloriesAndMacrosTracked(

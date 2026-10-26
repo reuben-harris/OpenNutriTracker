@@ -1,4 +1,3 @@
-import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:opennutritracker/core/data/data_source/tracked_day_data_source.dart';
@@ -318,41 +317,6 @@ void main() {
       expect(result!.calorieGoal, equals(2500));
       expect(result.caloriesTracked, equals(800));
       expect((await ds.getAllTrackedDays()).length, equals(1));
-    });
-
-    test('nutrient goals retain values and target/limit kinds', () async {
-      await ds.saveTrackedDay(seed());
-      const goals = {
-        'fiber': NutrientGoal(35),
-        'sodium': NutrientGoal(1500, isLimit: true),
-        'selenium': NutrientGoal(55),
-      };
-      await ds.updateDayNutrientGoals(day, goals);
-      final result = await ds.getTrackedDay(day);
-      expect(result!.nutrientGoals, goals);
-      expect(result.calorieGoal, seed().calorieGoal);
-    });
-    test(
-      'replacing or clearing nutrient goals removes old overrides',
-      () async {
-        await ds.saveTrackedDay(seed());
-        await ds.updateDayNutrientGoals(day, const {
-          'fiber': NutrientGoal(35),
-          'sodium': NutrientGoal(1500, isLimit: true),
-        });
-        await ds.updateDayNutrientGoals(day, const {'fiber': NutrientGoal(40)});
-        expect((await ds.getTrackedDay(day))!.nutrientGoals, const {
-          'fiber': NutrientGoal(40),
-        });
-        await ds.updateDayNutrientGoals(day, {});
-        expect((await ds.getTrackedDay(day))!.nutrientGoals, isEmpty);
-      },
-    );
-    test('saving nutrient goals requires a tracked day', () async {
-      await expectLater(
-        ds.updateDayNutrientGoals(day, const {'fiber': NutrientGoal(30)}),
-        throwsStateError,
-      );
     });
   });
 }

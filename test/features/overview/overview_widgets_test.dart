@@ -1,5 +1,5 @@
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
-import 'package:opennutritracker/core/utils/calc/daily_nutrient_references.dart';
+import 'package:opennutritracker/core/nutrition/nutrient_goal_resolver.dart';
 import '../../helpers/pump_until.dart';
 import '../../helpers/locator_test_setup.dart';
 import 'package:opennutritracker/core/food_amount/food_amount.dart';
@@ -246,7 +246,9 @@ void main() {
       expect(find.text('—'), findsOneWidget);
       expect(
         find.byType(LinearProgressIndicator),
-        findsNWidgets(3 + DailyNutrientReferences.resolve().length),
+        findsNWidgets(
+          3 + NutrientGoalResolver.resolve(day: DateTime.now()).length,
+        ),
       );
       expect(
         find.byKey(const ValueKey('nutrition-row-iodine')),

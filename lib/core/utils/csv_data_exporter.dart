@@ -1,4 +1,3 @@
-import 'package:opennutritracker/core/domain/entity/nutrient_goal.dart';
 import 'package:opennutritracker/core/domain/entity/nutrients.dart';
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
@@ -98,7 +97,6 @@ class CsvDataExporter {
     'fat_tracked',
     'protein_goal',
     'protein_tracked',
-    'nutrient_goals_json',
   ];
 
   /// Build the intakes CSV string from a list of [IntakeDBO]. Each row
@@ -195,11 +193,6 @@ class CsvDataExporter {
         _num(d.fatTracked),
         _num(d.proteinGoal),
         _num(d.proteinTracked),
-        _cell(
-          jsonEncode(
-            d.nutrientGoals.map((key, value) => MapEntry(key, value.toJson())),
-          ),
-        ),
       ];
       buf.writeln(cells.join(','));
     }
@@ -335,20 +328,6 @@ class CsvDataExporter {
       final row = _zip(header, rows[i]);
       out.add(
         TrackedDayDBO(
-          nutrientGoals:
-              row['nutrient_goals_json'] == null ||
-                  row['nutrient_goals_json']!.isEmpty
-              ? {}
-              : (jsonDecode(row['nutrient_goals_json']!)
-                        as Map<String, dynamic>)
-                    .map(
-                      (key, value) => MapEntry(
-                        key,
-                        NutrientGoal.fromJson(
-                          Map<String, dynamic>.from(value as Map),
-                        ),
-                      ),
-                    ),
           day: DateTime.parse(row['day'] ?? ''),
           calorieGoal: CsvRowParser.parseDoubleOrNull(row['calorie_goal']) ?? 0,
           caloriesTracked:

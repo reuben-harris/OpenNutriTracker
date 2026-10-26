@@ -22,14 +22,8 @@ class _Settings extends Fake implements SettingsBloc {
   Completer<void>? pending;
   @override
   Future<TrackedDayEntity?> getTodayTrackedDay(DateTime day) async =>
-      TrackedDayEntity(
-        day: day,
-        calorieGoal: 2000,
-        caloriesTracked: 0,
-        nutrientGoals: goals,
-      );
-  @override
-  Future<void> setTodayNutrientGoals(
+      TrackedDayEntity(day: day, calorieGoal: 2000, caloriesTracked: 0);
+  Future<void> setTodayCoreGoals(
     DateTime day,
     Map<String, NutrientGoal> value,
   ) async {
