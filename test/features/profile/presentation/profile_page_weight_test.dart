@@ -170,6 +170,27 @@ void main() {
   });
 
   testWidgets(
+    'male profiles retain a muted life-stage entry with an availability message',
+    (tester) async {
+      await tester.pumpWidget(_wrap(const ProfilePage()));
+      await tester.pumpAndSettle();
+      final control = find.byWidgetPredicate(
+        (w) =>
+            w is Semantics &&
+            w.properties.identifier == 'profile-life-stage-history',
+      );
+      await tester.scrollUntilVisible(control, 300);
+      await tester.pumpAndSettle();
+      final icon = find.descendant(of: control, matching: find.byType(Opacity));
+      expect(tester.widget<Opacity>(icon).opacity, 0.38);
+      await tester.tap(control);
+      await tester.pumpAndSettle();
+      expect(find.text(l10nEn.lifeStageFemaleOnly), findsOneWidget);
+      expect(find.byType(ProfilePage), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'You contains profile controls without library or settings entries',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(400, 3000));

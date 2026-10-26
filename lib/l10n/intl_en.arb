@@ -1488,5 +1488,6 @@
   "nutrientWithinUpper": "At or below upper threshold",
   "nutrientAtAdequacy": "At or above adequacy threshold",
   "nutrientNoAssessment": "No comparable assessment",
-  "nutrientClose": "Close"
+  "nutrientClose": "Close",
+  "lifeStageFemaleOnly": "Pregnancy and breastfeeding settings are available when Female is selected in your profile."
 }

@@ -291,29 +291,35 @@ class _ProfilePageState extends State<ProfilePage> {
                 }
               },
             ),
-            if (user.sex == UserSexEntity.female)
-              _ProfileTile(
-                identifier: 'profile-life-stage-history',
-                palette: palette,
-                icon: Icons.timeline,
-                title: S.of(context).lifeStageHistoryTitle,
-                subtitle: user.lifeStageOn(DateTime.now()) == null
-                    ? null
-                    : lifeStageLabel(
-                        user.lifeStageOn(DateTime.now())!,
-                        S.of(context),
-                      ),
-                onTap: () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const LifeStageHistoryScreen(),
+            _ProfileTile(
+              identifier: 'profile-life-stage-history',
+              muted: user.sex != UserSexEntity.female,
+              palette: palette,
+              icon: Icons.timeline,
+              title: S.of(context).lifeStageHistoryTitle,
+              subtitle: user.lifeStageOn(DateTime.now()) == null
+                  ? null
+                  : lifeStageLabel(
+                      user.lifeStageOn(DateTime.now())!,
+                      S.of(context),
                     ),
+              onTap: () async {
+                if (user.sex != UserSexEntity.female) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(S.of(context).lifeStageFemaleOnly)),
                   );
-                  if (context.mounted) {
-                    context.read<ProfileBloc>().add(LoadProfileEvent());
-                  }
-                },
-              ),
+                  return;
+                }
+                await Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const LifeStageHistoryScreen(),
+                  ),
+                );
+                if (context.mounted) {
+                  context.read<ProfileBloc>().add(LoadProfileEvent());
+                }
+              },
+            ),
             _ProfileTile(
               identifier: 'profile-age',
               palette: palette,
@@ -602,6 +608,7 @@ class _ProfileTile extends StatelessWidget {
   final String? subtitle;
   final Widget? subtitleWidget;
   final bool showChevron;
+  final bool muted;
   final VoidCallback onTap;
 
   const _ProfileTile({
@@ -614,6 +621,7 @@ class _ProfileTile extends StatelessWidget {
     this.subtitle,
     this.subtitleWidget,
     this.showChevron = false,
+    this.muted = false,
   });
 
   @override
@@ -623,21 +631,33 @@ class _ProfileTile extends StatelessWidget {
     return Semantics(
       identifier: identifier,
       child: ListTile(
-        leading: _IconChip(
-          palette: palette,
-          icon: icon,
-          iconWidget: iconWidget,
+        leading: Opacity(
+          opacity: muted ? 0.38 : 1,
+          child: _IconChip(
+            palette: palette,
+            icon: icon,
+            iconWidget: iconWidget,
+          ),
         ),
         title: Text(
           title,
-          style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: text.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: muted ? Theme.of(context).disabledColor : null,
+          ),
         ),
         subtitle:
             subtitleWidget ??
             (subtitle != null
                 ? Text(
                     subtitle!,
-                    style: text.bodyMedium?.copyWith(color: palette.textMuted),
+                    style: text.bodyMedium?.copyWith(
+                      color: muted
+                          ? Theme.of(context).disabledColor
+                          : palette.textMuted,
+                    ),
                   )
                 : null),
         trailing: showChevron
