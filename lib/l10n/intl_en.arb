@@ -1434,5 +1434,6 @@
   "lifeStageOngoing": "Ongoing",
   "lifeStageStart": "Start date",
   "lifeStageEnd": "End date",
-  "lifeStageInvalid": "Choose an end on or after the start, without overlapping another period."
+  "lifeStageInvalid": "Choose an end on or after the start, without overlapping another period.",
+  "regionalReferenceDescription": "RDI/RDA and AI describe adequacy. UL describes an upper intake level; CDRR and SDT are distinct chronic disease guidance. Nutrient forms and intake scopes must match before comparing. An absent UL does not establish unlimited safe intake."
 }

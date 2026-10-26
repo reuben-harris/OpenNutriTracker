@@ -5,7 +5,7 @@ import 'package:opennutritracker/core/domain/entity/nutrients.dart';
 // Medicine (now the National Academies' Health and Medicine Division)
 // Dietary Reference Intake tables. RDAs are used where the IOM publishes
 // one; for sodium the value below is the Chronic Disease Risk Reduction
-// Intake (CDRR / UL), since the IOM does not publish an RDA. The figures
+// Intake (CDRR), since the IOM does not publish an RDA. The figures
 // match the consolidated DRI tables linked from the URL above.
 //
 // Scope notes:
@@ -89,20 +89,20 @@ const Map<String, Map<_LifeStage, DriReference>> _driTable = {
     _LifeStage.f71plus: DriReference(amount: 21, unit: 'g', basis: 'AI'),
   },
   NutrientKeys.sodium: {
-    // IOM CDRR / UL: 2300 mg/day for all adults. The IOM does not publish
+    // IOM CDRR: 2300 mg/day for all adults. The IOM does not publish
     // a sodium RDA — the figure below is the chronic-disease-risk
     // reduction intake from the 2019 sodium/potassium update, the same
     // number the FDA Daily Value uses. Because it is a ceiling rather than
     // a target, the panel labels this row a "limit" (see _NutrientRow).
     // https://www.nationalacademies.org/projects/HMD-FNB-17-01
-    _LifeStage.m19to30: DriReference(amount: 2300, unit: 'mg', basis: 'UL'),
-    _LifeStage.m31to50: DriReference(amount: 2300, unit: 'mg', basis: 'UL'),
-    _LifeStage.m51to70: DriReference(amount: 2300, unit: 'mg', basis: 'UL'),
-    _LifeStage.m71plus: DriReference(amount: 2300, unit: 'mg', basis: 'UL'),
-    _LifeStage.f19to30: DriReference(amount: 2300, unit: 'mg', basis: 'UL'),
-    _LifeStage.f31to50: DriReference(amount: 2300, unit: 'mg', basis: 'UL'),
-    _LifeStage.f51to70: DriReference(amount: 2300, unit: 'mg', basis: 'UL'),
-    _LifeStage.f71plus: DriReference(amount: 2300, unit: 'mg', basis: 'UL'),
+    _LifeStage.m19to30: DriReference(amount: 2300, unit: 'mg', basis: 'CDRR'),
+    _LifeStage.m31to50: DriReference(amount: 2300, unit: 'mg', basis: 'CDRR'),
+    _LifeStage.m51to70: DriReference(amount: 2300, unit: 'mg', basis: 'CDRR'),
+    _LifeStage.m71plus: DriReference(amount: 2300, unit: 'mg', basis: 'CDRR'),
+    _LifeStage.f19to30: DriReference(amount: 2300, unit: 'mg', basis: 'CDRR'),
+    _LifeStage.f31to50: DriReference(amount: 2300, unit: 'mg', basis: 'CDRR'),
+    _LifeStage.f51to70: DriReference(amount: 2300, unit: 'mg', basis: 'CDRR'),
+    _LifeStage.f71plus: DriReference(amount: 2300, unit: 'mg', basis: 'CDRR'),
   },
   NutrientKeys.calcium: {
     // IOM RDA: 1000 mg adults 19 to 50 (and men 51 to 70),
