@@ -31,6 +31,7 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
         diarySortPreferences: (fields[21] as Map?)?.cast<String, int>(),
         nutrientPanelVisibility: (fields[22] as Map?)?.cast<String, bool>(),
         nutrientInfoVisibility: (fields[44] as Map?)?.cast<String, bool>(),
+        showMissingNutrientsInInfo: fields[46] as bool?,
         dayStartOffsetMinutes: (fields[23] as num?)?.toInt(),
         dailyWaterGoalMl: (fields[24] as num?)?.toInt(),
         useMaterialYou: fields[20] as bool?,
@@ -57,7 +58,7 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
   @override
   void write(BinaryWriter writer, ConfigDBO obj) {
     writer
-      ..writeByte(34)
+      ..writeByte(35)
       ..writeByte(3)
       ..write(obj.selectedAppTheme)
       ..writeByte(4)
@@ -125,7 +126,9 @@ class ConfigDBOAdapter extends TypeAdapter<ConfigDBO> {
       ..writeByte(44)
       ..write(obj.nutrientInfoVisibility)
       ..writeByte(45)
-      ..write(obj.overviewNutrientsWithoutGoal);
+      ..write(obj.overviewNutrientsWithoutGoal)
+      ..writeByte(46)
+      ..write(obj.showMissingNutrientsInInfo);
   }
 
   @override
@@ -169,6 +172,7 @@ ConfigDBO _$ConfigDBOFromJson(Map<String, dynamic> json) =>
             (json['nutrientInfoVisibility'] as Map<String, dynamic>?)?.map(
               (k, e) => MapEntry(k, e as bool),
             ),
+        showMissingNutrientsInInfo: json['showMissingNutrientsInInfo'] as bool?,
         dayStartOffsetMinutes: (json['dayStartOffsetMinutes'] as num?)?.toInt(),
         dailyWaterGoalMl: (json['dailyWaterGoalMl'] as num?)?.toInt(),
         useMaterialYou: json['useMaterialYou'] as bool?,
@@ -241,6 +245,7 @@ Map<String, dynamic> _$ConfigDBOToJson(ConfigDBO instance) => <String, dynamic>{
   'catalogueSourceOverrides': instance.catalogueSourceOverrides,
   'nutrientInfoVisibility': instance.nutrientInfoVisibility,
   'overviewNutrientsWithoutGoal': instance.overviewNutrientsWithoutGoal,
+  'showMissingNutrientsInInfo': instance.showMissingNutrientsInInfo,
 };
 
 const _$AppThemeDBOEnumMap = {

@@ -18,6 +18,9 @@ class ConfigRepository {
     await _configDataSource.addConfig(configDBO);
   }
 
+  Future<void> setShowMissingNutrientsInInfo(bool value) =>
+      _configDataSource.setShowMissingNutrientsInInfo(value);
+
   Future<void> setOverviewMacrosAsPercent(bool value) =>
       _configDataSource.setOverviewMacrosAsPercent(value);
 

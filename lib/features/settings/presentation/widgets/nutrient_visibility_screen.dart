@@ -42,7 +42,7 @@ class _NutrientVisibilityScreenState extends State<NutrientVisibilityScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(s.settingsNutrientsLabel)),
       body: NutrientVisibilityBuilder(
-        builder: (context, daily, info) => Semantics(
+        builder: (context, config) => Semantics(
           identifier: 'nutrient-visibility-list',
           label: s.settingsNutrientsLabel,
           child: ListView(
@@ -79,7 +79,13 @@ class _NutrientVisibilityScreenState extends State<NutrientVisibilityScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       for (final isInfo in [false, true])
-                        _groupCheckbox(group, isInfo ? info : daily, isInfo),
+                        _groupCheckbox(
+                          group,
+                          isInfo
+                              ? config.nutrientInfoVisibility
+                              : config.nutrientPanelVisibility,
+                          isInfo,
+                        ),
                     ],
                   ),
                 ),
@@ -104,7 +110,12 @@ class _NutrientVisibilityScreenState extends State<NutrientVisibilityScreen> {
                             label:
                                 '${n.label(s)}, ${isInfo ? s.nutrientVisibilityInfoLabel : s.nutrientVisibilityDailyLabel}',
                             child: Checkbox(
-                              value: (isInfo ? info : daily)[n.key] ?? true,
+                              value:
+                                  (isInfo
+                                      ? config.nutrientInfoVisibility
+                                      : config.nutrientPanelVisibility)[n
+                                      .key] ??
+                                  true,
                               onChanged: _saving
                                   ? null
                                   : (value) => _toggle([n.key], value!, isInfo),

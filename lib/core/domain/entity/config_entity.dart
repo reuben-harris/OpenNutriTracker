@@ -49,6 +49,9 @@ class ConfigEntity extends Equatable {
   // visible; Daily controls the daily totals and Trends, Info controls item tables.
   final Map<String, bool> nutrientPanelVisibility;
   final Map<String, bool> nutrientInfoVisibility;
+
+  /// Shared across profiles and all food information tables.
+  final bool showMissingNutrientsInInfo;
   final int dayStartOffsetHours; // #139: 0-23, default 0 (wall-clock midnight)
   final int
   dayStartOffsetMinutes; // #139 follow-up: 0-59, composes additively with hours
@@ -215,6 +218,7 @@ class ConfigEntity extends Equatable {
     this.overviewNutrientsWithoutGoal = false,
     this.nutrientPanelVisibility = const <String, bool>{},
     this.nutrientInfoVisibility = const <String, bool>{},
+    this.showMissingNutrientsInInfo = false,
     this.dayStartOffsetHours = 0,
     this.dayStartOffsetMinutes = 0,
     this.dailyWaterGoalMl,
@@ -287,6 +291,7 @@ class ConfigEntity extends Equatable {
         dbo.nutrientPanelVisibility ?? const <String, bool>{},
     nutrientInfoVisibility:
         dbo.nutrientInfoVisibility ?? const <String, bool>{},
+    showMissingNutrientsInInfo: dbo.showMissingNutrientsInInfo ?? false,
     dayStartOffsetHours: _normaliseOffsetHours(dbo.dayStartOffsetHours),
     dayStartOffsetMinutes: _normaliseOffsetMinutes(dbo.dayStartOffsetMinutes),
     dailyWaterGoalMl: _normaliseWaterGoal(dbo.dailyWaterGoalMl),
@@ -394,6 +399,7 @@ class ConfigEntity extends Equatable {
     overviewNutrientsWithoutGoal,
     nutrientPanelVisibility,
     nutrientInfoVisibility,
+    showMissingNutrientsInInfo,
     dayStartOffsetHours,
     dayStartOffsetMinutes,
     dailyWaterGoalMl,

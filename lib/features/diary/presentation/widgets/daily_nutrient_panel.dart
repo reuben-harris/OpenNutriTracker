@@ -53,7 +53,7 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
 
   @override
   Widget build(BuildContext context) => NutrientVisibilityBuilder(
-    builder: (context, daily, info) => FutureBuilder<UserEntity?>(
+    builder: (context, config) => FutureBuilder<UserEntity?>(
       future: _user,
       builder: (context, snapshot) {
         final s = S.of(context);
@@ -63,7 +63,7 @@ class _DailyNutrientPanelState extends State<DailyNutrientPanel> {
           trackedDay: widget.trackedDay,
         );
         final enabled = Nutrients.additional
-            .where((n) => daily[n.key] ?? true)
+            .where((n) => config.nutrientPanelVisibility[n.key] ?? true)
             .toList();
         bool hasGoal(NutrientDefinition n) {
           final goal = goals[n.key];

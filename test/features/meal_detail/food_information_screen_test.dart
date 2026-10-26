@@ -54,6 +54,9 @@ import 'package:opennutritracker/features/meal_detail/meal_detail_screen.dart';
 import 'package:opennutritracker/features/meal_detail/presentation/bloc/meal_detail_bloc.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
+import 'package:opennutritracker/core/domain/usecase/add_config_usecase.dart';
+import '../../helpers/overview_diary_harness.dart';
+import '../../helpers/pump_until.dart';
 
 const _nutriments = MealNutrimentsEntity(
   energyKcal100: NutrientAmount(100),
@@ -270,6 +273,44 @@ void main() {
     );
     return saves;
   }
+
+  testWidgets('food and recipe info share both eye-toggle choices', (
+    tester,
+  ) async {
+    final h = OverviewDiaryHarness();
+    await tester.runAsync(h.initialize);
+    await getIt.unregister<GetConfigUsecase>();
+    getIt.registerSingleton<GetConfigUsecase>(h.getConfig);
+    getIt.registerSingleton<AddConfigUsecase>(AddConfigUsecase(h.config));
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox());
+      await pumpUntilComplete(
+        tester,
+        h.dispose(),
+        reason: 'closing shared info preferences',
+      );
+    });
+    final missing = find.byKey(const ValueKey('nutrition-row-vitamin_b12'));
+    await pumpMealDetail(tester, _solidWithServing());
+    final show = find.byTooltip('Show nutrients with no data');
+    await pumpUntil(tester, () => show.evaluate().isNotEmpty);
+    expect(missing, findsNothing);
+    await tester.ensureVisible(show);
+    await tester.tap(show);
+    await pumpUntil(tester, () => missing.evaluate().isNotEmpty);
+    await tester.pumpWidget(const SizedBox());
+    await openRecipe(tester);
+    final hide = find.byTooltip('Hide nutrients with no data');
+    await pumpUntil(tester, () => hide.evaluate().isNotEmpty);
+    expect(missing, findsOneWidget);
+    await tester.ensureVisible(hide);
+    await tester.tap(hide);
+    await pumpUntil(tester, () => missing.evaluate().isEmpty);
+    await tester.pumpWidget(const SizedBox());
+    await pumpMealDetail(tester, _solidWithServing());
+    await pumpUntil(tester, () => show.evaluate().isNotEmpty);
+    expect(missing, findsNothing);
+  });
 
   testWidgets(
     'recipe reuses nutrition and logging, and details edits save on leaving',
@@ -592,12 +633,10 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('nutrition-row-vitamin_b12')),
-          matching: find.textContaining('No data'),
-        ),
-        findsOneWidget,
+        find.byKey(const ValueKey('nutrition-row-vitamin_b12')),
+        findsNothing,
       );
+      expect(find.byTooltip('Show nutrients with no data'), findsOneWidget);
       expect(_maxScrollOffset(tester), 0);
     },
   );

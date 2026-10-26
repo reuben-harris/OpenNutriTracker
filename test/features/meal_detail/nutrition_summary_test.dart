@@ -13,6 +13,12 @@ import 'package:opennutritracker/features/add_meal/domain/entity/meal_entity.dar
 import 'package:opennutritracker/features/add_meal/domain/entity/meal_nutriments_entity.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:provider/provider.dart';
+import 'package:opennutritracker/core/domain/usecase/add_config_usecase.dart';
+import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
+import 'package:opennutritracker/core/utils/locator.dart';
+import '../../helpers/locator_test_setup.dart';
+import '../../helpers/overview_diary_harness.dart';
+import '../../helpers/pump_until.dart';
 
 Widget app(Widget child, {bool kj = false}) => ChangeNotifierProvider(
   key: ValueKey(kj),
@@ -24,7 +30,30 @@ Widget app(Widget child, {bool kj = false}) => ChangeNotifierProvider(
   ),
 );
 
+Future<void> configureInfo(
+  WidgetTester tester, {
+  bool showMissing = false,
+}) async {
+  final h = OverviewDiaryHarness();
+  await tester.runAsync(() async {
+    await h.initialize();
+    await h.configSource.setShowMissingNutrientsInInfo(showMissing);
+  });
+  locator.registerSingleton<GetConfigUsecase>(h.getConfig);
+  locator.registerSingleton<AddConfigUsecase>(AddConfigUsecase(h.config));
+  addTearDown(() async {
+    await tester.pumpWidget(const SizedBox());
+    await locator.resetScope();
+    await pumpUntilComplete(
+      tester,
+      h.dispose(),
+      reason: 'closing info settings',
+    );
+  });
+}
+
 void main() {
+  useTestLocator();
   for (final (amount, goal, label)
       in <(NutrientAmount?, NutrientGoal?, String)>[
         (null, const NutrientGoal(10), 'No data'),
@@ -56,6 +85,7 @@ void main() {
   testWidgets(
     'the information table keeps fixed macros within their nutrient groups',
     (tester) async {
+      await configureInfo(tester, showMissing: true);
       final meal = MealEntity(
         code: 'empty',
         name: 'Food',
@@ -76,6 +106,10 @@ void main() {
             reference: true,
           ),
         ),
+      );
+      await pumpUntil(
+        tester,
+        () => find.byType(NutrientAmountRow).evaluate().isNotEmpty,
       );
       Finder header(NutrientGroup group) => find.byWidgetPredicate(
         (widget) => widget is NutrientGroupHeader && widget.group == group,
@@ -111,6 +145,141 @@ void main() {
             .every((bar) => bar.value == 0),
         isTrue,
       );
+    },
+  );
+  testWidgets('the eye hides missing values while preserving zero and trace', (
+    tester,
+  ) async {
+    await configureInfo(tester);
+    final food = MealEntity(
+      code: 'eye-toggle',
+      name: 'Food',
+      url: null,
+      mealQuantity: null,
+      mealUnit: 'g',
+      servingQuantity: null,
+      servingUnit: null,
+      servingSize: null,
+      source: MealSourceEntity.custom,
+      nutriments: MealNutrimentsEntity.fromAmounts({
+        'carbohydrates100': const NutrientAmount(0),
+        'fat100': const NutrientAmount(1.25, isPartial: true),
+        'histidine100': const NutrientAmount(0),
+        'cystine100': const NutrientAmount(
+          0,
+          qualification: NutrientQualification.trace,
+        ),
+      }),
+    );
+    await tester.pumpWidget(
+      app(
+        MealDetailNutrimentsTable(
+          product: food,
+          baseAmount: 100,
+          reference: true,
+        ),
+      ),
+    );
+    Finder row(String key) => find.byKey(ValueKey('nutrition-row-$key'));
+    await pumpUntil(
+      tester,
+      () => find.byTooltip('Show nutrients with no data').evaluate().isNotEmpty,
+    );
+    expect(row('energy'), findsNothing);
+    expect(row('cysteine'), findsNothing);
+    expect(find.textContaining('No data'), findsNothing);
+    expect(row('carbohydrates'), findsOneWidget);
+    expect(row('fat'), findsOneWidget);
+    expect(row('histidine'), findsOneWidget);
+    expect(row('cystine'), findsOneWidget);
+    expect(find.byType(NutrientAmountRow), findsNWidgets(4));
+    expect(find.textContaining('Trace*'), findsOneWidget);
+    expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+    await tester.tap(find.byTooltip('Show nutrients with no data'));
+    await pumpUntil(tester, () => row('energy').evaluate().isNotEmpty);
+    expect(row('energy'), findsOneWidget);
+    expect(row('cysteine'), findsOneWidget);
+    expect(row('histidine'), findsOneWidget);
+    expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+    await pumpUntil(
+      tester,
+      () =>
+          tester.widget<IconButton>(find.byType(IconButton)).onPressed != null,
+    );
+    await tester.tap(find.byTooltip('Hide nutrients with no data'));
+    await pumpUntil(tester, () => row('energy').evaluate().isEmpty);
+    expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+  });
+  testWidgets(
+    'the eye updates other mounted and subsequently opened info tables',
+    (tester) async {
+      await configureInfo(tester);
+      MealEntity food(String code) => MealEntity(
+        code: code,
+        name: code,
+        url: null,
+        mealQuantity: null,
+        mealUnit: 'g',
+        servingQuantity: null,
+        servingUnit: null,
+        servingSize: null,
+        source: MealSourceEntity.custom,
+        nutriments: MealNutrimentsEntity.empty(),
+      );
+      Widget table(String code) => MealDetailNutrimentsTable(
+        key: ValueKey(code),
+        product: food(code),
+        baseAmount: 100,
+        reference: true,
+      );
+      await tester.pumpWidget(
+        app(Column(children: [table('first'), table('second')])),
+      );
+      await pumpUntil(
+        tester,
+        () =>
+            find.byTooltip('Show nutrients with no data').evaluate().length ==
+            2,
+      );
+      expect(find.byType(NutrientAmountRow), findsNothing);
+      expect(
+        find.text('This food has no reported nutrient values.'),
+        findsNWidgets(2),
+      );
+      await tester.tap(find.byTooltip('Show nutrients with no data').first);
+      await pumpUntil(
+        tester,
+        () =>
+            find.byTooltip('Hide nutrients with no data').evaluate().length ==
+            2,
+      );
+      expect(
+        find.byKey(const ValueKey('nutrition-row-energy')),
+        findsNWidgets(2),
+      );
+      await tester.pumpWidget(app(table('third')));
+      await pumpUntil(
+        tester,
+        () =>
+            find.byTooltip('Hide nutrients with no data').evaluate().isNotEmpty,
+      );
+      expect(
+        find.byKey(const ValueKey('nutrition-row-energy')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byTooltip('Hide nutrients with no data'));
+      await pumpUntil(
+        tester,
+        () =>
+            find.byTooltip('Show nutrients with no data').evaluate().isNotEmpty,
+      );
+      await tester.pumpWidget(app(table('fourth')));
+      await pumpUntil(
+        tester,
+        () =>
+            find.byTooltip('Show nutrients with no data').evaluate().isNotEmpty,
+      );
+      expect(find.byType(NutrientAmountRow), findsNothing);
     },
   );
   testWidgets('trace, small numbers, legend and semantics fit enlarged text', (
@@ -199,6 +368,7 @@ void main() {
   testWidgets('table scales all nutrients and retains missing versus zero', (
     tester,
   ) async {
+    await configureInfo(tester, showMissing: true);
     final meal = MealEntity(
       code: 'test',
       name: 'Test',
@@ -241,6 +411,10 @@ void main() {
           ),
           kj: kj,
         ),
+      );
+      await pumpUntil(
+        tester,
+        () => find.byType(NutrientAmountRow).evaluate().isNotEmpty,
       );
       expect(find.textContaining(energy), findsOneWidget);
       expect(find.textContaining(vitamin), findsOneWidget);

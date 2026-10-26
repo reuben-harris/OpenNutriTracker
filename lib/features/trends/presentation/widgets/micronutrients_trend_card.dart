@@ -36,8 +36,10 @@ class _MicronutrientsTrendCardState extends State<MicronutrientsTrendCard> {
 
   @override
   Widget build(BuildContext context) => NutrientVisibilityBuilder(
-    builder: (context, daily, info) =>
-        _build(context, {...widget.visibility, ...daily}),
+    builder: (context, config) => _build(context, {
+      ...widget.visibility,
+      ...config.nutrientPanelVisibility,
+    }),
   );
 
   Widget _build(BuildContext context, Map<String, bool> visibility) {

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:opennutritracker/generated/l10n.dart';
 import 'package:opennutritracker/core/domain/entity/config_entity.dart';
+import 'package:opennutritracker/core/domain/entity/app_theme_entity.dart';
 import 'package:opennutritracker/core/domain/usecase/get_config_usecase.dart';
 import 'package:opennutritracker/core/utils/locator.dart';
 
 /// One subscription owns visibility updates for each nutrient surface.
 class NutrientVisibilityBuilder extends StatefulWidget {
-  final Widget Function(BuildContext, Map<String, bool>, Map<String, bool>)
-  builder;
+  final Widget Function(BuildContext, ConfigEntity) builder;
   const NutrientVisibilityBuilder({super.key, required this.builder});
   @override
   State<NutrientVisibilityBuilder> createState() =>
@@ -23,7 +23,7 @@ class _NutrientVisibilityBuilderState extends State<NutrientVisibilityBuilder> {
   @override
   Widget build(BuildContext context) {
     if (_config == null) {
-      return widget.builder(context, const {}, const {});
+      return widget.builder(context, const ConfigEntity(AppThemeEntity.system));
     }
     return StreamBuilder<ConfigEntity>(
       stream: _config,
@@ -47,11 +47,7 @@ class _NutrientVisibilityBuilderState extends State<NutrientVisibilityBuilder> {
           }
           return const Center(child: CircularProgressIndicator());
         }
-        return widget.builder(
-          context,
-          config.nutrientPanelVisibility,
-          config.nutrientInfoVisibility,
-        );
+        return widget.builder(context, config);
       },
     );
   }

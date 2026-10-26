@@ -147,6 +147,9 @@ class ConfigDBO extends HiveObject {
   @HiveField(45)
   bool? overviewNutrientsWithoutGoal;
 
+  @HiveField(46)
+  bool? showMissingNutrientsInInfo;
+
   ConfigDBO(
     this.selectedAppTheme, {
     this.usesImperialUnits = false,
@@ -162,6 +165,7 @@ class ConfigDBO extends HiveObject {
     this.diarySortPreferences,
     this.nutrientPanelVisibility,
     this.nutrientInfoVisibility,
+    this.showMissingNutrientsInInfo,
     this.dayStartOffsetMinutes,
     this.dailyWaterGoalMl,
     this.useMaterialYou,
@@ -191,6 +195,7 @@ class ConfigDBO extends HiveObject {
     ),
     nutrientPanelVisibility: Map.of(entity.nutrientPanelVisibility),
     nutrientInfoVisibility: Map.of(entity.nutrientInfoVisibility),
+    showMissingNutrientsInInfo: entity.showMissingNutrientsInInfo,
     overviewMacrosAsPercent: entity.overviewMacrosAsPercent,
     overviewNutrientsWithoutGoal: entity.overviewNutrientsWithoutGoal,
     usesImperialUnits: entity.usesImperialUnits,

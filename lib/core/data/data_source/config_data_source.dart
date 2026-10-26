@@ -213,6 +213,9 @@ class ConfigDataSource {
     await _update((c) => c.usesKilojoules = usesKilojoules);
   }
 
+  Future<void> setShowMissingNutrientsInInfo(bool value) =>
+      _update((c) => c.showMissingNutrientsInInfo = value);
+
   Future<void> setOverviewMacrosAsPercent(bool value) =>
       _update((c) => c.overviewMacrosAsPercent = value);
 

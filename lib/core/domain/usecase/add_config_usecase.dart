@@ -15,6 +15,9 @@ class AddConfigUsecase {
     await _configRepository.updateConfig(configEntity);
   }
 
+  Future<void> setShowMissingNutrientsInInfo(bool value) =>
+      _configRepository.setShowMissingNutrientsInInfo(value);
+
   Future<void> setOverviewMacrosAsPercent(bool value) =>
       _configRepository.setOverviewMacrosAsPercent(value);
 

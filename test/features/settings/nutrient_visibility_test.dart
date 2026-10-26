@@ -163,6 +163,11 @@ void main() {
     expect(saved.nutrientPanelVisibility['sugar'], isFalse);
     expect(saved.nutrientInfoVisibility['sugar'], isFalse);
 
+    await pumpUntilComplete(
+      tester,
+      h.configSource.setShowMissingNutrientsInInfo(true),
+      reason: 'showing missing information nutrients',
+    );
     final meal = nutrientFood(MealNutrimentsEntity.empty());
     await tester.pumpWidget(
       app(
@@ -215,6 +220,7 @@ void main() {
       final h = OverviewDiaryHarness();
       await tester.runAsync(() async {
         await h.initialize();
+        await h.configSource.setShowMissingNutrientsInInfo(true);
         for (final nutrient in Nutrients.additional) {
           await h.configSource.setNutrientVisibility(
             [nutrient.key],
