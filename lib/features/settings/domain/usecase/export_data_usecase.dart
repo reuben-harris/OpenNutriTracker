@@ -1,3 +1,4 @@
+import 'package:opennutritracker/core/data/repository/user_repository.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -26,6 +27,7 @@ import 'package:opennutritracker/features/settings/domain/export_import_failure.
 enum ExportFormat { json, csv }
 
 class ExportDataUsecase {
+  final UserRepository _userRepository;
   final UserActivityRepository _userActivityRepository;
   final IntakeRepository _intakeRepository;
   final TrackedDayRepository _trackedDayRepository;
@@ -41,8 +43,9 @@ class ExportDataUsecase {
     this._recipeRepository,
     this._customMealDataSource,
     this._weightLogRepository,
-    this._customActivityTemplateRepository,
-  );
+    this._customActivityTemplateRepository, {
+    required UserRepository userRepository,
+  }) : _userRepository = userRepository;
 
   /// Exports user activity, intake, tracked day, recipe, weight-log and
   /// Custom activity template data to a zip at a user-specified location,
@@ -195,6 +198,12 @@ class ExportDataUsecase {
     // recipes can fall back to the dedicated Sample / Import recipes
     // CSV path under Import Custom Food Data.
     if (format == ExportFormat.json) {
+      final userBytes = utf8.encode(
+        jsonEncode((await _userRepository.getUserDBO()).toJson()),
+      );
+      archive.addFile(
+        ArchiveFile('profile_body.json', userBytes.length, userBytes),
+      );
       final fullRecipes = _recipeRepository.getAllRecipesDBO();
       final recipeBytes = utf8.encode(
         jsonEncode(fullRecipes.map((r) => r.toJson()).toList()),

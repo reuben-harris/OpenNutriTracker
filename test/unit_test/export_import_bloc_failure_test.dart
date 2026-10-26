@@ -1,3 +1,4 @@
+import '../helpers/memory_user_repository.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -86,6 +87,7 @@ class _ThrowingExportDataUsecase extends ExportDataUsecase {
         CustomActivityTemplateRepository(
           CustomActivityTemplateDataSource(_provider),
         ),
+        userRepository: MemoryUserRepository(),
       );
 
   final Object error;
@@ -154,6 +156,7 @@ ExportImportBloc _bloc({
         CustomActivityTemplateDataSource(_provider),
       ),
       pickFile: pickFile ?? () async => throw StateError('unused'),
+      userRepository: MemoryUserRepository(),
     ),
     ImportMealsCsvUsecase(customMealDataSource),
     ImportRecipesCsvUsecase(saveRecipeUseCase),

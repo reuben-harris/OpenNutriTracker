@@ -1,3 +1,4 @@
+import '../helpers/memory_user_repository.dart';
 import 'package:opennutritracker/core/domain/entity/nutrient_amount.dart';
 import 'dart:io';
 import 'dart:convert';
@@ -204,6 +205,7 @@ void main() {
         _StubCustomMealDataSource([]),
         _StubWeightLogRepository(),
         _StubTemplateRepository(),
+        userRepository: MemoryUserRepository(),
       );
 
       final archive = await usecase.assembleArchive(
@@ -289,6 +291,7 @@ void main() {
       _StubCustomMealDataSource([]),
       _StubWeightLogRepository(),
       _StubTemplateRepository(),
+      userRepository: MemoryUserRepository(),
     );
 
     final archive = await usecase.assembleArchive(

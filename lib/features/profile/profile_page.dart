@@ -1,3 +1,4 @@
+import 'package:opennutritracker/features/profile/presentation/height_history_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:opennutritracker/core/domain/entity/body_weight_unit_entity.dart';
@@ -270,6 +271,23 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               onTap: () {
                 _showSetHeightDialog(context, user, usesImperialHeightUnits);
+              },
+            ),
+            _ProfileTile(
+              identifier: 'profile-height-history',
+              palette: palette,
+              icon: Icons.history,
+              title: S.of(context).heightHistoryTitle,
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const HeightHistoryScreen(),
+                  ),
+                );
+                if (context.mounted) {
+                  final bloc = context.read<ProfileBloc>();
+                  await bloc.updateUser(await bloc.getUser());
+                }
               },
             ),
             _ProfileTile(

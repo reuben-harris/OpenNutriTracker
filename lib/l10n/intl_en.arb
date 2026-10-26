@@ -1422,5 +1422,8 @@
   "unsavedChangesTitle": "Unsaved changes",
   "unsavedChangesContent": "Would you like to save your changes before leaving?",
   "discardAndLeaveLabel": "Discard and leave",
-  "saveAndLeaveLabel": "Save and leave"
+  "saveAndLeaveLabel": "Save and leave",
+  "heightHistoryTitle": "Height history",
+  "heightHistoryEmpty": "No height readings in this period.",
+  "historyDeleteLabel": "Delete entry"
 }

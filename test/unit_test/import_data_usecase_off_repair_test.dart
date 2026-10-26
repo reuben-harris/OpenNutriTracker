@@ -1,3 +1,4 @@
+import '../helpers/memory_user_repository.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -247,6 +248,7 @@ void main() {
       ),
       pickFile: () async =>
           _PickedFile('backup.zip', File('${tempDir.path}/backup.zip').uri),
+      userRepository: MemoryUserRepository(),
     );
   });
 

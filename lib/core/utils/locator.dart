@@ -571,6 +571,7 @@ Future<void> initLocator() async {
       locator(),
       locator(),
       locator(),
+      userRepository: locator(),
     ),
   );
   locator.registerLazySingleton(
@@ -581,6 +582,7 @@ Future<void> initLocator() async {
       locator(),
       locator(),
       locator(),
+      userRepository: locator(),
     ),
   );
   locator.registerLazySingleton(() => ImportMealsCsvUsecase(locator()));

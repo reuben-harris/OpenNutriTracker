@@ -1,3 +1,4 @@
+import '../helpers/memory_user_repository.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -68,6 +69,7 @@ ImportDataUsecase _usecase(Future<PlatformFile?> Function() pickFile) {
       CustomActivityTemplateDataSource(provider),
     ),
     pickFile: pickFile,
+    userRepository: MemoryUserRepository(),
   );
 }
 

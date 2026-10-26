@@ -1,3 +1,5 @@
+import 'package:json_annotation/json_annotation.dart';
+import 'package:opennutritracker/core/domain/entity/height_reading.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:opennutritracker/core/data/dbo/user_sex_dbo.dart';
 import 'package:opennutritracker/core/data/dbo/user_pal_dbo.dart';
@@ -6,6 +8,7 @@ import 'package:opennutritracker/core/domain/entity/user_entity.dart';
 
 part 'user_dbo.g.dart';
 
+@JsonSerializable(explicitToJson: true)
 @HiveType(typeId: 5)
 class UserDBO extends HiveObject {
   @HiveField(0)
@@ -33,6 +36,9 @@ class UserDBO extends HiveObject {
   @HiveField(9)
   bool caloriesTaperEnabled;
 
+  @HiveField(10)
+  List<HeightReading>? heightHistory;
+
   UserDBO({
     required this.birthday,
     required this.heightCM,
@@ -40,13 +46,19 @@ class UserDBO extends HiveObject {
     required this.sex,
     required this.goal,
     required this.pal,
+    this.heightHistory,
     this.weeklyWeightGoalKg,
     this.targetWeightKg,
     this.caloriesTaperEnabled = false,
   });
 
+  factory UserDBO.fromJson(Map<String, dynamic> json) =>
+      _$UserDBOFromJson(json);
+  Map<String, dynamic> toJson() => _$UserDBOToJson(this);
+
   factory UserDBO.fromUserEntity(UserEntity entity) {
     return UserDBO(
+      heightHistory: entity.heightHistory,
       birthday: entity.birthday,
       heightCM: entity.heightCM,
       weightKG: entity.weightKG,
